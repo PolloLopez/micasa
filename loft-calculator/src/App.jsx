@@ -19,36 +19,31 @@ export default function App() {
     pilotinesPorFila: 3
   });
 
-  // Catálogo completo de insumos con alta de productos personalizados
   const [catalog, setCatalog] = useState([
     { id: '1', nombre: 'Caño Estructural 100x100x1.6', categoria: 'perfil', unidad: 'Barra', largoBarra: 6.0, precio: 38000 },
-    { id: '2', nombre: 'Perfil C 120x50x2.0', categoria: 'perfil', unidad: 'Barra', largoBarra: 6.0, precio: 35000 },
+    { id: '2', nombre: 'Perfil C 120x50x2.0 Marco', categoria: 'perfil', unidad: 'Barra', largoBarra: 6.0, precio: 35000 },
     { id: '3', nombre: 'Perfil C 100x45x2.0 Transversal', categoria: 'perfil', unidad: 'Barra', largoBarra: 6.0, precio: 26000 },
     { id: '4', nombre: 'Perfil C 80x40x1.6 Correa', categoria: 'perfil', unidad: 'Barra', largoBarra: 6.0, precio: 22000 },
     { id: '5', nombre: 'Placa OSB 18mm (2.44x1.22)', categoria: 'placa', unidad: 'Placa', largoBarra: 2.44, precio: 28000 },
-    { id: '6', nombre: 'Panel PUR Isopanel 50mm', categoria: 'panel', unidad: 'm²', largoBarra: 6.00, precio: 35000 },
-    { id: '7', nombre: 'Pilotín de Cemento', categoria: 'unidad', unidad: 'U', largoBarra: 0, precio: 15000 }
+    { id: '6', nombre: 'Panel PUR Isopanel 50mm', categoria: 'panel', unidad: 'm²', largoBarra: 6.00, precio: 35000 }
   ]);
 
-  const [newProduct, setNewProduct] = useState({
-    nombre: '', categoria: 'perfil', unidad: 'Barra', largoBarra: 6.0, precio: 0
-  });
+  const [newProduct, setNewProduct] = useState({ nombre: '', categoria: 'perfil', unidad: 'Barra', largoBarra: 6.0, precio: 0 });
 
-  // Aberturas Múltiples con Posicionamiento Exacto
+  // ABERTURAS CON DESPLAZAMIENTO HORIZONTAL Y ALTURA SEPARADOS
   const [openings, setOpenings] = useState([
-    { id: 1, nombre: 'Puerta Principal', tipo: 'puerta', pared: 'frente', ancho: 0.90, alto: 2.05, antepecho: 0, offset: 0 },
-    { id: 2, nombre: 'Ventana Frente', tipo: 'ventana', pared: 'frente', ancho: 1.50, alto: 0.60, antepecho: 1.10, offset: 2.0 }
+    { id: 1, nombre: 'Puerta Principal', tipo: 'puerta', pared: 'frente', ladoReferencia: 'izquierda', offsetHorizontal: 1.00, alturaAntepecho: 0.00, ancho: 0.90, alto: 2.05 },
+    { id: 2, nombre: 'Ventana Frente', tipo: 'ventana', pared: 'frente', ladoReferencia: 'derecha', offsetHorizontal: 1.20, alturaAntepecho: 1.10, ancho: 1.50, alto: 0.60 }
   ]);
 
   const [newOp, setNewOp] = useState({
-    nombre: 'Abertura Custom', tipo: 'ventana', pared: 'frente', ancho: 1.20, alto: 1.00, antepecho: 1.00, offset: 0
+    nombre: 'Abertura Custom', tipo: 'ventana', pared: 'frente', ladoReferencia: 'izquierda', offsetHorizontal: 1.00, alturaAntepecho: 1.00, ancho: 1.20, alto: 1.00
   });
 
   const [layers, setLayers] = useState({
     pilotines: true, columnas: true, estructuras: true, fajas: true, osb: true, pur: true
   });
 
-  // Conversión de Unidades
   const toUnit = (valInMeters) => {
     if (globalUnit === 'mm') return (valInMeters * 1000).toFixed(0);
     if (globalUnit === 'cm') return (valInMeters * 100).toFixed(1);
@@ -77,20 +72,15 @@ export default function App() {
     setCatalog(catalog.map(p => p.id === id ? { ...p, [field]: value } : p));
   };
 
-  const addOpening = () => {
-    setOpenings([...openings, { ...newOp, id: Date.now() }]);
-  };
+  const addOpening = () => setOpenings([...openings, { ...newOp, id: Date.now() }]);
+  const removeOpening = (id) => setOpenings(openings.filter(op => op.id !== id));
 
-  const removeOpening = (id) => {
-    setOpenings(openings.filter(op => op.id !== id));
-  };
-
-  // Algoritmo 1D Nesting
+  // ALGORITMO NESTING MULTI-PIEZA 1D (Optimización Real)
   const optimize1D = (piecesList, barLength) => {
     if (!piecesList || piecesList.length === 0 || barLength <= 0) {
       return { bars: [], totalBars: 0, totalNetMetrage: 0, wasteMeters: 0, wastePercent: 0 };
     }
-    const kerf = 0.003;
+    const kerf = 0.003; // Merma de 3mm por corte de disco
     let sorted = [...piecesList].sort((a, b) => b - a);
     let bars = [];
 
@@ -118,18 +108,20 @@ export default function App() {
     return { bars, totalBars: bars.length, totalNetMetrage, wasteMeters, wastePercent };
   };
 
-  // Cómputos
+  // Cómputos Integrados (Columnas + Dinteles + Refuerzos)
   const numColsLargo = Math.max(2, Math.ceil(params.frente / params.distanciaColumnas) + 1);
   const numColsAncho = Math.max(2, Math.ceil(params.profundidad / params.distanciaColumnas) + 1);
   const totalCols = (numColsLargo * 2) + ((numColsAncho - 2) * 3);
-  let piecesCols = Array(totalCols).fill(params.altura);
-
+  
+  // Lista unificada de cortes para el perfil principal (combina piezas de 4.5m con tramos de aberturas de 1.5m / 0.9m)
+  let structuralPiecesGroup = Array(totalCols).fill(params.altura);
   openings.forEach(op => {
-    if (op.ancho > 0) piecesCols.push(op.ancho);
+    if (op.ancho > 0) structuralPiecesGroup.push(op.ancho); // Dintel superior
+    if (op.alto > 0) structuralPiecesGroup.push(op.alto);   // Jambas laterales
   });
 
   const mainColProduct = catalog.find(p => p.id === '1') || { largoBarra: 6.0 };
-  const optCols = optimize1D(piecesCols, mainColProduct.largoBarra);
+  const optCols = optimize1D(structuralPiecesGroup, mainColProduct.largoBarra);
 
   const areaBrutaMuros = (params.frente + params.profundidad) * 2 * params.altura;
   const areaTotalAberturas = openings.reduce((acc, op) => acc + (op.ancho * op.alto), 0);
@@ -150,10 +142,8 @@ export default function App() {
         </div>
       </header>
 
-      {/* SIDEBAR SUPERIOR - INGRESO DE DATOS */}
+      {/* PARÁMETROS SUPERIORES */}
       <div className="top-sidebar">
-        
-        {/* MEDIDAS DE ESTRUCTURA */}
         <div className="card">
           <h2>Estructura ({globalUnit})</h2>
           <div className="grid-params">
@@ -166,9 +156,9 @@ export default function App() {
           </div>
         </div>
 
-        {/* MODULACIÓN DE ABERTURAS POR PARED */}
+        {/* MODULACIÓN DE ABERTURAS CON DESPLAZAMIENTO Y ANTEPECHO SEPARADOS */}
         <div className="card">
-          <h2>Aberturas y Ubicación en Muros</h2>
+          <h2>Ubicación Fina de Aberturas</h2>
           <div className="grid-params">
             <div className="group"><label>Pared:</label>
               <select value={newOp.pared} onChange={(e) => setNewOp({...newOp, pared: e.target.value})}>
@@ -178,33 +168,34 @@ export default function App() {
                 <option value="derecha">Lat. Derecho</option>
               </select>
             </div>
-            <div className="group"><label>Tipo:</label>
-              <select value={newOp.tipo} onChange={(e) => setNewOp({...newOp, tipo: e.target.value})}>
-                <option value="puerta">Puerta</option>
-                <option value="ventana">Ventana</option>
+            <div className="group"><label>Lado Origen:</label>
+              <select value={newOp.ladoReferencia} onChange={(e) => setNewOp({...newOp, ladoReferencia: e.target.value})}>
+                <option value="izquierda">Desde Izquierda</option>
+                <option value="derecha">Desde Derecha</option>
               </select>
             </div>
+            <div className="group"><label>Dist. a Esquina (m):</label><input type="number" value={newOp.offsetHorizontal} onChange={(e) => setNewOp({...newOp, offsetHorizontal: parseFloat(e.target.value)||0})} /></div>
+            <div className="group"><label>Antepecho / Altura (m):</label><input type="number" value={newOp.alturaAntepecho} onChange={(e) => setNewOp({...newOp, alturaAntepecho: parseFloat(e.target.value)||0})} /></div>
             <div className="group"><label>Ancho (m):</label><input type="number" value={newOp.ancho} onChange={(e) => setNewOp({...newOp, ancho: parseFloat(e.target.value)||0})} /></div>
             <div className="group"><label>Alto (m):</label><input type="number" value={newOp.alto} onChange={(e) => setNewOp({...newOp, alto: parseFloat(e.target.value)||0})} /></div>
-            <div className="group"><label>Desplazamiento Offset (m):</label><input type="number" value={newOp.offset} onChange={(e) => setNewOp({...newOp, offset: parseFloat(e.target.value)||0})} /></div>
           </div>
           <button className="btn-add" onClick={addOpening}>+ Agregar Abertura</button>
 
           <ul className="opening-list">
             {openings.map((op) => (
               <li key={op.id}>
-                <span>{op.tipo.toUpperCase()} ({op.pared}) {op.ancho}m x {op.alto}m</span>
+                <span>{op.tipo.toUpperCase()} ({op.pared}): {op.ancho}m x {op.alto}m | D.Esquina: {op.offsetHorizontal}m | Antepecho: {op.alturaAntepecho}m</span>
                 <button className="btn-del" onClick={() => removeOpening(op.id)}>✕</button>
               </li>
             ))}
           </ul>
         </div>
 
-        {/* CATÁLOGO DE INSUMOS Y ALTA DE PRODUCTOS */}
+        {/* INSUMOS Y CORTES */}
         <div className="card">
           <h2>Insumos y Largos Comerciales</h2>
           <div className="add-prod-box">
-            <input type="text" placeholder="Nuevo Producto / Perfil" value={newProduct.nombre} onChange={(e) => setNewProduct({...newProduct, nombre: e.target.value})} />
+            <input type="text" placeholder="Nuevo Insumo / Perfil" value={newProduct.nombre} onChange={(e) => setNewProduct({...newProduct, nombre: e.target.value})} />
             <input type="number" placeholder="Largo Com. (m)" value={newProduct.largoBarra} onChange={(e) => setNewProduct({...newProduct, largoBarra: parseFloat(e.target.value)||0})} />
             <input type="number" placeholder="Precio ($)" value={newProduct.precio} onChange={(e) => setNewProduct({...newProduct, precio: parseFloat(e.target.value)||0})} />
             <button onClick={addProductToCatalog}>+ Crear Insumo</button>
@@ -215,20 +206,16 @@ export default function App() {
               <thead>
                 <tr>
                   <th>Insumo</th>
-                  <th>Largo Com. (m)</th>
-                  <th>Precio U. ($)</th>
+                  <th>Largo (m)</th>
+                  <th>Precio ($)</th>
                 </tr>
               </thead>
               <tbody>
                 {catalog.map((prod) => (
                   <tr key={prod.id}>
                     <td className="item-name">{prod.nombre}</td>
-                    <td>
-                      <input type="number" step="0.5" value={prod.largoBarra} onChange={(e) => updateProduct(prod.id, 'largoBarra', parseFloat(e.target.value)||0)} />
-                    </td>
-                    <td>
-                      <input type="number" value={prod.precio} onChange={(e) => updateProduct(prod.id, 'precio', parseFloat(e.target.value)||0)} />
-                    </td>
+                    <td><input type="number" step="0.5" value={prod.largoBarra} onChange={(e) => updateProduct(prod.id, 'largoBarra', parseFloat(e.target.value)||0)} /></td>
+                    <td><input type="number" value={prod.precio} onChange={(e) => updateProduct(prod.id, 'precio', parseFloat(e.target.value)||0)} /></td>
                   </tr>
                 ))}
               </tbody>
@@ -236,19 +223,18 @@ export default function App() {
           </div>
         </div>
 
-        {/* DESPIECE Y OPTIMIZACIÓN 1D */}
+        {/* ANIDAMIENTO Y OPTIMIZACIÓN REAL 1D */}
         <div className="card">
-          <h2>Optimizador de Cortes 1D</h2>
-          <p className="opt-desc">Muros Brutos: <strong>{areaBrutaMuros.toFixed(2)}m²</strong> | Aberturas: <strong className="warn">-{areaTotalAberturas.toFixed(2)}m²</strong></p>
-          <p className="opt-desc">Muros Netos a Cubrir: <strong>{areaNetaMuros.toFixed(2)}m²</strong></p>
-          <p className="opt-desc">Barras Necesarias: <strong>{optCols.totalBars} u</strong> (Largo: {mainColProduct.largoBarra}m) | Desperdicio: <strong className="warn">{optCols.wastePercent.toFixed(1)}%</strong></p>
+          <h2>Optimizador 1D (Anidado Eficiente)</h2>
+          <p className="opt-desc">Muros Netos: <strong>{areaNetaMuros.toFixed(2)}m²</strong> (Aberturas: -{areaTotalAberturas.toFixed(2)}m²)</p>
+          <p className="opt-desc">Barras Necesarias (Cols + Refuerzos): <strong>{optCols.totalBars} u</strong> (Largo: {mainColProduct.largoBarra}m) | Desperdicio Real: <strong className="warn">{optCols.wastePercent.toFixed(1)}%</strong></p>
           
-          <details className="bar-details">
-            <summary>🔍 Ver Despiece por Barra ({optCols.totalBars} barras)</summary>
+          <details className="bar-details" open>
+            <summary>🔍 Diagrama de Cortes por Barra ({optCols.totalBars} barras)</summary>
             <div className="bar-cuts-container">
               {optCols.bars.map((b) => (
                 <div key={b.id} className="bar-item">
-                  <div className="bar-title">Barra #{b.id} - Utilizado: {b.used.toFixed(2)}m / {mainColProduct.largoBarra}m</div>
+                  <div className="bar-title">Barra #{b.id} - Usado: {b.used.toFixed(2)}m / {mainColProduct.largoBarra}m (Sobrante: {(mainColProduct.largoBarra - b.used).toFixed(2)}m)</div>
                   <div className="bar-graphic">
                     {b.pieces.map((p, idx) => (
                       <div key={idx} className="piece-block" style={{ width: `${(p / mainColProduct.largoBarra) * 100}%` }}>

@@ -11,7 +11,6 @@ export default function LoftCanvas({ params, layers, openings }) {
     const container = mountRef.current;
     if (!container) return;
 
-    // Garantizar dimensiones no nulas
     const width = container.clientWidth || 800;
     const height = container.clientHeight || 500;
 
@@ -53,7 +52,7 @@ export default function LoftCanvas({ params, layers, openings }) {
     const matCor = new THREE.MeshStandardMaterial({ color: 0xeab308 });
     const matOsb = new THREE.MeshStandardMaterial({ color: 0xd97706 });
     const matPur = new THREE.MeshStandardMaterial({ color: 0x10b981, transparent: true, opacity: 0.25 });
-    const matAbertura = new THREE.MeshStandardMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.7 });
+    const matAbertura = new THREE.MeshStandardMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.75 });
 
     const { 
       frente, profundidad, altura, elevacion, anchoMezzanine, 
@@ -97,7 +96,7 @@ export default function LoftCanvas({ params, layers, openings }) {
       }
     }
 
-    // Estructuras de Piso / Altillo / Transversales
+    // Estructuras de Piso / Altillo
     if (layers.estructuras) {
       const vigoBase = new THREE.Mesh(new THREE.BoxGeometry(frente, 0.12, profundidad), matBeam);
       vigoBase.position.set(0, elevacion, 0);
@@ -128,7 +127,7 @@ export default function LoftCanvas({ params, layers, openings }) {
       }
     }
 
-    // Correas / Fajas
+    // Fajas / Correas
     if (layers.fajas) {
       const cantFajas = Math.floor(altura / separacionCorreas);
       for (let k = 1; k <= cantFajas; k++) {
@@ -145,7 +144,7 @@ export default function LoftCanvas({ params, layers, openings }) {
       }
     }
 
-    // Placas de Piso
+    // Placas OSB
     if (layers.osb) {
       const osbPiso = new THREE.Mesh(new THREE.BoxGeometry(frente, 0.02, profundidad), matOsb);
       osbPiso.position.set(0, elevacion + 0.06, 0);
@@ -156,29 +155,37 @@ export default function LoftCanvas({ params, layers, openings }) {
       rootGroup.add(osbAlt);
     }
 
-    // Revestimiento y Aberturas
+    // Revestimientos y Posicionamiento de Aberturas
     if (layers.pur) {
       const pur = new THREE.Mesh(new THREE.BoxGeometry(frente, altura, profundidad), matPur);
       pur.position.set(0, elevacion + altura / 2, 0);
       rootGroup.add(pur);
 
-      // Posicionamiento 3D exacto de aberturas
       openings.forEach((op) => {
         if (op.ancho <= 0 || op.alto <= 0) return;
-        const opMesh = new THREE.Mesh(new THREE.BoxGeometry(op.ancho, op.alto, 0.12), matAbertura);
-        const yPos = elevacion + (op.tipo === 'puerta' ? op.alto / 2 : op.antepecho + op.alto / 2);
-        const offset = op.offset || 0;
+        const opMesh = new THREE.Mesh(new THREE.BoxGeometry(op.ancho, op.alto, 0.14), matAbertura);
+        const yPos = elevacion + op.alturaAntepecho + (op.alto / 2);
+        
+        // Cálculo de posición X/Z según cota de referencia
+        let hPos = 0;
+        if (op.pared === 'frente' || op.pared === 'fondo') {
+          hPos = op.ladoReferencia === 'izquierda' 
+            ? -frente/2 + op.offsetHorizontal + op.ancho/2 
+            : frente/2 - op.offsetHorizontal - op.ancho/2;
+        } else {
+          hPos = op.ladoReferencia === 'izquierda' 
+            ? -profundidad/2 + op.offsetHorizontal + op.ancho/2 
+            : profundidad/2 - op.offsetHorizontal - op.ancho/2;
+        }
 
-        if (op.pared === 'frente') {
-          opMesh.position.set(offset, yPos, profundidad / 2);
-        } else if (op.pared === 'fondo') {
-          opMesh.position.set(offset, yPos, -profundidad / 2);
-        } else if (op.pared === 'izquierda') {
+        if (op.pared === 'frente') opMesh.position.set(hPos, yPos, profundidad / 2);
+        else if (op.pared === 'fondo') opMesh.position.set(hPos, yPos, -profundidad / 2);
+        else if (op.pared === 'izquierda') {
           opMesh.rotation.y = Math.PI / 2;
-          opMesh.position.set(-frente / 2, yPos, offset);
+          opMesh.position.set(-frente / 2, yPos, hPos);
         } else if (op.pared === 'derecha') {
           opMesh.rotation.y = Math.PI / 2;
-          opMesh.position.set(frente / 2, yPos, offset);
+          opMesh.position.set(frente / 2, yPos, hPos);
         }
         rootGroup.add(opMesh);
       });
@@ -216,9 +223,9 @@ export default function LoftCanvas({ params, layers, openings }) {
     <div className="canvas-box" ref={mountRef}>
       <div className="canvas-controls">
         <button className="btn-ctrl" onClick={() => setIsRotating(!isRotating)}>
-          {isRotating ? '⏸️ Pausar' : '▶️ Rotar'}
+          {isRotating ? '⏸️ Pausar Rotación' : '▶️ Rotar 3D'}
         </button>
-        <span className="ctrl-tip">💡 Arrastrá con el mouse/dedo para orbitar</span>
+        <span className="ctrl-tip">💡 Arrastrá para orbitar | Rueda para Zoom</span>
       </div>
     </div>
   );
