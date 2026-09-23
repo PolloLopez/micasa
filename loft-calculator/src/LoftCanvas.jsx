@@ -1,8 +1,13 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 
 export default function LoftCanvas({ params, layers }) {
   const mountRef = useRef(null);
+  const [isRotating, setIsRotating] = useState(true);
+  const rotationDirection = useRef(1); // 1 = derecha, -1 = izquierda
+  const sceneRef = useRef(null);
+  const cameraRef = useRef(null);
+  const rootGroupRef = useRef(null);
 
   useEffect(() => {
     const container = mountRef.current;
@@ -11,10 +16,12 @@ export default function LoftCanvas({ params, layers }) {
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x0f172a);
+    sceneRef.current = scene;
 
     const camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 1000);
     camera.position.set(12, 8, 14);
     camera.lookAt(0, 2, 0);
+    cameraRef.current = camera;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(w, h);
@@ -29,14 +36,16 @@ export default function LoftCanvas({ params, layers }) {
 
     const rootGroup = new THREE.Group();
     scene.add(rootGroup);
+    rootGroupRef.current = rootGroup;
 
-    // Materiales con colores parametrizados
+    // Materiales con colores diferenciados
     const matPil = new THREE.MeshStandardMaterial({ color: 0x94a3b8 });
-    const matCol = new THREE.MeshStandardMaterial({ color: 0xef4444 }); // Rojo
-    const matBeam = new THREE.MeshStandardMaterial({ color: 0x3b82f6 }); // Azul
-    const matCor = new THREE.MeshStandardMaterial({ color: 0xeab308 });  // Amarillo
-    const matOsb = new THREE.MeshStandardMaterial({ color: 0xd97706 });  // Madera
-    const matPur = new THREE.MeshStandardMaterial({ color: 0x10b981, transparent: true, opacity: 0.25 }); // Verde
+    const matCol = new THREE.MeshStandardMaterial({ color: 0xef4444 }); // Rojo: Columnas
+    const matBeam = new THREE.MeshStandardMaterial({ color: 0x3b82f6 }); // Azul: Vigas
+    const matTrans = new THREE.MeshStandardMaterial({ color: 0x06b6d4 }); // Cobre/Celeste: Transversales de Piso/Altillo
+    const matCor = new THREE.MeshStandardMaterial({ color: 0xeab308 });  // Amarillo: Fajas
+    const matOsb = new THREE.MeshStandardMaterial({ color: 0xd97706 });  // Madera: Fenólico / OSB
+    const matPur = new THREE.MeshStandardMaterial({ color: 0x10b981, transparent: true, opacity: 0.3 }); // Verde: Revestimiento Muros
 
     const { 
       frente, profundidad, altura, elevacion, anchoMezzanine, 
@@ -62,7 +71,6 @@ export default function LoftCanvas({ params, layers }) {
       const numColsLargo = Math.max(2, Math.ceil(frente / distanciaColumnas) + 1);
       const numColsAncho = Math.max(2, Math.ceil(profundidad / distanciaColumnas) + 1);
 
-      // Perímetro exterior
       for (let i = 0; i < numColsLargo; i++) {
         const x = -frente/2 + (frente / (numColsLargo - 1)) * i;
         [-profundidad/2, profundidad/2].forEach(z => {
@@ -81,30 +89,35 @@ export default function LoftCanvas({ params, layers }) {
       }
     }
 
-    // --- CAPA 3: ESTRUCTURA PISO, ALTILLO Y VIGAS ---
+    // --- CAPA 3: ESTRUCTURA PISO, ALTILLO Y VIGAS TRANSVERSALES ---
     if (layers.estructuras) {
-      // Vigas Marco Base Piso
-      const vigoBase = new THREE.Mesh(new THREE.BoxGeometry(frente, 0.1, profundidad), matBeam);
+      // Vigas Marco Perimetral Base Piso (Perfil C principal)
+      const vigoBase = new THREE.Mesh(new THREE.BoxGeometry(frente, 0.12, profundidad), matBeam);
       vigoBase.position.set(0, elevacion, 0);
       rootGroup.add(vigoBase);
 
-      // Tirantes de Piso (+0.50m)
+      // Tirantes / Perfiles C Transversales de Planta Baja
       const cantTirantesPiso = Math.floor(frente / pasoTirantesPiso);
       for (let i = 0; i <= cantTirantesPiso; i++) {
         const x = -frente/2 + (i * pasoTirantesPiso);
         if (x <= frente/2) {
-          const tPiso = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.08, profundidad), matBeam);
+          const tPiso = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.10, profundidad - 0.1), matTrans);
           tPiso.position.set(x, elevacion, 0);
           rootGroup.add(tPiso);
         }
       }
 
-      // Tirantes de Altillo / Mezzanine (+2.30m)
+      // Vigas Marco Altillo (+2.30m)
+      const vigoAltillo = new THREE.Mesh(new THREE.BoxGeometry(anchoMezzanine, 0.12, profundidad), matBeam);
+      vigoAltillo.position.set(-frente/2 + anchoMezzanine/2, elevacion + 2.30, 0);
+      rootGroup.add(vigoAltillo);
+
+      // Tirantes / Perfiles C Transversales de Altillo
       const cantTirantesAltillo = Math.floor(anchoMezzanine / pasoTirantesAltillo);
       for (let i = 0; i <= cantTirantesAltillo; i++) {
         const x = -frente/2 + (i * pasoTirantesAltillo);
         if (x <= -frente/2 + anchoMezzanine) {
-          const tAlt = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.1, profundidad), matBeam);
+          const tAlt = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.10, profundidad - 0.1), matTrans);
           tAlt.position.set(x, elevacion + 2.30, 0);
           rootGroup.add(tAlt);
         }
@@ -128,20 +141,20 @@ export default function LoftCanvas({ params, layers }) {
       }
     }
 
-    // --- CAPA 5: PLACAS OSB ---
+    // --- CAPA 5: PLACAS OSB / FENÓLICO DE PISO Y ALTILLO ---
     if (layers.osb) {
-      // OSB Piso
+      // Placas Piso PB
       const osbPiso = new THREE.Mesh(new THREE.BoxGeometry(frente, 0.02, profundidad), matOsb);
-      osbPiso.position.set(0, elevacion + 0.05, 0);
+      osbPiso.position.set(0, elevacion + 0.06, 0);
       rootGroup.add(osbPiso);
 
-      // OSB Altillo
+      // Placas Altillo
       const osbAlt = new THREE.Mesh(new THREE.BoxGeometry(anchoMezzanine, 0.02, profundidad), matOsb);
-      osbAlt.position.set(-frente/2 + anchoMezzanine/2, elevacion + 2.35, 0);
+      osbAlt.position.set(-frente/2 + anchoMezzanine/2, elevacion + 2.36, 0);
       rootGroup.add(osbAlt);
     }
 
-    // --- CAPA 6: REVESTIMIENTO PUR ---
+    // --- CAPA 6: REVESTIMIENTO (PUR / CEMENTICIA / CHAPA) ---
     if (layers.pur) {
       const pur = new THREE.Mesh(new THREE.BoxGeometry(frente, altura, profundidad), matPur);
       pur.position.set(0, elevacion + altura / 2, 0);
@@ -151,7 +164,9 @@ export default function LoftCanvas({ params, layers }) {
     let id;
     const animate = () => {
       id = requestAnimationFrame(animate);
-      rootGroup.rotation.y += 0.002;
+      if (rootGroupRef.current && isRotating) {
+        rootGroupRef.current.rotation.y += 0.003 * rotationDirection.current;
+      }
       renderer.render(scene, camera);
     };
     animate();
@@ -160,7 +175,37 @@ export default function LoftCanvas({ params, layers }) {
       cancelAnimationFrame(id);
       if (container.contains(renderer.domElement)) container.removeChild(renderer.domElement);
     };
-  }, [params, layers]);
+  }, [params, layers, isRotating]);
 
-  return <div className="canvas-box" ref={mountRef} />;
+  // Funciones de control de cámara / rotación
+  const setPresetView = (view) => {
+    if (!cameraRef.current || !rootGroupRef.current) return;
+    rootGroupRef.current.rotation.y = 0;
+    if (view === 'front') cameraRef.current.position.set(0, 3, 16);
+    else if (view === 'top') cameraRef.current.position.set(0, 18, 0.1);
+    else if (view === 'side') cameraRef.current.position.set(16, 3, 0);
+    else cameraRef.current.position.set(12, 8, 14); // Perspective
+    cameraRef.current.lookAt(0, 2, 0);
+  };
+
+  return (
+    <div className="canvas-box" ref={mountRef}>
+      <div className="canvas-controls">
+        <button className="btn-ctrl" onClick={() => setIsRotating(!isRotating)}>
+          {isRotating ? '⏸️ Pausar Rotación' : '▶️ Reanudar'}
+        </button>
+        <button className="btn-ctrl" onClick={() => { rotationDirection.current = -1; setIsRotating(true); }}>
+          ↺ Izquierda
+        </button>
+        <button className="btn-ctrl" onClick={() => { rotationDirection.current = 1; setIsRotating(true); }}>
+          ↻ Derecha
+        </button>
+        <div className="view-divider">|</div>
+        <button className="btn-ctrl" onClick={() => setPresetView('iso')}>📐 ISO 3D</button>
+        <button className="btn-ctrl" onClick={() => setPresetView('front')}>🔲 Frente</button>
+        <button className="btn-ctrl" onClick={() => setPresetView('top')}>🔝 Planta</button>
+        <button className="btn-ctrl" onClick={() => setPresetView('side')}>📐 Lateral</button>
+      </div>
+    </div>
+  );
 }
