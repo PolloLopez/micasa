@@ -32,40 +32,67 @@ export default function LoftCanvas({ params }) {
 
     const matCol = new THREE.MeshStandardMaterial({ color: 0xef4444 });
     const matBeam = new THREE.MeshStandardMaterial({ color: 0x3b82f6 });
-    const matPur = new THREE.MeshStandardMaterial({ color: 0x10b981, transparent: true, opacity: 0.3 });
+    const matCor = new THREE.MeshStandardMaterial({ color: 0xeab308 }); // Fajas/Correas (Amarillo)
+    const matPur = new THREE.MeshStandardMaterial({ color: 0x10b981, transparent: true, opacity: 0.25 });
     const matOsb = new THREE.MeshStandardMaterial({ color: 0xd97706 });
     const matPil = new THREE.MeshStandardMaterial({ color: 0x94a3b8 });
 
-    const { frente, profundidad, altura, elevacion, anchoMezzanine } = params;
+    const { 
+      frente, profundidad, altura, elevacion, anchoMezzanine, 
+      filasPilotines, pilotinesPorFila, separacionCorreas
+    } = params;
 
-    for (let i = 0; i < 4; i++) {
-      for (let j = 0; j < 3; j++) {
-        const x = -frente/2 + (frente / 3) * i;
-        const z = -profundidad/2 + (profundidad / 2) * j;
+    // --- PILOTINES DINÁMICOS ---
+    for (let i = 0; i < filasPilotines; i++) {
+      for (let j = 0; j < pilotinesPorFila; j++) {
+        const x = -frente/2 + (frente / Math.max(1, filasPilotines - 1)) * i;
+        const z = -profundidad/2 + (profundidad / Math.max(1, pilotinesPorFila - 1)) * j;
         const p = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, elevacion, 16), matPil);
         p.position.set(x, elevacion / 2, z);
         group.add(p);
       }
     }
 
-    [
+    // --- COLUMNAS ---
+    const colPositions = [
       [-frente/2, -profundidad/2], [0, -profundidad/2], [frente/2, -profundidad/2],
       [-frente/2, profundidad/2],  [0, profundidad/2],  [frente/2, profundidad/2],
       [-frente/2 + anchoMezzanine, -profundidad/2], [-frente/2 + anchoMezzanine, profundidad/2]
-    ].forEach(([x, z]) => {
+    ];
+
+    colPositions.forEach(([x, z]) => {
       const c = new THREE.Mesh(new THREE.BoxGeometry(0.1, altura, 0.1), matCol);
       c.position.set(x, elevacion + altura / 2, z);
       group.add(c);
     });
 
+    // --- FAJAS / CORREAS PERIMETRALES Y DE TECHO (AMARILLO) ---
+    const cantFajasVert = Math.floor(altura / separacionCorreas);
+    for (let k = 1; k <= cantFajasVert; k++) {
+      const yPos = elevacion + k * separacionCorreas;
+      if (yPos < elevacion + altura) {
+        // Faja frontal y trasera
+        const fFrente = new THREE.Mesh(new THREE.BoxGeometry(frente, 0.05, 0.05), matCor);
+        fFrente.position.set(0, yPos, profundidad/2);
+        group.add(fFrente);
+
+        const fFondo = new THREE.Mesh(new THREE.BoxGeometry(frente, 0.05, 0.05), matCor);
+        fFondo.position.set(0, yPos, -profundidad/2);
+        group.add(fFondo);
+      }
+    }
+
+    // --- OSB BASE ---
     const osb = new THREE.Mesh(new THREE.BoxGeometry(frente, 0.02, profundidad), matOsb);
     osb.position.set(0, elevacion + 0.01, 0);
     group.add(osb);
 
+    // --- MEZZANINE ---
     const mez = new THREE.Mesh(new THREE.BoxGeometry(anchoMezzanine, 0.08, profundidad), matBeam);
     mez.position.set(-frente/2 + anchoMezzanine/2, elevacion + 2.30, 0);
     group.add(mez);
 
+    // --- REVESTIMIENTO PUR ---
     const pur = new THREE.Mesh(new THREE.BoxGeometry(frente, altura, profundidad), matPur);
     pur.position.set(0, elevacion + altura / 2, 0);
     group.add(pur);
