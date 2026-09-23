@@ -2,66 +2,40 @@
 body { background: #0f172a; color: #f8fafc; }
 .app { display: flex; flex-direction: column; height: 100vh; }
 
+/* Ocultar leyenda de ThreeJS */
+[data-engine] { display: none !important; }
+
 header { padding: 12px 24px; background: #1e293b; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; }
 header h1 { font-size: 1.3rem; color: #38bdf8; margin: 0; }
 header .subtitle { font-size: 0.75rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
 
-.header-actions { display: flex; gap: 16px; align-items: center; }
-.unit-selector { display: flex; gap: 8px; align-items: center; font-size: 0.85rem; color: #cbd5e1; }
-.unit-selector select { padding: 4px 8px; background: #0f172a; border: 1px solid #475569; color: #38bdf8; border-radius: 4px; font-weight: bold; }
-
-.btn-print { background: #0284c7; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.8rem; }
-.btn-print:hover { background: #0369a1; }
+.header-actions { display: flex; gap: 12px; align-items: center; }
+.header-actions select { padding: 4px 8px; background: #0f172a; border: 1px solid #475569; color: #38bdf8; border-radius: 4px; font-weight: bold; }
+.btn-print { background: #0284c7; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; }
 
 .layout { display: flex; flex: 1; overflow: hidden; }
 .canvas-wrap { flex: 1; position: relative; }
 .canvas-box { width: 100%; height: 100%; position: relative; }
 
-.canvas-controls {
-  position: absolute; top: 12px; left: 12px; z-index: 10; display: flex; gap: 6px;
-  background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(4px); padding: 6px 10px; border-radius: 8px; border: 1px solid #334155;
-}
-.btn-ctrl { background: #1e293b; border: 1px solid #475569; color: #f8fafc; padding: 5px 9px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; }
-.btn-ctrl:hover { background: #38bdf8; color: #0f172a; }
-.view-divider { color: #475569; margin: 0 4px; }
+.canvas-controls { position: absolute; top: 12px; left: 12px; z-index: 10; display: flex; gap: 10px; background: rgba(15, 23, 42, 0.85); padding: 6px 12px; border-radius: 8px; border: 1px solid #334155; align-items: center; }
+.ctrl-tip { font-size: 0.75rem; color: #94a3b8; }
+.btn-ctrl { background: #1e293b; border: 1px solid #475569; color: #fff; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75rem; }
 
-.sidebar { width: 520px; background: #0f172a; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; border-left: 1px solid #334155; }
+.sidebar { width: 480px; background: #0f172a; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; border-left: 1px solid #334155; }
 .card { background: #1e293b; padding: 14px; border-radius: 8px; border: 1px solid #334155; }
-.card h2 { font-size: 0.9rem; margin-bottom: 10px; color: #f1f5f9; text-transform: uppercase; letter-spacing: 0.5px; }
-.subcard { background: #0f172a; padding: 10px; border-radius: 6px; margin-bottom: 8px; border: 1px solid #334155; }
-.subcard h3 { font-size: 0.85rem; color: #38bdf8; margin-bottom: 6px; }
+.card h2 { font-size: 0.9rem; margin-bottom: 10px; color: #38bdf8; text-transform: uppercase; }
 
 .group { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 0.85rem; }
 .group label { color: #cbd5e1; }
-.group input, .group select { width: 130px; padding: 4px 6px; background: #0f172a; border: 1px solid #475569; color: #fff; border-radius: 4px; font-size: 0.85rem; }
+.group input { width: 110px; padding: 4px 6px; background: #0f172a; border: 1px solid #475569; color: #fff; border-radius: 4px; }
 
-.layers-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.8rem; }
-.checkbox { display: flex; align-items: center; gap: 6px; cursor: pointer; color: #e2e8f0; }
+.btn-add { width: 100%; padding: 6px; background: #10b981; color: #fff; border: none; border-radius: 4px; font-weight: bold; margin-top: 6px; cursor: pointer; }
+.mat-list { margin-top: 10px; font-size: 0.75rem; color: #cbd5e1; padding-left: 16px; }
 
-.opt-summary p { font-size: 0.78rem; margin-bottom: 6px; color: #cbd5e1; }
-.badge-warn { color: #f59e0b; font-weight: bold; }
+.opt-desc { font-size: 0.8rem; margin-bottom: 8px; }
+.warn { color: #f59e0b; }
 
-.bar-cuts-container { display: flex; flex-direction: column; gap: 8px; }
-.bar-item { background: #0f172a; padding: 8px; border-radius: 4px; border: 1px solid #334155; }
+.bar-item { background: #0f172a; padding: 8px; border-radius: 4px; margin-bottom: 6px; border: 1px solid #334155; }
 .bar-title { font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px; }
 .bar-graphic { display: flex; background: #334155; height: 20px; border-radius: 3px; overflow: hidden; }
 .piece-block { background: #0284c7; border-right: 1px solid #0f172a; color: #fff; font-size: 0.65rem; display: flex; align-items: center; justify-content: center; font-weight: bold; }
-
-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; margin-top: 6px; }
-th, td { padding: 6px 4px; text-align: left; border-bottom: 1px solid #334155; vertical-align: top; }
-td input { width: 75px; padding: 2px 4px; background: #0f172a; border: 1px solid #475569; color: #fff; border-radius: 4px; }
-.extra-info { font-size: 0.7rem; color: #f59e0b; }
-.sub { text-align: right; font-weight: bold; color: #34d399; }
-.total { margin-top: 12px; padding: 10px; background: #0284c7; border-radius: 6px; display: flex; justify-content: space-between; font-weight: bold; font-size: 0.95rem; }
-
-/* Estilos de impresión PDF */
-@media print {
-  .no-print { display: none !important; }
-  .app { height: auto; background: #fff; color: #000; }
-  .sidebar { width: 100%; border: none; padding: 0; background: #fff; }
-  .card { background: #fff; border: 1px solid #ccc; color: #000; page-break-inside: avoid; }
-  .card h2 { color: #000; }
-  .total { background: #e2e8f0; color: #000; }
-  td, th { color: #000; border-color: #ccc; }
-  .sub { color: #000; }
-}

@@ -1,13 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 export default function LoftCanvas({ params, layers }) {
   const mountRef = useRef(null);
+  const controlsRef = useRef(null);
   const [isRotating, setIsRotating] = useState(true);
-  const rotationDirection = useRef(1);
-  const sceneRef = useRef(null);
-  const cameraRef = useRef(null);
-  const rootGroupRef = useRef(null);
 
   useEffect(() => {
     const container = mountRef.current;
@@ -16,19 +14,24 @@ export default function LoftCanvas({ params, layers }) {
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x0f172a);
-    sceneRef.current = scene;
 
     const camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 1000);
     camera.position.set(12, 8, 14);
-    camera.lookAt(0, 2, 0);
-    cameraRef.current = camera;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(w, h);
     container.appendChild(renderer.domElement);
 
-    scene.add(new THREE.AmbientLight(0xffffff, 0.7));
-    const dl = new THREE.DirectionalLight(0xffffff, 0.9);
+    // Habilitar OrbitControls para rotación táctil y con mouse
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.autoRotate = isRotating;
+    controls.autoRotateSpeed = 2.0;
+    controlsRef.current = controls;
+
+    scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+    const dl = new THREE.DirectionalLight(0xffffff, 1.0);
     dl.position.set(10, 20, 10);
     scene.add(dl);
 
@@ -36,16 +39,15 @@ export default function LoftCanvas({ params, layers }) {
 
     const rootGroup = new THREE.Group();
     scene.add(rootGroup);
-    rootGroupRef.current = rootGroup;
 
-    // Materiales con colores representativos
+    // Materiales
     const matPil = new THREE.MeshStandardMaterial({ color: 0x94a3b8 });
-    const matCol = new THREE.MeshStandardMaterial({ color: 0xef4444 }); // Rojo: Columnas
-    const matBeam = new THREE.MeshStandardMaterial({ color: 0x3b82f6 }); // Azul: Vigas Marcos
-    const matTrans = new THREE.MeshStandardMaterial({ color: 0x06b6d4 }); // Celeste: Transversales
-    const matCor = new THREE.MeshStandardMaterial({ color: 0xeab308 });  // Amarillo: Fajas
-    const matOsb = new THREE.MeshStandardMaterial({ color: 0xd97706 });  // Madera: Fenólico / OSB
-    const matPur = new THREE.MeshStandardMaterial({ color: 0x10b981, transparent: true, opacity: 0.25 }); // Verde: Muros
+    const matCol = new THREE.MeshStandardMaterial({ color: 0xef4444 });
+    const matBeam = new THREE.MeshStandardMaterial({ color: 0x3b82f6 });
+    const matTrans = new THREE.MeshStandardMaterial({ color: 0x06b6d4 });
+    const matCor = new THREE.MeshStandardMaterial({ color: 0xeab308 });
+    const matOsb = new THREE.MeshStandardMaterial({ color: 0xd97706 });
+    const matPur = new THREE.MeshStandardMaterial({ color: 0x10b981, transparent: true, opacity: 0.3 });
 
     const { 
       frente, profundidad, altura, elevacion, anchoMezzanine, 
@@ -53,7 +55,7 @@ export default function LoftCanvas({ params, layers }) {
       distanciaColumnas, pasoTirantesPiso, pasoTirantesAltillo, separacionCorreas
     } = params;
 
-    // --- CAPA 1: PILOTINES ---
+    // Pilotines
     if (layers.pilotines) {
       for (let i = 0; i < filasPilotines; i++) {
         for (let j = 0; j < pilotinesPorFila; j++) {
@@ -66,7 +68,7 @@ export default function LoftCanvas({ params, layers }) {
       }
     }
 
-    // --- CAPA 2: COLUMNAS PRINCIPALES Y SECUNDARIAS ---
+    // Columnas
     if (layers.columnas) {
       const numColsLargo = Math.max(2, Math.ceil(frente / distanciaColumnas) + 1);
       const numColsAncho = Math.max(2, Math.ceil(profundidad / distanciaColumnas) + 1);
@@ -89,14 +91,14 @@ export default function LoftCanvas({ params, layers }) {
       }
     }
 
-    // --- CAPA 3: ESTRUCTURA PISO, ALTILLO Y TRANSVERSALES ---
+    // Estructura de Pisos / Entrepisos (Vigas Marco + Tirantes Transversales)
     if (layers.estructuras) {
-      // Vigas Marco Perimetral Base
+      // Marco PB
       const vigoBase = new THREE.Mesh(new THREE.BoxGeometry(frente, 0.12, profundidad), matBeam);
       vigoBase.position.set(0, elevacion, 0);
       rootGroup.add(vigoBase);
 
-      // Transversales Perfil C de Piso PB
+      // Tirantes Transversales PB
       const cantTirantesPiso = Math.floor(frente / pasoTirantesPiso);
       for (let i = 0; i <= cantTirantesPiso; i++) {
         const x = -frente/2 + (i * pasoTirantesPiso);
@@ -107,12 +109,12 @@ export default function LoftCanvas({ params, layers }) {
         }
       }
 
-      // Vigas Marco Altillo (+2.30m)
+      // Marco Altillo
       const vigoAltillo = new THREE.Mesh(new THREE.BoxGeometry(anchoMezzanine, 0.12, profundidad), matBeam);
       vigoAltillo.position.set(-frente/2 + anchoMezzanine/2, elevacion + 2.30, 0);
       rootGroup.add(vigoAltillo);
 
-      // Transversales Perfil C de Altillo
+      // Tirantes Transversales Altillo
       const cantTirantesAltillo = Math.floor(anchoMezzanine / pasoTirantesAltillo);
       for (let i = 0; i <= cantTirantesAltillo; i++) {
         const x = -frente/2 + (i * pasoTirantesAltillo);
@@ -124,7 +126,7 @@ export default function LoftCanvas({ params, layers }) {
       }
     }
 
-    // --- CAPA 4: FAJAS Y CORREAS DE PAREDES/TECHO ---
+    // Correas / Fajas
     if (layers.fajas) {
       const cantFajas = Math.floor(altura / separacionCorreas);
       for (let k = 1; k <= cantFajas; k++) {
@@ -141,7 +143,7 @@ export default function LoftCanvas({ params, layers }) {
       }
     }
 
-    // --- CAPA 5: PLACAS FENÓLICO / OSB ---
+    // Placas de Piso
     if (layers.osb) {
       const osbPiso = new THREE.Mesh(new THREE.BoxGeometry(frente, 0.02, profundidad), matOsb);
       osbPiso.position.set(0, elevacion + 0.06, 0);
@@ -152,7 +154,7 @@ export default function LoftCanvas({ params, layers }) {
       rootGroup.add(osbAlt);
     }
 
-    // --- CAPA 6: REVESTIMIENTO PUR / CEMENTICIA / CHAPA ---
+    // Revestimientos Muros
     if (layers.pur) {
       const pur = new THREE.Mesh(new THREE.BoxGeometry(frente, altura, profundidad), matPur);
       pur.position.set(0, elevacion + altura / 2, 0);
@@ -162,46 +164,30 @@ export default function LoftCanvas({ params, layers }) {
     let id;
     const animate = () => {
       id = requestAnimationFrame(animate);
-      if (rootGroupRef.current && isRotating) {
-        rootGroupRef.current.rotation.y += 0.003 * rotationDirection.current;
-      }
+      controls.update();
       renderer.render(scene, camera);
     };
     animate();
 
     return () => {
       cancelAnimationFrame(id);
+      controls.dispose();
       if (container.contains(renderer.domElement)) container.removeChild(renderer.domElement);
     };
   }, [params, layers, isRotating]);
 
-  const setPresetView = (view) => {
-    if (!cameraRef.current || !rootGroupRef.current) return;
-    rootGroupRef.current.rotation.y = 0;
-    if (view === 'front') cameraRef.current.position.set(0, 3, 16);
-    else if (view === 'top') cameraRef.current.position.set(0, 18, 0.1);
-    else if (view === 'side') cameraRef.current.position.set(16, 3, 0);
-    else cameraRef.current.position.set(12, 8, 14);
-    cameraRef.current.lookAt(0, 2, 0);
+  const toggleAutoRotate = () => {
+    setIsRotating(!isRotating);
+    if (controlsRef.current) controlsRef.current.autoRotate = !isRotating;
   };
 
   return (
     <div className="canvas-box" ref={mountRef}>
       <div className="canvas-controls">
-        <button className="btn-ctrl" onClick={() => setIsRotating(!isRotating)}>
-          {isRotating ? '⏸️ Pausar' : '▶️ Girar'}
+        <button className="btn-ctrl" onClick={toggleAutoRotate}>
+          {isRotating ? '⏸️ Pausar Rotación' : '▶️ Rotar'}
         </button>
-        <button className="btn-ctrl" onClick={() => { rotationDirection.current = -1; setIsRotating(true); }}>
-          ↺ Izq
-        </button>
-        <button className="btn-ctrl" onClick={() => { rotationDirection.current = 1; setIsRotating(true); }}>
-          ↻ Der
-        </button>
-        <div className="view-divider">|</div>
-        <button className="btn-ctrl" onClick={() => setPresetView('iso')}>📐 3D</button>
-        <button className="btn-ctrl" onClick={() => setPresetView('front')}>🔲 Frente</button>
-        <button className="btn-ctrl" onClick={() => setPresetView('top')}>🔝 Planta</button>
-        <button className="btn-ctrl" onClick={() => setPresetView('side')}>📐 Lateral</button>
+        <span className="ctrl-tip">💡 Usá el mouse/touch para orbitar y hacer Zoom</span>
       </div>
     </div>
   );
