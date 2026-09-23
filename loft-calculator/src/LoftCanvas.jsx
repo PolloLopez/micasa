@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useLayoutEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
@@ -7,24 +7,24 @@ export default function LoftCanvas({ params, layers, openings }) {
   const controlsRef = useRef(null);
   const [isRotating, setIsRotating] = useState(false);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const container = mountRef.current;
     if (!container) return;
 
-    const w = container.clientWidth || 800;
-    const h = container.clientHeight || 500;
+    // Garantizar dimensiones no nulas
+    const width = container.clientWidth || 800;
+    const height = container.clientHeight || 500;
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x0f172a);
 
-    const camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 1000);
+    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
     camera.position.set(12, 9, 15);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(w, h);
+    renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    
-    // Limpieza estricta del contenedor
+
     container.innerHTML = '';
     container.appendChild(renderer.domElement);
 
@@ -45,15 +45,15 @@ export default function LoftCanvas({ params, layers, openings }) {
     const rootGroup = new THREE.Group();
     scene.add(rootGroup);
 
-    // Materiales con codificación de color
+    // Materiales
     const matPil = new THREE.MeshStandardMaterial({ color: 0x94a3b8 });
-    const matCol = new THREE.MeshStandardMaterial({ color: 0xef4444 }); // Rojo: Columnas
-    const matBeam = new THREE.MeshStandardMaterial({ color: 0x3b82f6 }); // Azul: Vigas Marco
-    const matTrans = new THREE.MeshStandardMaterial({ color: 0x06b6d4 }); // Celeste: Caños/Perfiles Transversales
-    const matCor = new THREE.MeshStandardMaterial({ color: 0xeab308 });  // Amarillo: Fajas
-    const matOsb = new THREE.MeshStandardMaterial({ color: 0xd97706 });  // Madera: Fenólico/OSB
-    const matPur = new THREE.MeshStandardMaterial({ color: 0x10b981, transparent: true, opacity: 0.25 }); // Verde: Paneles
-    const matAbertura = new THREE.MeshStandardMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.65 });
+    const matCol = new THREE.MeshStandardMaterial({ color: 0xef4444 });
+    const matBeam = new THREE.MeshStandardMaterial({ color: 0x3b82f6 });
+    const matTrans = new THREE.MeshStandardMaterial({ color: 0x06b6d4 });
+    const matCor = new THREE.MeshStandardMaterial({ color: 0xeab308 });
+    const matOsb = new THREE.MeshStandardMaterial({ color: 0xd97706 });
+    const matPur = new THREE.MeshStandardMaterial({ color: 0x10b981, transparent: true, opacity: 0.25 });
+    const matAbertura = new THREE.MeshStandardMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.7 });
 
     const { 
       frente, profundidad, altura, elevacion, anchoMezzanine, 
@@ -61,7 +61,7 @@ export default function LoftCanvas({ params, layers, openings }) {
       distanciaColumnas, pasoTirantesPiso, pasoTirantesAltillo, separacionCorreas
     } = params;
 
-    // --- 1. PILOTINES ---
+    // Pilotines
     if (layers.pilotines) {
       for (let i = 0; i < filasPilotines; i++) {
         for (let j = 0; j < pilotinesPorFila; j++) {
@@ -74,7 +74,7 @@ export default function LoftCanvas({ params, layers, openings }) {
       }
     }
 
-    // --- 2. COLUMNAS PRINCIPALES Y SECUNDARIAS ---
+    // Columnas
     if (layers.columnas) {
       const numColsLargo = Math.max(2, Math.ceil(frente / distanciaColumnas) + 1);
       const numColsAncho = Math.max(2, Math.ceil(profundidad / distanciaColumnas) + 1);
@@ -97,14 +97,12 @@ export default function LoftCanvas({ params, layers, openings }) {
       }
     }
 
-    // --- 3. ESTRUCTURA PISO, ALTILLO Y PERFILES TRANSVERSALES ---
+    // Estructuras de Piso / Altillo / Transversales
     if (layers.estructuras) {
-      // Marcos Perimetrales Base
       const vigoBase = new THREE.Mesh(new THREE.BoxGeometry(frente, 0.12, profundidad), matBeam);
       vigoBase.position.set(0, elevacion, 0);
       rootGroup.add(vigoBase);
 
-      // Caños / Perfiles C Transversales Planta Baja
       const cantTirantesPiso = Math.floor(frente / pasoTirantesPiso);
       for (let i = 0; i <= cantTirantesPiso; i++) {
         const x = -frente/2 + (i * pasoTirantesPiso);
@@ -115,12 +113,10 @@ export default function LoftCanvas({ params, layers, openings }) {
         }
       }
 
-      // Marco Altillo (+2.30m)
       const vigoAltillo = new THREE.Mesh(new THREE.BoxGeometry(anchoMezzanine, 0.12, profundidad), matBeam);
       vigoAltillo.position.set(-frente/2 + anchoMezzanine/2, elevacion + 2.30, 0);
       rootGroup.add(vigoAltillo);
 
-      // Caños / Perfiles C Transversales Altillo
       const cantTirantesAltillo = Math.floor(anchoMezzanine / pasoTirantesAltillo);
       for (let i = 0; i <= cantTirantesAltillo; i++) {
         const x = -frente/2 + (i * pasoTirantesAltillo);
@@ -132,7 +128,7 @@ export default function LoftCanvas({ params, layers, openings }) {
       }
     }
 
-    // --- 4. FAJAS Y CORREAS ---
+    // Correas / Fajas
     if (layers.fajas) {
       const cantFajas = Math.floor(altura / separacionCorreas);
       for (let k = 1; k <= cantFajas; k++) {
@@ -149,7 +145,7 @@ export default function LoftCanvas({ params, layers, openings }) {
       }
     }
 
-    // --- 5. PLACAS OSB / FENÓLICO ---
+    // Placas de Piso
     if (layers.osb) {
       const osbPiso = new THREE.Mesh(new THREE.BoxGeometry(frente, 0.02, profundidad), matOsb);
       osbPiso.position.set(0, elevacion + 0.06, 0);
@@ -160,29 +156,29 @@ export default function LoftCanvas({ params, layers, openings }) {
       rootGroup.add(osbAlt);
     }
 
-    // --- 6. REVESTIMIENTOS Y ABERTURAS DINÁMICAS MÚLTIPLES ---
+    // Revestimiento y Aberturas
     if (layers.pur) {
       const pur = new THREE.Mesh(new THREE.BoxGeometry(frente, altura, profundidad), matPur);
       pur.position.set(0, elevacion + altura / 2, 0);
       rootGroup.add(pur);
 
-      // Renderizar array dinámico de aberturas
+      // Posicionamiento 3D exacto de aberturas
       openings.forEach((op) => {
         if (op.ancho <= 0 || op.alto <= 0) return;
         const opMesh = new THREE.Mesh(new THREE.BoxGeometry(op.ancho, op.alto, 0.12), matAbertura);
         const yPos = elevacion + (op.tipo === 'puerta' ? op.alto / 2 : op.antepecho + op.alto / 2);
-        const posOffset = op.offset || 0;
+        const offset = op.offset || 0;
 
         if (op.pared === 'frente') {
-          opMesh.position.set(posOffset, yPos, profundidad / 2);
+          opMesh.position.set(offset, yPos, profundidad / 2);
         } else if (op.pared === 'fondo') {
-          opMesh.position.set(posOffset, yPos, -profundidad / 2);
+          opMesh.position.set(offset, yPos, -profundidad / 2);
         } else if (op.pared === 'izquierda') {
           opMesh.rotation.y = Math.PI / 2;
-          opMesh.position.set(-frente / 2, yPos, posOffset);
+          opMesh.position.set(-frente / 2, yPos, offset);
         } else if (op.pared === 'derecha') {
           opMesh.rotation.y = Math.PI / 2;
-          opMesh.position.set(frente / 2, yPos, posOffset);
+          opMesh.position.set(frente / 2, yPos, offset);
         }
         rootGroup.add(opMesh);
       });
@@ -196,15 +192,14 @@ export default function LoftCanvas({ params, layers, openings }) {
     };
     animate();
 
-    // ResizeObserver para garantizar que el canvas se adapte dinámicamente
     const resizeObserver = new ResizeObserver(() => {
       if (!container) return;
-      const nw = container.clientWidth;
-      const nh = container.clientHeight;
-      if (nw > 0 && nh > 0) {
-        camera.aspect = nw / nh;
+      const w = container.clientWidth;
+      const h = container.clientHeight;
+      if (w > 0 && h > 0) {
+        camera.aspect = w / h;
         camera.updateProjectionMatrix();
-        renderer.setSize(nw, nh);
+        renderer.setSize(w, h);
       }
     });
     resizeObserver.observe(container);
@@ -221,9 +216,9 @@ export default function LoftCanvas({ params, layers, openings }) {
     <div className="canvas-box" ref={mountRef}>
       <div className="canvas-controls">
         <button className="btn-ctrl" onClick={() => setIsRotating(!isRotating)}>
-          {isRotating ? '⏸️ Pausar Rotación' : '▶️ Rotar'}
+          {isRotating ? '⏸️ Pausar' : '▶️ Rotar'}
         </button>
-        <span className="ctrl-tip">💡 Arrastrá para orbitar, rueda para Zoom</span>
+        <span className="ctrl-tip">💡 Arrastrá con el mouse/dedo para orbitar</span>
       </div>
     </div>
   );
