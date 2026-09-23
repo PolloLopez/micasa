@@ -1,28 +1,88 @@
-import React, { useState } from 'react';
-import LoftCanvas from './LoftCanvas';
+import React, { useEffect, useRef, useState } from 'react';
+import * as THREE from 'three';
+import { jsPDF } from 'jspdf';
 import './App.css';
 
-export default function App() {
-  // Unidad de medida para la configuración de perfiles (mm / cm)
-  const [unit, setUnit] = useState('mm'); // 'mm' | 'cm'
+// --- ALGORITMO OPTIMIZADOR DE CORTES 1D (FIRST FIT DECREASING) ---
+function optimizarCortes(piezasRequeridas, largoBarraComercial, anchoDisco = 0.003) {
+  if (!piezasRequeridas || piezasRequeridas.length === 0 || largoBarraComercial <= 0) {
+    return { barras: [], totalBarras: 0, desperdicioTotalMl: 0, porcentajeDesperdicio: 0 };
+  }
 
-  // Parámetros geométricos principales
-  const [params, setParams] = useState({
+  // Ordenar piezas de mayor a menor para mejor empaquetado
+  const piezasOrdenadas = [...piezasRequeridas].sort((a, b) => b - a);
+  const barras = []; // Guardará objetos: { id, piezas: [], usado: 0, sobrante: 0 }
+
+  piezasOrdenadas.forEach((piezas) => {
+    let ubicada = false;
+    for (let b of barras) {
+      const espacioNecesario = piezas + (b.piezas.length > 0 ? anchoDisco : 0);
+      if (b.sobrante >= espacioNecesario) {
+        b.piezas.push(piezas);
+        b.usado += espacioNecesario;
+        b.sobrante = largoBarraComercial - b.usado;
+        ubicada = true;
+        break;
+      }
+    }
+    if (!ubicada) {
+      barras.push({
+        id: barras.length + 1,
+        piezas: [piezas],
+        usado: piezas,
+        sobrante: largoBarraComercial - piezas
+      });
+    }
+  });
+
+  const totalCompradoMl = barras.length * largoBarraComercial;
+  const desperdicioTotalMl = barras.reduce((acc, b) => acc + b.sobrante, 0);
+  const porcentajeDesperdicio = totalCompradoMl > 0 ? (desperdicioTotalMl / totalCompradoMl) * 100 : 0;
+
+  return {
+    barras,
+    totalBarras: barras.length,
+    totalCompradoMl,
+    desperdicioTotalMl,
+    porcentajeDesperdicio
+  };
+}
+
+export default function App() {
+  // --- ESTADOS Y UNIDADES ---
+  const [unit, setUnit] = useState('m'); // 'mm', 'cm', 'm'
+  const [activeTab, setActiveTab] = useState('medidas'); // Móvil: 'medidas', 'perfiles', 'optimizar', 'capas', 'cotizador'
+
+  // Factores de conversión hacia metros
+  const toM = (val) => {
+    if (unit === 'mm') return val / 1000;
+    if (unit === 'cm') return val / 100;
+    return val;
+  };
+
+  const fromM = (valInM) => {
+    if (unit === 'mm') return Math.round(valInM * 1000);
+    if (unit === 'cm') return Number((valInM * 100).toFixed(1));
+    return Number(valInM.toFixed(2));
+  };
+
+  // Parámetros almacenados siempre en METROS internamente
+  const [rawParams, setRawParams] = useState({
     frente: 7.50,
     profundidad: 4.50,
     altura: 4.50,
     elevacion: 0.50,
     anchoMezzanine: 3.00,
-    distanciaColumnas: 2.50,    // Distancia máx entre columnas
-    pasoTirantesPiso: 0.40,     // Separación tirantes transversales piso
-    pasoTirantesAltillo: 0.40,  // Separación tirantes transversales altillo
-    separacionCorreas: 0.80,    // Separación fajas de pared
+    distanciaColumnas: 2.50,
+    pasoTirantesPiso: 0.40,
+    pasoTirantesAltillo: 0.40,
+    separacionCorreas: 0.80,
     filasPilotines: 4,
     pilotinesPorFila: 3,
-    largoBarra: 6.0,            // Largo comercial estándar de barra (m)
+    largoBarraComercial: 6.00, // Largo de barra por defecto
+    anchoDisco: 0.003 // 3mm de disco de corte
   });
 
-  // Especificaciones editables de materiales
   const [matSpecs, setMatSpecs] = useState({
     columna: { tipo: 'Caño Estructural', medida: '100x100', espesor: '1.6' },
     viga: { tipo: 'Perfil C', medida: '120x50', espesor: '2.0' },
@@ -32,7 +92,6 @@ export default function App() {
     pur: { tipoMaterial: 'Panel PUR (Isopanel)', anchoUtil: 1.00, espesor: '50' }
   });
 
-  // Capas de visibilidad 3D
   const [layers, setLayers] = useState({
     pilotines: true,
     columnas: true,
@@ -42,7 +101,6 @@ export default function App() {
     pur: true
   });
 
-  // Precios unitarios
   const [prices, setPrices] = useState({
     col: 38000,
     vig: 35000,
@@ -57,302 +115,500 @@ export default function App() {
     flete: 50000
   });
 
-  const handleParam = (e) => {
-    const val = e.target.type === 'number' ? parseFloat(e.target.value) || 0 : e.target.value;
-    setParams({ ...params, [e.target.name]: val });
+  // Manejo de inputs dinámicos respetando la unidad activa
+  const handleDimChange = (field, valDisplay) => {
+    const numeric = parseFloat(valDisplay) || 0;
+    const inMeters = toM(numeric);
+    setRawParams(prev => ({ ...prev, [field]: inMeters }));
   };
 
-  const handleSpec = (cat, field, val) => {
-    setMatSpecs({
-      ...matSpecs,
-      [cat]: {
-        ...matSpecs[cat],
-        [field]: field === 'largo' || field === 'ancho' || field === 'anchoUtil' ? (parseFloat(val) || 0) : val
-      }
-    });
+  const handleDirectChange = (e) => {
+    const { name, value } = e.target;
+    setRawParams(prev => ({ ...prev, [name]: parseFloat(value) || 0 }));
   };
 
-  const handlePrice = (e) => setPrices({ ...prices, [e.target.name]: parseFloat(e.target.value) || 0 });
-  const toggleLayer = (layerKey) => setLayers({ ...layers, [layerKey]: !layers[layerKey] });
+  // --- CÁLCULO DE PIEZAS Y LISTADO DE CORTES ---
+  const p = rawParams;
 
-  // --- CÁLCULOS DINÁMICOS Y CÓMPUTO MÉTRICO ---
-  const numColsLargo = Math.max(2, Math.ceil(params.frente / params.distanciaColumnas) + 1);
-  const numColsAncho = Math.max(2, Math.ceil(params.profundidad / params.distanciaColumnas) + 1);
+  // 1. Columnas
+  const numColsLargo = Math.max(2, Math.ceil(p.frente / p.distanciaColumnas) + 1);
+  const numColsAncho = Math.max(2, Math.ceil(p.profundidad / p.distanciaColumnas) + 1);
   const totalCols = (numColsLargo * 2) + ((numColsAncho - 2) * 3);
-  
-  const mlColsTotales = totalCols * params.altura;
-  const mColBars = Math.ceil(mlColsTotales / (params.largoBarra || 6));
-  const desperdicioCols = (mColBars * params.largoBarra) - mlColsTotales;
+  const piezasCols = Array(totalCols).fill(p.altura);
+  const optCols = optimizarCortes(piezasCols, p.largoBarraComercial, p.anchoDisco);
 
-  // Vigas Marco Perimetrales
-  const mlVigasMarco = (params.frente * 4) + (params.profundidad * 4);
-  const mVigBars = Math.ceil(mlVigasMarco / (params.largoBarra || 6));
+  // 2. Vigas Marco
+  const piezasVigas = [
+    ...Array(4).fill(p.frente),
+    ...Array(4).fill(p.profundidad)
+  ];
+  const optVigas = optimizarCortes(piezasVigas, p.largoBarraComercial, p.anchoDisco);
 
-  // Vigas y Tirantes Transversales Perfil C (Piso PB + Altillo)
-  const tirantesPisoMl = Math.ceil(params.frente / params.pasoTirantesPiso) * params.profundidad;
-  const tirantesAltilloMl = Math.ceil(params.anchoMezzanine / params.pasoTirantesAltillo) * params.profundidad;
-  const mlTransversalesTotales = tirantesPisoMl + tirantesAltilloMl;
-  const mTransBars = Math.ceil(mlTransversalesTotales / (params.largoBarra || 6));
-  const desperdicioTrans = (mTransBars * params.largoBarra) - mlTransversalesTotales;
+  // 3. Transversales (Piso + Altillo)
+  const cantTirantesPiso = Math.floor(p.frente / p.pasoTirantesPiso) + 1;
+  const cantTirantesAltillo = Math.floor(p.anchoMezzanine / p.pasoTirantesAltillo) + 1;
+  const piezasTrans = [
+    ...Array(cantTirantesPiso).fill(p.profundidad),
+    ...Array(cantTirantesAltillo).fill(p.profundidad)
+  ];
+  const optTrans = optimizarCortes(piezasTrans, p.largoBarraComercial, p.anchoDisco);
 
-  // Fajas / Correas
-  const cantFajas = Math.floor(params.altura / params.separacionCorreas);
-  const mlFajasTotales = cantFajas * (params.frente + params.profundidad) * 2;
-  const mCorBars = Math.ceil(mlFajasTotales / (params.largoBarra || 6));
-  const desperdicioCorreas = (mCorBars * params.largoBarra) - mlFajasTotales;
+  // 4. Correas / Fajas
+  const cantFajas = Math.floor(p.altura / p.separacionCorreas);
+  const piezasCorreas = [
+    ...Array(cantFajas * 2).fill(p.frente),
+    ...Array(cantFajas * 2).fill(p.profundidad)
+  ];
+  const optCorreas = optimizarCortes(piezasCorreas, p.largoBarraComercial, p.anchoDisco);
 
-  // Placas Fenólico / OSB
-  const areaPlaca = (matSpecs.osb.largo || 2.44) * (matSpecs.osb.ancho || 1.22);
-  const areaPisoTotal = (params.frente * params.profundidad) + (params.anchoMezzanine * params.profundidad);
+  // Revestimientos y placas
+  const areaPlaca = matSpecs.osb.largo * matSpecs.osb.ancho;
+  const areaPisoTotal = (p.frente * p.profundidad) + (p.anchoMezzanine * p.profundidad);
   const cOsb = Math.ceil(areaPisoTotal / (areaPlaca || 2.97));
+  const mPur = Math.ceil(((p.frente + p.profundidad) * 2 * p.altura) + (p.frente * p.profundidad));
+  const totalPilotines = p.filasPilotines * p.pilotinesPorFila;
 
-  // Revestimiento Exterior
-  const mPur = Math.ceil(((params.frente + params.profundidad) * 2 * params.altura) + (params.frente * params.profundidad * 1.05));
-  const totalPilotines = params.filasPilotines * params.pilotinesPorFila;
-
-  // Detalle de ítems para el presupuesto
-  const itemsMateriales = [
-    { 
-      name: `Columnas: ${matSpecs.columna.tipo} ${matSpecs.columna.medida}${unit} x ${matSpecs.columna.espesor}${unit}`, 
-      cant: mColBars, pKey: 'col', unit: `Barras (${params.largoBarra}m)`, extra: `Ml útil: ${mlColsTotales.toFixed(1)}m | Sobrante: ${desperdicioCols.toFixed(1)}m` 
-    },
-    { 
-      name: `Vigas Principales Marco: ${matSpecs.viga.tipo} ${matSpecs.viga.medida}${unit} x ${matSpecs.viga.espesor}${unit}`, 
-      cant: mVigBars, pKey: 'vig', unit: `Barras (${params.largoBarra}m)`, extra: `Ml útil: ${mlVigasMarco.toFixed(1)}m` 
-    },
-    { 
-      name: `Transversales Piso/Altillo: ${matSpecs.vigaTransversal.tipo} ${matSpecs.vigaTransversal.medida}${unit} x ${matSpecs.vigaTransversal.espesor}${unit}`, 
-      cant: mTransBars, pKey: 'vigTrans', unit: `Barras (${params.largoBarra}m)`, extra: `Ml útil: ${mlTransversalesTotales.toFixed(1)}m | Sobrante: ${desperdicioTrans.toFixed(1)}m` 
-    },
-    { 
-      name: `Fajas/Correas: ${matSpecs.correa.tipo} ${matSpecs.correa.medida}${unit} x ${matSpecs.correa.espesor}${unit}`, 
-      cant: mCorBars, pKey: 'cor', unit: `Barras (${params.largoBarra}m)`, extra: `Ml útil: ${mlFajasTotales.toFixed(1)}m | Sobrante: ${desperdicioCorreas.toFixed(1)}m` 
-    },
-    { 
-      name: `${matSpecs.osb.tipoMaterial} (${matSpecs.osb.largo}m x ${matSpecs.osb.ancho}m x ${matSpecs.osb.espesor}${unit})`, 
-      cant: cOsb, pKey: 'osb', unit: 'Placas', extra: `Piso + Altillo (${areaPisoTotal.toFixed(1)} m²)` 
-    },
-    { 
-      name: `${matSpecs.pur.tipoMaterial} (${matSpecs.pur.espesor}${unit} - Útil: ${matSpecs.pur.anchoUtil}m)`, 
-      cant: mPur, pKey: 'pur', unit: 'm²', extra: `Cubierta + Muros exterior` 
-    },
-    { 
-      name: `Pilotines de Cemento`, 
-      cant: totalPilotines, pKey: 'pil', unit: 'U', extra: `${params.filasPilotines} filas x ${params.pilotinesPorFila} por fila` 
-    },
+  // Cómputo global
+  const itemsCotizacion = [
+    { name: `Columnas (${matSpecs.columna.tipo} ${matSpecs.columna.medida})`, cant: optCols.totalBarras, pKey: 'col', unit: `Barras de ${p.largoBarraComercial}m`, desc: `Desperdicio: ${optCols.porcentajeDesperdicio.toFixed(1)}%` },
+    { name: `Vigas Marco (${matSpecs.viga.tipo} ${matSpecs.viga.medida})`, cant: optVigas.totalBarras, pKey: 'vig', unit: `Barras de ${p.largoBarraComercial}m`, desc: `Desperdicio: ${optVigas.porcentajeDesperdicio.toFixed(1)}%` },
+    { name: `Transversales (${matSpecs.vigaTransversal.tipo} ${matSpecs.vigaTransversal.medida})`, cant: optTrans.totalBarras, pKey: 'vigTrans', unit: `Barras de ${p.largoBarraComercial}m`, desc: `Desperdicio: ${optTrans.porcentajeDesperdicio.toFixed(1)}%` },
+    { name: `Fajas/Correas (${matSpecs.correa.tipo} ${matSpecs.correa.medida})`, cant: optCorreas.totalBarras, pKey: 'cor', unit: `Barras de ${p.largoBarraComercial}m`, desc: `Desperdicio: ${optCorreas.porcentajeDesperdicio.toFixed(1)}%` },
+    { name: `${matSpecs.osb.tipoMaterial}`, cant: cOsb, pKey: 'osb', unit: 'Placas', desc: `${areaPisoTotal.toFixed(1)} m² de superficie` },
+    { name: `${matSpecs.pur.tipoMaterial}`, cant: mPur, pKey: 'pur', unit: 'm²', desc: 'Muros y cubierta exterior' },
+    { name: 'Pilotines de Hormigón Base', cant: totalPilotines, pKey: 'pil', unit: 'U', desc: 'Bases de apoyo' },
+    { name: 'Mano de Obra Armado', cant: Math.ceil(areaPisoTotal), pKey: 'manoObraM2', unit: 'm²', desc: 'Instalación y soldadura' },
+    { name: 'Consumibles Generales', cant: 1, pKey: 'consumibles', unit: 'Gl', desc: 'Discos, electrodos, gas' },
+    { name: 'Pintura Estructural', cant: 1, pKey: 'pintura', unit: 'Gl', desc: 'Protección anticorrosiva' },
+    { name: 'Flete y Logística', cant: 1, pKey: 'flete', unit: 'Gl', desc: 'Traslado a obra' }
   ];
 
-  const itemsAdicionales = [
-    { name: 'Mano de Obra Armado', cant: Math.ceil(areaPisoTotal), pKey: 'manoObraM2', unit: 'm²' },
-    { name: 'Consumibles (Electrodos/Discos/Gas)', cant: 1, pKey: 'consumibles', unit: 'Global' },
-    { name: 'Pintura Antióxido / Convertidor', cant: 1, pKey: 'pintura', unit: 'Global' },
-    { name: 'Flete y Logística de Obra', cant: 1, pKey: 'flete', unit: 'Global' },
-  ];
+  const totalGeneral = itemsCotizacion.reduce((acc, item) => acc + (item.cant * (prices[item.pKey] || 0)), 0);
 
-  const subtotalMat = itemsMateriales.reduce((a, b) => a + (b.cant * prices[b.pKey]), 0);
-  const subtotalAdi = itemsAdicionales.reduce((a, b) => a + (b.cant * prices[b.pKey]), 0);
-  const totalGeneral = subtotalMat + subtotalAdi;
+  // --- EXPORTAR REPORTES Y ESQUEMAS DE CORTE A PDF ---
+  const exportarPDF = () => {
+    const doc = new jsPDF();
+    let y = 15;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(18);
+    doc.text('🐤Calculator - Reporte de Cotización y Cortes', 14, y);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Diseñado por "elPollo" | Estructuras Modulares', 14, y + 6);
+    y += 18;
+
+    // Dimensiones
+    doc.setFont('helvetica', 'bold');
+    doc.text('1. Dimensiones de la Estructura:', 14, y);
+    y += 6;
+    doc.setFont('helvetica', 'normal');
+    doc.text(`• Frente: ${fromM(p.frente)}${unit} | Profundidad: ${fromM(p.profundidad)}${unit} | Altura: ${fromM(p.altura)}${unit}`, 14, y);
+    doc.text(`• Largo Comercial de Barras: ${p.largoBarraComercial} m`, 14, y + 5);
+    y += 14;
+
+    // Presupuesto
+    doc.setFont('helvetica', 'bold');
+    doc.text('2. Resumen de Presupuesto:', 14, y);
+    y += 6;
+
+    itemsCotizacion.forEach((item) => {
+      const subtotal = item.cant * (prices[item.pKey] || 0);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`${item.name} x ${item.cant} ${item.unit}`, 14, y);
+      doc.text(`$ ${subtotal.toLocaleString('es-AR')}`, 170, y, { align: 'right' });
+      y += 5;
+    });
+
+    y += 4;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text(`TOTAL ESTIMADO: $ ${totalGeneral.toLocaleString('es-AR')}`, 14, y);
+    y += 14;
+
+    // Mapa de Cortes
+    doc.setFontSize(14);
+    doc.text('3. Esquerma de Optimización de Cortes (Nesting)', 14, y);
+    y += 8;
+
+    const imprimirOpt = (titulo, opt) => {
+      if (y > 260) { doc.addPage(); y = 15; }
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${titulo} - Total: ${opt.totalBarras} barras | Desperdicio: ${opt.porcentajeDesperdicio.toFixed(1)}%`, 14, y);
+      y += 5;
+      doc.setFont('helvetica', 'normal');
+      opt.barras.forEach((b) => {
+        if (y > 275) { doc.addPage(); y = 15; }
+        const piezasStr = b.piezas.map(pz => `${fromM(pz)}${unit}`).join(' + ');
+        doc.text(`  Barra #${b.id}: [ ${piezasStr} ] -> Sobran: ${fromM(b.sobrante)}${unit}`, 16, y);
+        y += 4.5;
+      });
+      y += 4;
+    };
+
+    imprimirOpt('Columnas', optCols);
+    imprimirOpt('Vigas Marco Principal', optVigas);
+    imprimirOpt('Transversales de Piso y Altillo', optTrans);
+    imprimirOpt('Fajas / Correas', optCorreas);
+
+    doc.save(`Cotizacion_elPollo_${new Date().toISOString().slice(0, 10)}.pdf`);
+  };
 
   return (
     <div className="app">
-      <header>
-        <h1>Diseñador & Cotizador</h1>
-        <div className="subtitle">By "elPollo"</div>
-      </header>
-      <div className="layout">
-        <div className="canvas-wrap">
-          <LoftCanvas params={params} layers={layers} />
+      <header className="header">
+        <div className="brand">
+          <h1>🐤Calculator</h1>
+          <span className="subtitle">Diseñador & Cotizador — By "elPollo"</span>
         </div>
+        <div className="unit-selector">
+          <label>Unidad:</label>
+          <select value={unit} onChange={(e) => setUnit(e.target.value)}>
+            <option value="m">Metros (m)</option>
+            <option value="cm">Centímetros (cm)</option>
+            <option value="mm">Milímetros (mm)</option>
+          </select>
+        </div>
+      </header>
+
+      <div className="main-container">
+        {/* VISOR 3D */}
+        <div className="canvas-wrapper">
+          <Canvas3D params={p} layers={layers} />
+        </div>
+
+        {/* NAVEGACIÓN TÁCTIL MÓVIL */}
+        <nav className="mobile-tabs">
+          <button className={activeTab === 'medidas' ? 'active' : ''} onClick={() => setActiveTab('medidas')}>📏 Medidas</button>
+          <button className={activeTab === 'perfiles' ? 'active' : ''} onClick={() => setActiveTab('perfiles')}>🏗️ Perfiles</button>
+          <button className={activeTab === 'optimizar' ? 'active' : ''} onClick={() => setActiveTab('optimizar')}>✂️ Cortes</button>
+          <button className={activeTab === 'capas' ? 'active' : ''} onClick={() => setActiveTab('capas')}>👁️ Capas</button>
+          <button className={activeTab === 'cotizador' ? 'active' : ''} onClick={() => setActiveTab('cotizador')}>💰 Cotización</button>
+        </nav>
+
+        {/* CONTENIDO INTERACTIVO */}
         <aside className="sidebar">
           
-          {/* CONFIGURACIÓN DE UNIDADES */}
-          <div className="card">
-            <h2>Configuración Global</h2>
-            <div className="group">
-              <label>Unidad para Secciones y Perfiles:</label>
-              <select value={unit} onChange={(e) => setUnit(e.target.value)}>
-                <option value="mm">Milímetros (mm)</option>
-                <option value="cm">Centímetros (cm)</option>
+          {/* MEDIDAS Y PASOS */}
+          <div className={`tab-content ${activeTab === 'medidas' ? 'show' : ''}`}>
+            <h2>Dimensiones y Pasos ({unit})</h2>
+            <div className="form-grid">
+              <div className="input-group">
+                <label>Frente:</label>
+                <input type="number" step="any" value={fromM(p.frente)} onChange={(e) => handleDimChange('frente', e.target.value)} />
+              </div>
+              <div className="input-group">
+                <label>Profundidad:</label>
+                <input type="number" step="any" value={fromM(p.profundidad)} onChange={(e) => handleDimChange('profundidad', e.target.value)} />
+              </div>
+              <div className="input-group">
+                <label>Altura Estructura:</label>
+                <input type="number" step="any" value={fromM(p.altura)} onChange={(e) => handleDimChange('altura', e.target.value)} />
+              </div>
+              <div className="input-group">
+                <label>Elevación Pilotines:</label>
+                <input type="number" step="any" value={fromM(p.elevacion)} onChange={(e) => handleDimChange('elevacion', e.target.value)} />
+              </div>
+              <div className="input-group">
+                <label>Ancho Altillo:</label>
+                <input type="number" step="any" value={fromM(p.anchoMezzanine)} onChange={(e) => handleDimChange('anchoMezzanine', e.target.value)} />
+              </div>
+              <div className="input-group">
+                <label>Paso Max. Columnas:</label>
+                <input type="number" step="any" value={fromM(p.distanciaColumnas)} onChange={(e) => handleDimChange('distanciaColumnas', e.target.value)} />
+              </div>
+              <div className="input-group">
+                <label>Paso Transversales Piso:</label>
+                <input type="number" step="any" value={fromM(p.pasoTirantesPiso)} onChange={(e) => handleDimChange('pasoTirantesPiso', e.target.value)} />
+              </div>
+              <div className="input-group">
+                <label>Paso Transversales Altillo:</label>
+                <input type="number" step="any" value={fromM(p.pasoTirantesAltillo)} onChange={(e) => handleDimChange('pasoTirantesAltillo', e.target.value)} />
+              </div>
+              <div className="input-group">
+                <label>Paso Correas/Fajas:</label>
+                <input type="number" step="any" value={fromM(p.separacionCorreas)} onChange={(e) => handleDimChange('separacionCorreas', e.target.value)} />
+              </div>
+            </div>
+
+            <h3 className="section-title">Barra Comercial y Corte</h3>
+            <div className="form-grid">
+              <div className="input-group">
+                <label>Largo de Barra (m):</label>
+                <input type="number" step="0.5" name="largoBarraComercial" value={p.largoBarraComercial} onChange={handleDirectChange} />
+              </div>
+              <div className="input-group">
+                <label>Espesor Disco (mm):</label>
+                <input type="number" step="0.5" value={p.anchoDisco * 1000} onChange={(e) => setRawParams({ ...p, anchoDisco: (parseFloat(e.target.value) || 0) / 1000 })} />
+              </div>
+            </div>
+          </div>
+
+          {/* PERFILES Y MATERIALES */}
+          <div className={`tab-content ${activeTab === 'perfiles' ? 'show' : ''}`}>
+            <h2>Catálogo de Perfiles</h2>
+            <div className="card-item">
+              <h4>Columnas</h4>
+              <select value={matSpecs.columna.tipo} onChange={(e) => setMatSpecs({ ...matSpecs, columna: { ...matSpecs.columna, tipo: e.target.value } })}>
+                <option value="Caño Estructural">Caño Estructural</option>
+                <option value="Perfil C">Perfil C</option>
+                <option value="Perfil IPN">Perfil IPN</option>
+                <option value="Perfil UPN">Perfil UPN</option>
+                <option value="Tubo Redondo">Tubo Redondo</option>
               </select>
+              <input type="text" placeholder={`Medida (${unit})`} value={matSpecs.columna.medida} onChange={(e) => setMatSpecs({ ...matSpecs, columna: { ...matSpecs.columna, medida: e.target.value } })} />
+            </div>
+
+            <div className="card-item">
+              <h4>Vigas Marco</h4>
+              <select value={matSpecs.viga.tipo} onChange={(e) => setMatSpecs({ ...matSpecs, viga: { ...matSpecs.viga, tipo: e.target.value } })}>
+                <option value="Perfil C">Perfil C</option>
+                <option value="Caño Estructural">Caño Estructural</option>
+                <option value="Perfil IPN">Perfil IPN</option>
+              </select>
+              <input type="text" placeholder={`Medida (${unit})`} value={matSpecs.viga.medida} onChange={(e) => setMatSpecs({ ...matSpecs, viga: { ...matSpecs.viga, medida: e.target.value } })} />
+            </div>
+
+            <div className="card-item">
+              <h4>Transversales Piso/Altillo</h4>
+              <select value={matSpecs.vigaTransversal.tipo} onChange={(e) => setMatSpecs({ ...matSpecs, vigaTransversal: { ...matSpecs.vigaTransversal, tipo: e.target.value } })}>
+                <option value="Perfil C">Perfil C</option>
+                <option value="Caño Estructural">Caño Estructural</option>
+                <option value="Omegaprofil">Omegaprofil</option>
+              </select>
+              <input type="text" placeholder={`Medida (${unit})`} value={matSpecs.vigaTransversal.medida} onChange={(e) => setMatSpecs({ ...matSpecs, vigaTransversal: { ...matSpecs.vigaTransversal, medida: e.target.value } })} />
             </div>
           </div>
 
-          {/* CONTROL DE CAPAS 3D */}
-          <div className="card">
-            <h2>Visibilidad de Capas 3D</h2>
-            <div className="layers-grid">
-              <label className="checkbox"><input type="checkbox" checked={layers.pilotines} onChange={() => toggleLayer('pilotines')} /> Pilotines</label>
-              <label className="checkbox"><input type="checkbox" checked={layers.columnas} onChange={() => toggleLayer('columnas')} /> Columnas</label>
-              <label className="checkbox"><input type="checkbox" checked={layers.estructuras} onChange={() => toggleLayer('estructuras')} /> Pisos/Altillo/Transversales</label>
-              <label className="checkbox"><input type="checkbox" checked={layers.fajas} onChange={() => toggleLayer('fajas')} /> Fajas/Correas</label>
-              <label className="checkbox"><input type="checkbox" checked={layers.osb} onChange={() => toggleLayer('osb')} /> Placas Fenólico/OSB</label>
-              <label className="checkbox"><input type="checkbox" checked={layers.pur} onChange={() => toggleLayer('pur')} /> Revestimiento Muros</label>
+          {/* OPTIMIZACIÓN DE CORTES */}
+          <div className={`tab-content ${activeTab === 'optimizar' ? 'show' : ''}`}>
+            <h2>Optimización y Mapas de Corte</h2>
+            <p className="hint">Simulación para barras estándar de {p.largoBarraComercial}m</p>
+
+            <RenderCortesSection titulo="Columnas" opt={optCols} unit={unit} fromM={fromM} largoBarra={p.largoBarraComercial} />
+            <RenderCortesSection titulo="Vigas Marco" opt={optVigas} unit={unit} fromM={fromM} largoBarra={p.largoBarraComercial} />
+            <RenderCortesSection titulo="Transversales Piso" opt={optTrans} unit={unit} fromM={fromM} largoBarra={p.largoBarraComercial} />
+            <RenderCortesSection titulo="Correas / Fajas" opt={optCorreas} unit={unit} fromM={fromM} largoBarra={p.largoBarraComercial} />
+          </div>
+
+          {/* CAPAS 3D */}
+          <div className={`tab-content ${activeTab === 'capas' ? 'show' : ''}`}>
+            <h2>Visibilidad Capas 3D</h2>
+            <div className="layers-list">
+              {Object.keys(layers).map((key) => (
+                <label key={key} className="checkbox-label">
+                  <input type="checkbox" checked={layers[key]} onChange={() => setLayers({ ...layers, [key]: !layers[key] })} />
+                  <span>{key.toUpperCase()}</span>
+                </label>
+              ))}
             </div>
           </div>
 
-          {/* MEDIDAS Y DISTANCIAS PRINCIPALES */}
-          <div className="card">
-            <h2>Dimensiones Generales (m)</h2>
-            <div className="group"><label>Frente (m):</label><input type="number" step="0.5" name="frente" value={params.frente} onChange={handleParam} /></div>
-            <div className="group"><label>Profundidad (m):</label><input type="number" step="0.5" name="profundidad" value={params.profundidad} onChange={handleParam} /></div>
-            <div className="group"><label>Altura Estructura (m):</label><input type="number" step="0.25" name="altura" value={params.altura} onChange={handleParam} /></div>
-            <div className="group"><label>Elevación / Pilotines (m):</label><input type="number" step="0.1" name="elevacion" value={params.elevacion} onChange={handleParam} /></div>
-            <div className="group"><label>Ancho Altillo (m):</label><input type="number" step="0.25" name="anchoMezzanine" value={params.anchoMezzanine} onChange={handleParam} /></div>
-          </div>
-
-          {/* MODULACIÓN Y PASOS ESTRUCTURALES */}
-          <div className="card">
-            <h2>Pasos y Separaciones (m)</h2>
-            <div className="group"><label>Paso Máx. Columnas:</label><input type="number" step="0.25" name="distanciaColumnas" value={params.distanciaColumnas} onChange={handleParam} /></div>
-            <div className="group"><label>Paso Transversales Piso:</label><input type="number" step="0.05" name="pasoTirantesPiso" value={params.pasoTirantesPiso} onChange={handleParam} /></div>
-            <div className="group"><label>Paso Transversales Altillo:</label><input type="number" step="0.05" name="pasoTirantesAltillo" value={params.pasoTirantesAltillo} onChange={handleParam} /></div>
-            <div className="group"><label>Paso Fajas Pared:</label><input type="number" step="0.10" name="separacionCorreas" value={params.separacionCorreas} onChange={handleParam} /></div>
-            <div className="group"><label>Filas Pilotines:</label><input type="number" step="1" name="filasPilotines" value={params.filasPilotines} onChange={handleParam} /></div>
-            <div className="group"><label>Pilotines x Fila:</label><input type="number" step="1" name="pilotinesPorFila" value={params.pilotinesPorFila} onChange={handleParam} /></div>
-            <div className="group"><label>Largo Comercial Barra (m):</label><input type="number" step="1" name="largoBarra" value={params.largoBarra} onChange={handleParam} /></div>
-          </div>
-
-          {/* CONFIGURADOR CATÁLOGO DE MATERIALES */}
-          <div className="card">
-            <h2>Catálogo de Perfiles y Materiales</h2>
-            
-            {/* Columnas */}
-            <div className="subcard">
-              <h3>Columnas</h3>
-              <div className="group"><label>Tipo de Perfil:</label>
-                <select value={matSpecs.columna.tipo} onChange={(e) => handleSpec('columna', 'tipo', e.target.value)}>
-                  <option value="Caño Estructural">Caño Estructural</option>
-                  <option value="Perfil C">Perfil C</option>
-                  <option value="Perfil IPN">Perfil IPN</option>
-                  <option value="Perfil UPN">Perfil UPN</option>
-                  <option value="Perfil T">Perfil T</option>
-                  <option value="Hierro L / Ángulo">Hierro L / Ángulo</option>
-                  <option value="Hierro Macizo">Hierro Macizo</option>
-                  <option value="Tubo Redondo">Tubo Redondo</option>
-                </select>
-              </div>
-              <div className="group"><label>Medida ({unit}):</label><input type="text" value={matSpecs.columna.medida} onChange={(e) => handleSpec('columna', 'medida', e.target.value)} /></div>
-              <div className="group"><label>Espesor ({unit}):</label><input type="text" value={matSpecs.columna.espesor} onChange={(e) => handleSpec('columna', 'espesor', e.target.value)} /></div>
-            </div>
-
-            {/* Vigas Marco */}
-            <div className="subcard">
-              <h3>Vigas Principales Marco</h3>
-              <div className="group"><label>Tipo de Perfil:</label>
-                <select value={matSpecs.viga.tipo} onChange={(e) => handleSpec('viga', 'tipo', e.target.value)}>
-                  <option value="Perfil C">Perfil C</option>
-                  <option value="Caño Estructural">Caño Estructural</option>
-                  <option value="Perfil IPN">Perfil IPN</option>
-                  <option value="Perfil UPN">Perfil UPN</option>
-                </select>
-              </div>
-              <div className="group"><label>Medida ({unit}):</label><input type="text" value={matSpecs.viga.medida} onChange={(e) => handleSpec('viga', 'medida', e.target.value)} /></div>
-              <div className="group"><label>Espesor ({unit}):</label><input type="text" value={matSpecs.viga.espesor} onChange={(e) => handleSpec('viga', 'espesor', e.target.value)} /></div>
-            </div>
-
-            {/* Transversales de Piso */}
-            <div className="subcard">
-              <h3>Transversales de Piso y Altillo</h3>
-              <div className="group"><label>Tipo de Perfil:</label>
-                <select value={matSpecs.vigaTransversal.tipo} onChange={(e) => handleSpec('vigaTransversal', 'tipo', e.target.value)}>
-                  <option value="Perfil C">Perfil C</option>
-                  <option value="Caño Estructural">Caño Estructural</option>
-                  <option value="Perfil T">Perfil T</option>
-                  <option value="Omegaprofil">Omegaprofil</option>
-                </select>
-              </div>
-              <div className="group"><label>Medida ({unit}):</label><input type="text" value={matSpecs.vigaTransversal.medida} onChange={(e) => handleSpec('vigaTransversal', 'medida', e.target.value)} /></div>
-              <div className="group"><label>Espesor ({unit}):</label><input type="text" value={matSpecs.vigaTransversal.espesor} onChange={(e) => handleSpec('vigaTransversal', 'espesor', e.target.value)} /></div>
-            </div>
-
-            {/* Correas */}
-            <div className="subcard">
-              <h3>Fajas / Correas de Pared</h3>
-              <div className="group"><label>Tipo de Perfil:</label>
-                <select value={matSpecs.correa.tipo} onChange={(e) => handleSpec('correa', 'tipo', e.target.value)}>
-                  <option value="Perfil C">Perfil C</option>
-                  <option value="Caño Estructural">Caño Estructural</option>
-                  <option value="Omegaprofil">Omegaprofil</option>
-                  <option value="Hierro L / Ángulo">Hierro L / Ángulo</option>
-                </select>
-              </div>
-              <div className="group"><label>Medida ({unit}):</label><input type="text" value={matSpecs.correa.medida} onChange={(e) => handleSpec('correa', 'medida', e.target.value)} /></div>
-              <div className="group"><label>Espesor ({unit}):</label><input type="text" value={matSpecs.correa.espesor} onChange={(e) => handleSpec('correa', 'espesor', e.target.value)} /></div>
-            </div>
-
-            {/* Placas Piso */}
-            <div className="subcard">
-              <h3>Revestimiento de Piso (Placas)</h3>
-              <div className="group"><label>Material:</label>
-                <select value={matSpecs.osb.tipoMaterial} onChange={(e) => handleSpec('osb', 'tipoMaterial', e.target.value)}>
-                  <option value="Placa Fenólica / OSB">Placa Fenólica / OSB</option>
-                  <option value="Placa Cementicia Heavy">Placa Cementicia Heavy</option>
-                  <option value="Chapa Alfajor / Semilla de Melón">Chapa Alfajor / Semilla de Melón</option>
-                </select>
-              </div>
-              <div className="group"><label>Largo Placa (m):</label><input type="number" step="0.01" value={matSpecs.osb.largo} onChange={(e) => handleSpec('osb', 'largo', e.target.value)} /></div>
-              <div className="group"><label>Ancho Placa (m):</label><input type="number" step="0.01" value={matSpecs.osb.ancho} onChange={(e) => handleSpec('osb', 'ancho', e.target.value)} /></div>
-              <div className="group"><label>Espesor ({unit}):</label><input type="text" value={matSpecs.osb.espesor} onChange={(e) => handleSpec('osb', 'espesor', e.target.value)} /></div>
-            </div>
-
-            {/* Revestimiento Paredes */}
-            <div className="subcard">
-              <h3>Revestimiento Muros Exterior</h3>
-              <div className="group"><label>Material Panel:</label>
-                <select value={matSpecs.pur.tipoMaterial} onChange={(e) => handleSpec('pur', 'tipoMaterial', e.target.value)}>
-                  <option value="Panel PUR (Isopanel)">Panel PUR (Isopanel)</option>
-                  <option value="Chapa Sinusoidal / T-101">Chapa Sinusoidal / T-101</option>
-                  <option value="Placa Cementicia Superboard">Placa Cementicia Superboard</option>
-                  <option value="Siding PVC / Madera">Siding PVC / Madera</option>
-                </select>
-              </div>
-              <div className="group"><label>Ancho Útil (m):</label><input type="number" step="0.05" value={matSpecs.pur.anchoUtil} onChange={(e) => handleSpec('pur', 'anchoUtil', e.target.value)} /></div>
-              <div className="group"><label>Espesor ({unit}):</label><input type="text" value={matSpecs.pur.espesor} onChange={(e) => handleSpec('pur', 'espesor', e.target.value)} /></div>
-            </div>
-
-          </div>
-
-          {/* PRESUPUESTO COMPLETO */}
-          <div className="card">
-            <h2>Presupuesto Materiales ($ ARS)</h2>
-            <table>
-              <thead><tr><th>Item / Configuración</th><th>Cant</th><th>Precio U.</th><th>Subtotal</th></tr></thead>
-              <tbody>
-                {itemsMateriales.map((i, idx) => (
-                  <tr key={idx}>
-                    <td>
-                      <div><strong>{i.name}</strong></div>
-                      <div className="extra-info">{i.extra}</div>
-                    </td>
-                    <td>{i.cant} {i.unit}</td>
-                    <td><input type="number" name={i.pKey} value={prices[i.pKey]} onChange={handlePrice} /></td>
-                    <td className="sub">$ {(i.cant * prices[i.pKey]).toLocaleString('es-AR')}</td>
+          {/* COTIZADOR Y EXPORTAR */}
+          <div className={`tab-content ${activeTab === 'cotizador' ? 'show' : ''}`}>
+            <h2>Presupuesto Estimado</h2>
+            <div className="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Material</th>
+                    <th>Cant</th>
+                    <th>$ Unit</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {itemsCotizacion.map((item, idx) => (
+                    <tr key={idx}>
+                      <td>
+                        <strong>{item.name}</strong>
+                        <small>{item.desc}</small>
+                      </td>
+                      <td>{item.cant} {item.unit}</td>
+                      <td>
+                        <input
+                          type="number"
+                          value={prices[item.pKey] || 0}
+                          onChange={(e) => setPrices({ ...prices, [item.pKey]: parseFloat(e.target.value) || 0 })}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
-          <div className="card">
-            <h2>Mano de Obra y Costos Adicionales</h2>
-            <table>
-              <thead><tr><th>Concepto</th><th>Cant</th><th>Precio U.</th><th>Subtotal</th></tr></thead>
-              <tbody>
-                {itemsAdicionales.map((i, idx) => (
-                  <tr key={idx}>
-                    <td>{i.name}</td>
-                    <td>{i.cant} {i.unit}</td>
-                    <td><input type="number" name={i.pKey} value={prices[i.pKey]} onChange={handlePrice} /></td>
-                    <td className="sub">$ {(i.cant * prices[i.pKey]).toLocaleString('es-AR')}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <div className="total"><span>COSTO TOTAL ESTIMADO:</span><span>$ {totalGeneral.toLocaleString('es-AR')}</span></div>
+            <div className="total-box">
+              <span>TOTAL ESTIMADO:</span>
+              <strong>$ {totalGeneral.toLocaleString('es-AR')}</strong>
+            </div>
+
+            <button className="btn-pdf" onClick={exportarPDF}>
+              📄 Exportar Cotización y Mapa de Cortes a PDF
+            </button>
           </div>
 
         </aside>
       </div>
     </div>
+  );
+}
+
+// --- COMPONENTE CORTES REUTILIZABLE ---
+function RenderCortesSection({ titulo, opt, unit, fromM, largoBarra }) {
+  return (
+    <div className="nesting-box">
+      <div className="nesting-header">
+        <strong>{titulo}</strong>
+        <span className={`badge ${opt.porcentajeDesperdicio < 10 ? 'green' : 'orange'}`}>
+          Desperdicio: {opt.porcentajeDesperdicio.toFixed(1)}% ({opt.totalBarras} Barras)
+        </span>
+      </div>
+      <div className="nesting-bars">
+        {opt.barras.map((b) => (
+          <div key={b.id} className="bar-visual">
+            <div className="bar-title">Barra #{b.id} (Sobran {fromM(b.sobrante)}{unit}):</div>
+            <div className="bar-track">
+              {b.piezas.map((pz, i) => {
+                const pct = (pz / largoBarra) * 100;
+                return (
+                  <div key={i} className="bar-piece" style={{ width: `${pct}%` }}>
+                    {fromM(pz)}
+                  </div>
+                );
+              })}
+              <div className="bar-waste" style={{ width: `${(b.sobrante / largoBarra) * 100}%` }}></div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// --- COMPONENTE VISOR 3D INTERACTIVO ---
+function Canvas3D({ params, layers }) {
+  const mountRef = useRef(null);
+  const isRotating = useRef(true);
+
+  useEffect(() => {
+    const container = mountRef.current;
+    if (!container) return;
+    const w = container.clientWidth, h = container.clientHeight;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0f172a);
+
+    const camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 1000);
+    camera.position.set(12, 8, 14);
+    camera.lookAt(0, 2, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(w, h);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    container.innerHTML = '';
+    container.appendChild(renderer.domElement);
+
+    scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+    const dl = new THREE.DirectionalLight(0xffffff, 0.8);
+    dl.position.set(10, 20, 10);
+    scene.add(dl);
+    scene.add(new THREE.GridHelper(20, 20, 0x475569, 0x1e293b));
+
+    const rootGroup = new THREE.Group();
+    scene.add(rootGroup);
+
+    // Materiales
+    const matPil = new THREE.MeshStandardMaterial({ color: 0x94a3b8 });
+    const matCol = new THREE.MeshStandardMaterial({ color: 0xef4444 });
+    const matBeam = new THREE.MeshStandardMaterial({ color: 0x3b82f6 });
+    const matTrans = new THREE.MeshStandardMaterial({ color: 0x06b6d4 });
+    const matCor = new THREE.MeshStandardMaterial({ color: 0xeab308 });
+    const matOsb = new THREE.MeshStandardMaterial({ color: 0xd97706 });
+    const matPur = new THREE.MeshStandardMaterial({ color: 0x10b981, transparent: true, opacity: 0.25 });
+
+    const { frente, profundidad, altura, elevacion, anchoMezzanine } = params;
+
+    // Dibujar Pilotines
+    if (layers.pilotines) {
+      for (let i = 0; i < params.filasPilotines; i++) {
+        for (let j = 0; j < params.pilotinesPorFila; j++) {
+          const x = -frente/2 + (frente / Math.max(1, params.filasPilotines - 1)) * i;
+          const z = -profundidad/2 + (profundidad / Math.max(1, params.pilotinesPorFila - 1)) * j;
+          const p = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, elevacion, 16), matPil);
+          p.position.set(x, elevacion / 2, z);
+          rootGroup.add(p);
+        }
+      }
+    }
+
+    // Dibujar Columnas
+    if (layers.columnas) {
+      const numColsLargo = Math.max(2, Math.ceil(frente / params.distanciaColumnas) + 1);
+      for (let i = 0; i < numColsLargo; i++) {
+        const x = -frente/2 + (frente / (numColsLargo - 1)) * i;
+        [-profundidad/2, profundidad/2].forEach(z => {
+          const c = new THREE.Mesh(new THREE.BoxGeometry(0.1, altura, 0.1), matCol);
+          c.position.set(x, elevacion + altura / 2, z);
+          rootGroup.add(c);
+        });
+      }
+    }
+
+    // Dibujar Vigas y Transversales
+    if (layers.estructuras) {
+      const vigoBase = new THREE.Mesh(new THREE.BoxGeometry(frente, 0.12, profundidad), matBeam);
+      vigoBase.position.set(0, elevacion, 0);
+      rootGroup.add(vigoBase);
+
+      const cantTirantesPiso = Math.floor(frente / params.pasoTirantesPiso);
+      for (let i = 0; i <= cantTirantesPiso; i++) {
+        const x = -frente/2 + (i * params.pasoTirantesPiso);
+        if (x <= frente/2) {
+          const tPiso = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.10, profundidad - 0.1), matTrans);
+          tPiso.position.set(x, elevacion, 0);
+          rootGroup.add(tPiso);
+        }
+      }
+    }
+
+    // Dibujar Placas OSB
+    if (layers.osb) {
+      const osbPiso = new THREE.Mesh(new THREE.BoxGeometry(frente, 0.02, profundidad), matOsb);
+      osbPiso.position.set(0, elevacion + 0.06, 0);
+      rootGroup.add(osbPiso);
+    }
+
+    // Dibujar Revestimiento Muros
+    if (layers.pur) {
+      const pur = new THREE.Mesh(new THREE.BoxGeometry(frente, altura, profundidad), matPur);
+      pur.position.set(0, elevacion + altura / 2, 0);
+      rootGroup.add(pur);
+    }
+
+    // Animación
+    let animId;
+    const animate = () => {
+      animId = requestAnimationFrame(animate);
+      if (isRotating.current) {
+        rootGroup.rotation.y += 0.003;
+      }
+      renderer.render(scene, camera);
+    };
+    animate();
+
+    return () => {
+      cancelAnimationFrame(animId);
+      if (container.contains(renderer.domElement)) container.removeChild(renderer.domElement);
+    };
+  }, [params, layers]);
+
+  return (
+    <div
+      className="canvas-box"
+      ref={mountRef}
+      onTouchStart={() => (isRotating.current = false)}
+      onMouseDown={() => (isRotating.current = false)}
+    />
   );
 }
