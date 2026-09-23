@@ -3,27 +3,47 @@ import LoftCanvas from './LoftCanvas';
 import './App.css';
 
 export default function App() {
+  // Parámetros geométricos y estructurales
   const [params, setParams] = useState({
-    frente: 7.50, 
-    profundidad: 4.50, 
-    altura: 4.50, 
-    elevacion: 0.50, 
+    frente: 7.50,
+    profundidad: 4.50,
+    altura: 4.50,
+    elevacion: 0.50,
     anchoMezzanine: 3.00,
+    distanciaColumnas: 2.50,    // Distancia máx entre columnas
+    pasoTirantesPiso: 0.40,     // Separación tirantes de piso
+    pasoTirantesAltillo: 0.40,  // Separación tirantes de altillo
+    separacionCorreas: 0.80,    // Separación fajas de pared
     filasPilotines: 4,
     pilotinesPorFila: 3,
-    separacionCorreas: 0.80, // Distancia entre fajas en metros
+    largoBarra: 6.0,            // Largo comercial de barra en metros
     tipoColumna: 'caño-100x100x1.6',
     tipoViga: 'caño-100x50x2.0',
     tipoCorrea: 'perfilC-100x45x2.0'
   });
 
+  // Capas de visibilidad 3D
+  const [layers, setLayers] = useState({
+    pilotines: true,
+    columnas: true,
+    estructuras: true,
+    fajas: true,
+    osb: true,
+    pur: true
+  });
+
+  // Precios unitarios
   const [prices, setPrices] = useState({
-    col: 38000, 
-    vig: 32000, 
-    cor: 24000, 
-    osb: 28000, 
-    pur: 35000, 
-    pil: 15000
+    col: 38000,
+    vig: 32000,
+    cor: 24000,
+    osb: 28000,
+    pur: 35000,
+    pil: 15000,
+    manoObraM2: 12000,
+    consumibles: 85000,  // Electrodos, discos, gas
+    pintura: 45000,      // Antióxido / Convertidor
+    flete: 50000
   });
 
   const handleParam = (e) => {
@@ -32,108 +52,123 @@ export default function App() {
   };
 
   const handlePrice = (e) => setPrices({ ...prices, [e.target.name]: parseFloat(e.target.value) || 0 });
+  const toggleLayer = (layerKey) => setLayers({ ...layers, [layerKey]: !layers[layerKey] });
 
-  // --- CÁLCULOS DINÁMICOS ---
-  const totalPilotines = params.filasPilotines * params.pilotinesPorFila;
+  // --- CÁLCULOS DINÁMICOS DE MATERIALES ---
+  const numColsLargo = Math.max(2, Math.ceil(params.frente / params.distanciaColumnas) + 1);
+  const numColsAncho = Math.max(2, Math.ceil(params.profundidad / params.distanciaColumnas) + 1);
+  const totalCols = (numColsLargo * 2) + ((numColsAncho - 2) * 3);
   
-  // Barras de Columnas (6m)
-  const mCol = Math.ceil((10 * params.altura) / 6);
+  const mCol = Math.ceil((totalCols * params.altura) / params.largoBarra);
 
-  // Barras de Vigas Marcos (6m)
-  const mVig = Math.ceil(((params.frente * 4) + (params.profundidad * 5) + (params.anchoMezzanine * 2)) / 6);
+  // Vigas + Tirantes
+  const tirantesPiso = Math.ceil(params.frente / params.pasoTirantesPiso) * params.profundidad;
+  const tirantesAltillo = Math.ceil(params.anchoMezzanine / params.pasoTirantesAltillo) * params.profundidad;
+  const mVig = Math.ceil((tirantesPiso + tirantesAltillo + (params.frente * 4) + (params.profundidad * 4)) / params.largoBarra);
 
-  // Barras de Fajas y Correas (Piso + Paredes + Techo)
+  // Fajas
   const cantFajas = Math.floor(params.altura / params.separacionCorreas);
-  const mlFajasParedes = cantFajas * (params.frente + params.profundidad) * 2;
-  const mlCorreasPiso = ((params.frente / 0.40) * params.profundidad) + ((params.anchoMezzanine / 0.40) * params.profundidad);
-  const mCor = Math.ceil((mlFajasParedes + mlCorreasPiso) / 6);
+  const mlFajas = cantFajas * (params.frente + params.profundidad) * 2;
+  const mCor = Math.ceil(mlFajas / params.largoBarra);
 
-  // OSB, PUR, etc.
-  const cOsb = Math.ceil(((params.frente * params.profundidad) + (params.anchoMezzanine * params.profundidad)) / 2.97);
+  // Superficies
+  const areaPisoTotal = (params.frente * params.profundidad) + (params.anchoMezzanine * params.profundidad);
+  const cOsb = Math.ceil(areaPisoTotal / 2.97);
   const mPur = Math.ceil(((params.frente + params.profundidad) * 2 * params.altura) + (params.frente * params.profundidad * 1.05));
+  const totalPilotines = params.filasPilotines * params.pilotinesPorFila;
 
-  const items = [
-    { name: `Barras Columnas (${params.tipoColumna})`, cant: mCol, pKey: 'col' },
-    { name: `Barras Vigas (${params.tipoViga})`, cant: mVig, pKey: 'vig' },
-    { name: `Barras Fajas/Correas (${params.tipoCorrea})`, cant: mCor, pKey: 'cor' },
-    { name: 'Placas OSB (18mm)', cant: cOsb, pKey: 'osb' },
-    { name: 'Paneles PUR (m²)', cant: mPur, pKey: 'pur' },
-    { name: 'Pilotines de Cemento', cant: totalPilotines, pKey: 'pil' },
+  // Presupuesto
+  const itemsMateriales = [
+    { name: `Barras Columnas (${params.tipoColumna})`, cant: mCol, pKey: 'col', unit: 'Barras' },
+    { name: `Barras Vigas y Tirantes (${params.tipoViga})`, cant: mVig, pKey: 'vig', unit: 'Barras' },
+    { name: `Barras Fajas/Correas (${params.tipoCorrea})`, cant: mCor, pKey: 'cor', unit: 'Barras' },
+    { name: 'Placas OSB (18mm)', cant: cOsb, pKey: 'osb', unit: 'Placas' },
+    { name: 'Paneles PUR (Muros + Techo)', cant: mPur, pKey: 'pur', unit: 'm²' },
+    { name: 'Pilotines de Cemento', cant: totalPilotines, pKey: 'pil', unit: 'U' },
   ];
 
-  const total = items.reduce((a, b) => a + (b.cant * prices[b.pKey]), 0);
+  const itemsAdicionales = [
+    { name: 'Mano de Obra Armado', cant: Math.ceil(areaPisoTotal), pKey: 'manoObraM2', unit: 'm²' },
+    { name: 'Consumibles (Electrodos/Discos/Gas)', cant: 1, pKey: 'consumibles', unit: 'Global' },
+    { name: 'Pintura Antióxido / Convertidor', cant: 1, pKey: 'pintura', unit: 'Global' },
+    { name: 'Flete y Logística de Obra', cant: 1, pKey: 'flete', unit: 'Global' },
+  ];
+
+  const subtotalMat = itemsMateriales.reduce((a, b) => a + (b.cant * prices[b.pKey]), 0);
+  const subtotalAdi = itemsAdicionales.reduce((a, b) => a + (b.cant * prices[b.pKey]), 0);
+  const totalGeneral = subtotalMat + subtotalAdi;
 
   return (
     <div className="app">
       <header>
-        <h1>micasa - Diseñador 3D & Cotizador Loft</h1>
+        <h1>micasa - Diseñador 3D & Cotizador Loft Paramétrico</h1>
       </header>
       <div className="layout">
         <div className="canvas-wrap">
-          <LoftCanvas params={params} />
+          <LoftCanvas params={params} layers={layers} />
         </div>
         <aside className="sidebar">
+          
+          {/* CONTROL DE CAPAS 3D */}
           <div className="card">
-            <h2>Medidas Estructurales (m)</h2>
-            <div className="group"><label>Frente:</label><input type="number" step="0.5" name="frente" value={params.frente} onChange={handleParam} /></div>
-            <div className="group"><label>Profundidad:</label><input type="number" step="0.5" name="profundidad" value={params.profundidad} onChange={handleParam} /></div>
-            <div className="group"><label>Altura Total:</label><input type="number" step="0.25" name="altura" value={params.altura} onChange={handleParam} /></div>
-            <div className="group"><label>Mezzanine:</label><input type="number" step="0.5" name="anchoMezzanine" value={params.anchoMezzanine} onChange={handleParam} /></div>
+            <h2>Visibilidad de Capas 3D</h2>
+            <div className="layers-grid">
+              <label className="checkbox"><input type="checkbox" checked={layers.pilotines} onChange={() => toggleLayer('pilotines')} /> Pilotines</label>
+              <label className="checkbox"><input type="checkbox" checked={layers.columnas} onChange={() => toggleLayer('columnas')} /> Columnas</label>
+              <label className="checkbox"><input type="checkbox" checked={layers.estructuras} onChange={() => toggleLayer('estructuras')} /> Pisos/Altillo</label>
+              <label className="checkbox"><input type="checkbox" checked={layers.fajas} onChange={() => toggleLayer('fajas')} /> Fajas/Correas</label>
+              <label className="checkbox"><input type="checkbox" checked={layers.osb} onChange={() => toggleLayer('osb')} /> Placas OSB</label>
+              <label className="checkbox"><input type="checkbox" checked={layers.pur} onChange={() => toggleLayer('pur')} /> Paneles PUR</label>
+            </div>
           </div>
 
+          {/* MEDIDAS Y PASOS */}
           <div className="card">
-            <h2>Configuración de Perfiles y Estructura</h2>
-            <div className="group">
-              <label>Perfil Columnas:</label>
-              <select name="tipoColumna" value={params.tipoColumna} onChange={handleParam}>
-                <option value="caño-100x100x1.6">Caño 100x100x1.6 mm</option>
-                <option value="caño-80x80x2.0">Caño 80x80x2.0 mm</option>
-                <option value="perfilC-120x50x2.0">Perfil C 120x50 (Cajón)</option>
-              </select>
-            </div>
-            <div className="group">
-              <label>Perfil Vigas:</label>
-              <select name="tipoViga" value={params.tipoViga} onChange={handleParam}>
-                <option value="caño-100x50x2.0">Caño 100x50x2.0 mm</option>
-                <option value="caño-120x60x2.0">Caño 120x60x2.0 mm</option>
-                <option value="perfilC-140x50x2.0">Perfil C 140x50</option>
-              </select>
-            </div>
-            <div className="group">
-              <label>Perfil Fajas/Correas:</label>
-              <select name="tipoCorrea" value={params.tipoCorrea} onChange={handleParam}>
-                <option value="perfilC-100x45x2.0">Perfil C 100x45x2.0 mm</option>
-                <option value="perfilC-80x40x1.6">Perfil C 80x40x1.6 mm</option>
-                <option value="caño-60x40x1.6">Caño 60x40x1.6 mm</option>
-              </select>
-            </div>
-            <div className="group"><label>Sep. Fajas/Pared (m):</label><input type="number" step="0.10" name="separacionCorreas" value={params.separacionCorreas} onChange={handleParam} /></div>
+            <h2>Medidas y Separaciones (m)</h2>
+            <div className="group"><label>Frente x Profundidad:</label><span>{params.frente}m × {params.profundidad}m</span></div>
+            <div className="group"><label>Paso Máx. Columnas:</label><input type="number" step="0.25" name="distanciaColumnas" value={params.distanciaColumnas} onChange={handleParam} /></div>
+            <div className="group"><label>Paso Tirantes Piso:</label><input type="number" step="0.05" name="pasoTirantesPiso" value={params.pasoTirantesPiso} onChange={handleParam} /></div>
+            <div className="group"><label>Paso Tirantes Altillo:</label><input type="number" step="0.05" name="pasoTirantesAltillo" value={params.pasoTirantesAltillo} onChange={handleParam} /></div>
+            <div className="group"><label>Paso Fajas Pared:</label><input type="number" step="0.10" name="separacionCorreas" value={params.separacionCorreas} onChange={handleParam} /></div>
+            <div className="group"><label>Largo Comercial Barra:</label><input type="number" step="1" name="largoBarra" value={params.largoBarra} onChange={handleParam} /></div>
           </div>
 
+          {/* PRESUPUESTO COMPLETO */}
           <div className="card">
-            <h2>Fundación / Pilotines</h2>
-            <div className="group"><label>Filas (Frente):</label><input type="number" min="2" name="filasPilotines" value={params.filasPilotines} onChange={handleParam} /></div>
-            <div className="group"><label>Pilotines / Fila:</label><input type="number" min="2" name="pilotinesPorFila" value={params.pilotinesPorFila} onChange={handleParam} /></div>
-            <div className="group"><label>Total Pilotines:</label><strong>{totalPilotines} unidades</strong></div>
-          </div>
-
-          <div className="card">
-            <h2>Presupuesto ($ ARS)</h2>
+            <h2>Presupuesto Materiales ($ ARS)</h2>
             <table>
               <thead><tr><th>Item</th><th>Cant</th><th>Precio U.</th><th>Subtotal</th></tr></thead>
               <tbody>
-                {items.map((i, idx) => (
+                {itemsMateriales.map((i, idx) => (
                   <tr key={idx}>
                     <td>{i.name}</td>
-                    <td>{i.cant}</td>
+                    <td>{i.cant} {i.unit}</td>
                     <td><input type="number" name={i.pKey} value={prices[i.pKey]} onChange={handlePrice} /></td>
                     <td className="sub">$ {(i.cant * prices[i.pKey]).toLocaleString('es-AR')}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            <div className="total"><span>TOTAL:</span><span>$ {total.toLocaleString('es-AR')}</span></div>
           </div>
+
+          <div className="card">
+            <h2>Mano de Obra y Costos Adicionales</h2>
+            <table>
+              <thead><tr><th>Concepto</th><th>Cant</th><th>Precio U.</th><th>Subtotal</th></tr></thead>
+              <tbody>
+                {itemsAdicionales.map((i, idx) => (
+                  <tr key={idx}>
+                    <td>{i.name}</td>
+                    <td>{i.cant} {i.unit}</td>
+                    <td><input type="number" name={i.pKey} value={prices[i.pKey]} onChange={handlePrice} /></td>
+                    <td className="sub">$ {(i.cant * prices[i.pKey]).toLocaleString('es-AR')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div className="total"><span>COSTO TOTAL ESTIMADO:</span><span>$ {totalGeneral.toLocaleString('es-AR')}</span></div>
+          </div>
+
         </aside>
       </div>
     </div>
