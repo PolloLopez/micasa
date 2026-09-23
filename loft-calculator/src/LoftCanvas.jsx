@@ -4,7 +4,7 @@ import * as THREE from 'three';
 export default function LoftCanvas({ params, layers }) {
   const mountRef = useRef(null);
   const [isRotating, setIsRotating] = useState(true);
-  const rotationDirection = useRef(1); // 1 = derecha, -1 = izquierda
+  const rotationDirection = useRef(1);
   const sceneRef = useRef(null);
   const cameraRef = useRef(null);
   const rootGroupRef = useRef(null);
@@ -38,14 +38,14 @@ export default function LoftCanvas({ params, layers }) {
     scene.add(rootGroup);
     rootGroupRef.current = rootGroup;
 
-    // Materiales con colores diferenciados
+    // Materiales con colores representativos
     const matPil = new THREE.MeshStandardMaterial({ color: 0x94a3b8 });
     const matCol = new THREE.MeshStandardMaterial({ color: 0xef4444 }); // Rojo: Columnas
-    const matBeam = new THREE.MeshStandardMaterial({ color: 0x3b82f6 }); // Azul: Vigas
-    const matTrans = new THREE.MeshStandardMaterial({ color: 0x06b6d4 }); // Cobre/Celeste: Transversales de Piso/Altillo
+    const matBeam = new THREE.MeshStandardMaterial({ color: 0x3b82f6 }); // Azul: Vigas Marcos
+    const matTrans = new THREE.MeshStandardMaterial({ color: 0x06b6d4 }); // Celeste: Transversales
     const matCor = new THREE.MeshStandardMaterial({ color: 0xeab308 });  // Amarillo: Fajas
     const matOsb = new THREE.MeshStandardMaterial({ color: 0xd97706 });  // Madera: Fenólico / OSB
-    const matPur = new THREE.MeshStandardMaterial({ color: 0x10b981, transparent: true, opacity: 0.3 }); // Verde: Revestimiento Muros
+    const matPur = new THREE.MeshStandardMaterial({ color: 0x10b981, transparent: true, opacity: 0.25 }); // Verde: Muros
 
     const { 
       frente, profundidad, altura, elevacion, anchoMezzanine, 
@@ -89,14 +89,14 @@ export default function LoftCanvas({ params, layers }) {
       }
     }
 
-    // --- CAPA 3: ESTRUCTURA PISO, ALTILLO Y VIGAS TRANSVERSALES ---
+    // --- CAPA 3: ESTRUCTURA PISO, ALTILLO Y TRANSVERSALES ---
     if (layers.estructuras) {
-      // Vigas Marco Perimetral Base Piso (Perfil C principal)
+      // Vigas Marco Perimetral Base
       const vigoBase = new THREE.Mesh(new THREE.BoxGeometry(frente, 0.12, profundidad), matBeam);
       vigoBase.position.set(0, elevacion, 0);
       rootGroup.add(vigoBase);
 
-      // Tirantes / Perfiles C Transversales de Planta Baja
+      // Transversales Perfil C de Piso PB
       const cantTirantesPiso = Math.floor(frente / pasoTirantesPiso);
       for (let i = 0; i <= cantTirantesPiso; i++) {
         const x = -frente/2 + (i * pasoTirantesPiso);
@@ -112,7 +112,7 @@ export default function LoftCanvas({ params, layers }) {
       vigoAltillo.position.set(-frente/2 + anchoMezzanine/2, elevacion + 2.30, 0);
       rootGroup.add(vigoAltillo);
 
-      // Tirantes / Perfiles C Transversales de Altillo
+      // Transversales Perfil C de Altillo
       const cantTirantesAltillo = Math.floor(anchoMezzanine / pasoTirantesAltillo);
       for (let i = 0; i <= cantTirantesAltillo; i++) {
         const x = -frente/2 + (i * pasoTirantesAltillo);
@@ -141,20 +141,18 @@ export default function LoftCanvas({ params, layers }) {
       }
     }
 
-    // --- CAPA 5: PLACAS OSB / FENÓLICO DE PISO Y ALTILLO ---
+    // --- CAPA 5: PLACAS FENÓLICO / OSB ---
     if (layers.osb) {
-      // Placas Piso PB
       const osbPiso = new THREE.Mesh(new THREE.BoxGeometry(frente, 0.02, profundidad), matOsb);
       osbPiso.position.set(0, elevacion + 0.06, 0);
       rootGroup.add(osbPiso);
 
-      // Placas Altillo
       const osbAlt = new THREE.Mesh(new THREE.BoxGeometry(anchoMezzanine, 0.02, profundidad), matOsb);
       osbAlt.position.set(-frente/2 + anchoMezzanine/2, elevacion + 2.36, 0);
       rootGroup.add(osbAlt);
     }
 
-    // --- CAPA 6: REVESTIMIENTO (PUR / CEMENTICIA / CHAPA) ---
+    // --- CAPA 6: REVESTIMIENTO PUR / CEMENTICIA / CHAPA ---
     if (layers.pur) {
       const pur = new THREE.Mesh(new THREE.BoxGeometry(frente, altura, profundidad), matPur);
       pur.position.set(0, elevacion + altura / 2, 0);
@@ -177,14 +175,13 @@ export default function LoftCanvas({ params, layers }) {
     };
   }, [params, layers, isRotating]);
 
-  // Funciones de control de cámara / rotación
   const setPresetView = (view) => {
     if (!cameraRef.current || !rootGroupRef.current) return;
     rootGroupRef.current.rotation.y = 0;
     if (view === 'front') cameraRef.current.position.set(0, 3, 16);
     else if (view === 'top') cameraRef.current.position.set(0, 18, 0.1);
     else if (view === 'side') cameraRef.current.position.set(16, 3, 0);
-    else cameraRef.current.position.set(12, 8, 14); // Perspective
+    else cameraRef.current.position.set(12, 8, 14);
     cameraRef.current.lookAt(0, 2, 0);
   };
 
@@ -192,16 +189,16 @@ export default function LoftCanvas({ params, layers }) {
     <div className="canvas-box" ref={mountRef}>
       <div className="canvas-controls">
         <button className="btn-ctrl" onClick={() => setIsRotating(!isRotating)}>
-          {isRotating ? '⏸️ Pausar Rotación' : '▶️ Reanudar'}
+          {isRotating ? '⏸️ Pausar' : '▶️ Girar'}
         </button>
         <button className="btn-ctrl" onClick={() => { rotationDirection.current = -1; setIsRotating(true); }}>
-          ↺ Izquierda
+          ↺ Izq
         </button>
         <button className="btn-ctrl" onClick={() => { rotationDirection.current = 1; setIsRotating(true); }}>
-          ↻ Derecha
+          ↻ Der
         </button>
         <div className="view-divider">|</div>
-        <button className="btn-ctrl" onClick={() => setPresetView('iso')}>📐 ISO 3D</button>
+        <button className="btn-ctrl" onClick={() => setPresetView('iso')}>📐 3D</button>
         <button className="btn-ctrl" onClick={() => setPresetView('front')}>🔲 Frente</button>
         <button className="btn-ctrl" onClick={() => setPresetView('top')}>🔝 Planta</button>
         <button className="btn-ctrl" onClick={() => setPresetView('side')}>📐 Lateral</button>
