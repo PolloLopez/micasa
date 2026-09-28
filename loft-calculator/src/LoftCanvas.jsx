@@ -42,10 +42,11 @@ export default function LoftCanvas({ params, openings }) {
 
     const { 
       frente, profundidad, altura, elevacion, anchoMezzanine, 
-      filasPilotines, pilotinesPorFila, separacionCorreas 
+      filasPilotines, pilotinesPorFila, 
+      pasoLongitudinal, suprimirSolapados
     } = params;
 
-    // --- PILOTINES DINÁMICOS ---
+    // --- PILOTINES ---
     for (let i = 0; i < filasPilotines; i++) {
       for (let j = 0; j < pilotinesPorFila; j++) {
         const x = -frente/2 + (frente / Math.max(1, filasPilotines - 1)) * i;
@@ -69,27 +70,23 @@ export default function LoftCanvas({ params, openings }) {
       group.add(c);
     });
 
-    // --- FAJAS / CORREAS ---
-    const cantFajasVert = Math.floor(altura / separacionCorreas);
-    for (let k = 1; k <= cantFajasVert; k++) {
-      const yPos = elevacion + k * separacionCorreas;
-      if (yPos < elevacion + altura) {
-        const fFrente = new THREE.Mesh(new THREE.BoxGeometry(frente, 0.05, 0.05), matCor);
-        fFrente.position.set(0, yPos, profundidad/2);
+    // --- PERFILES LONGITUDINALES CON FILTRO DE SOLAPE ---
+    const cantLong = Math.floor(frente / pasoLongitudinal);
+    for (let i = 0; i <= cantLong; i++) {
+      const x = -frente/2 + (i * pasoLongitudinal);
+      const esSolapado = Math.abs(x - 0) < 0.05 || Math.abs(x - (-frente/2)) < 0.05 || Math.abs(x - (frente/2)) < 0.05;
+      if (!(suprimirSolapados && esSolapado)) {
+        const fFrente = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, profundidad), matCor);
+        fFrente.position.set(x, elevacion + altura/2, 0);
         group.add(fFrente);
-
-        const fFondo = new THREE.Mesh(new THREE.BoxGeometry(frente, 0.05, 0.05), matCor);
-        fFondo.position.set(0, yPos, -profundidad/2);
-        group.add(fFondo);
       }
     }
 
-    // --- OSB BASE ---
+    // --- OSB Y MEZZANINE ---
     const osb = new THREE.Mesh(new THREE.BoxGeometry(frente, 0.02, profundidad), matOsb);
     osb.position.set(0, elevacion + 0.01, 0);
     group.add(osb);
 
-    // --- MEZZANINE ---
     const mez = new THREE.Mesh(new THREE.BoxGeometry(anchoMezzanine, 0.08, profundidad), matBeam);
     mez.position.set(-frente/2 + anchoMezzanine/2, elevacion + 2.30, 0);
     group.add(mez);
@@ -99,13 +96,12 @@ export default function LoftCanvas({ params, openings }) {
     pur.position.set(0, elevacion + altura / 2, 0);
     group.add(pur);
 
-    // --- ABERTURAS DINÁMICAS ---
+    // --- ABERTURAS ---
     if (openings && openings.length > 0) {
       openings.forEach((op) => {
         if (op.ancho <= 0 || op.alto <= 0) return;
         const opMesh = new THREE.Mesh(new THREE.BoxGeometry(op.ancho, op.alto, 0.12), matAbertura);
         const yPos = elevacion + op.alturaAntepecho + (op.alto / 2);
-        
         let hPos = op.ladoReferencia === 'izquierda' 
           ? -frente/2 + op.offsetHorizontal + op.ancho/2 
           : frente/2 - op.offsetHorizontal - op.ancho/2;
@@ -137,5 +133,5 @@ export default function LoftCanvas({ params, openings }) {
     };
   }, [params, openings]);
 
-  return <div className="canvas-box" ref={mountRef} />;
+  return;
 }
