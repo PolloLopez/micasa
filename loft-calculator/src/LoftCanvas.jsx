@@ -1,231 +1,239 @@
-import React, { useLayoutEffect, useRef, useState } from 'react';
+// ==========================================================
+// VISOR 3D (Three.js)
+// ----------------------------------------------------------
+// Dibuja la estructura que arma motor/estructura.js.
+//
+// Para no perder memoria (memory leak) se separa en 3 efectos:
+//   1. Montaje: crea UNA sola vez escena, cámara, renderer y controles.
+//   2. Modelo: cuando cambian los datos, borra el grupo anterior
+//      liberando geometrías (dispose) y dibuja el nuevo.
+//   3. Rotación: solo prende/apaga el auto-giro.
+// Antes se recreaba todo (incluido el contexto WebGL) en cada tecla,
+// y el navegador terminaba avisando "Too many active WebGL contexts".
+// ==========================================================
+
+import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { ALTURA_PISO_ALTILLO } from './motor/constantes.js';
+import { posicionAbertura } from './motor/estructura.js';
 
-export default function LoftCanvas({ params, layers, openings }) {
-  const mountRef = useRef(null);
-  const controlsRef = useRef(null);
-  const [isRotating, setIsRotating] = useState(false);
+// Colores por tipo de pieza (también se usan en la leyenda).
+const COLORES = {
+  pilotines: 0x94a3b8,
+  columnas: 0xef4444,
+  marcos: 0x3b82f6,
+  tirantes: 0x06b6d4,
+  correas: 0xeab308,
+  osb: 0xd97706,
+  pur: 0x10b981,
+  aberturas: 0x38bdf8,
+};
 
-  useLayoutEffect(() => {
-    const container = mountRef.current;
-    if (!container) return;
+const NOMBRES_CAPAS = {
+  pilotines: 'Pilotines',
+  columnas: 'Columnas',
+  marcos: 'Marcos',
+  tirantes: 'Tirantes',
+  correas: 'Correas',
+  osb: 'OSB',
+  pur: 'PUR',
+};
 
-    const width = container.clientWidth || 800;
-    const height = container.clientHeight || 500;
+/** Crea los materiales una sola vez. */
+function crearMateriales() {
+  const transparente = (color, opacity) =>
+    new THREE.MeshStandardMaterial({ color, transparent: true, opacity, depthWrite: false });
+  return {
+    pilotines: new THREE.MeshStandardMaterial({ color: COLORES.pilotines }),
+    columnas: new THREE.MeshStandardMaterial({ color: COLORES.columnas }),
+    marcos: new THREE.MeshStandardMaterial({ color: COLORES.marcos }),
+    tirantes: new THREE.MeshStandardMaterial({ color: COLORES.tirantes }),
+    correas: new THREE.MeshStandardMaterial({ color: COLORES.correas }),
+    osb: new THREE.MeshStandardMaterial({ color: COLORES.osb }),
+    pur: transparente(COLORES.pur, 0.18),
+    aberturas: transparente(COLORES.aberturas, 0.7),
+  };
+}
 
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0f172a);
+/** Caja posicionada en (x, y, z). */
+function caja(ancho, alto, profundo, material, x, y, z) {
+  const malla = new THREE.Mesh(new THREE.BoxGeometry(ancho, alto, profundo), material);
+  malla.position.set(x, y, z);
+  return malla;
+}
 
-    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
-    camera.position.set(12, 9, 15);
+/** Pieza lineal horizontal (marco, tirante, correa) según su eje. */
+function piezaLineal({ eje, largo, x, y, z }, seccion, material) {
+  return eje === 'x'
+    ? caja(largo, seccion, seccion, material, x, y, z)
+    : caja(seccion, seccion, largo, material, x, y, z);
+}
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(width, height);
+/** Arma todas las mallas del modelo dentro de `grupo`. */
+function dibujarModelo(grupo, materiales, { params, estructura, aberturas, capas }) {
+  const { frente, profundidad, altura, elevacion, anchoMezzanine } = params;
+
+  if (capas.pilotines) {
+    estructura.pilotines.forEach(({ x, z }) => {
+      const p = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, elevacion || 0.01, 16), materiales.pilotines);
+      p.position.set(x, elevacion / 2, z);
+      grupo.add(p);
+    });
+  }
+
+  if (capas.columnas) {
+    estructura.columnas.forEach(({ x, z, largo }) =>
+      grupo.add(caja(0.1, largo, 0.1, materiales.columnas, x, elevacion + largo / 2, z))
+    );
+  }
+
+  if (capas.marcos) estructura.marcos.forEach((m) => grupo.add(piezaLineal(m, 0.12, materiales.marcos)));
+  if (capas.tirantes) estructura.tirantes.forEach((t) => grupo.add(piezaLineal(t, 0.08, materiales.tirantes)));
+  if (capas.correas) estructura.correas.forEach((c) => grupo.add(piezaLineal(c, 0.04, materiales.correas)));
+
+  if (capas.osb) {
+    grupo.add(caja(frente, 0.02, profundidad, materiales.osb, 0, elevacion + 0.07, 0));
+    if (anchoMezzanine > 0) {
+      const yAltillo = elevacion + ALTURA_PISO_ALTILLO + 0.07;
+      grupo.add(caja(anchoMezzanine, 0.02, profundidad, materiales.osb, -frente / 2 + anchoMezzanine / 2, yAltillo, 0));
+    }
+  }
+
+  if (capas.pur) {
+    grupo.add(caja(frente, altura, profundidad, materiales.pur, 0, elevacion + altura / 2, 0));
+    grupo.add(caja(frente, 0.05, profundidad, materiales.pur, 0, elevacion + altura + 0.1, 0)); // techo
+  }
+
+  // Aberturas: siempre visibles, para ubicarlas aunque se oculte el PUR.
+  aberturas.forEach((op) => {
+    const { x, y, z, rotacionY } = posicionAbertura(op, params);
+    const malla = new THREE.Mesh(new THREE.BoxGeometry(op.ancho, op.alto, 0.14), materiales.aberturas);
+    malla.position.set(x, y, z);
+    malla.rotation.y = rotacionY;
+    grupo.add(malla);
+  });
+}
+
+/** Libera la memoria de GPU de las geometrías del grupo y lo vacía. */
+function vaciarGrupo(grupo) {
+  grupo.traverse((obj) => obj.geometry?.dispose());
+  grupo.clear();
+}
+
+export default function LoftCanvas({ params, estructura, aberturas }) {
+  const lienzoRef = useRef(null);
+  const visorRef = useRef(null); // { escena, grupo, controles, materiales, ... }
+  const [autoRotar, setAutoRotar] = useState(false);
+  const [capas, setCapas] = useState({
+    pilotines: true, columnas: true, marcos: true, tirantes: true, correas: true, osb: true, pur: true,
+  });
+
+  // 1) MONTAJE: una sola vez.
+  useEffect(() => {
+    const contenedor = lienzoRef.current;
+    const ancho = contenedor.clientWidth || 800;
+    const alto = contenedor.clientHeight || 500;
+
+    const escena = new THREE.Scene();
+    escena.background = new THREE.Color(0x0f172a);
+
+    const camara = new THREE.PerspectiveCamera(45, ancho / alto, 0.1, 1000);
+    camara.position.set(12, 9, 15);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(ancho, alto);
+    contenedor.appendChild(renderer.domElement);
 
-    container.innerHTML = '';
-    container.appendChild(renderer.domElement);
+    const controles = new OrbitControls(camara, renderer.domElement);
+    controles.enableDamping = true; // movimiento suave
+    controles.dampingFactor = 0.05;
+    controles.autoRotateSpeed = 2;
+    controles.target.set(0, 2, 0);
 
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.05;
-    controls.autoRotate = isRotating;
-    controls.autoRotateSpeed = 2.0;
-    controlsRef.current = controls;
+    escena.add(new THREE.AmbientLight(0xffffff, 0.85));
+    const luz = new THREE.DirectionalLight(0xffffff, 1);
+    luz.position.set(10, 20, 10);
+    escena.add(luz);
+    const grilla = new THREE.GridHelper(24, 24, 0x475569, 0x1e293b);
+    escena.add(grilla);
 
-    scene.add(new THREE.AmbientLight(0xffffff, 0.85));
-    const dl = new THREE.DirectionalLight(0xffffff, 1.0);
-    dl.position.set(10, 20, 10);
-    scene.add(dl);
+    const grupo = new THREE.Group();
+    escena.add(grupo);
+    const materiales = crearMateriales();
 
-    scene.add(new THREE.GridHelper(24, 24, 0x475569, 0x1e293b));
-
-    const rootGroup = new THREE.Group();
-    scene.add(rootGroup);
-
-    // Materiales
-    const matPil = new THREE.MeshStandardMaterial({ color: 0x94a3b8 });
-    const matCol = new THREE.MeshStandardMaterial({ color: 0xef4444 });
-    const matBeam = new THREE.MeshStandardMaterial({ color: 0x3b82f6 });
-    const matTrans = new THREE.MeshStandardMaterial({ color: 0x06b6d4 });
-    const matCor = new THREE.MeshStandardMaterial({ color: 0xeab308 });
-    const matOsb = new THREE.MeshStandardMaterial({ color: 0xd97706 });
-    const matPur = new THREE.MeshStandardMaterial({ color: 0x10b981, transparent: true, opacity: 0.25 });
-    const matAbertura = new THREE.MeshStandardMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.75 });
-
-    const { 
-      frente, profundidad, altura, elevacion, anchoMezzanine, 
-      filasPilotines, pilotinesPorFila,
-      distanciaColumnas, pasoTirantesPiso, pasoTirantesAltillo, separacionCorreas
-    } = params;
-
-    // Pilotines
-    if (layers.pilotines) {
-      for (let i = 0; i < filasPilotines; i++) {
-        for (let j = 0; j < pilotinesPorFila; j++) {
-          const x = -frente/2 + (frente / Math.max(1, filasPilotines - 1)) * i;
-          const z = -profundidad/2 + (profundidad / Math.max(1, pilotinesPorFila - 1)) * j;
-          const p = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, elevacion, 16), matPil);
-          p.position.set(x, elevacion / 2, z);
-          rootGroup.add(p);
-        }
-      }
-    }
-
-    // Columnas
-    if (layers.columnas) {
-      const numColsLargo = Math.max(2, Math.ceil(frente / distanciaColumnas) + 1);
-      const numColsAncho = Math.max(2, Math.ceil(profundidad / distanciaColumnas) + 1);
-
-      for (let i = 0; i < numColsLargo; i++) {
-        const x = -frente/2 + (frente / (numColsLargo - 1)) * i;
-        [-profundidad/2, profundidad/2].forEach(z => {
-          const c = new THREE.Mesh(new THREE.BoxGeometry(0.1, altura, 0.1), matCol);
-          c.position.set(x, elevacion + altura / 2, z);
-          rootGroup.add(c);
-        });
-      }
-      for (let j = 1; j < numColsAncho - 1; j++) {
-        const z = -profundidad/2 + (profundidad / (numColsAncho - 1)) * j;
-        [-frente/2, frente/2, -frente/2 + anchoMezzanine].forEach(x => {
-          const c = new THREE.Mesh(new THREE.BoxGeometry(0.1, altura, 0.1), matCol);
-          c.position.set(x, elevacion + altura / 2, z);
-          rootGroup.add(c);
-        });
-      }
-    }
-
-    // Estructuras de Piso / Altillo
-    if (layers.estructuras) {
-      const vigoBase = new THREE.Mesh(new THREE.BoxGeometry(frente, 0.12, profundidad), matBeam);
-      vigoBase.position.set(0, elevacion, 0);
-      rootGroup.add(vigoBase);
-
-      const cantTirantesPiso = Math.floor(frente / pasoTirantesPiso);
-      for (let i = 0; i <= cantTirantesPiso; i++) {
-        const x = -frente/2 + (i * pasoTirantesPiso);
-        if (x <= frente/2) {
-          const tPiso = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.10, profundidad - 0.1), matTrans);
-          tPiso.position.set(x, elevacion, 0);
-          rootGroup.add(tPiso);
-        }
-      }
-
-      const vigoAltillo = new THREE.Mesh(new THREE.BoxGeometry(anchoMezzanine, 0.12, profundidad), matBeam);
-      vigoAltillo.position.set(-frente/2 + anchoMezzanine/2, elevacion + 2.30, 0);
-      rootGroup.add(vigoAltillo);
-
-      const cantTirantesAltillo = Math.floor(anchoMezzanine / pasoTirantesAltillo);
-      for (let i = 0; i <= cantTirantesAltillo; i++) {
-        const x = -frente/2 + (i * pasoTirantesAltillo);
-        if (x <= -frente/2 + anchoMezzanine) {
-          const tAlt = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.10, profundidad - 0.1), matTrans);
-          tAlt.position.set(x, elevacion + 2.30, 0);
-          rootGroup.add(tAlt);
-        }
-      }
-    }
-
-    // Fajas / Correas
-    if (layers.fajas) {
-      const cantFajas = Math.floor(altura / separacionCorreas);
-      for (let k = 1; k <= cantFajas; k++) {
-        const yPos = elevacion + k * separacionCorreas;
-        if (yPos < elevacion + altura) {
-          const fFrente = new THREE.Mesh(new THREE.BoxGeometry(frente, 0.04, 0.04), matCor);
-          fFrente.position.set(0, yPos, profundidad/2);
-          rootGroup.add(fFrente);
-
-          const fFondo = new THREE.Mesh(new THREE.BoxGeometry(frente, 0.04, 0.04), matCor);
-          fFondo.position.set(0, yPos, -profundidad/2);
-          rootGroup.add(fFondo);
-        }
-      }
-    }
-
-    // Placas OSB
-    if (layers.osb) {
-      const osbPiso = new THREE.Mesh(new THREE.BoxGeometry(frente, 0.02, profundidad), matOsb);
-      osbPiso.position.set(0, elevacion + 0.06, 0);
-      rootGroup.add(osbPiso);
-
-      const osbAlt = new THREE.Mesh(new THREE.BoxGeometry(anchoMezzanine, 0.02, profundidad), matOsb);
-      osbAlt.position.set(-frente/2 + anchoMezzanine/2, elevacion + 2.36, 0);
-      rootGroup.add(osbAlt);
-    }
-
-    // Revestimientos y Posicionamiento de Aberturas
-    if (layers.pur) {
-      const pur = new THREE.Mesh(new THREE.BoxGeometry(frente, altura, profundidad), matPur);
-      pur.position.set(0, elevacion + altura / 2, 0);
-      rootGroup.add(pur);
-
-      openings.forEach((op) => {
-        if (op.ancho <= 0 || op.alto <= 0) return;
-        const opMesh = new THREE.Mesh(new THREE.BoxGeometry(op.ancho, op.alto, 0.14), matAbertura);
-        const yPos = elevacion + op.alturaAntepecho + (op.alto / 2);
-        
-        // Cálculo de posición X/Z según cota de referencia
-        let hPos = 0;
-        if (op.pared === 'frente' || op.pared === 'fondo') {
-          hPos = op.ladoReferencia === 'izquierda' 
-            ? -frente/2 + op.offsetHorizontal + op.ancho/2 
-            : frente/2 - op.offsetHorizontal - op.ancho/2;
-        } else {
-          hPos = op.ladoReferencia === 'izquierda' 
-            ? -profundidad/2 + op.offsetHorizontal + op.ancho/2 
-            : profundidad/2 - op.offsetHorizontal - op.ancho/2;
-        }
-
-        if (op.pared === 'frente') opMesh.position.set(hPos, yPos, profundidad / 2);
-        else if (op.pared === 'fondo') opMesh.position.set(hPos, yPos, -profundidad / 2);
-        else if (op.pared === 'izquierda') {
-          opMesh.rotation.y = Math.PI / 2;
-          opMesh.position.set(-frente / 2, yPos, hPos);
-        } else if (op.pared === 'derecha') {
-          opMesh.rotation.y = Math.PI / 2;
-          opMesh.position.set(frente / 2, yPos, hPos);
-        }
-        rootGroup.add(opMesh);
-      });
-    }
-
-    let animationFrameId;
-    const animate = () => {
-      animationFrameId = requestAnimationFrame(animate);
-      controls.update();
-      renderer.render(scene, camera);
+    // Bucle de dibujo (~60 cuadros por segundo).
+    let idCuadro;
+    const animar = () => {
+      idCuadro = requestAnimationFrame(animar);
+      controles.update();
+      renderer.render(escena, camara);
     };
-    animate();
+    animar();
 
-    const resizeObserver = new ResizeObserver(() => {
-      if (!container) return;
-      const w = container.clientWidth;
-      const h = container.clientHeight;
+    // Ajustar el lienzo cuando cambia el tamaño del contenedor.
+    const observador = new ResizeObserver(() => {
+      const w = contenedor.clientWidth;
+      const h = contenedor.clientHeight;
       if (w > 0 && h > 0) {
-        camera.aspect = w / h;
-        camera.updateProjectionMatrix();
+        camara.aspect = w / h;
+        camara.updateProjectionMatrix();
         renderer.setSize(w, h);
       }
     });
-    resizeObserver.observe(container);
+    observador.observe(contenedor);
 
+    visorRef.current = { grupo, controles, materiales };
+
+    // Limpieza al desmontar: liberar TODO lo que ocupa memoria de GPU.
     return () => {
-      cancelAnimationFrame(animationFrameId);
-      resizeObserver.disconnect();
-      controls.dispose();
-      if (container.contains(renderer.domElement)) container.removeChild(renderer.domElement);
+      cancelAnimationFrame(idCuadro);
+      observador.disconnect();
+      controles.dispose();
+      vaciarGrupo(grupo);
+      Object.values(materiales).forEach((m) => m.dispose());
+      grilla.geometry.dispose();
+      grilla.material.dispose();
+      renderer.dispose();
+      renderer.domElement.remove();
+      visorRef.current = null;
     };
-  }, [params, layers, openings, isRotating]);
+  }, []);
+
+  // 2) MODELO: se redibuja cuando cambian datos o capas.
+  useEffect(() => {
+    const visor = visorRef.current;
+    if (!visor || !estructura) return;
+    vaciarGrupo(visor.grupo);
+    dibujarModelo(visor.grupo, visor.materiales, { params, estructura, aberturas, capas });
+  }, [params, estructura, aberturas, capas]);
+
+  // 3) ROTACIÓN automática.
+  useEffect(() => {
+    if (visorRef.current) visorRef.current.controles.autoRotate = autoRotar;
+  }, [autoRotar]);
+
+  const alternarCapa = (nombre) => setCapas((prev) => ({ ...prev, [nombre]: !prev[nombre] }));
+  const colorCss = (hex) => `#${hex.toString(16).padStart(6, '0')}`;
 
   return (
-    <div className="canvas-box" ref={mountRef}>
-      <div className="canvas-controls">
-        <button className="btn-ctrl" onClick={() => setIsRotating(!isRotating)}>
-          {isRotating ? '⏸️ Pausar Rotación' : '▶️ Rotar 3D'}
+    <div className="canvas-box">
+      <div className="lienzo" ref={lienzoRef} />
+      <div className="canvas-controls no-print">
+        <button className="btn-ctrl" onClick={() => setAutoRotar((v) => !v)}>
+          {autoRotar ? '⏸ Pausar giro' : '▶ Girar'}
         </button>
-        <span className="ctrl-tip">💡 Arrastrá para orbitar | Rueda para Zoom</span>
+        <span className="ctrl-tip">Arrastrá para orbitar · rueda para zoom</span>
+      </div>
+      <div className="capas no-print" role="group" aria-label="Capas visibles">
+        {Object.entries(NOMBRES_CAPAS).map(([clave, nombre]) => (
+          <label key={clave} className="capa">
+            <input type="checkbox" checked={capas[clave]} onChange={() => alternarCapa(clave)} />
+            <span className="muestra" style={{ background: colorCss(COLORES[clave]) }} />
+            {nombre}
+          </label>
+        ))}
       </div>
     </div>
   );
