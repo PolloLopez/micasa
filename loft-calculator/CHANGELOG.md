@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.1.0] - 2026-10-01
+### Agregado
+- Frente seleccionable entre los 4 lados (A, B, C, D): nombres de paredes, carteles en el 3D y cámara se reacomodan.
+- Configuración por pared: separación de verticales (eje X) y horizontales (eje Y).
+- Entrepiso apoyado contra el lado que se elija.
+- Techo a una agua: lado de caída, pendiente %, vigas y correas de techo (cálculo, presupuesto y 3D).
+- Transversales entre la estructura de los pisos, con separación editable (0 = sin).
+- Aberturas editables directamente en la lista; perfil/material editable en cada renglón del presupuesto.
+- Botón "Ver frente" y capas nuevas en el 3D (piso, piso 2, transversales, techo).
+### Cambiado
+- "Tirantes" pasa a "Estructura de piso" y "Estructura de piso 2", en renglones separados.
+- La estructura de cada piso cruza la luz más corta.
+- Paneles: renglón separado para muros y techo; el techo se mide sobre la pendiente.
+- Datos guardados en el navegador: prefijo `micasa.v2.` (los de v1 se descartan una vez).
+
 ## [1.0.0] - 2026-09-30
 ### Recuperado
 - UI completa desde el commit `273301f` (el `94696eb` la había borrado).

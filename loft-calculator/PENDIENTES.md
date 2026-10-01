@@ -1,35 +1,38 @@
 # PENDIENTES — loft-calculator
 
 ## 🔴 Antes de considerar el presupuesto "de obra"
-- [ ] Validar con un herrero/ingeniero los supuestos de `constantes.js` y del modelo estructural
-      (cantidad y ubicación de columnas, empalmes de correas y marcos, perfiles elegidos).
-- [ ] Las correas no se interrumpen en las aberturas (cálculo conservador: sobra material).
-- [ ] **Agregar "Estructura de techo"**: hoy se cotizan los m² de panel PUR del techo, pero no la
-      estructura que lo sostiene (vigas/correas de techo con su pendiente). Falta en el cálculo y en el 3D.
-- [ ] **Agregar transversales (riostras/bloqueos) entre tirantes** para que no arqueen.
-      La separación depende del panel y la define el herrero de la obra, así que debe ser
-      **editable en el sistema** (parámetro "Separación de transversales", con su perfil en el catálogo),
-      no una constante fija. Afecta a: estructura de piso, estructura de piso 2 y estructura de techo.
+- [ ] Validar con el herrero los supuestos de `constantes.js` y del modelo estructural: ubicación de
+      columnas, empalmes, perfiles de cada renglón y separación de transversales.
+- [ ] **Largo real de tirantes y vigas**: hoy cada pieza mide la luz completa (ej. 3,00 m). Al cortar
+      con merma de 3 mm, dos piezas de 3,00 no entran en una barra de 6 m y el optimizador pide el doble
+      (estructura de piso 2: 11 barras con 50 % de desperdicio). En obra la pieza va entre marcos y es
+      un poco más corta: descontar el espesor del perfil del marco (definirlo con el herrero).
+- [ ] Las columnas y horizontales de pared no se interrumpen en las aberturas (cálculo conservador:
+      sobra material; además una columna puede caer dentro de un vano).
 
 ## 🟡 Funcionalidad
-- [ ] **Renombrar "Tirantes"** según dónde van:
-      - "Estructura de piso" → los de la planta baja.
-      - "Estructura de piso 2" → los del altillo.
-      Hoy las dos van juntas en un solo renglón del presupuesto y una sola capa del 3D: hay que separarlas
-      (dos ítems en `presupuesto.js`, dos capas en `LoftCanvas.jsx`). Revisar el nombre "Ancho altillo"
-      y "Paso tirantes piso/altillo" para que usen el mismo vocabulario.
-- [ ] **Aberturas editables desde la lista** (`.opening-list`): tocar una abertura para cargarla en el
-      formulario, modificarla y guardar (hoy solo hay alta y baja). Debe pasar por `validarAbertura`.
-- [ ] Bulonería, soldadura, pintura, fijaciones de PUR y mano de obra no están en el presupuesto.
+- [ ] Aleros del techo (voladizo de vigas y chapa más allá de las paredes).
+- [ ] Bulonería, soldadura, pintura, fijaciones de paneles, babetas/zinguería y mano de obra no están en el presupuesto.
 - [ ] Exportar PDF propio (hoy es "Imprimir → Guardar como PDF" del navegador).
-- [ ] El catálogo tiene un solo perfil por función; permitir elegir alternativas (caño 80x80, etc.).
+- [ ] Botón "aplicar a todas las paredes" para no cargar 4 veces la misma separación.
 - [ ] El largo de barra y precios se editan siempre en metros/pesos, aunque la unidad global sea cm/mm.
+- [ ] Orientación real (norte) en el 3D para estudiar asoleamiento de aberturas.
 
 ## 🟢 Técnico
-- [ ] Agregar ayuda (tooltip) en los campos menos obvios: "Antepecho", "Dist. a esquina", "Paso" (ver glosario en CONTEXT.md).
+- [ ] Ayuda (tooltip) en campos poco obvios: "Dist. a esquina", "Sep. verticales" (glosario en CONTEXT.md).
 - [ ] Bundle de ~800 KB (Three.js completo): evaluar carga diferida del visor.
-- [ ] Tests de componentes (testing-library) para CampoNumero y validaciones de la UI.
+- [ ] Tests de componentes (testing-library) para CampoNumero, SelectorLado y PanelAberturas.
 - [ ] Migrar el motor a Django cuando arranque Construcción Modular (los tests sirven de especificación).
+
+## ✅ Resuelto en v1.1.0 (2026-10-01)
+- [x] Frente seleccionable entre los 4 lados (A, B, C, D); nombres, aberturas y cámara se reacomodan.
+- [x] Paredes por panel: separación de verticales (eje X) y horizontales (eje Y) por cada lado.
+- [x] Entrepiso: se elige contra qué lado se apoya.
+- [x] Estructura de techo a una agua: vigas y correas de techo, pendiente y lado de caída editables.
+- [x] Transversales con separación editable (0 = sin), definida por el herrero.
+- [x] "Tirantes" renombrado a "Estructura de piso" y "Estructura de piso 2", en renglones y capas separadas.
+- [x] Aberturas editables directo en la lista.
+- [x] Perfil/material de cada renglón del presupuesto editable.
 
 ## ✅ Resuelto en v1.0.0 (2026-09-30)
 - [x] App en blanco en producción del código (commit 94696eb).
