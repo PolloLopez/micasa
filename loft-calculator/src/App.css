@@ -27,6 +27,16 @@ header {
   display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center;
 }
 header h1 { font-size: 1.15rem; color: var(--acento); margin: 0; }
+.titulo { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.nombre-proyecto {
+  font: inherit; font-weight: 600; color: var(--texto); background: transparent; min-width: 0; width: 260px;
+  border: 1px dashed var(--borde-input); border-radius: 4px; padding: 3px 6px;
+}
+.nombre-proyecto:focus { outline: 2px solid var(--acento); border-style: solid; }
+.aviso { display: flex; justify-content: space-between; gap: 10px; padding: 6px 20px; font-size: 0.8rem; }
+.aviso button { background: none; border: none; color: inherit; }
+.aviso-ok { background: #064e3b; color: #a7f3d0; }
+.aviso-error { background: #7f1d1d; color: #fecaca; }
 .header-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; font-size: 0.85rem; color: var(--texto-suave); }
 .header-actions select { padding: 4px 8px; background: var(--fondo); border: 1px solid var(--borde-input); color: var(--acento); border-radius: 4px; font-weight: bold; }
 button { font: inherit; cursor: pointer; }
@@ -125,14 +135,20 @@ input.perfil:focus { outline: 2px solid var(--acento); border-style: solid; }
   background: rgba(15, 23, 42, 0.85); padding: 6px 10px; border-radius: 8px; border: 1px solid var(--borde); font-size: 0.75rem;
 }
 .capa { display: flex; align-items: center; gap: 4px; color: var(--texto-suave); cursor: pointer; }
-.muestra { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+.muestra {
+  width: 18px; height: 18px; padding: 0; border: 1px solid var(--borde-input); border-radius: 3px;
+  background: none; cursor: pointer; display: inline-block;
+}
+.muestra::-webkit-color-swatch-wrapper { padding: 0; }
+.muestra::-webkit-color-swatch { border: none; border-radius: 2px; }
+.muestra::-moz-color-swatch { border: none; border-radius: 2px; }
 
 /* ---------- Impresión: solo datos y presupuesto ---------- */
 @media print {
   .no-print, .columna-visor { display: none !important; }
   body, .app { background: #fff; color: #000; height: auto; }
   header { background: #fff; border: none; }
-  header h1 { color: #000; }
+  header h1, .nombre-proyecto { color: #000; border: none; }
   .layout { display: block; }
   .columna-panel { border: none; padding: 0; overflow: visible; }
   .card { background: #fff; border: 1px solid #ccc; color: #000; break-inside: avoid; }

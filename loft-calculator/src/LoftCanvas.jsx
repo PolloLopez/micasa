@@ -14,36 +14,29 @@ import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { LADOS } from './motor/constantes.js';
+import { CAPAS } from './capas.js';
 import { posicionAbertura } from './motor/estructura.js';
 import { geometriaLados, nombreLado } from './motor/geometria.js';
 
-// Capas: nombre visible y color (también se usan en la leyenda).
-const CAPAS = {
-  pilotines: { nombre: 'Pilotines', color: 0x94a3b8 },
-  columnas: { nombre: 'Columnas', color: 0xef4444 },
-  marcos: { nombre: 'Marcos', color: 0x3b82f6 },
-  piso: { nombre: 'Piso', color: 0x06b6d4 },
-  piso2: { nombre: 'Piso 2', color: 0x22d3ee },
-  transversales: { nombre: 'Transversales', color: 0xa855f7 },
-  correas: { nombre: 'Horizontales', color: 0xeab308 },
-  techo: { nombre: 'Techo', color: 0xf97316 },
-  osb: { nombre: 'OSB', color: 0xd97706 },
-  paneles: { nombre: 'Paneles', color: 0x10b981 },
-};
-const COLOR_ABERTURAS = 0x38bdf8;
-
-/** Crea los materiales una sola vez. */
-function crearMateriales() {
-  const solido = (color) => new THREE.MeshStandardMaterial({ color });
-  const transparente = (color, opacity) =>
-    new THREE.MeshStandardMaterial({ color, transparent: true, opacity, depthWrite: false, side: THREE.DoubleSide });
+/**
+ * Crea los materiales una sola vez, con los colores elegidos.
+ * Los colores después se actualizan sin recrear nada (ver efecto 4).
+ */
+function crearMateriales(colores) {
   const materiales = {};
-  Object.entries(CAPAS).forEach(([clave, { color }]) => {
-    materiales[clave] = solido(color);
+  Object.keys(CAPAS).forEach((clave) => {
+    materiales[clave] = new THREE.MeshStandardMaterial({ color: colores[clave] });
   });
-  materiales.osb = new THREE.MeshStandardMaterial({ color: CAPAS.osb.color, side: THREE.DoubleSide });
-  materiales.paneles = transparente(CAPAS.paneles.color, 0.16);
-  materiales.aberturas = transparente(COLOR_ABERTURAS, 0.7);
+  // Superficies: transparentes para ver la estructura de atrás o de abajo.
+  const transparente = (material, opacity) => {
+    material.transparent = true;
+    material.opacity = opacity;
+    material.depthWrite = false;
+    material.side = THREE.DoubleSide;
+  };
+  transparente(materiales.osb, 0.45); // deja ver la estructura de piso y las transversales
+  transparente(materiales.paneles, 0.16);
+  transparente(materiales.aberturas, 0.7);
   return materiales;
 }
 
@@ -109,7 +102,8 @@ function dibujarModelo(grupo, materiales, { params, estructura, aberturas, capas
   if (capas.marcos) agregarBarras(e.marcos, 0.12, materiales.marcos);
   if (capas.piso) agregarBarras(e.piso.tirantes, 0.08, materiales.piso);
   if (capas.piso2) agregarBarras(e.piso2.tirantes, 0.08, materiales.piso2);
-  if (capas.transversales) agregarBarras([...e.piso.transversales, ...e.piso2.transversales], 0.06, materiales.transversales);
+  // Transversales un poco más gruesas que la estructura de piso para que se distingan.
+  if (capas.transversales) agregarBarras([...e.piso.transversales, ...e.piso2.transversales], 0.09, materiales.transversales);
   if (capas.correas) agregarBarras(e.correas, 0.04, materiales.correas);
   if (capas.techo) {
     agregarBarras(e.techo.vigas, 0.1, materiales.techo);
@@ -131,8 +125,7 @@ function dibujarModelo(grupo, materiales, { params, estructura, aberturas, capas
     grupo.add(cuadrilatero(e.techo.esquinas, materiales.paneles));
   }
 
-  // Aberturas: siempre visibles, para ubicarlas aunque se oculten los paneles.
-  aberturas.forEach((op) => {
+  if (capas.aberturas) aberturas.forEach((op) => {
     const { x, y, z, rotacionY } = posicionAbertura(op, params);
     const malla = new THREE.Mesh(new THREE.BoxGeometry(op.ancho, op.alto, 0.14), materiales.aberturas);
     malla.position.set(x, y, z);
@@ -182,9 +175,10 @@ function mirarAlFrente(camara, controles, params) {
   controles.update();
 }
 
-export default function LoftCanvas({ params, estructura, aberturas }) {
+export default function LoftCanvas({ params, estructura, aberturas, colores, onCambiarColor }) {
   const lienzoRef = useRef(null);
   const visorRef = useRef(null); // { grupo, controles, camara, materiales, frente }
+  const coloresRef = useRef(colores); // colores iniciales para el montaje
   const [autoRotar, setAutoRotar] = useState(false);
   const [capas, setCapas] = useState(() =>
     Object.fromEntries(Object.keys(CAPAS).map((clave) => [clave, true]))
@@ -220,7 +214,7 @@ export default function LoftCanvas({ params, estructura, aberturas }) {
 
     const grupo = new THREE.Group();
     escena.add(grupo);
-    const materiales = crearMateriales();
+    const materiales = crearMateriales(coloresRef.current);
 
     let idCuadro;
     const animar = () => {
@@ -270,13 +264,19 @@ export default function LoftCanvas({ params, estructura, aberturas }) {
     }
   }, [params, estructura, aberturas, capas]);
 
-  // 3) ROTACIÓN automática.
+  // 3) COLORES: solo se cambia el color de cada material (no se redibuja).
+  useEffect(() => {
+    const visor = visorRef.current;
+    if (!visor) return;
+    Object.entries(colores).forEach(([clave, color]) => visor.materiales[clave]?.color.set(color));
+  }, [colores]);
+
+  // 4) ROTACIÓN automática.
   useEffect(() => {
     if (visorRef.current) visorRef.current.controles.autoRotate = autoRotar;
   }, [autoRotar]);
 
   const alternarCapa = (clave) => setCapas((prev) => ({ ...prev, [clave]: !prev[clave] }));
-  const colorCss = (hex) => `#${hex.toString(16).padStart(6, '0')}`;
 
   return (
     <div className="canvas-box">
@@ -291,12 +291,16 @@ export default function LoftCanvas({ params, estructura, aberturas }) {
         <span className="ctrl-tip">Arrastrá para orbitar · rueda para zoom</span>
       </div>
       <div className="capas no-print" role="group" aria-label="Capas visibles">
-        {Object.entries(CAPAS).map(([clave, { nombre, color }]) => (
-          <label key={clave} className="capa">
-            <input type="checkbox" checked={capas[clave]} onChange={() => alternarCapa(clave)} />
-            <span className="muestra" style={{ background: colorCss(color) }} />
-            {nombre}
-          </label>
+        {Object.entries(CAPAS).map(([clave, { nombre }]) => (
+          <span key={clave} className="capa">
+            <input type="checkbox" checked={capas[clave]} onChange={() => alternarCapa(clave)}
+              aria-label={`Mostrar ${nombre}`} />
+            {/* El cuadradito de color abre el selector de color del navegador */}
+            <input type="color" className="muestra" value={colores[clave]}
+              onChange={(e) => onCambiarColor(clave, e.target.value)} aria-label={`Color de ${nombre}`}
+              title={`Cambiar color de ${nombre}`} />
+            <span onClick={() => alternarCapa(clave)}>{nombre}</span>
+          </span>
         ))}
       </div>
     </div>

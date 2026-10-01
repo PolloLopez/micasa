@@ -9,7 +9,7 @@
 // válidos. Un valor inválido se muestra en el campo pero no se guarda.
 // ==========================================================
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import LoftCanvas from './LoftCanvas.jsx';
 import CampoNumero from './componentes/CampoNumero.jsx';
 import SelectorLado from './componentes/SelectorLado.jsx';
@@ -22,6 +22,8 @@ import { calcularPresupuesto, CATALOGO_INICIAL } from './motor/presupuesto.js';
 import { PARAMS_INICIALES, ABERTURAS_INICIALES } from './motor/parametrosIniciales.js';
 import { LADOS } from './motor/constantes.js';
 import { nombreLado, alturasPared, geometriaLados, alturaMaxima } from './motor/geometria.js';
+import { COLORES_INICIALES, coloresValidos } from './capas.js';
+import { crearArchivoProyecto, leerArchivoProyecto, nombreDeArchivo } from './proyecto/archivoProyecto.js';
 import './App.css';
 
 // --- Validadores para descartar datos viejos de localStorage ---
@@ -42,6 +44,10 @@ export default function App() {
   const [params, setParams] = useEstadoGuardado('params', PARAMS_INICIALES, paramsGuardadosValidos);
   const [aberturas, setAberturas] = useEstadoGuardado('aberturas', ABERTURAS_INICIALES, aberturasGuardadasValidas);
   const [catalogo, setCatalogo] = useEstadoGuardado('catalogo', CATALOGO_INICIAL, catalogoGuardadoValido);
+  const [colores, setColores] = useEstadoGuardado('colores', COLORES_INICIALES, coloresValidos);
+  const [nombreProyecto, setNombreProyecto] = useEstadoGuardado('nombre', 'Loft', (n) => typeof n === 'string');
+  const [avisoProyecto, setAvisoProyecto] = useState(null); // { tipo: 'ok' | 'error', texto }
+  const entradaArchivoRef = useRef(null);
 
   // --- Cálculos (solo se rehacen si cambian sus datos) ---
   // Por seguridad se ignoran aberturas que no entren (ej. datos viejos guardados).
@@ -80,11 +86,49 @@ export default function App() {
     setAberturas((prev) => prev.map((op) => (op.id === abertura.id ? abertura : op)));
   const quitarAbertura = (id) => setAberturas((prev) => prev.filter((op) => op.id !== id));
 
+  const cambiarColor = (capa, color) => setColores((prev) => ({ ...prev, [capa]: color }));
+
   const restablecer = () => {
-    if (!window.confirm('¿Volver a los valores y precios por defecto?')) return;
+    if (!window.confirm('¿Empezar un proyecto nuevo con los valores, precios y colores por defecto?')) return;
+    setNombreProyecto('Proyecto nuevo');
     setParams(PARAMS_INICIALES);
     setAberturas(ABERTURAS_INICIALES);
     setCatalogo(CATALOGO_INICIAL);
+    setColores(COLORES_INICIALES);
+    setAvisoProyecto(null);
+  };
+
+  // --- Archivo de proyecto ---
+
+  /** Descarga el proyecto como .json (queda en la carpeta Descargas). */
+  const guardarProyecto = () => {
+    const archivo = crearArchivoProyecto({ nombre: nombreProyecto, params, aberturas, catalogo, colores });
+    const blob = new Blob([JSON.stringify(archivo, null, 2)], { type: 'application/json' });
+    const enlace = document.createElement('a');
+    enlace.href = URL.createObjectURL(blob);
+    enlace.download = nombreDeArchivo(nombreProyecto);
+    enlace.click();
+    URL.revokeObjectURL(enlace.href);
+    setAvisoProyecto({ tipo: 'ok', texto: `Guardado como ${enlace.download}` });
+  };
+
+  /** Lee el .json elegido; si es válido, reemplaza el proyecto actual. */
+  const abrirProyecto = async (e) => {
+    const archivo = e.target.files?.[0];
+    e.target.value = ''; // permite volver a elegir el mismo archivo
+    if (!archivo) return;
+    const resultado = leerArchivoProyecto(await archivo.text());
+    if (!resultado.ok) {
+      setAvisoProyecto({ tipo: 'error', texto: resultado.error });
+      return;
+    }
+    const { proyecto } = resultado;
+    setNombreProyecto(proyecto.nombre);
+    setParams(proyecto.params);
+    setAberturas(proyecto.aberturas);
+    setCatalogo(proyecto.catalogo);
+    setColores(proyecto.colores);
+    setAvisoProyecto({ tipo: 'ok', texto: `Proyecto "${proyecto.nombre}" abierto` });
   };
 
   // Atajo para no repetir props en cada campo de medida.
@@ -96,22 +140,37 @@ export default function App() {
   return (
     <div className="app">
       <header>
-        <h1>micasa · Calculadora de loft</h1>
+        <div className="titulo">
+          <h1>micasa</h1>
+          <input className="nombre-proyecto" value={nombreProyecto} aria-label="Nombre del proyecto"
+            onChange={(e) => setNombreProyecto(e.target.value)} placeholder="Nombre del proyecto" />
+        </div>
         <div className="header-actions no-print">
+          <button className="btn-sec" onClick={restablecer}>Nuevo</button>
+          <button className="btn-sec" onClick={() => entradaArchivoRef.current.click()}>Abrir…</button>
+          <input ref={entradaArchivoRef} type="file" accept=".json,application/json" hidden onChange={abrirProyecto} />
+          <button className="btn-sec" onClick={guardarProyecto}>Guardar proyecto</button>
           <label htmlFor="unidad">Unidad</label>
           <select id="unidad" value={unidad} onChange={(e) => setUnidad(e.target.value)}>
             <option value="m">Metros</option>
             <option value="cm">Centímetros</option>
             <option value="mm">Milímetros</option>
           </select>
-          <button className="btn-sec" onClick={restablecer}>Restablecer</button>
           <button className="btn-print" onClick={() => window.print()}>Imprimir / PDF</button>
         </div>
       </header>
 
+      {avisoProyecto && (
+        <div className={`aviso aviso-${avisoProyecto.tipo} no-print`} role={avisoProyecto.tipo === 'error' ? 'alert' : 'status'}>
+          {avisoProyecto.texto}
+          <button onClick={() => setAvisoProyecto(null)} aria-label="Cerrar aviso">✕</button>
+        </div>
+      )}
+
       <main className="layout">
         <div className="columna-visor">
-          <LoftCanvas params={params} estructura={estructura} aberturas={aberturasValidas} />
+          <LoftCanvas params={params} estructura={estructura} aberturas={aberturasValidas}
+            colores={colores} onCambiarColor={cambiarColor} />
         </div>
 
         <div className="columna-panel">
