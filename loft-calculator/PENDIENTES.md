@@ -6,9 +6,10 @@
 - [ ] Las correas no se interrumpen en las aberturas (cálculo conservador: sobra material).
 - [ ] **Agregar "Estructura de techo"**: hoy se cotizan los m² de panel PUR del techo, pero no la
       estructura que lo sostiene (vigas/correas de techo con su pendiente). Falta en el cálculo y en el 3D.
-- [ ] **Agregar transversales (riostras/bloqueos) entre tirantes** para que no arqueen
-      (pandeo lateral). Definir cada cuántos metros van (ej. a mitad de la luz, o cada X m) y con qué perfil.
-      Afecta a: estructura de piso, estructura de piso 2 y estructura de techo.
+- [ ] **Agregar transversales (riostras/bloqueos) entre tirantes** para que no arqueen.
+      La separación depende del panel y la define el herrero de la obra, así que debe ser
+      **editable en el sistema** (parámetro "Separación de transversales", con su perfil en el catálogo),
+      no una constante fija. Afecta a: estructura de piso, estructura de piso 2 y estructura de techo.
 
 ## 🟡 Funcionalidad
 - [ ] **Renombrar "Tirantes"** según dónde van:
