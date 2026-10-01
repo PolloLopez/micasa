@@ -28,13 +28,12 @@ export const INSUMO = {
   MARCO: 'marco',
   PISO: 'piso',
   PISO_2: 'piso2',
-  TRANSVERSAL: 'transversal',
+  TRANSVERSAL_PISO: 'transversalPiso',
+  TRANSVERSAL_PISO_2: 'transversalPiso2',
   CORREA: 'correa',
   VIGA_TECHO: 'vigaTecho',
   CORREA_TECHO: 'correaTecho',
   OSB: 'osb',
-  PANEL_MUROS: 'panelMuros',
-  PANEL_TECHO: 'panelTecho',
   PILOTIN: 'pilotin',
 };
 
@@ -50,7 +49,9 @@ export const LIMITES = {
   separacionPiso: { min: 0.2, max: 2 },
   anchoEntrepiso: { min: 0, max: 30 },
   separacionPiso2: { min: 0.2, max: 2 },
-  separacionTransversales: { min: 0.3, max: 6, opcional: true },
+  separacionTransversalesPiso: { min: 0.3, max: 6, opcional: true },
+  separacionTransversalesPiso2: { min: 0.3, max: 6, opcional: true },
+  excedenteBarras: { min: 0, max: 5 }, // % que las barras traen de más sobre su largo nominal
   pendienteTecho: { min: 0, max: 60 }, // en %
   separacionVigasTecho: { min: 0.3, max: 3 },
   separacionCorreasTecho: { min: 0.2, max: 2 },

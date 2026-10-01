@@ -13,11 +13,11 @@ import { useEffect, useState } from 'react';
 
 const PREFIJO = 'micasa.v2.'; // v2: lados A-D, paredes por panel y techo (2026-10). Cambiar si cambia la forma de los datos
 
-function leer(clave, inicial, esValido) {
+function leer(clave, inicial, esValido, migrar) {
   try {
     const crudo = localStorage.getItem(PREFIJO + clave);
     if (crudo === null) return inicial;
-    const valor = JSON.parse(crudo);
+    const valor = migrar(JSON.parse(crudo)); // datos de una versión anterior => forma actual
     return esValido(valor) ? valor : inicial;
   } catch {
     return inicial;
@@ -27,10 +27,11 @@ function leer(clave, inicial, esValido) {
 /**
  * @param {string} clave - nombre con el que se guarda
  * @param {*} inicial - valor por defecto
- * @param {(valor) => boolean} esValido - descarta datos viejos o rotos
+ * @param {(valor) => boolean} esValido - descarta datos rotos
+ * @param {(valor) => valor} migrar - convierte datos de versiones anteriores
  */
-export function useEstadoGuardado(clave, inicial, esValido = () => true) {
-  const [valor, setValor] = useState(() => leer(clave, inicial, esValido));
+export function useEstadoGuardado(clave, inicial, esValido = () => true, migrar = (v) => v) {
+  const [valor, setValor] = useState(() => leer(clave, inicial, esValido, migrar));
 
   useEffect(() => {
     try {

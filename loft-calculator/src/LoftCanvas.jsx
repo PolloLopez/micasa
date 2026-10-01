@@ -40,6 +40,13 @@ function crearMateriales(colores) {
   return materiales;
 }
 
+/** Material semitransparente para un tipo de panel. */
+function materialPanel(color) {
+  return new THREE.MeshStandardMaterial({
+    color, transparent: true, opacity: 0.32, depthWrite: false, side: THREE.DoubleSide,
+  });
+}
+
 /** Barra entre dos puntos 3D (sirve para piezas horizontales o inclinadas). */
 function barra({ desde, hasta, largo }, seccion, material) {
   const malla = new THREE.Mesh(new THREE.BoxGeometry(seccion, seccion, largo), material);
@@ -78,7 +85,7 @@ function cartel(texto, esFrente) {
 }
 
 /** Arma todas las mallas del modelo dentro de `grupo`. */
-function dibujarModelo(grupo, materiales, { params, estructura, aberturas, capas }) {
+function dibujarModelo(grupo, materiales, materialesPanel, { params, estructura, aberturas, capas }) {
   const e = estructura;
   const { elevacion } = params;
   const agregarBarras = (piezas, seccion, material) => piezas.forEach((p) => grupo.add(barra(p, seccion, material)));
@@ -121,8 +128,10 @@ function dibujarModelo(grupo, materiales, { params, estructura, aberturas, capas
   }
 
   if (capas.paneles) {
-    e.paredes.forEach((pared) => grupo.add(cuadrilatero(pared.esquinas, materiales.paneles)));
-    grupo.add(cuadrilatero(e.techo.esquinas, materiales.paneles));
+    // Cada pared y el techo con el color de su tipo de panel.
+    const material = (id) => materialesPanel.get(id) ?? materiales.paneles;
+    e.paredes.forEach((pared) => grupo.add(cuadrilatero(pared.esquinas, material(pared.panel))));
+    grupo.add(cuadrilatero(e.techo.esquinas, material(e.techo.panel)));
   }
 
   if (capas.aberturas) aberturas.forEach((op) => {
@@ -175,7 +184,7 @@ function mirarAlFrente(camara, controles, params) {
   controles.update();
 }
 
-export default function LoftCanvas({ params, estructura, aberturas, colores, onCambiarColor }) {
+export default function LoftCanvas({ params, estructura, aberturas, paneles, colores, onCambiarColor }) {
   const lienzoRef = useRef(null);
   const visorRef = useRef(null); // { grupo, controles, camara, materiales, frente }
   const coloresRef = useRef(colores); // colores iniciales para el montaje
@@ -235,7 +244,9 @@ export default function LoftCanvas({ params, estructura, aberturas, colores, onC
     });
     observador.observe(contenedor);
 
-    visorRef.current = { grupo, controles, camara, materiales, frente: null };
+    // Materiales de los tipos de panel: se recrean cuando cambia la lista (efecto 2).
+    const materialesPanel = new Map();
+    visorRef.current = { grupo, controles, camara, materiales, materialesPanel, frente: null };
 
     return () => {
       cancelAnimationFrame(idCuadro);
@@ -243,6 +254,7 @@ export default function LoftCanvas({ params, estructura, aberturas, colores, onC
       controles.dispose();
       vaciarGrupo(grupo);
       Object.values(materiales).forEach((m) => m.dispose());
+      materialesPanel.forEach((m) => m.dispose());
       grilla.geometry.dispose();
       grilla.material.dispose();
       renderer.dispose();
@@ -256,13 +268,17 @@ export default function LoftCanvas({ params, estructura, aberturas, colores, onC
     const visor = visorRef.current;
     if (!visor || !estructura) return;
     vaciarGrupo(visor.grupo);
-    dibujarModelo(visor.grupo, visor.materiales, { params, estructura, aberturas, capas });
+    // Un material por tipo de panel (se liberan los anteriores).
+    visor.materialesPanel.forEach((m) => m.dispose());
+    visor.materialesPanel.clear();
+    paneles.forEach((p) => visor.materialesPanel.set(p.id, materialPanel(p.color)));
+    dibujarModelo(visor.grupo, visor.materiales, visor.materialesPanel, { params, estructura, aberturas, capas });
     // Si cambió el frente (o es la primera vez), la cámara se pone de frente.
     if (visor.frente !== params.ladoFrente) {
       mirarAlFrente(visor.camara, visor.controles, params);
       visor.frente = params.ladoFrente;
     }
-  }, [params, estructura, aberturas, capas]);
+  }, [params, estructura, aberturas, capas, paneles]);
 
   // 3) COLORES: solo se cambia el color de cada material (no se redibuja).
   useEffect(() => {
@@ -291,14 +307,17 @@ export default function LoftCanvas({ params, estructura, aberturas, colores, onC
         <span className="ctrl-tip">Arrastrá para orbitar · rueda para zoom</span>
       </div>
       <div className="capas no-print" role="group" aria-label="Capas visibles">
-        {Object.entries(CAPAS).map(([clave, { nombre }]) => (
+        {Object.entries(CAPAS).map(([clave, { nombre, colorPorTipo }]) => (
           <span key={clave} className="capa">
             <input type="checkbox" checked={capas[clave]} onChange={() => alternarCapa(clave)}
               aria-label={`Mostrar ${nombre}`} />
-            {/* El cuadradito de color abre el selector de color del navegador */}
-            <input type="color" className="muestra" value={colores[clave]}
-              onChange={(e) => onCambiarColor(clave, e.target.value)} aria-label={`Color de ${nombre}`}
-              title={`Cambiar color de ${nombre}`} />
+            {/* El cuadradito de color abre el selector de color del navegador.
+                Los paneles usan el color de cada tipo (se cambia en "Tipos de panel"). */}
+            {!colorPorTipo && (
+              <input type="color" className="muestra" value={colores[clave]}
+                onChange={(e) => onCambiarColor(clave, e.target.value)} aria-label={`Color de ${nombre}`}
+                title={`Cambiar color de ${nombre}`} />
+            )}
             <span onClick={() => alternarCapa(clave)}>{nombre}</span>
           </span>
         ))}

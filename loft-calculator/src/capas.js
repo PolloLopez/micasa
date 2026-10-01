@@ -17,7 +17,7 @@ export const CAPAS = {
   correas: { nombre: 'Horizontales', color: '#eab308' },
   techo: { nombre: 'Techo', color: '#f97316' },
   osb: { nombre: 'OSB', color: '#d97706' },
-  paneles: { nombre: 'Paneles', color: '#10b981' },
+  paneles: { nombre: 'Paneles', color: '#10b981', colorPorTipo: true }, // color: el de cada tipo de panel
   aberturas: { nombre: 'Aberturas', color: '#38bdf8' },
 };
 

@@ -99,6 +99,8 @@ input.perfil {
   display: block; width: 100%; min-width: 120px; margin: 2px 0; padding: 2px 4px; font-size: 0.7rem;
   background: transparent; color: var(--texto-suave); border: 1px dashed var(--borde-input); border-radius: 3px;
 }
+.nombre-panel { font-weight: 600; color: var(--texto); flex: 1; margin: 0; }
+.btn-del:disabled { opacity: 0.35; cursor: not-allowed; }
 input.perfil:focus { outline: 2px solid var(--acento); border-style: solid; }
 .detalle { color: var(--texto-tenue); font-size: 0.68rem; }
 .sub { font-weight: bold; color: var(--dinero); }

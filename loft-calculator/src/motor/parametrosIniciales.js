@@ -7,6 +7,7 @@
 export const PARED_INICIAL = {
   separacionVerticales: 2.5, // columnas a lo largo de la pared (eje X)
   separacionHorizontales: 0.8, // horizontales en altura (eje Y)
+  panel: 'panelMuros', // id del tipo de panel (ver TIPOS_PANEL_INICIALES en presupuesto.js)
 };
 
 export const PARAMS_INICIALES = {
@@ -30,13 +31,18 @@ export const PARAMS_INICIALES = {
   ladoEntrepiso: 'D', // lateral izquierdo si el frente es A
   anchoEntrepiso: 3,
   separacionPiso2: 0.4,
-  separacionTransversales: 1.5, // 0 = sin transversales (la define el herrero)
+  separacionTransversalesPiso: 1.5, // 0 = sin transversales (la define el herrero)
+  separacionTransversalesPiso2: 1.5,
 
   // Techo a una agua
   caidaTecho: 'C', // cae hacia el fondo si el frente es A
   pendienteTecho: 10, // %
   separacionVigasTecho: 1,
   separacionCorreasTecho: 0.8,
+  panelTecho: 'panelTecho',
+
+  // Compras
+  excedenteBarras: 1, // % que las barras traen de más (vienen entre 1 % y 2 % más largas)
 
   // Fundación
   filasPilotines: 4,

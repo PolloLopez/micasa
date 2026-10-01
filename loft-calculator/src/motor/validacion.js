@@ -21,6 +21,20 @@ function revisarNumero(valor, { min, max, entero, opcional }) {
   return null;
 }
 
+const esIdValido = (id) => typeof id === 'string' && id.length > 0;
+
+/**
+ * Verifica que los tipos de panel elegidos (paredes y techo) existan
+ * en el catálogo. Devuelve el problema o null.
+ */
+export function validarPanelesUsados(params, catalogo) {
+  const existe = (id) => catalogo.some((p) => p.categoria === 'panel' && p.id === id);
+  const ladoSinPanel = LADOS.find((lado) => !existe(params.paredes[lado].panel));
+  if (ladoSinPanel) return `La pared del lado ${ladoSinPanel} usa un tipo de panel que no existe`;
+  if (!existe(params.panelTecho)) return 'El techo usa un tipo de panel que no existe';
+  return null;
+}
+
 export function validarParametros(params) {
   const errores = {};
   const anotar = (campo, error) => {
@@ -40,7 +54,9 @@ export function validarParametros(params) {
     Object.entries(LIMITES_PARED).forEach(([campo, limites]) =>
       anotar(`paredes.${lado}.${campo}`, revisarNumero(pared?.[campo], limites))
     );
+    if (!esIdValido(pared?.panel)) anotar(`paredes.${lado}.panel`, 'Elegí un tipo de panel');
   });
+  if (!esIdValido(params.panelTecho)) anotar('panelTecho', 'Elegí un tipo de panel');
 
   if (Object.keys(errores).length > 0) return errores;
 

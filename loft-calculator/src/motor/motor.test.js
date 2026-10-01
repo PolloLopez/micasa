@@ -4,9 +4,14 @@ import { optimizarCortes, dividirPiezaLarga } from './optimizadorCortes.js';
 import { validarParametros, validarAbertura } from './validacion.js';
 import { generarEstructura, posicionAbertura, piezasRefuerzoAbertura } from './estructura.js';
 import { nombreLado, alturaEn, alturaMaxima, geometriaLados } from './geometria.js';
-import { calcularPresupuesto, CATALOGO_INICIAL } from './presupuesto.js';
+import { calcularPresupuesto, CATALOGO_INICIAL, CATALOGO_FIJO, TIPOS_PANEL_INICIALES } from './presupuesto.js';
+import { migrarParams, normalizarCatalogo } from './migracion.js';
+import { validarPanelesUsados } from './validacion.js';
 import { INSUMO } from './constantes.js';
 import { PARAMS_INICIALES as P, ABERTURAS_INICIALES } from './parametrosIniciales.js';
+
+/** Copia de `obj` sin las claves indicadas (para simular datos de versiones viejas). */
+const sinClaves = (obj, claves) => Object.fromEntries(Object.entries(obj).filter(([k]) => !claves.includes(k)));
 
 const [PUERTA, VENTANA] = ABERTURAS_INICIALES;
 const SIN_PENDIENTE = { ...P, pendienteTecho: 0 };
@@ -93,8 +98,8 @@ describe('validarParametros', () => {
   });
 
   it('transversales: 0 significa "sin transversales" y es válido', () => {
-    expect(validarParametros({ ...P, separacionTransversales: 0 })).toEqual({});
-    expect(validarParametros({ ...P, separacionTransversales: 0.1 })).toHaveProperty('separacionTransversales');
+    expect(validarParametros({ ...P, separacionTransversalesPiso: 0 })).toEqual({});
+    expect(validarParametros({ ...P, separacionTransversalesPiso2: 0.1 })).toHaveProperty('separacionTransversalesPiso2');
   });
 
   it('rechaza negativos, NaN, decimales en enteros y lados inexistentes', () => {
@@ -175,9 +180,24 @@ describe('generarEstructura', () => {
   it('transversales: filas entre tirantes; con 0 no hay', () => {
     // Piso: luz 4,5 cada 1,5 => 2 filas; cada fila 19 tramos (18 tirantes + 2 marcos).
     expect(e.piso.transversales).toHaveLength(2 * 19);
-    const sin = generarEstructura({ ...P, separacionTransversales: 0 }, []);
+    const sin = generarEstructura({ ...P, separacionTransversalesPiso: 0, separacionTransversalesPiso2: 0 }, []);
     expect(sin.piso.transversales).toHaveLength(0);
     expect(sin.piso2.transversales).toHaveLength(0);
+  });
+
+  it('transversales: cada piso usa su propia separación', () => {
+    const solo2 = generarEstructura({ ...P, separacionTransversalesPiso: 0, separacionTransversalesPiso2: 1 }, []);
+    expect(solo2.piso.transversales).toHaveLength(0);
+    // Piso 2: luz 3,0 cada 1,0 => 2 filas; cada fila 12 tramos (11 tirantes + 2 marcos).
+    expect(solo2.piso2.transversales).toHaveLength(2 * 12);
+  });
+
+  it('cada pared y el techo llevan su tipo de panel', () => {
+    const p = { ...conPared('B', { panel: 'otro' }), panelTecho: 'chapa' };
+    const est = generarEstructura(p, []);
+    expect(est.paredes.find((x) => x.lado === 'B').panel).toBe('otro');
+    expect(est.paredes.find((x) => x.lado === 'A').panel).toBe('panelMuros');
+    expect(est.techo.panel).toBe('chapa');
   });
 
   it('sin entrepiso no hay piso 2 ni columnas extra', () => {
@@ -249,7 +269,30 @@ describe('calcularPresupuesto', () => {
   const item = (id) => items.find((i) => i.id === id);
 
   it('tiene un renglón por cada insumo del catálogo', () => {
-    expect(items.map((i) => i.id)).toEqual(CATALOGO_INICIAL.map((p) => p.id));
+    expect(items.map((i) => i.id).sort()).toEqual(CATALOGO_INICIAL.map((p) => p.id).sort());
+  });
+
+  it('transversales de piso y de piso 2 en renglones separados', () => {
+    expect(item(INSUMO.TRANSVERSAL_PISO).cortes.barras.flatMap((b) => b.piezas)).toHaveLength(e.piso.transversales.length);
+    expect(item(INSUMO.TRANSVERSAL_PISO_2).cortes.barras.flatMap((b) => b.piezas)).toHaveLength(e.piso2.transversales.length);
+  });
+
+  it('paneles: m² de paredes y techo por tipo de panel', () => {
+    expect(item('panelMuros').cantidad).toBe(Math.ceil(e.superficies.murosNetos));
+    expect(item('panelTecho').cantidad).toBe(Math.ceil(e.superficies.techo));
+    // Si el frente (A) pasa a usar el panel de techo, sus m² se mueven a ese renglón.
+    const mixto = generarEstructura(conPared('A', { panel: 'panelTecho' }), ABERTURAS_INICIALES);
+    const r = calcularPresupuesto(mixto, CATALOGO_INICIAL).items;
+    const netoA = mixto.paredes.find((x) => x.lado === 'A').superficieNeta;
+    expect(r.find((i) => i.id === 'panelTecho').cantidad).toBe(Math.ceil(mixto.superficies.techo + netoA));
+    expect(r.find((i) => i.id === 'panelTecho').detalle).toMatch(/lado A, techo/);
+  });
+
+  it('un tipo de panel sin uso queda en 0', () => {
+    const conExtra = [...CATALOGO_INICIAL, { ...TIPOS_PANEL_INICIALES[0], id: 'vidrio', nombre: 'Vidrio' }];
+    const r = calcularPresupuesto(e, conExtra).items.find((i) => i.id === 'vidrio');
+    expect(r.cantidad).toBe(0);
+    expect(r.detalle).toBe('sin uso');
   });
 
   it('estructura de piso y piso 2 van en renglones separados', () => {
@@ -270,7 +313,69 @@ describe('calcularPresupuesto', () => {
     expect(calcularPresupuesto(e, caro).total).toBe(total + 12 * 15000);
   });
 
+  it('excedente de barras: con 1 % dos piezas de 3,00 entran en una barra de 6 m', () => {
+    // Sin excedente: 3,00 + 0,003 + 3,00 > 6,00 => una barra por pieza.
+    expect(item(INSUMO.PISO_2).cantidad).toBe(11);
+    const con1 = calcularPresupuesto(e, CATALOGO_INICIAL, { excedenteBarras: 1 });
+    const piso2 = con1.items.find((i) => i.id === INSUMO.PISO_2);
+    expect(piso2.largoReal).toBeCloseTo(6.06);
+    expect(piso2.cantidad).toBe(6); // 11 piezas de 3,00 => 6 barras de 6,06
+  });
+
   it('OSB: (7,5 x 4,5 + 4,5 x 3) x 1,1 / 2,9768 => 18 placas', () => {
     expect(item(INSUMO.OSB).cantidad).toBe(18);
+  });
+});
+
+describe('validarPanelesUsados', () => {
+  it('ok con el catálogo inicial', () => {
+    expect(validarPanelesUsados(P, CATALOGO_INICIAL)).toBeNull();
+  });
+  it('avisa si una pared o el techo usa un panel inexistente', () => {
+    expect(validarPanelesUsados(conPared('C', { panel: 'nada' }), CATALOGO_INICIAL)).toMatch(/lado C/);
+    expect(validarPanelesUsados({ ...P, panelTecho: 'nada' }, CATALOGO_INICIAL)).toMatch(/techo/);
+  });
+});
+
+describe('migración desde v1.2', () => {
+  // Parámetros como los guardaba la v1.2.
+  const resto = sinClaves(P, ['separacionTransversalesPiso', 'separacionTransversalesPiso2', 'excedenteBarras', 'panelTecho', 'paredes']);
+  const paredes = P.paredes;
+  const paramsV12 = {
+    ...resto,
+    separacionTransversales: 2,
+    paredes: Object.fromEntries(Object.entries(paredes).map(([l, p]) => [l, sinClaves(p, ['panel'])])),
+  };
+
+  it('params: una separación de transversales pasa a los dos pisos; se completan paneles y excedente', () => {
+    const m = migrarParams(paramsV12);
+    expect(m.separacionTransversalesPiso).toBe(2);
+    expect(m.separacionTransversalesPiso2).toBe(2);
+    expect(m).not.toHaveProperty('separacionTransversales');
+    expect(m.excedenteBarras).toBe(1);
+    expect(m.paredes.B.panel).toBe('panelMuros');
+    expect(m.panelTecho).toBe('panelTecho');
+    expect(validarParametros(m)).toEqual({});
+  });
+
+  it('catálogo: el renglón "transversal" se copia a los dos pisos; los paneles conservan precio', () => {
+    const catalogoV12 = [
+      { id: 'transversal', perfil: 'Caño 40x40', precio: 9999, largoBarra: 6 },
+      { id: 'panelMuros', nombre: 'Panel de muros', perfil: 'PUR 50', precio: 41000 },
+      { id: 'columna', precio: 50000 },
+    ];
+    const c = normalizarCatalogo(catalogoV12);
+    expect(c.find((i) => i.id === INSUMO.TRANSVERSAL_PISO)).toMatchObject({ perfil: 'Caño 40x40', precio: 9999 });
+    expect(c.find((i) => i.id === INSUMO.TRANSVERSAL_PISO_2)).toMatchObject({ perfil: 'Caño 40x40', precio: 9999 });
+    expect(c.find((i) => i.id === INSUMO.COLUMNA).precio).toBe(50000);
+    const paneles = c.filter((i) => i.categoria === 'panel');
+    expect(paneles).toHaveLength(1);
+    expect(paneles[0]).toMatchObject({ id: 'panelMuros', precio: 41000, color: '#10b981' });
+    expect(c.filter((i) => i.categoria !== 'panel')).toHaveLength(CATALOGO_FIJO.length);
+  });
+
+  it('catálogo vacío o roto => el de fábrica', () => {
+    expect(normalizarCatalogo(null)).toEqual(CATALOGO_INICIAL);
+    expect(normalizarCatalogo([{ id: 'columna', precio: -1, largoBarra: 0 }])).toEqual(CATALOGO_INICIAL);
   });
 });

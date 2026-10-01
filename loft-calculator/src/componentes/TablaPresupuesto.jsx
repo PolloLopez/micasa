@@ -23,10 +23,10 @@ const validarLargo = (actualizar) => (v) => {
 /** Dibujo de cómo cortar cada barra. */
 function DiagramaCortes({ item }) {
   const { cortes } = item;
-  const largo = item.largoBarra;
+  const largo = item.largoReal; // largo nominal + excedente
   return (
     <details className="bar-details">
-      <summary>{item.nombre} ({item.perfil}): {cortes.totalBarras} barras de {largo} m</summary>
+      <summary>{item.nombre} ({item.perfil}): {cortes.totalBarras} barras de {item.largoBarra} m (reales {largo.toFixed(2)} m)</summary>
       <div className="bar-cuts-container">
         {cortes.barras.map((b) => (
           <div key={b.numero} className="bar-item">
@@ -47,13 +47,20 @@ function DiagramaCortes({ item }) {
   );
 }
 
-export default function TablaPresupuesto({ items, total, catalogo, onCambiarInsumo }) {
+export default function TablaPresupuesto({ items, total, catalogo, onCambiarInsumo, excedenteBarras, onCambiarExcedente }) {
   const largoDe = (id) => catalogo.find((p) => p.id === id)?.largoBarra;
-  const perfiles = items.filter((i) => i.cortes).map((i) => ({ ...i, largoBarra: largoDe(i.id) }));
+  const perfiles = items.filter((i) => i.cortes);
 
   return (
     <section className="card presupuesto">
       <h2>Presupuesto de materiales</h2>
+      <div className="grid-params">
+        <CampoNumero etiqueta="Excedente de las barras" sufijo="%" decimales={1}
+          valor={excedenteBarras} onCambio={onCambiarExcedente} />
+      </div>
+      <p className="nota">
+        Las barras vienen entre 1 % y 2 % más largas que su medida nominal: el optimizador corta sobre ese largo real.
+      </p>
       <div className="table-wrap">
         <table>
           <thead>

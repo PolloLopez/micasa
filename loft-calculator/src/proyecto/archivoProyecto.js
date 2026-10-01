@@ -12,12 +12,13 @@
 // No hace falta servidor: el archivo queda en la compu de cada uno.
 // ==========================================================
 
-import { validarParametros, validarAbertura } from '../motor/validacion.js';
-import { CATALOGO_INICIAL } from '../motor/presupuesto.js';
+import { validarParametros, validarAbertura, validarPanelesUsados } from '../motor/validacion.js';
+import { migrarParams, normalizarCatalogo } from '../motor/migracion.js';
 import { coloresValidos, COLORES_INICIALES } from '../capas.js';
 
 export const FORMATO = 'micasa-proyecto';
-export const VERSION_FORMATO = 2; // misma forma de datos que localStorage v2
+export const VERSION_FORMATO = 3; // v3 (app 1.3): transversales por piso, tipos de panel, excedente
+const VERSIONES_QUE_SE_ABREN = [2, 3]; // v2 se convierte sola (ver motor/migracion.js)
 
 /** Arma el contenido del archivo. */
 export function crearArchivoProyecto({ nombre, params, aberturas, catalogo, colores }, fecha = new Date()) {
@@ -57,11 +58,15 @@ export function leerArchivoProyecto(texto) {
   if (!datos || datos.formato !== FORMATO) {
     return { ok: false, error: 'El archivo no es un proyecto de micasa.' };
   }
-  if (datos.version !== VERSION_FORMATO) {
-    return { ok: false, error: `El proyecto es de otra versión (${datos.version}); esta app abre la versión ${VERSION_FORMATO}.` };
+  if (!VERSIONES_QUE_SE_ABREN.includes(datos.version)) {
+    return { ok: false, error: `El proyecto es de otra versión (${datos.version}); esta app abre las versiones ${VERSIONES_QUE_SE_ABREN.join(' y ')}.` };
   }
 
-  const erroresParams = validarParametros(datos.params ?? {});
+  // Lleva los datos a la forma actual (no cambia nada si ya son v3).
+  const params = migrarParams(datos.params ?? {});
+  const catalogo = normalizarCatalogo(datos.catalogo);
+
+  const erroresParams = validarParametros(params);
   const primerError = Object.entries(erroresParams)[0];
   if (primerError) {
     return { ok: false, error: `Medidas inválidas en el archivo: ${primerError[0]} (${primerError[1]}).` };
@@ -70,31 +75,19 @@ export function leerArchivoProyecto(texto) {
   if (!Array.isArray(datos.aberturas)) {
     return { ok: false, error: 'Faltan las aberturas en el archivo.' };
   }
-  const aberturaMal = datos.aberturas.findIndex((op) => validarAbertura(op, datos.params) !== null);
+  const aberturaMal = datos.aberturas.findIndex((op) => validarAbertura(op, params) !== null);
   if (aberturaMal >= 0) {
-    return { ok: false, error: `La abertura #${aberturaMal + 1} no entra en su pared: ${validarAbertura(datos.aberturas[aberturaMal], datos.params)}` };
+    return { ok: false, error: `La abertura #${aberturaMal + 1} no entra en su pared: ${validarAbertura(datos.aberturas[aberturaMal], params)}` };
   }
 
-  // Catálogo: tienen que estar todos los renglones; si falta alguno
-  // (archivo de una versión anterior), se completa con el de fábrica.
-  const catalogoArchivo = Array.isArray(datos.catalogo) ? datos.catalogo : [];
-  const catalogo = CATALOGO_INICIAL.map((base) => {
-    const delArchivo = catalogoArchivo.find((p) => p.id === base.id);
-    if (!delArchivo) return base;
-    return {
-      ...base,
-      perfil: typeof delArchivo.perfil === 'string' ? delArchivo.perfil : base.perfil,
-      precio: Number.isFinite(delArchivo.precio) && delArchivo.precio >= 0 ? delArchivo.precio : base.precio,
-      largoBarra: base.largoBarra === null ? null
-        : Number.isFinite(delArchivo.largoBarra) && delArchivo.largoBarra >= 1 ? delArchivo.largoBarra : base.largoBarra,
-    };
-  });
+  const panelFaltante = validarPanelesUsados(params, catalogo);
+  if (panelFaltante) return { ok: false, error: `${panelFaltante} en el catálogo del archivo.` };
 
   return {
     ok: true,
     proyecto: {
       nombre: typeof datos.nombre === 'string' ? datos.nombre : 'Proyecto sin nombre',
-      params: datos.params,
+      params,
       aberturas: datos.aberturas,
       catalogo,
       colores: coloresValidos(datos.colores) ? datos.colores : COLORES_INICIALES,

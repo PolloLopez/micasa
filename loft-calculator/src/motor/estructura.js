@@ -267,6 +267,7 @@ function generarTecho(params, lados) {
     vigas,
     correas,
     esquinas,
+    panel: params.panelTecho, // tipo de panel del techo
     superficie: bajo.largo * luz * factorPendiente,
     ladoAlto: ladoOpuesto(params.caidaTecho),
   };
@@ -311,6 +312,7 @@ function generarParedes(params, lados, aberturas) {
     const y = params.elevacion;
     return {
       lado,
+      panel: params.paredes[lado].panel, // tipo de panel de esta pared
       superficieBruta: bruta,
       superficieAberturas: huecos,
       superficieNeta: Math.max(0, bruta - huecos),
@@ -342,9 +344,9 @@ export function generarEstructura(params, aberturas) {
     pilotines: generarPilotines(params),
     columnas: generarColumnas(params, lados),
     marcos: generarMarcos(params, lados),
-    piso: entramadoPiso(planta, params.separacionPiso, params.separacionTransversales, params.elevacion),
+    piso: entramadoPiso(planta, params.separacionPiso, params.separacionTransversalesPiso, params.elevacion),
     piso2: entrepiso
-      ? entramadoPiso(entrepiso, params.separacionPiso2, params.separacionTransversales, entrepiso.y)
+      ? entramadoPiso(entrepiso, params.separacionPiso2, params.separacionTransversalesPiso2, entrepiso.y)
       : { tirantes: [], transversales: [] },
     correas: generarCorreasPared(params, lados),
     techo,
