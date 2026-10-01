@@ -3,10 +3,6 @@
 ## 🔴 Antes de considerar el presupuesto "de obra"
 - [ ] Validar con el herrero los supuestos de `constantes.js` y del modelo estructural: ubicación de
       columnas, empalmes, perfiles de cada renglón y separación de transversales.
-- [ ] **Largo real de tirantes y vigas**: hoy cada pieza mide la luz completa (ej. 3,00 m). Al cortar
-      con merma de 3 mm, dos piezas de 3,00 no entran en una barra de 6 m y el optimizador pide el doble
-      (estructura de piso 2: 11 barras con 50 % de desperdicio). En obra la pieza va entre marcos y es
-      un poco más corta: descontar el espesor del perfil del marco (definirlo con el herrero).
 - [ ] Las columnas y horizontales de pared no se interrumpen en las aberturas (cálculo conservador:
       sobra material; además una columna puede caer dentro de un vano).
 
@@ -27,6 +23,13 @@
 - [ ] Bundle de ~800 KB (Three.js completo): evaluar carga diferida del visor.
 - [ ] Tests de componentes (testing-library) para CampoNumero, SelectorLado y PanelAberturas.
 - [ ] Migrar el motor a Django cuando arranque Construcción Modular (los tests sirven de especificación).
+
+## ✅ Resuelto en v1.3.0 (2026-10-02)
+- [x] Transversales con separación propia para cada piso (planta baja y piso 2) y renglón propio en el presupuesto.
+- [x] Tipos de panel: cada pared y el techo eligen el suyo; m² por tipo en el presupuesto y color por tipo en el 3D.
+- [x] Barras con excedente (1-2 % más largas): parámetro "Excedente de las barras" (1 % por defecto).
+      Resuelve el 50 % de desperdicio de la estructura de piso 2 (11 → 6 barras).
+- [x] Datos de la v1.2 (navegador y archivos .json) se convierten solos al formato nuevo.
 
 ## ✅ Resuelto en v1.2.0 (2026-10-01)
 - [x] Transversales no se veían: quedaban tapadas por el OSB → OSB semitransparente y transversales más gruesas.

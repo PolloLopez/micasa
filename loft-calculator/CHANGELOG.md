@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.3.0] - 2026-10-02
+### Agregado
+- Tipos de panel (nombre, descripción, precio por m², color): cada pared y el techo eligen el suyo.
+  El presupuesto suma los m² por tipo y el 3D pinta cada superficie con el color de su panel.
+- Separación de transversales por piso (planta baja y piso 2), con renglones separados en el presupuesto.
+- "Excedente de las barras" (%): el optimizador corta sobre el largo real de la barra (nominal + excedente).
+### Cambiado
+- Archivo de proyecto: formato versión 3. Los archivos de la v1.2 (versión 2) se siguen abriendo y se convierten solos.
+- Los datos guardados en el navegador con la v1.2 se convierten solos (no se resetean).
+### Corregido
+- Estructura de piso 2 con 50 % de desperdicio: dos piezas de 3,00 m ahora entran en una barra (6,06 m reales).
+
 ## [1.2.0] - 2026-10-01
 ### Agregado
 - Guardar proyecto como archivo `.json` (con nombre) y abrirlo después; botón "Nuevo".

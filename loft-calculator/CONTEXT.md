@@ -37,9 +37,13 @@ valores inválidos.
 | 2026-10-01 | Proyectos como archivo `.json` descargable (formato `micasa-proyecto`, versión 2) | Sin servidor: cada obra es un archivo que se pasa al herrero por WhatsApp/mail. Al abrir se valida todo (medidas, aberturas, catálogo, colores). Compartir online queda para el backend de Construcción Modular. |
 | 2026-10-01 | `src/proyecto/` separado de `src/motor/` | El motor es dominio puro (cálculo); guardar/abrir y colores son de la aplicación. |
 | 2026-10-01 | Colores por capa: se cambia el color del material, no se redibuja | Cambiar un color es instantáneo y no recrea geometrías. |
+| 2026-10-02 | Excedente de barras como parámetro (1 % por defecto) | Las barras vienen 1-2 % más largas que su nominal; el optimizador corta sobre el largo real. Se usa el mínimo del rango para no subestimar. |
+| 2026-10-02 | Catálogo = insumos fijos + tipos de panel (lista libre) | Paredes y techo no siempre llevan el mismo panel; cada uno referencia un tipo por id. Un tipo en uso no se puede borrar. |
+| 2026-10-02 | Transversales: una separación por piso | Cada piso puede tener otro panel/luz y el herrero las define por separado. |
+| 2026-10-02 | Migración explícita de datos (`motor/migracion.js`); archivo de proyecto versión 3 que abre también la 2 | El usuario ya tenía datos y archivos v1.2: no se pierden ni se resetean. |
 
 ## Supuestos de obra (en `src/motor/constantes.js`)
-Piso del entrepiso a 2,30 m · merma de corte 3 mm · placa OSB 2,44 × 1,22 + 10 % de recortes ·
+Piso del entrepiso a 2,30 m · merma de corte 3 mm · excedente de barras 1 % (editable) · placa OSB 2,44 × 1,22 + 10 % de recortes ·
 techo medido sobre la pendiente (sin aleros) · refuerzo de vano = dintel + 2 jambas (+ alféizar en ventanas).
 
 ## Glosario
@@ -53,7 +57,9 @@ techo medido sobre la pendiente (sin aleros) · refuerzo de vano = dintel + 2 ja
 - **Verticales** (eje X de la pared): columnas, con su separación a lo largo de cada pared.
 - **Horizontales** (eje Y de la pared): perfiles en altura donde se fijan los paneles (antes "correas" o "fajas").
 - **Estructura de piso / de piso 2**: perfiles que forman el piso de planta baja y del entrepiso (antes "tirantes").
-- **Transversales**: tramos cortos entre los perfiles de un piso para que no arqueen.
+- **Transversales**: tramos cortos entre los perfiles de un piso para que no arqueen. Cada piso tiene su separación.
+- **Tipo de panel**: revestimiento (ej. panel PUR, chapa) con precio por m² y color; lo elige cada pared y el techo.
+- **Excedente de barras**: % que las barras comerciales traen de más sobre su largo nominal (1-2 %).
 - **Vigas de techo**: siguen la pendiente, de la pared baja a la alta. **Correas de techo**: van sobre las vigas,
   paralelas a la pared baja; su separación se mide sobre la pendiente.
 - **Empalme**: unión de dos tramos cuando la pieza es más larga que la barra comercial.
@@ -65,3 +71,4 @@ techo medido sobre la pendiente (sin aleros) · refuerzo de vano = dintel + 2 ja
   clon de trabajo: `C:\Users\LLopez\micasa`.
 - 2026-10-01 v1.1.0: frente seleccionable, paredes por panel, entrepiso orientable, techo a una agua, transversales.
 - 2026-10-01 v1.2.0: guardar/abrir proyecto (.json), colores por capa, transversales visibles.
+- 2026-10-02 v1.3.0: transversales por piso, tipos de panel por pared/techo, excedente de barras.

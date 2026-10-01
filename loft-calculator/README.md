@@ -16,7 +16,7 @@ npm run deploy   # tests + build + publica en GitHub Pages
 
 ## Proyectos
 
-"Guardar proyecto" descarga un `.json` con medidas, aberturas, perfiles, precios y colores.
+"Guardar proyecto" descarga un `.json` con medidas, aberturas, perfiles, tipos de panel, precios y colores.
 "Abrir…" lo vuelve a cargar (en esta compu o en la del herrero). No hace falta cuenta ni servidor.
 
 ## Estructura
@@ -27,6 +27,7 @@ src/
     constantes.js       supuestos de obra con nombre
     geometria.js        lados A-D, nombres según el frente, alturas del techo
     parametrosIniciales.js  valores por defecto del loft
+    migracion.js        convierte datos de versiones anteriores
     validacion.js       límites y reglas de parámetros/aberturas
     estructura.js       piezas como segmentos 3D (fuente única para 3D y presupuesto)
     optimizadorCortes.js
