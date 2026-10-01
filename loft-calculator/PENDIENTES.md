@@ -18,11 +18,20 @@
 - [ ] El largo de barra y precios se editan siempre en metros/pesos, aunque la unidad global sea cm/mm.
 - [ ] Orientación real (norte) en el 3D para estudiar asoleamiento de aberturas.
 
+- [ ] Compartir el proyecto online (link en vez de archivo) y que el herrero cargue sus precios una sola vez
+      para todos los proyectos: requiere backend → se resuelve en Construcción Modular (Django).
+- [ ] "Plantilla de catálogo": guardar/abrir solo perfiles y precios, para reutilizarlos entre proyectos.
+
 ## 🟢 Técnico
 - [ ] Ayuda (tooltip) en campos poco obvios: "Dist. a esquina", "Sep. verticales" (glosario en CONTEXT.md).
 - [ ] Bundle de ~800 KB (Three.js completo): evaluar carga diferida del visor.
 - [ ] Tests de componentes (testing-library) para CampoNumero, SelectorLado y PanelAberturas.
 - [ ] Migrar el motor a Django cuando arranque Construcción Modular (los tests sirven de especificación).
+
+## ✅ Resuelto en v1.2.0 (2026-10-01)
+- [x] Transversales no se veían: quedaban tapadas por el OSB → OSB semitransparente y transversales más gruesas.
+- [x] Color editable por capa (fierros, aberturas, paneles, etc.) desde la leyenda del 3D.
+- [x] Guardar / abrir proyecto como archivo `.json` con nombre; botón "Nuevo".
 
 ## ✅ Resuelto en v1.1.0 (2026-10-01)
 - [x] Frente seleccionable entre los 4 lados (A, B, C, D); nombres, aberturas y cámara se reacomodan.

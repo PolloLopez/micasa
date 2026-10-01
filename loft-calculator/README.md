@@ -14,6 +14,11 @@ npm run lint     # oxlint
 npm run deploy   # tests + build + publica en GitHub Pages
 ```
 
+## Proyectos
+
+"Guardar proyecto" descarga un `.json` con medidas, aberturas, perfiles, precios y colores.
+"Abrir…" lo vuelve a cargar (en esta compu o en la del herrero). No hace falta cuenta ni servidor.
+
 ## Estructura
 
 ```
@@ -27,6 +32,8 @@ src/
     optimizadorCortes.js
     presupuesto.js
     motor.test.js
+  proyecto/         guardar/abrir proyecto (.json) con validación + tests
+  capas.js          capas del 3D y sus colores por defecto
   componentes/      piezas de UI reutilizables
   hooks/            useEstadoGuardado (localStorage)
   LoftCanvas.jsx    visor 3D (Three.js)

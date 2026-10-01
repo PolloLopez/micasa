@@ -34,6 +34,9 @@ valores inválidos.
 | 2026-10-01 | Techo a una agua: `altura` = lado bajo; columnas y paredes del lado alto crecen solas | La pendiente se define una vez y todo lo demás se deriva. |
 | 2026-10-01 | Separación de transversales editable (0 = sin), no constante | Depende del panel y la define el herrero de la obra. |
 | 2026-10-01 | localStorage pasa a prefijo `micasa.v2.` | Cambió la forma de los datos (lados, paredes, techo); los datos v1 se ignoran. |
+| 2026-10-01 | Proyectos como archivo `.json` descargable (formato `micasa-proyecto`, versión 2) | Sin servidor: cada obra es un archivo que se pasa al herrero por WhatsApp/mail. Al abrir se valida todo (medidas, aberturas, catálogo, colores). Compartir online queda para el backend de Construcción Modular. |
+| 2026-10-01 | `src/proyecto/` separado de `src/motor/` | El motor es dominio puro (cálculo); guardar/abrir y colores son de la aplicación. |
+| 2026-10-01 | Colores por capa: se cambia el color del material, no se redibuja | Cambiar un color es instantáneo y no recrea geometrías. |
 
 ## Supuestos de obra (en `src/motor/constantes.js`)
 Piso del entrepiso a 2,30 m · merma de corte 3 mm · placa OSB 2,44 × 1,22 + 10 % de recortes ·
@@ -61,3 +64,4 @@ techo medido sobre la pendiente (sin aleros) · refuerzo de vano = dintel + 2 ja
 - 2026-10-01 v1.0.0 publicada en GitHub Pages. Se sacó el repo que estaba inicializado en `C:\Users\LLopez`;
   clon de trabajo: `C:\Users\LLopez\micasa`.
 - 2026-10-01 v1.1.0: frente seleccionable, paredes por panel, entrepiso orientable, techo a una agua, transversales.
+- 2026-10-01 v1.2.0: guardar/abrir proyecto (.json), colores por capa, transversales visibles.

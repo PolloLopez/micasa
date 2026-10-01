@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.2.0] - 2026-10-01
+### Agregado
+- Guardar proyecto como archivo `.json` (con nombre) y abrirlo después; botón "Nuevo".
+  Al abrir se valida todo y un archivo roto no reemplaza el proyecto actual.
+- Color editable por capa desde la leyenda del 3D (columnas, marcos, pisos, aberturas, paneles, etc.).
+- Capa "Aberturas" que se puede ocultar.
+### Corregido
+- Las transversales no se veían: quedaban tapadas por la placa OSB. Ahora el OSB es semitransparente
+  y las transversales son un poco más gruesas que la estructura de piso.
+
 ## [1.1.0] - 2026-10-01
 ### Agregado
 - Frente seleccionable entre los 4 lados (A, B, C, D): nombres de paredes, carteles en el 3D y cámara se reacomodan.
