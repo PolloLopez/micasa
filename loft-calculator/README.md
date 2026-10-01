@@ -1,16 +1,34 @@
-# React + Vite
+# micasa · Calculadora de loft
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Calculadora paramétrica de un loft steel frame: modelo 3D, optimización de cortes y presupuesto de materiales.
 
-Currently, two official plugins are available:
+**Producción:** https://pollolopez.github.io/micasa/
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Uso local
 
-## React Compiler
+```bash
+npm install
+npm run dev      # servidor de desarrollo
+npm test         # tests del motor de cálculo (Vitest)
+npm run lint     # oxlint
+npm run deploy   # tests + build + publica en GitHub Pages
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Estructura
 
-## Expanding the Oxlint configuration
+```
+src/
+  motor/            lógica pura, sin React (se testea sola)
+    constantes.js       supuestos de obra con nombre
+    validacion.js       límites y reglas de parámetros/aberturas
+    estructura.js       piezas con largo y posición (fuente única)
+    optimizadorCortes.js
+    presupuesto.js
+    motor.test.js
+  componentes/      piezas de UI reutilizables
+  hooks/            useEstadoGuardado (localStorage)
+  LoftCanvas.jsx    visor 3D (Three.js)
+  App.jsx           estado y armado de la pantalla
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+Ver `CONTEXT.md` (decisiones) y `PENDIENTES.md` (lo que falta).
