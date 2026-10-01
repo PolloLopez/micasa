@@ -32,6 +32,16 @@ valores inválidos.
 Piso del altillo a 2,30 m · merma de corte 3 mm · placa OSB 2,44 × 1,22 + 10 % de recortes ·
 techo = planta × 1,05 · refuerzo de vano = dintel + 2 jambas (+ alféizar en ventanas).
 
+## Glosario
+- **Antepecho**: altura desde el piso terminado hasta el borde inferior de la ventana (el alféizar).
+  Es el "murito" que queda debajo de la ventana. Ej: antepecho 1,10 m + alto 0,60 m → la ventana va de 1,10 a 1,70 m.
+  En puertas vale 0 porque arrancan del piso. En el cálculo, si hay antepecho se suma un alféizar (pieza horizontal de refuerzo).
+- **Dist. a esquina**: distancia horizontal desde la esquina elegida ("Medir desde") hasta el borde de la abertura.
+- **Paso**: distancia entre ejes de dos piezas iguales consecutivas (ej. paso de tirantes 0,40 m).
+- **Tirantes**: perfiles que forman la estructura de piso (planta baja y altillo). A renombrar, ver PENDIENTES.
+- **Correas (fajas)**: perfiles horizontales en las paredes donde se fijan los paneles.
+- **Empalme**: unión de dos tramos cuando la pieza es más larga que la barra comercial.
+
 ## Historial relevante
 - 2026-09-28 commit `94696eb` dejó la app en blanco (UI borrada, LoftCanvas sin `return`).
 - 2026-09-30 v1.0.0: recuperación desde `273301f` + motor nuevo + tests. Ver CHANGELOG.md.
