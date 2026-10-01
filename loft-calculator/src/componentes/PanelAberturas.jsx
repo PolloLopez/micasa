@@ -1,102 +1,107 @@
 // ==========================================================
-// PanelAberturas: alta y baja de puertas/ventanas.
-// La abertura nueva solo se agrega si entra en su pared.
+// PanelAberturas: cada abertura se edita directo en la lista,
+// igual que los campos de Estructura. Cada cambio se valida
+// (que entre en su pared) antes de guardarse.
 // ==========================================================
 
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import CampoNumero from './CampoNumero.jsx';
+import SelectorLado from './SelectorLado.jsx';
 import { validarAbertura } from '../motor/validacion.js';
+import { nombreLado } from '../motor/geometria.js';
 
-const ABERTURA_NUEVA = {
-  tipo: 'ventana', pared: 'frente', ladoReferencia: 'izquierda',
-  offsetHorizontal: 1, alturaAntepecho: 1, ancho: 1.2, alto: 1,
-};
+/** Abertura nueva: ventana en el frente, a 0,50 m de la esquina izquierda. */
+function aberturaNueva(ladoFrente) {
+  return {
+    id: Date.now(), tipo: 'ventana', lado: ladoFrente, ladoReferencia: 'izquierda',
+    offsetHorizontal: 0.5, alturaAntepecho: 1, ancho: 1, alto: 1,
+  };
+}
 
-const NOMBRE_PARED = { frente: 'Frente', fondo: 'Fondo', izquierda: 'Lat. izq.', derecha: 'Lat. der.' };
+/** Select simple con etiqueta (tipo de abertura, lado de referencia). */
+function CampoSelect({ etiqueta, valor, opciones, onCambio }) {
+  const id = useId();
+  return (
+    <div className="group">
+      <label htmlFor={id}>{etiqueta}</label>
+      <select id={id} value={valor} onChange={(e) => onCambio(e.target.value)}>
+        {opciones.map(([v, texto]) => <option key={v} value={v}>{texto}</option>)}
+      </select>
+    </div>
+  );
+}
 
-/** Para los campos de medida: solo se rechazan negativos. */
-const noNegativo = (actualizar) => (valor) => {
-  if (valor < 0) return 'No puede ser negativo';
-  actualizar(valor);
-  return null;
-};
+/** Una abertura con todos sus campos editables. */
+function FilaAbertura({ abertura, numero, params, unidad, onActualizar, onQuitar }) {
+  const [errorSelect, setErrorSelect] = useState(null);
 
-export default function PanelAberturas({ aberturas, params, unidad, onAgregar, onQuitar }) {
-  const [nueva, setNueva] = useState(ABERTURA_NUEVA);
+  // Prueba el cambio: si la abertura deja de entrar, devuelve el error y no guarda.
+  const cambiar = (campo) => (valor) => {
+    const nueva = { ...abertura, [campo]: valor };
+    if (campo === 'tipo' && valor === 'puerta') nueva.alturaAntepecho = 0; // la puerta arranca del piso
+    const problema = validarAbertura(nueva, params);
+    if (problema) return problema;
+    onActualizar(nueva);
+    return null;
+  };
+  const cambiarSelect = (campo) => (valor) => setErrorSelect(cambiar(campo)(valor));
+
+  const esPuerta = abertura.tipo === 'puerta';
+  return (
+    <li className="abertura">
+      <div className="abertura-titulo">
+        <strong>#{numero} {esPuerta ? 'Puerta' : 'Ventana'}</strong>
+        <span>{nombreLado(abertura.lado, params.ladoFrente)}</span>
+        <button className="btn-del no-print" onClick={() => onQuitar(abertura.id)} aria-label={`Quitar abertura ${numero}`}>✕</button>
+      </div>
+      <div className="grid-params">
+        <CampoSelect etiqueta="Tipo" valor={abertura.tipo} onCambio={cambiarSelect('tipo')}
+          opciones={[['ventana', 'Ventana'], ['puerta', 'Puerta']]} />
+        <SelectorLado etiqueta="Pared" valor={abertura.lado} params={params} onCambio={cambiar('lado')} />
+        <CampoSelect etiqueta="Medir desde" valor={abertura.ladoReferencia} onCambio={cambiarSelect('ladoReferencia')}
+          opciones={[['izquierda', 'Esquina izquierda'], ['derecha', 'Esquina derecha']]} />
+        <CampoNumero etiqueta="Dist. a esquina" unidad={unidad} valor={abertura.offsetHorizontal} onCambio={cambiar('offsetHorizontal')} />
+        <CampoNumero etiqueta="Ancho" unidad={unidad} valor={abertura.ancho} onCambio={cambiar('ancho')} />
+        <CampoNumero etiqueta="Alto" unidad={unidad} valor={abertura.alto} onCambio={cambiar('alto')} />
+        {!esPuerta && (
+          <CampoNumero etiqueta="Antepecho" unidad={unidad} valor={abertura.alturaAntepecho} onCambio={cambiar('alturaAntepecho')} />
+        )}
+      </div>
+      {errorSelect && <p className="error" role="alert">{errorSelect}</p>}
+    </li>
+  );
+}
+
+export default function PanelAberturas({ aberturas, params, unidad, onAgregar, onActualizar, onQuitar }) {
   const [error, setError] = useState(null);
 
-  const cambiar = (campo, valor) => {
-    setNueva((prev) => {
-      const actualizada = { ...prev, [campo]: valor };
-      // Una puerta arranca desde el piso.
-      if (campo === 'tipo' && valor === 'puerta') actualizada.alturaAntepecho = 0;
-      return actualizada;
-    });
-    setError(null);
-  };
-
   const agregar = () => {
+    const nueva = aberturaNueva(params.ladoFrente);
     const problema = validarAbertura(nueva, params);
     if (problema) {
       setError(problema);
       return;
     }
-    onAgregar({ ...nueva, id: Date.now() });
+    setError(null);
+    onAgregar(nueva);
   };
 
   return (
     <section className="card">
       <h2>Aberturas</h2>
-      <div className="grid-params">
-        <div className="group">
-          <label htmlFor="ab-tipo">Tipo</label>
-          <select id="ab-tipo" value={nueva.tipo} onChange={(e) => cambiar('tipo', e.target.value)}>
-            <option value="ventana">Ventana</option>
-            <option value="puerta">Puerta</option>
-          </select>
-        </div>
-        <div className="group">
-          <label htmlFor="ab-pared">Pared</label>
-          <select id="ab-pared" value={nueva.pared} onChange={(e) => cambiar('pared', e.target.value)}>
-            {Object.entries(NOMBRE_PARED).map(([valor, nombre]) => (
-              <option key={valor} value={valor}>{nombre}</option>
-            ))}
-          </select>
-        </div>
-        <div className="group">
-          <label htmlFor="ab-lado">Medir desde</label>
-          <select id="ab-lado" value={nueva.ladoReferencia} onChange={(e) => cambiar('ladoReferencia', e.target.value)}>
-            <option value="izquierda">Esquina izquierda</option>
-            <option value="derecha">Esquina derecha</option>
-          </select>
-        </div>
-        <CampoNumero etiqueta="Dist. a esquina" unidad={unidad} valor={nueva.offsetHorizontal}
-          onCambio={noNegativo((v) => cambiar('offsetHorizontal', v))} />
-        <CampoNumero etiqueta="Ancho" unidad={unidad} valor={nueva.ancho}
-          onCambio={noNegativo((v) => cambiar('ancho', v))} />
-        <CampoNumero etiqueta="Alto" unidad={unidad} valor={nueva.alto}
-          onCambio={noNegativo((v) => cambiar('alto', v))} />
-        {nueva.tipo === 'ventana' && (
-          <CampoNumero etiqueta="Antepecho" unidad={unidad} valor={nueva.alturaAntepecho}
-            onCambio={noNegativo((v) => cambiar('alturaAntepecho', v))} />
-        )}
-      </div>
-      {error && <p className="error" role="alert">{error}</p>}
-      <button className="btn-add no-print" onClick={agregar}>+ Agregar abertura</button>
-
+      <p className="nota">
+        Las medidas se toman mirando la pared desde afuera. <strong>Antepecho</strong>: altura desde el piso
+        hasta el borde inferior de la ventana.
+      </p>
       <ul className="opening-list">
         {aberturas.length === 0 && <li className="vacio">Sin aberturas</li>}
-        {aberturas.map((op) => (
-          <li key={op.id}>
-            <span>
-              <strong>{op.tipo === 'puerta' ? 'Puerta' : 'Ventana'}</strong> · {NOMBRE_PARED[op.pared]} ·{' '}
-              {op.ancho.toFixed(2)} × {op.alto.toFixed(2)} m · a {op.offsetHorizontal.toFixed(2)} m de la esq. {op.ladoReferencia}
-              {op.alturaAntepecho > 0 && ` · antepecho ${op.alturaAntepecho.toFixed(2)} m`}
-            </span>
-            <button className="btn-del no-print" onClick={() => onQuitar(op.id)} aria-label="Quitar abertura">✕</button>
-          </li>
+        {aberturas.map((op, i) => (
+          <FilaAbertura key={op.id} abertura={op} numero={i + 1} params={params} unidad={unidad}
+            onActualizar={onActualizar} onQuitar={onQuitar} />
         ))}
       </ul>
+      {error && <p className="error" role="alert">{error}</p>}
+      <button className="btn-add no-print" onClick={agregar}>+ Agregar abertura</button>
     </section>
   );
 }

@@ -11,7 +11,7 @@
 
 import { useEffect, useState } from 'react';
 
-const PREFIJO = 'micasa.v1.'; // cambiar la versión si cambia la forma de los datos
+const PREFIJO = 'micasa.v2.'; // v2: lados A-D, paredes por panel y techo (2026-10). Cambiar si cambia la forma de los datos
 
 function leer(clave, inicial, esValido) {
   try {

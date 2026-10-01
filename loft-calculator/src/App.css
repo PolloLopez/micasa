@@ -65,12 +65,15 @@ button { font: inherit; cursor: pointer; }
 .error { color: #fca5a5; font-size: 0.72rem; margin: 4px 0 0; }
 
 .btn-add { width: 100%; margin-top: 10px; padding: 7px; background: var(--exito); color: #fff; border: none; border-radius: 4px; font-weight: bold; font-size: 0.8rem; }
-.opening-list { margin: 10px 0 0; list-style: none; padding: 0; font-size: 0.75rem; }
-.opening-list li {
-  display: flex; justify-content: space-between; align-items: center; gap: 8px;
-  background: var(--fondo); padding: 5px 8px; border-radius: 4px; margin-bottom: 4px; border: 1px solid var(--borde);
-}
-.opening-list .vacio { color: var(--texto-tenue); justify-content: center; }
+.opening-list { margin: 10px 0 0; list-style: none; padding: 0; font-size: 0.75rem; display: flex; flex-direction: column; gap: 8px; }
+.opening-list .vacio { color: var(--texto-tenue); text-align: center; padding: 6px; }
+
+/* Cada abertura y cada pared es una sub-tarjeta editable */
+.abertura, .pared { background: var(--fondo); padding: 8px; border-radius: 6px; border: 1px solid var(--borde); }
+.pared + .pared { margin-top: 8px; }
+.abertura-titulo, .pared-titulo { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; font-size: 0.78rem; }
+.abertura-titulo span, .pared-titulo span { color: var(--texto-tenue); flex: 1; }
+.pared-titulo strong { color: var(--texto); }
 .btn-del { background: var(--peligro); color: #fff; border: none; border-radius: 3px; padding: 2px 7px; }
 
 /* ---------- Presupuesto ---------- */
@@ -82,13 +85,18 @@ td .group { min-width: 70px; }
 td .group label { display: none; } /* la columna ya tiene título */
 .num { text-align: right; white-space: nowrap; }
 .item-name { font-weight: 600; }
+input.perfil {
+  display: block; width: 100%; min-width: 120px; margin: 2px 0; padding: 2px 4px; font-size: 0.7rem;
+  background: transparent; color: var(--texto-suave); border: 1px dashed var(--borde-input); border-radius: 3px;
+}
+input.perfil:focus { outline: 2px solid var(--acento); border-style: solid; }
 .detalle { color: var(--texto-tenue); font-size: 0.68rem; }
 .sub { font-weight: bold; color: var(--dinero); }
 .total {
   margin-top: 10px; padding: 10px; background: var(--primario); border-radius: 6px;
   display: flex; justify-content: space-between; font-weight: bold; font-size: 1rem;
 }
-.nota { font-size: 0.7rem; color: var(--texto-tenue); margin: 8px 0 0; }
+.nota { font-size: 0.7rem; color: var(--texto-tenue); margin: 8px 0; line-height: 1.4; }
 
 /* ---------- Diagrama de cortes ---------- */
 .bar-details { margin-top: 6px; font-size: 0.75rem; }
@@ -129,7 +137,9 @@ td .group label { display: none; } /* la columna ya tiene título */
   .columna-panel { border: none; padding: 0; overflow: visible; }
   .card { background: #fff; border: 1px solid #ccc; color: #000; break-inside: avoid; }
   .card h2, .subtitulo { color: #000; }
-  .group input, .group select { background: #fff; color: #000; border: none; padding: 0; }
+  .group input, .group select, input.perfil { background: #fff; color: #000; border: none; padding: 0; }
+  .abertura, .pared { background: #fff; border-color: #ccc; }
+  .pared-titulo strong, .abertura-titulo strong { color: #000; }
   td, th { color: #000; border-color: #ccc; }
   .sub { color: #000; }
   .total { background: #e2e8f0; color: #000; }

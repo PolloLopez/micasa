@@ -1,139 +1,278 @@
 // ==========================================================
 // GENERADOR DE ESTRUCTURA
 // ----------------------------------------------------------
-// Fuente ÚNICA de verdad: a partir de los parámetros arma la lista
-// de piezas con su largo y su posición en el espacio.
-//   - El cálculo de materiales usa los LARGOS.
+// Fuente ÚNICA de verdad: a partir de los parámetros arma todas las
+// piezas con su largo y su posición en el espacio.
+//   - El presupuesto usa los LARGOS.
 //   - El visor 3D usa las POSICIONES.
 // Como los dos leen la misma lista, lo que se ve es lo que se cotiza.
 //
-// Sistema de coordenadas (igual que Three.js):
-//   x = a lo largo del frente, z = a lo largo de la profundidad,
-//   y = altura. El origen (0,0,0) es el centro de la planta a nivel
-//   del suelo. El piso del loft está en y = elevacion.
+// Cada pieza lineal es un "segmento": { desde: [x,y,z], hasta: [x,y,z], largo }.
+// Así una viga inclinada de techo y una correa horizontal se tratan igual.
+// Coordenadas y nombres de lados: ver motor/geometria.js.
 // ==========================================================
 
-import { ALTURA_PISO_ALTILLO, FACTOR_PENDIENTE_TECHO } from './constantes.js';
-import { largoDePared } from './validacion.js';
+import { ALTURA_PISO_2, LADOS } from './constantes.js';
+import {
+  geometriaLados, alturaEn, alturasPared, puntoSobreLado, luzTecho, ladoOpuesto,
+} from './geometria.js';
+import { inicioAbertura } from './validacion.js';
 
 const EPSILON = 0.01; // 1 cm: margen para no duplicar piezas en bordes
+const LARGO_MINIMO = 0.05; // piezas más cortas que 5 cm no se fabrican
 
-/** Pilotines distribuidos en grilla bajo la planta. */
-function generarPilotines({ frente, profundidad, filasPilotines, pilotinesPorFila }) {
+// ---------------- Utilidades ----------------
+
+/** Pieza lineal entre dos puntos 3D. */
+function segmento(desde, hasta) {
+  const largo = Math.hypot(hasta[0] - desde[0], hasta[1] - desde[1], hasta[2] - desde[2]);
+  return { desde, hasta, largo: Number(largo.toFixed(4)) };
+}
+
+/** Dirección "hacia adentro" de la planta desde un lado (perpendicular a la pared). */
+function haciaAdentro(geoLado) {
+  return [geoLado.direccion[1], -geoLado.direccion[0]];
+}
+
+/** Posiciones repartidas parejo de 0 a `largo`, con separación máxima `separacion`. */
+function repartir(largo, separacion) {
+  const tramos = Math.max(1, Math.ceil(largo / separacion - EPSILON));
+  return Array.from({ length: tramos + 1 }, (_, i) => (largo * i) / tramos);
+}
+
+/** Posiciones interiores cada `separacion` (sin los extremos 0 y `largo`). */
+function interiores(largo, separacion) {
+  const posiciones = [];
+  for (let i = 1; i * separacion < largo - EPSILON; i++) posiciones.push(i * separacion);
+  return posiciones;
+}
+
+// ---------------- Fundación ----------------
+
+function generarPilotines({ largo, ancho, filasPilotines, pilotinesPorFila }) {
   const pilotines = [];
   for (let i = 0; i < filasPilotines; i++) {
     for (let j = 0; j < pilotinesPorFila; j++) {
       pilotines.push({
-        x: -frente / 2 + (frente / (filasPilotines - 1)) * i,
-        z: -profundidad / 2 + (profundidad / (pilotinesPorFila - 1)) * j,
+        x: -largo / 2 + (largo / (filasPilotines - 1)) * i,
+        z: -ancho / 2 + (ancho / (pilotinesPorFila - 1)) * j,
       });
     }
   }
   return pilotines;
 }
 
-/**
- * Columnas: en las dos paredes largas (frente y fondo) y, en las filas
- * intermedias, sobre las paredes laterales y la línea del altillo.
- */
-function generarColumnas({ frente, profundidad, altura, anchoMezzanine, distanciaColumnas }) {
-  const colsLargo = Math.max(2, Math.ceil(frente / distanciaColumnas) + 1);
-  const colsAncho = Math.max(2, Math.ceil(profundidad / distanciaColumnas) + 1);
-  const columnas = [];
-
-  for (let i = 0; i < colsLargo; i++) {
-    const x = -frente / 2 + (frente / (colsLargo - 1)) * i;
-    columnas.push({ x, z: -profundidad / 2, largo: altura });
-    columnas.push({ x, z: profundidad / 2, largo: altura });
-  }
-
-  // Filas intermedias (sin las esquinas, que ya están arriba).
-  const xsIntermedias = [-frente / 2, frente / 2];
-  if (anchoMezzanine > 0 && anchoMezzanine < frente - EPSILON) {
-    xsIntermedias.push(-frente / 2 + anchoMezzanine);
-  }
-  for (let j = 1; j < colsAncho - 1; j++) {
-    const z = -profundidad / 2 + (profundidad / (colsAncho - 1)) * j;
-    xsIntermedias.forEach((x) => columnas.push({ x, z, largo: altura }));
-  }
-  return columnas;
-}
+// ---------------- Columnas ----------------
 
 /**
- * Pieza lineal horizontal. `eje` indica en qué dirección es larga:
- * 'x' (paralela al frente) o 'z' (paralela a la profundidad).
+ * Columnas (verticales) de cada pared según su separación, más las que
+ * sostienen el borde libre del entrepiso. Las esquinas compartidas entre
+ * dos paredes se cuentan una sola vez.
  */
-function pieza(eje, largo, x, y, z) {
-  return { eje, largo, x, y, z };
-}
+function generarColumnas(params, lados) {
+  const porPosicion = new Map();
+  const agregar = (x, z) => {
+    const clave = `${x.toFixed(3)}|${z.toFixed(3)}`;
+    if (!porPosicion.has(clave)) porPosicion.set(clave, { x, z, largo: alturaEn(x, z, params) });
+  };
 
-/** Rectángulo de 4 vigas (marco perimetral) a una altura dada. */
-function marcoRectangular(xIzq, ancho, profundidad, y) {
-  const xCentro = xIzq + ancho / 2;
-  return [
-    pieza('x', ancho, xCentro, y, -profundidad / 2),
-    pieza('x', ancho, xCentro, y, profundidad / 2),
-    pieza('z', profundidad, xIzq, y, 0),
-    pieza('z', profundidad, xIzq + ancho, y, 0),
-  ];
-}
-
-/** Marcos: piso, solera superior y (si hay) altillo. */
-function generarMarcos({ frente, profundidad, altura, elevacion, anchoMezzanine }) {
-  const marcos = [
-    ...marcoRectangular(-frente / 2, frente, profundidad, elevacion),
-    ...marcoRectangular(-frente / 2, frente, profundidad, elevacion + altura),
-  ];
-  if (anchoMezzanine > 0) {
-    marcos.push(
-      ...marcoRectangular(-frente / 2, anchoMezzanine, profundidad, elevacion + ALTURA_PISO_ALTILLO)
+  LADOS.forEach((lado) => {
+    const geo = lados[lado];
+    repartir(geo.largo, params.paredes[lado].separacionVerticales).forEach((d) =>
+      agregar(...puntoSobreLado(geo, d))
     );
+  });
+
+  // Borde libre del entrepiso: misma separación que la pared donde se apoya.
+  const { ladoEntrepiso, anchoEntrepiso } = params;
+  const geo = lados[ladoEntrepiso];
+  const profundidadPlanta = lados[LADOS[(LADOS.indexOf(ladoEntrepiso) + 1) % 4]].largo;
+  if (anchoEntrepiso > 0 && anchoEntrepiso < profundidadPlanta - EPSILON) {
+    const [ax, az] = haciaAdentro(geo);
+    repartir(geo.largo, params.paredes[ladoEntrepiso].separacionVerticales).forEach((d) => {
+      const [x, z] = puntoSobreLado(geo, d);
+      agregar(x + ax * anchoEntrepiso, z + az * anchoEntrepiso);
+    });
+  }
+
+  return [...porPosicion.values()].map((c) => ({ ...c, largo: Number(c.largo.toFixed(4)) }));
+}
+
+// ---------------- Marcos (vigas perimetrales) ----------------
+
+function generarMarcos(params, lados) {
+  const { elevacion } = params;
+  const marcos = [];
+
+  LADOS.forEach((lado) => {
+    const { p1, p2 } = lados[lado];
+    // Marco del piso (a nivel del piso del loft).
+    marcos.push(segmento([p1[0], elevacion, p1[1]], [p2[0], elevacion, p2[1]]));
+    // Solera superior: sigue la pendiente del techo.
+    const [h1, h2] = alturasPared(lados[lado], params);
+    marcos.push(segmento([p1[0], elevacion + h1, p1[1]], [p2[0], elevacion + h2, p2[1]]));
+  });
+
+  // Marco del entrepiso (rectángulo apoyado contra su lado).
+  const rect = rectanguloEntrepiso(params, lados);
+  if (rect) {
+    const { esquinas, y } = rect;
+    for (let i = 0; i < 4; i++) {
+      const a = esquinas[i];
+      const b = esquinas[(i + 1) % 4];
+      marcos.push(segmento([a[0], y, a[1]], [b[0], y, b[1]]));
+    }
   }
   return marcos;
 }
 
+// ---------------- Pisos ----------------
+
 /**
- * Tirantes interiores entre los extremos del marco (los extremos ya
- * tienen viga de marco, por eso no se repiten).
+ * Rectángulo de la planta descripto por una esquina `origen`, dos
+ * direcciones perpendiculares `u` y `v` y sus largos.
  */
-function tirantesEntre(xIzq, ancho, paso, profundidad, y) {
-  const tirantes = [];
-  // Contador entero (i) en vez de sumar `paso`: sumar decimales acumula error.
-  for (let i = 1; i * paso < ancho - EPSILON; i++) {
-    tirantes.push(pieza('z', profundidad, xIzq + i * paso, y, 0));
+function rectanguloPlanta({ largo, ancho }) {
+  return { origen: [-largo / 2, -ancho / 2], u: [1, 0], largoU: largo, v: [0, 1], largoV: ancho };
+}
+
+/** Rectángulo del entrepiso, o null si no hay entrepiso. */
+function rectanguloEntrepiso(params, lados) {
+  if (!(params.anchoEntrepiso > 0)) return null;
+  const geo = lados[params.ladoEntrepiso];
+  const v = haciaAdentro(geo);
+  const a = params.anchoEntrepiso;
+  const esquinas = [
+    geo.p1,
+    geo.p2,
+    [geo.p2[0] + v[0] * a, geo.p2[1] + v[1] * a],
+    [geo.p1[0] + v[0] * a, geo.p1[1] + v[1] * a],
+  ];
+  return {
+    origen: geo.p1, u: geo.direccion, largoU: geo.largo, v, largoV: a,
+    esquinas, y: params.elevacion + ALTURA_PISO_2,
+  };
+}
+
+/**
+ * Entramado de un piso: tirantes que cruzan la LUZ MÁS CORTA del
+ * rectángulo (los extremos ya tienen viga de marco) y, si se pide,
+ * filas de transversales entre tirantes para que no arqueen.
+ */
+function entramadoPiso(rect, separacion, separacionTransversales, y) {
+  // Elegir el sentido: los tirantes van paralelos al lado corto.
+  const cruzanV = rect.largoV <= rect.largoU;
+  const luz = cruzanV ? rect.largoV : rect.largoU; // largo de cada tirante
+  const largoReparto = cruzanV ? rect.largoU : rect.largoV; // dónde se reparten
+  const dirReparto = cruzanV ? rect.u : rect.v;
+  const dirLuz = cruzanV ? rect.v : rect.u;
+
+  const punto = (a, b) => [
+    rect.origen[0] + dirReparto[0] * a + dirLuz[0] * b,
+    y,
+    rect.origen[1] + dirReparto[1] * a + dirLuz[1] * b,
+  ];
+
+  const posicionesTirantes = interiores(largoReparto, separacion);
+  const tirantes = posicionesTirantes.map((a) => segmento(punto(a, 0), punto(a, luz)));
+
+  // Transversales: tramos cortos entre tirantes consecutivos (y los marcos).
+  const transversales = [];
+  if (separacionTransversales > 0) {
+    const apoyos = [0, ...posicionesTirantes, largoReparto];
+    interiores(luz, separacionTransversales).forEach((b) => {
+      for (let i = 0; i < apoyos.length - 1; i++) {
+        transversales.push(segmento(punto(apoyos[i], b), punto(apoyos[i + 1], b)));
+      }
+    });
   }
-  return tirantes;
+  return { tirantes, transversales };
 }
 
-function generarTirantes(p) {
-  const piso = tirantesEntre(-p.frente / 2, p.frente, p.pasoTirantesPiso, p.profundidad, p.elevacion);
-  const altillo =
-    p.anchoMezzanine > 0
-      ? tirantesEntre(
-          -p.frente / 2,
-          p.anchoMezzanine,
-          p.pasoTirantesAltillo,
-          p.profundidad,
-          p.elevacion + ALTURA_PISO_ALTILLO
-        )
-      : [];
-  return [...piso, ...altillo];
-}
+// ---------------- Paredes: horizontales (correas) ----------------
 
-/** Correas (fajas) horizontales en las 4 paredes, cada `separacionCorreas`. */
-function generarCorreas({ frente, profundidad, altura, elevacion, separacionCorreas }) {
+/**
+ * Horizontales de cada pared cada `separacionHorizontales`.
+ * Si la pared es inclinada arriba (paralela a la pendiente), las
+ * horizontales altas solo cubren el tramo donde la pared llega.
+ */
+function generarCorreasPared(params, lados) {
   const correas = [];
-  for (let k = 1; k * separacionCorreas < altura - EPSILON; k++) {
-    const y = elevacion + k * separacionCorreas;
-    correas.push(
-      pieza('x', frente, 0, y, -profundidad / 2),
-      pieza('x', frente, 0, y, profundidad / 2),
-      pieza('z', profundidad, -frente / 2, y, 0),
-      pieza('z', profundidad, frente / 2, y, 0)
-    );
-  }
+  LADOS.forEach((lado) => {
+    const geo = lados[lado];
+    const [h1, h2] = alturasPared(geo, params);
+    const separacion = params.paredes[lado].separacionHorizontales;
+    for (let k = 1; k * separacion < Math.max(h1, h2) - EPSILON; k++) {
+      const h = k * separacion;
+      // Tramo [a, b] (desde la esquina izquierda) donde la pared supera h.
+      let a = 0;
+      let b = geo.largo;
+      if (Math.abs(h2 - h1) > 1e-9) {
+        const cruce = ((h - h1) / (h2 - h1)) * geo.largo; // donde la solera pasa por h
+        if (h2 > h1) a = Math.max(0, cruce);
+        else b = Math.min(geo.largo, cruce);
+      } else if (h >= h1 - EPSILON) {
+        continue;
+      }
+      if (b - a < LARGO_MINIMO) continue;
+      const [x1, z1] = puntoSobreLado(geo, a);
+      const [x2, z2] = puntoSobreLado(geo, b);
+      const y = params.elevacion + h;
+      correas.push(segmento([x1, y, z1], [x2, y, z2]));
+    }
+  });
   return correas;
 }
+
+// ---------------- Techo a una agua ----------------
+
+/**
+ * Vigas de techo: van del lado bajo al lado alto siguiendo la pendiente.
+ * Correas de techo: perpendiculares a las vigas, paralelas al lado bajo;
+ * su separación se mide sobre la pendiente.
+ */
+function generarTecho(params, lados) {
+  const bajo = lados[params.caidaTecho];
+  const [ax, az] = haciaAdentro(bajo); // de la pared baja hacia la alta
+  const luz = luzTecho(params);
+  const pendiente = params.pendienteTecho / 100;
+  const factorPendiente = Math.sqrt(1 + pendiente * pendiente);
+  const y0 = params.elevacion + params.altura;
+
+  const puntoTecho = (d, s, extra = 0) => {
+    const [x, z] = puntoSobreLado(bajo, d);
+    return [x + ax * s, y0 + s * pendiente + extra, z + az * s];
+  };
+
+  const vigas = interiores(bajo.largo, params.separacionVigasTecho).map((d) =>
+    segmento(puntoTecho(d, 0), puntoTecho(d, luz))
+  );
+
+  // Separación horizontal equivalente a la separación sobre la pendiente.
+  const pasoHorizontal = params.separacionCorreasTecho / factorPendiente;
+  const posiciones = [0, ...interiores(luz, pasoHorizontal), luz];
+  const ALTO_VIGA = 0.1; // las correas apoyan arriba de las vigas
+  const correas = posiciones.map((s) =>
+    segmento(puntoTecho(0, s, ALTO_VIGA), puntoTecho(bajo.largo, s, ALTO_VIGA))
+  );
+
+  const esquinas = [
+    puntoTecho(0, 0, ALTO_VIGA + 0.03),
+    puntoTecho(bajo.largo, 0, ALTO_VIGA + 0.03),
+    puntoTecho(bajo.largo, luz, ALTO_VIGA + 0.03),
+    puntoTecho(0, luz, ALTO_VIGA + 0.03),
+  ];
+
+  return {
+    vigas,
+    correas,
+    esquinas,
+    superficie: bajo.largo * luz * factorPendiente,
+    ladoAlto: ladoOpuesto(params.caidaTecho),
+  };
+}
+
+// ---------------- Aberturas ----------------
 
 /**
  * Refuerzos del vano de cada abertura (van con el perfil de columnas):
@@ -146,56 +285,78 @@ export function piezasRefuerzoAbertura({ ancho, alto, alturaAntepecho }) {
   return piezas;
 }
 
-/**
- * Centro y rotación de una abertura para dibujarla en su pared.
- * `ladoReferencia` dice desde qué esquina se mide `offsetHorizontal`.
- */
+/** Centro y rotación de una abertura para dibujarla en su pared. */
 export function posicionAbertura(abertura, params) {
-  const { frente, profundidad, elevacion } = params;
-  const { pared, ladoReferencia, offsetHorizontal, ancho, alto, alturaAntepecho } = abertura;
-  const largo = largoDePared(pared, params);
-  const desdeIzquierda = offsetHorizontal + ancho / 2;
-  const h = ladoReferencia === 'izquierda' ? -largo / 2 + desdeIzquierda : largo / 2 - desdeIzquierda;
-  const y = elevacion + alturaAntepecho + alto / 2;
-
-  switch (pared) {
-    case 'frente':
-      return { x: h, y, z: profundidad / 2, rotacionY: 0 };
-    case 'fondo':
-      return { x: h, y, z: -profundidad / 2, rotacionY: 0 };
-    case 'izquierda':
-      return { x: -frente / 2, y, z: h, rotacionY: Math.PI / 2 };
-    default: // derecha
-      return { x: frente / 2, y, z: h, rotacionY: Math.PI / 2 };
-  }
-}
-
-/** Superficies (m²) para placas y paneles. */
-function calcularSuperficies({ frente, profundidad, altura, anchoMezzanine }, aberturas) {
-  const murosBrutos = (frente + profundidad) * 2 * altura;
-  const aberturasTotal = aberturas.reduce((acc, op) => acc + op.ancho * op.alto, 0);
+  const geo = geometriaLados(params)[abertura.lado];
+  const centro = inicioAbertura(abertura, params) + abertura.ancho / 2;
+  const [x, z] = puntoSobreLado(geo, centro);
   return {
-    pisoOsb: frente * profundidad,
-    altilloOsb: anchoMezzanine * profundidad,
-    murosBrutos,
-    aberturas: aberturasTotal,
-    murosNetos: Math.max(0, murosBrutos - aberturasTotal),
-    techo: frente * profundidad * FACTOR_PENDIENTE_TECHO,
+    x,
+    y: params.elevacion + abertura.alturaAntepecho + abertura.alto / 2,
+    z,
+    rotacionY: Math.atan2(-geo.direccion[1], geo.direccion[0]),
   };
 }
 
+// ---------------- Superficies y paneles ----------------
+
+function generarParedes(params, lados, aberturas) {
+  return LADOS.map((lado) => {
+    const geo = lados[lado];
+    const [h1, h2] = alturasPared(geo, params);
+    const bruta = (geo.largo * (h1 + h2)) / 2; // trapecio
+    const huecos = aberturas
+      .filter((op) => op.lado === lado)
+      .reduce((acc, op) => acc + op.ancho * op.alto, 0);
+    const y = params.elevacion;
+    return {
+      lado,
+      superficieBruta: bruta,
+      superficieAberturas: huecos,
+      superficieNeta: Math.max(0, bruta - huecos),
+      // Contorno para el 3D: abajo-izq, abajo-der, arriba-der, arriba-izq.
+      esquinas: [
+        [geo.p1[0], y, geo.p1[1]],
+        [geo.p2[0], y, geo.p2[1]],
+        [geo.p2[0], y + h2, geo.p2[1]],
+        [geo.p1[0], y + h1, geo.p1[1]],
+      ],
+    };
+  });
+}
+
+// ---------------- Punto de entrada ----------------
+
 /**
- * Punto de entrada: arma toda la estructura.
+ * Arma toda la estructura.
  * Precondición: params y aberturas ya validados.
  */
 export function generarEstructura(params, aberturas) {
+  const lados = geometriaLados(params);
+  const planta = rectanguloPlanta(params);
+  const entrepiso = rectanguloEntrepiso(params, lados);
+  const paredes = generarParedes(params, lados, aberturas);
+  const techo = generarTecho(params, lados);
+
   return {
     pilotines: generarPilotines(params),
-    columnas: generarColumnas(params),
-    marcos: generarMarcos(params),
-    tirantes: generarTirantes(params),
-    correas: generarCorreas(params),
+    columnas: generarColumnas(params, lados),
+    marcos: generarMarcos(params, lados),
+    piso: entramadoPiso(planta, params.separacionPiso, params.separacionTransversales, params.elevacion),
+    piso2: entrepiso
+      ? entramadoPiso(entrepiso, params.separacionPiso2, params.separacionTransversales, entrepiso.y)
+      : { tirantes: [], transversales: [] },
+    correas: generarCorreasPared(params, lados),
+    techo,
     refuerzosAberturas: aberturas.flatMap(piezasRefuerzoAbertura),
-    superficies: calcularSuperficies(params, aberturas),
+    paredes,
+    entrepiso,
+    superficies: {
+      piso: planta.largoU * planta.largoV,
+      piso2: entrepiso ? entrepiso.largoU * entrepiso.largoV : 0,
+      murosNetos: paredes.reduce((acc, p) => acc + p.superficieNeta, 0),
+      aberturas: paredes.reduce((acc, p) => acc + p.superficieAberturas, 0),
+      techo: techo.superficie,
+    },
   };
 }

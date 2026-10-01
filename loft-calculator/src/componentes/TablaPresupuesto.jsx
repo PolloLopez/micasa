@@ -26,7 +26,7 @@ function DiagramaCortes({ item }) {
   const largo = item.largoBarra;
   return (
     <details className="bar-details">
-      <summary>{item.nombre}: {cortes.totalBarras} barras de {largo} m</summary>
+      <summary>{item.nombre} ({item.perfil}): {cortes.totalBarras} barras de {largo} m</summary>
       <div className="bar-cuts-container">
         {cortes.barras.map((b) => (
           <div key={b.numero} className="bar-item">
@@ -70,6 +70,13 @@ export default function TablaPresupuesto({ items, total, catalogo, onCambiarInsu
               <tr key={item.id}>
                 <td>
                   <div className="item-name">{item.nombre}</div>
+                  <input
+                    className="perfil"
+                    type="text"
+                    value={item.perfil}
+                    aria-label={`Perfil o material de ${item.nombre}`}
+                    onChange={(e) => onCambiarInsumo(item.id, 'perfil', e.target.value)}
+                  />
                   <small className="detalle">{item.detalle}</small>
                 </td>
                 <td className="num">{item.cantidad} {item.unidad}</td>
@@ -95,7 +102,7 @@ export default function TablaPresupuesto({ items, total, catalogo, onCambiarInsu
       </p>
 
       <h3 className="subtitulo">Diagrama de cortes</h3>
-      {perfiles.map((item) => <DiagramaCortes key={item.id} item={item} />)}
+      {perfiles.filter((i) => i.cantidad > 0).map((item) => <DiagramaCortes key={item.id} item={item} />)}
     </section>
   );
 }
