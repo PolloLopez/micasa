@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.4.0] - 2026-10-02
+### Cambiado
+- "Nuevo" borra todos los datos: caja mínima de 3 x 3 x 2,40 m, sin aberturas, sin entrepiso ni transversales,
+  techo plano, precios en $0, perfiles vacíos y un solo tipo de panel genérico.
+### Agregado
+- Botón "Ejemplo" que carga el loft de referencia.
+- Capa "Paneles" del 3D: interruptor general y uno por cada pared (frente, laterales, fondo) y el techo.
+
 ## [1.3.0] - 2026-10-02
 ### Agregado
 - Tipos de panel (nombre, descripción, precio por m², color): cada pared y el techo eligen el suyo.

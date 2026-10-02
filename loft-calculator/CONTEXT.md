@@ -40,6 +40,7 @@ valores inválidos.
 | 2026-10-02 | Excedente de barras como parámetro (1 % por defecto) | Las barras vienen 1-2 % más largas que su nominal; el optimizador corta sobre el largo real. Se usa el mínimo del rango para no subestimar. |
 | 2026-10-02 | Catálogo = insumos fijos + tipos de panel (lista libre) | Paredes y techo no siempre llevan el mismo panel; cada uno referencia un tipo por id. Un tipo en uso no se puede borrar. |
 | 2026-10-02 | Transversales: una separación por piso | Cada piso puede tener otro panel/luz y el herrero las define por separado. |
+| 2026-10-02 | "Nuevo" = proyecto vacío (`proyecto/proyectosBase.js`); el loft pasa a "Ejemplo" | Un proyecto nuevo no debe arrastrar datos del loft. Se usan medidas mínimas (3 x 3 x 2,40) porque el 3D y el motor necesitan una planta válida. |
 | 2026-10-02 | Migración explícita de datos (`motor/migracion.js`); archivo de proyecto versión 3 que abre también la 2 | El usuario ya tenía datos y archivos v1.2: no se pierden ni se resetean. |
 
 ## Supuestos de obra (en `src/motor/constantes.js`)
@@ -72,3 +73,5 @@ techo medido sobre la pendiente (sin aleros) · refuerzo de vano = dintel + 2 ja
 - 2026-10-01 v1.1.0: frente seleccionable, paredes por panel, entrepiso orientable, techo a una agua, transversales.
 - 2026-10-01 v1.2.0: guardar/abrir proyecto (.json), colores por capa, transversales visibles.
 - 2026-10-02 v1.3.0: transversales por piso, tipos de panel por pared/techo, excedente de barras.
+- 2026-10-02 v1.4.0: "Nuevo" sin datos + botón "Ejemplo"; paneles visibles uno por uno en el 3D.
+- Nota: el elemento `id="flonnect-my-app"` que aparece en la página no es de la app: lo inyecta la extensión Flonnect (grabador de pantalla) de Chrome.

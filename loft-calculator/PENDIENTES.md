@@ -24,6 +24,11 @@
 - [ ] Tests de componentes (testing-library) para CampoNumero, SelectorLado y PanelAberturas.
 - [ ] Migrar el motor a Django cuando arranque Construcción Modular (los tests sirven de especificación).
 
+## ✅ Resuelto en v1.4.0 (2026-10-02)
+- [x] "Nuevo" borra todo: caja mínima 3 x 3 x 2,40 sin aberturas, sin entrepiso ni transversales, techo plano,
+      precios en $0, perfiles vacíos y un solo tipo de panel. El loft queda en el botón "Ejemplo".
+- [x] Capa "Paneles": interruptor general + uno por pared (frente, laterales, fondo) y techo.
+
 ## ✅ Resuelto en v1.3.0 (2026-10-02)
 - [x] Transversales con separación propia para cada piso (planta baja y piso 2) y renglón propio en el presupuesto.
 - [x] Tipos de panel: cada pared y el techo eligen el suyo; m² por tipo en el presupuesto y color por tipo en el 3D.
