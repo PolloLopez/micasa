@@ -26,6 +26,7 @@ import { LADOS } from './motor/constantes.js';
 import { nombreLado, alturasPared, geometriaLados, alturaMaxima } from './motor/geometria.js';
 import { COLORES_INICIALES, coloresValidos } from './capas.js';
 import { crearArchivoProyecto, leerArchivoProyecto, nombreDeArchivo } from './proyecto/archivoProyecto.js';
+import { proyectoVacio, proyectoEjemplo } from './proyecto/proyectosBase.js';
 import './App.css';
 
 // --- Validadores para descartar datos viejos de localStorage ---
@@ -122,14 +123,27 @@ export default function App() {
 
   const cambiarColor = (capa, color) => setColores((prev) => ({ ...prev, [capa]: color }));
 
-  const restablecer = () => {
-    if (!window.confirm('¿Empezar un proyecto nuevo con los valores, precios y colores por defecto?')) return;
-    setNombreProyecto('Proyecto nuevo');
-    setParams(PARAMS_INICIALES);
-    setAberturas(ABERTURAS_INICIALES);
-    setCatalogo(CATALOGO_INICIAL);
-    setColores(COLORES_INICIALES);
-    setAvisoProyecto(null);
+  /** Reemplaza todo el proyecto actual (nuevo, ejemplo o archivo abierto). */
+  const cargarProyecto = (proyecto) => {
+    setNombreProyecto(proyecto.nombre);
+    setParams(proyecto.params);
+    setAberturas(proyecto.aberturas);
+    setCatalogo(proyecto.catalogo);
+    setColores(proyecto.colores);
+  };
+
+  /** "Nuevo": borra todo y arranca un proyecto sin datos. */
+  const nuevoProyecto = () => {
+    if (!window.confirm('¿Empezar un proyecto nuevo sin datos? Lo que no guardaste con "Guardar proyecto" se pierde.')) return;
+    cargarProyecto(proyectoVacio());
+    setAvisoProyecto({ tipo: 'ok', texto: 'Proyecto nuevo: cargá las medidas, los perfiles y los precios.' });
+  };
+
+  /** "Ejemplo": carga el loft de referencia. */
+  const cargarEjemplo = () => {
+    if (!window.confirm('¿Cargar el loft de ejemplo? Lo que no guardaste con "Guardar proyecto" se pierde.')) return;
+    cargarProyecto(proyectoEjemplo());
+    setAvisoProyecto({ tipo: 'ok', texto: 'Ejemplo cargado: loft 7,50 x 4,50 con entrepiso.' });
   };
 
   // --- Archivo de proyecto ---
@@ -157,11 +171,7 @@ export default function App() {
       return;
     }
     const { proyecto } = resultado;
-    setNombreProyecto(proyecto.nombre);
-    setParams(proyecto.params);
-    setAberturas(proyecto.aberturas);
-    setCatalogo(proyecto.catalogo);
-    setColores(proyecto.colores);
+    cargarProyecto(proyecto);
     setAvisoProyecto({ tipo: 'ok', texto: `Proyecto "${proyecto.nombre}" abierto` });
   };
 
@@ -187,10 +197,11 @@ export default function App() {
         <div className="titulo">
           <h1>micasa</h1>
           <input className="nombre-proyecto" value={nombreProyecto} aria-label="Nombre del proyecto"
-            onChange={(e) => setNombreProyecto(e.target.value)} placeholder="Nombre del proyecto" />
+            onChange={(e) => setNombreProyecto(e.target.value)} placeholder="Nombre del proyecto…" />
         </div>
         <div className="header-actions no-print">
-          <button className="btn-sec" onClick={restablecer}>Nuevo</button>
+          <button className="btn-sec" onClick={nuevoProyecto}>Nuevo</button>
+          <button className="btn-sec" onClick={cargarEjemplo}>Ejemplo</button>
           <button className="btn-sec" onClick={() => entradaArchivoRef.current.click()}>Abrir…</button>
           <input ref={entradaArchivoRef} type="file" accept=".json,application/json" hidden onChange={abrirProyecto} />
           <button className="btn-sec" onClick={guardarProyecto}>Guardar proyecto</button>

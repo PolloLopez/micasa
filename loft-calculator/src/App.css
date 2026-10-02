@@ -136,6 +136,8 @@ input.perfil:focus { outline: 2px solid var(--acento); border-style: solid; }
   position: absolute; bottom: 12px; left: 12px; right: 12px; z-index: 10; display: flex; flex-wrap: wrap; gap: 6px 12px;
   background: rgba(15, 23, 42, 0.85); padding: 6px 10px; border-radius: 8px; border: 1px solid var(--borde); font-size: 0.75rem;
 }
+.capas-paneles { display: flex; flex-wrap: wrap; gap: 6px 12px; flex-basis: 100%; padding-top: 4px; border-top: 1px solid var(--borde); }
+.capa.apagada { opacity: 0.4; }
 .capa { display: flex; align-items: center; gap: 4px; color: var(--texto-suave); cursor: pointer; }
 .muestra {
   width: 18px; height: 18px; padding: 0; border: 1px solid var(--borde-input); border-radius: 3px;

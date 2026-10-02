@@ -85,7 +85,7 @@ function cartel(texto, esFrente) {
 }
 
 /** Arma todas las mallas del modelo dentro de `grupo`. */
-function dibujarModelo(grupo, materiales, materialesPanel, { params, estructura, aberturas, capas }) {
+function dibujarModelo(grupo, materiales, materialesPanel, { params, estructura, aberturas, capas, panelesVisibles }) {
   const e = estructura;
   const { elevacion } = params;
   const agregarBarras = (piezas, seccion, material) => piezas.forEach((p) => grupo.add(barra(p, seccion, material)));
@@ -128,10 +128,13 @@ function dibujarModelo(grupo, materiales, materialesPanel, { params, estructura,
   }
 
   if (capas.paneles) {
-    // Cada pared y el techo con el color de su tipo de panel.
+    // Cada pared y el techo con el color de su tipo de panel; cada uno se
+    // puede mostrar u ocultar por separado (panelesVisibles).
     const material = (id) => materialesPanel.get(id) ?? materiales.paneles;
-    e.paredes.forEach((pared) => grupo.add(cuadrilatero(pared.esquinas, material(pared.panel))));
-    grupo.add(cuadrilatero(e.techo.esquinas, material(e.techo.panel)));
+    e.paredes
+      .filter((pared) => panelesVisibles[pared.lado])
+      .forEach((pared) => grupo.add(cuadrilatero(pared.esquinas, material(pared.panel))));
+    if (panelesVisibles.techo) grupo.add(cuadrilatero(e.techo.esquinas, material(e.techo.panel)));
   }
 
   if (capas.aberturas) aberturas.forEach((op) => {
@@ -189,6 +192,8 @@ export default function LoftCanvas({ params, estructura, aberturas, paneles, col
   const visorRef = useRef(null); // { grupo, controles, camara, materiales, frente }
   const coloresRef = useRef(colores); // colores iniciales para el montaje
   const [autoRotar, setAutoRotar] = useState(false);
+  // Paneles visibles uno por uno: las 4 paredes (por lado) y el techo.
+  const [panelesVisibles, setPanelesVisibles] = useState({ A: true, B: true, C: true, D: true, techo: true });
   const [capas, setCapas] = useState(() =>
     Object.fromEntries(Object.keys(CAPAS).map((clave) => [clave, true]))
   );
@@ -272,13 +277,13 @@ export default function LoftCanvas({ params, estructura, aberturas, paneles, col
     visor.materialesPanel.forEach((m) => m.dispose());
     visor.materialesPanel.clear();
     paneles.forEach((p) => visor.materialesPanel.set(p.id, materialPanel(p.color)));
-    dibujarModelo(visor.grupo, visor.materiales, visor.materialesPanel, { params, estructura, aberturas, capas });
+    dibujarModelo(visor.grupo, visor.materiales, visor.materialesPanel, { params, estructura, aberturas, capas, panelesVisibles });
     // Si cambió el frente (o es la primera vez), la cámara se pone de frente.
     if (visor.frente !== params.ladoFrente) {
       mirarAlFrente(visor.camara, visor.controles, params);
       visor.frente = params.ladoFrente;
     }
-  }, [params, estructura, aberturas, capas, paneles]);
+  }, [params, estructura, aberturas, capas, paneles, panelesVisibles]);
 
   // 3) COLORES: solo se cambia el color de cada material (no se redibuja).
   useEffect(() => {
@@ -293,6 +298,13 @@ export default function LoftCanvas({ params, estructura, aberturas, paneles, col
   }, [autoRotar]);
 
   const alternarCapa = (clave) => setCapas((prev) => ({ ...prev, [clave]: !prev[clave] }));
+  const alternarPanel = (clave) => setPanelesVisibles((prev) => ({ ...prev, [clave]: !prev[clave] }));
+  // Lista de paneles individuales: paredes en orden desde el frente, y el techo.
+  const ordenDesdeFrente = [0, 1, 2, 3].map((i) => LADOS[(LADOS.indexOf(params.ladoFrente) + i) % 4]);
+  const panelesIndividuales = [
+    ...ordenDesdeFrente.map((lado) => ({ clave: lado, nombre: nombreLado(lado, params.ladoFrente) })),
+    { clave: 'techo', nombre: 'Techo' },
+  ];
 
   return (
     <div className="canvas-box">
@@ -307,20 +319,35 @@ export default function LoftCanvas({ params, estructura, aberturas, paneles, col
         <span className="ctrl-tip">Arrastrá para orbitar · rueda para zoom</span>
       </div>
       <div className="capas no-print" role="group" aria-label="Capas visibles">
-        {Object.entries(CAPAS).map(([clave, { nombre, colorPorTipo }]) => (
-          <span key={clave} className="capa">
-            <input type="checkbox" checked={capas[clave]} onChange={() => alternarCapa(clave)}
-              aria-label={`Mostrar ${nombre}`} />
-            {/* El cuadradito de color abre el selector de color del navegador.
-                Los paneles usan el color de cada tipo (se cambia en "Tipos de panel"). */}
-            {!colorPorTipo && (
+        {Object.entries(CAPAS)
+          .filter(([, { colorPorTipo }]) => !colorPorTipo)
+          .map(([clave, { nombre }]) => (
+            <span key={clave} className="capa">
+              <input type="checkbox" checked={capas[clave]} onChange={() => alternarCapa(clave)}
+                aria-label={`Mostrar ${nombre}`} />
+              {/* El cuadradito de color abre el selector de color del navegador */}
               <input type="color" className="muestra" value={colores[clave]}
                 onChange={(e) => onCambiarColor(clave, e.target.value)} aria-label={`Color de ${nombre}`}
                 title={`Cambiar color de ${nombre}`} />
-            )}
-            <span onClick={() => alternarCapa(clave)}>{nombre}</span>
+              <span onClick={() => alternarCapa(clave)}>{nombre}</span>
+            </span>
+          ))}
+        {/* Paneles: interruptor general + uno por pared y techo.
+            El color de cada uno es el de su tipo de panel (tarjeta "Tipos de panel"). */}
+        <span className="capas-paneles">
+          <span className="capa">
+            <input type="checkbox" checked={capas.paneles} onChange={() => alternarCapa('paneles')}
+              aria-label="Mostrar paneles" />
+            <span onClick={() => alternarCapa('paneles')}><strong>Paneles:</strong></span>
           </span>
-        ))}
+          {panelesIndividuales.map(({ clave, nombre }) => (
+            <span key={clave} className={`capa${capas.paneles ? '' : ' apagada'}`}>
+              <input type="checkbox" checked={panelesVisibles[clave]} disabled={!capas.paneles}
+                onChange={() => alternarPanel(clave)} aria-label={`Mostrar panel ${nombre}`} />
+              <span onClick={() => capas.paneles && alternarPanel(clave)}>{nombre}</span>
+            </span>
+          ))}
+        </span>
       </div>
     </div>
   );
