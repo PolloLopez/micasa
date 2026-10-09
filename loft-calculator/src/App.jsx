@@ -27,6 +27,7 @@ import { nombreLado, alturasPared, geometriaLados, alturaMaxima } from './motor/
 import { COLORES_INICIALES, coloresValidos } from './capas.js';
 import { crearArchivoProyecto, leerArchivoProyecto, nombreDeArchivo } from './proyecto/archivoProyecto.js';
 import { proyectoVacio, proyectoEjemplo } from './proyecto/proyectosBase.js';
+import { describirPieza } from './descripcionPiezas.js';
 import './App.css';
 
 // --- Validadores para descartar datos viejos de localStorage ---
@@ -120,6 +121,11 @@ export default function App() {
   const actualizarAbertura = (abertura) =>
     setAberturas((prev) => prev.map((op) => (op.id === abertura.id ? abertura : op)));
   const quitarAbertura = (id) => setAberturas((prev) => prev.filter((op) => op.id !== id));
+
+  // --- Piezas eliminadas a mano (se guardan en params.piezasEliminadas) ---
+  const eliminarPieza = (id) => cambiar('piezasEliminadas')([...params.piezasEliminadas, id]);
+  const restaurarPieza = (id) => cambiar('piezasEliminadas')(params.piezasEliminadas.filter((x) => x !== id));
+  const restaurarTodas = () => cambiar('piezasEliminadas')([]);
 
   const cambiarColor = (capa, color) => setColores((prev) => ({ ...prev, [capa]: color }));
 
@@ -225,7 +231,7 @@ export default function App() {
       <main className="layout">
         <div className="columna-visor">
           <LoftCanvas params={params} estructura={estructura} aberturas={aberturasValidas} paneles={paneles}
-            colores={colores} onCambiarColor={cambiarColor} />
+            colores={colores} onCambiarColor={cambiarColor} onEliminarPieza={eliminarPieza} />
         </div>
 
         <div className="columna-panel">
@@ -316,6 +322,34 @@ export default function App() {
               <CampoNumero etiqueta="Pilotines por fila (ancho)" sufijo="u" decimales={0}
                 valor={params.pilotinesPorFila} onCambio={cambiar('pilotinesPorFila')} />
             </div>
+          </section>
+
+          {/* PIEZAS ELIMINADAS */}
+          <section className="card">
+            <h2>Piezas eliminadas ({params.piezasEliminadas.length})</h2>
+            <p className="nota">
+              Hacé clic en un hierro del 3D y tocá "Eliminar pieza". Sale del dibujo y del presupuesto.
+              Cada pieza se reconoce por su posición: si cambiás una medida y la pieza se mueve, vuelve a aparecer.
+            </p>
+            {params.piezasEliminadas.length > 0 && (
+              <>
+                <ul className="opening-list">
+                  {params.piezasEliminadas.map((id) => {
+                    const pieza = estructura.eliminadasEncontradas.find((p) => p.id === id);
+                    return (
+                      <li key={id} className="abertura pieza-eliminada">
+                        <span>
+                          {pieza ? describirPieza(pieza, params.ladoFrente) : <em>Ya no existe en el modelo (cambió una medida)</em>}
+                          <small className="detalle"> · {id}</small>
+                        </span>
+                        <button className="btn-sec no-print" onClick={() => restaurarPieza(id)}>Restaurar</button>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <button className="btn-sec no-print" onClick={restaurarTodas}>Restaurar todas</button>
+              </>
+            )}
           </section>
 
           <PanelAberturas aberturas={aberturasValidas} params={params} unidad={unidad}

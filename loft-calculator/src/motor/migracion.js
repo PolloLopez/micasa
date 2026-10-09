@@ -11,6 +11,8 @@
 //   - nuevo: excedenteBarras (% de largo extra de las barras).
 //   - catálogo: el renglón "transversal" se divide en piso y piso 2;
 //     los paneles pasan a ser "tipos de panel" con color.
+// v1.4 -> v1.5:
+//   - nuevo: piezasEliminadas (IDs de piezas quitadas a mano).
 // ==========================================================
 
 import { LADOS, INSUMO } from './constantes.js';
@@ -33,6 +35,7 @@ export function migrarParams(params) {
   }
   nuevos.excedenteBarras ??= PARAMS_INICIALES.excedenteBarras;
   nuevos.panelTecho ??= PARAMS_INICIALES.panelTecho;
+  nuevos.piezasEliminadas ??= []; // v1.5
 
   if (esObjeto(nuevos.paredes)) {
     nuevos.paredes = Object.fromEntries(

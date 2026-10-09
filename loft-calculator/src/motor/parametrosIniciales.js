@@ -47,6 +47,9 @@ export const PARAMS_INICIALES = {
   // Fundación
   filasPilotines: 4,
   pilotinesPorFila: 3,
+
+  // Piezas que el usuario eliminó a mano (IDs de motor/estructura.js)
+  piezasEliminadas: [],
 };
 
 export const ABERTURAS_INICIALES = [

@@ -165,3 +165,13 @@ input.perfil:focus { outline: 2px solid var(--acento); border-style: solid; }
   .total { background: #e2e8f0; color: #000; }
   .bar-details { display: none; }
 }
+
+/* ---------- Pieza seleccionada en el 3D ---------- */
+.seleccion {
+  position: absolute; top: 60px; left: 12px; right: 12px; z-index: 11; max-width: 520px;
+  background: rgba(15, 23, 42, 0.95); border: 1px solid #facc15; border-radius: 8px; padding: 8px 12px;
+  font-size: 0.8rem; display: flex; flex-direction: column; gap: 6px;
+}
+.seleccion-acciones { display: flex; gap: 8px; }
+.btn-del-texto { background: var(--peligro); color: #fff; border: none; border-radius: 4px; padding: 4px 10px; font-weight: bold; }
+.pieza-eliminada { display: flex; justify-content: space-between; align-items: center; gap: 8px; }

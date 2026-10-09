@@ -42,6 +42,7 @@ export function proyectoVacio() {
       excedenteBarras: PARAMS_INICIALES.excedenteBarras, // dato del proveedor, no del proyecto
       filasPilotines: 2,
       pilotinesPorFila: 2,
+      piezasEliminadas: [],
     },
     aberturas: [],
     catalogo: [

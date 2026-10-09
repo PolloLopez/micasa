@@ -89,7 +89,7 @@ export function calcularPresupuesto(estructura, catalogo, { excedenteBarras = 0 
   const perfil = (id, piezas) => itemPerfil(insumo(id), largos(piezas), excedenteBarras);
 
   const items = [
-    itemPerfil(insumo(INSUMO.COLUMNA), [...largos(e.columnas), ...e.refuerzosAberturas], excedenteBarras),
+    itemPerfil(insumo(INSUMO.COLUMNA), [...largos(e.columnas), ...largos(e.refuerzosAberturas)], excedenteBarras),
     perfil(INSUMO.MARCO, e.marcos),
     perfil(INSUMO.PISO, e.piso.tirantes),
     perfil(INSUMO.TRANSVERSAL_PISO, e.piso.transversales),

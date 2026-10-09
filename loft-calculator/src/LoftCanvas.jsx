@@ -3,11 +3,15 @@
 // ----------------------------------------------------------
 // Dibuja la estructura que arma motor/estructura.js.
 //
-// Para no perder memoria (memory leak) se separa en 3 efectos:
-//   1. Montaje: crea UNA sola vez escena, cámara, renderer y controles.
+// Para no perder memoria (memory leak) se separa en efectos:
+//   1. Montaje: crea UNA sola vez escena, cámara, renderer, controles
+//      y el "clic para seleccionar" (raycaster).
 //   2. Modelo: cuando cambian los datos, borra el grupo anterior
 //      liberando geometrías y texturas (dispose) y dibuja el nuevo.
-//   3. Rotación: solo prende/apaga el auto-giro.
+//   3. Colores y 4. rotación: solo cambian propiedades, no redibujan.
+//
+// Visibilidad de cada pieza = su CAPA (tipo de pieza) está prendida
+// Y todos sus GRUPOS (pared, techo, piso) están visibles.
 // ==========================================================
 
 import { useEffect, useRef, useState } from 'react';
@@ -15,19 +19,40 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { LADOS } from './motor/constantes.js';
 import { CAPAS } from './capas.js';
-import { posicionAbertura } from './motor/estructura.js';
+import { posicionAbertura, listarPiezas } from './motor/estructura.js';
 import { geometriaLados, nombreLado } from './motor/geometria.js';
+import { describirPieza } from './descripcionPiezas.js';
+
+// Capa y sección (grosor en el 3D) de cada tipo de pieza.
+const ESTILO_PIEZA = {
+  columna: { capa: 'columnas', seccion: 0.1 },
+  dintel: { capa: 'columnas', seccion: 0.08 },
+  jamba: { capa: 'columnas', seccion: 0.08 },
+  alfeizar: { capa: 'columnas', seccion: 0.08 },
+  'marco-piso': { capa: 'marcos', seccion: 0.12 },
+  solera: { capa: 'marcos', seccion: 0.12 },
+  'marco-piso2': { capa: 'marcos', seccion: 0.12 },
+  piso: { capa: 'piso', seccion: 0.08 },
+  piso2: { capa: 'piso2', seccion: 0.08 },
+  'transv-piso': { capa: 'transversales', seccion: 0.09 },
+  'transv-piso2': { capa: 'transversales', seccion: 0.09 },
+  horizontal: { capa: 'correas', seccion: 0.04 },
+  'viga-techo': { capa: 'techo', seccion: 0.1 },
+  'correa-techo': { capa: 'techo', seccion: 0.05 },
+};
+
+const COLOR_SELECCION = '#facc15';
+const MOVIMIENTO_MAXIMO_CLIC = 5; // px: si el mouse se movió más, fue un arrastre (orbitar)
 
 /**
  * Crea los materiales una sola vez, con los colores elegidos.
- * Los colores después se actualizan sin recrear nada (ver efecto 4).
+ * Los colores después se actualizan sin recrear nada (efecto 3).
  */
 function crearMateriales(colores) {
   const materiales = {};
   Object.keys(CAPAS).forEach((clave) => {
     materiales[clave] = new THREE.MeshStandardMaterial({ color: colores[clave] });
   });
-  // Superficies: transparentes para ver la estructura de atrás o de abajo.
   const transparente = (material, opacity) => {
     material.transparent = true;
     material.opacity = opacity;
@@ -37,6 +62,8 @@ function crearMateriales(colores) {
   transparente(materiales.osb, 0.45); // deja ver la estructura de piso y las transversales
   transparente(materiales.paneles, 0.16);
   transparente(materiales.aberturas, 0.7);
+  // Pieza seleccionada: amarillo que brilla.
+  materiales.seleccion = new THREE.MeshStandardMaterial({ color: COLOR_SELECCION, emissive: COLOR_SELECCION, emissiveIntensity: 0.6 });
   return materiales;
 }
 
@@ -47,11 +74,15 @@ function materialPanel(color) {
   });
 }
 
-/** Barra entre dos puntos 3D (sirve para piezas horizontales o inclinadas). */
+/** Barra entre dos puntos 3D (vertical, horizontal o inclinada). */
 function barra({ desde, hasta, largo }, seccion, material) {
-  const malla = new THREE.Mesh(new THREE.BoxGeometry(seccion, seccion, largo), material);
-  malla.position.set((desde[0] + hasta[0]) / 2, (desde[1] + hasta[1]) / 2, (desde[2] + hasta[2]) / 2);
-  malla.lookAt(...hasta); // orienta el eje largo (z local) hacia el punto final
+  const centro = [(desde[0] + hasta[0]) / 2, (desde[1] + hasta[1]) / 2, (desde[2] + hasta[2]) / 2];
+  const esVertical = Math.hypot(hasta[0] - desde[0], hasta[2] - desde[2]) < 1e-6;
+  const malla = esVertical
+    ? new THREE.Mesh(new THREE.BoxGeometry(seccion, largo, seccion), material)
+    : new THREE.Mesh(new THREE.BoxGeometry(seccion, seccion, largo), material);
+  malla.position.set(...centro);
+  if (!esVertical) malla.lookAt(...hasta); // orienta el eje largo (z local) hacia el punto final
   return malla;
 }
 
@@ -85,10 +116,20 @@ function cartel(texto, esFrente) {
 }
 
 /** Arma todas las mallas del modelo dentro de `grupo`. */
-function dibujarModelo(grupo, materiales, materialesPanel, { params, estructura, aberturas, capas, panelesVisibles }) {
-  const e = estructura;
+function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
+  const { params, estructura: e, aberturas, capas, gruposVisibles, seleccionada } = opciones;
   const { elevacion } = params;
-  const agregarBarras = (piezas, seccion, material) => piezas.forEach((p) => grupo.add(barra(p, seccion, material)));
+  const grupoVisible = (g) => gruposVisibles[g] !== false; // 'interior' no tiene interruptor
+
+  // Piezas de hierro: una malla cada una, con su id para poder seleccionarla.
+  listarPiezas(e).forEach((p) => {
+    const estilo = ESTILO_PIEZA[p.tipo];
+    if (!estilo || !capas[estilo.capa] || !p.grupos.every(grupoVisible)) return;
+    const material = p.id === seleccionada ? materiales.seleccion : materiales[estilo.capa];
+    const malla = barra(p, p.id === seleccionada ? estilo.seccion * 1.6 : estilo.seccion, material);
+    malla.userData.idPieza = p.id;
+    grupo.add(malla);
+  });
 
   if (capas.pilotines) {
     e.pilotines.forEach(({ x, z }) => {
@@ -98,52 +139,35 @@ function dibujarModelo(grupo, materiales, materialesPanel, { params, estructura,
     });
   }
 
-  if (capas.columnas) {
-    e.columnas.forEach(({ x, z, largo }) => {
-      const c = new THREE.Mesh(new THREE.BoxGeometry(0.1, largo, 0.1), materiales.columnas);
-      c.position.set(x, elevacion + largo / 2, z);
-      grupo.add(c);
-    });
-  }
-
-  if (capas.marcos) agregarBarras(e.marcos, 0.12, materiales.marcos);
-  if (capas.piso) agregarBarras(e.piso.tirantes, 0.08, materiales.piso);
-  if (capas.piso2) agregarBarras(e.piso2.tirantes, 0.08, materiales.piso2);
-  // Transversales un poco más gruesas que la estructura de piso para que se distingan.
-  if (capas.transversales) agregarBarras([...e.piso.transversales, ...e.piso2.transversales], 0.09, materiales.transversales);
-  if (capas.correas) agregarBarras(e.correas, 0.04, materiales.correas);
-  if (capas.techo) {
-    agregarBarras(e.techo.vigas, 0.1, materiales.techo);
-    agregarBarras(e.techo.correas, 0.05, materiales.techo);
-  }
-
   if (capas.osb) {
     const { largo, ancho } = params;
     const y = elevacion + 0.07;
-    grupo.add(cuadrilatero([[-largo / 2, y, -ancho / 2], [largo / 2, y, -ancho / 2], [largo / 2, y, ancho / 2], [-largo / 2, y, ancho / 2]], materiales.osb));
-    if (e.entrepiso) {
+    if (grupoVisible('piso')) {
+      grupo.add(cuadrilatero([[-largo / 2, y, -ancho / 2], [largo / 2, y, -ancho / 2], [largo / 2, y, ancho / 2], [-largo / 2, y, ancho / 2]], materiales.osb));
+    }
+    if (e.entrepiso && grupoVisible('piso2')) {
       const y2 = e.entrepiso.y + 0.07;
       grupo.add(cuadrilatero(e.entrepiso.esquinas.map(([x, z]) => [x, y2, z]), materiales.osb));
     }
   }
 
   if (capas.paneles) {
-    // Cada pared y el techo con el color de su tipo de panel; cada uno se
-    // puede mostrar u ocultar por separado (panelesVisibles).
     const material = (id) => materialesPanel.get(id) ?? materiales.paneles;
     e.paredes
-      .filter((pared) => panelesVisibles[pared.lado])
+      .filter((pared) => grupoVisible(pared.lado))
       .forEach((pared) => grupo.add(cuadrilatero(pared.esquinas, material(pared.panel))));
-    if (panelesVisibles.techo) grupo.add(cuadrilatero(e.techo.esquinas, material(e.techo.panel)));
+    if (grupoVisible('techo')) grupo.add(cuadrilatero(e.techo.esquinas, material(e.techo.panel)));
   }
 
-  if (capas.aberturas) aberturas.forEach((op) => {
-    const { x, y, z, rotacionY } = posicionAbertura(op, params);
-    const malla = new THREE.Mesh(new THREE.BoxGeometry(op.ancho, op.alto, 0.14), materiales.aberturas);
-    malla.position.set(x, y, z);
-    malla.rotation.y = rotacionY;
-    grupo.add(malla);
-  });
+  if (capas.aberturas) {
+    aberturas.filter((op) => grupoVisible(op.lado)).forEach((op) => {
+      const { x, y, z, rotacionY } = posicionAbertura(op, params);
+      const malla = new THREE.Mesh(new THREE.BoxGeometry(op.ancho, op.alto, 0.14), materiales.aberturas);
+      malla.position.set(x, y, z);
+      malla.rotation.y = rotacionY;
+      grupo.add(malla);
+    });
+  }
 
   // Carteles con el nombre de cada lado, un poco afuera de la pared.
   const lados = geometriaLados(params);
@@ -187,13 +211,14 @@ function mirarAlFrente(camara, controles, params) {
   controles.update();
 }
 
-export default function LoftCanvas({ params, estructura, aberturas, paneles, colores, onCambiarColor }) {
+export default function LoftCanvas({ params, estructura, aberturas, paneles, colores, onCambiarColor, onEliminarPieza }) {
   const lienzoRef = useRef(null);
-  const visorRef = useRef(null); // { grupo, controles, camara, materiales, frente }
+  const visorRef = useRef(null); // { grupo, controles, camara, materiales, ... }
   const coloresRef = useRef(colores); // colores iniciales para el montaje
   const [autoRotar, setAutoRotar] = useState(false);
-  // Paneles visibles uno por uno: las 4 paredes (por lado) y el techo.
-  const [panelesVisibles, setPanelesVisibles] = useState({ A: true, B: true, C: true, D: true, techo: true });
+  const [seleccionada, setSeleccionada] = useState(null); // id de la pieza seleccionada
+  // Partes visibles: cada pared, el techo y los pisos (con sus hierros).
+  const [gruposVisibles, setGruposVisibles] = useState({ A: true, B: true, C: true, D: true, techo: true, piso: true, piso2: true });
   const [capas, setCapas] = useState(() =>
     Object.fromEntries(Object.keys(CAPAS).map((clave) => [clave, true]))
   );
@@ -249,12 +274,35 @@ export default function LoftCanvas({ params, estructura, aberturas, paneles, col
     });
     observador.observe(contenedor);
 
-    // Materiales de los tipos de panel: se recrean cuando cambia la lista (efecto 2).
+    // Clic para seleccionar: se lanza un "rayo" desde la cámara por el punto
+    // clickeado y se toma el primer hierro que toca (los paneles se ignoran).
+    const rayo = new THREE.Raycaster();
+    let inicioClic = null;
+    const alApretar = (ev) => { inicioClic = [ev.clientX, ev.clientY]; };
+    const alSoltar = (ev) => {
+      if (!inicioClic) return;
+      const movido = Math.hypot(ev.clientX - inicioClic[0], ev.clientY - inicioClic[1]);
+      inicioClic = null;
+      if (movido > MOVIMIENTO_MAXIMO_CLIC) return; // fue un arrastre para orbitar
+      const caja = renderer.domElement.getBoundingClientRect();
+      const punto = new THREE.Vector2(
+        ((ev.clientX - caja.left) / caja.width) * 2 - 1,
+        -((ev.clientY - caja.top) / caja.height) * 2 + 1
+      );
+      rayo.setFromCamera(punto, camara);
+      const tocada = rayo.intersectObjects(grupo.children, false).find((i) => i.object.userData.idPieza);
+      setSeleccionada(tocada ? tocada.object.userData.idPieza : null);
+    };
+    renderer.domElement.addEventListener('pointerdown', alApretar);
+    renderer.domElement.addEventListener('pointerup', alSoltar);
+
     const materialesPanel = new Map();
     visorRef.current = { grupo, controles, camara, materiales, materialesPanel, frente: null };
 
     return () => {
       cancelAnimationFrame(idCuadro);
+      renderer.domElement.removeEventListener('pointerdown', alApretar);
+      renderer.domElement.removeEventListener('pointerup', alSoltar);
       observador.disconnect();
       controles.dispose();
       vaciarGrupo(grupo);
@@ -268,22 +316,21 @@ export default function LoftCanvas({ params, estructura, aberturas, paneles, col
     };
   }, []);
 
-  // 2) MODELO: se redibuja cuando cambian datos o capas.
+  // 2) MODELO: se redibuja cuando cambian datos, capas, partes visibles o la selección.
   useEffect(() => {
     const visor = visorRef.current;
     if (!visor || !estructura) return;
     vaciarGrupo(visor.grupo);
-    // Un material por tipo de panel (se liberan los anteriores).
     visor.materialesPanel.forEach((m) => m.dispose());
     visor.materialesPanel.clear();
     paneles.forEach((p) => visor.materialesPanel.set(p.id, materialPanel(p.color)));
-    dibujarModelo(visor.grupo, visor.materiales, visor.materialesPanel, { params, estructura, aberturas, capas, panelesVisibles });
-    // Si cambió el frente (o es la primera vez), la cámara se pone de frente.
+    dibujarModelo(visor.grupo, visor.materiales, visor.materialesPanel,
+      { params, estructura, aberturas, capas, gruposVisibles, seleccionada });
     if (visor.frente !== params.ladoFrente) {
       mirarAlFrente(visor.camara, visor.controles, params);
       visor.frente = params.ladoFrente;
     }
-  }, [params, estructura, aberturas, capas, paneles, panelesVisibles]);
+  }, [params, estructura, aberturas, capas, paneles, gruposVisibles, seleccionada]);
 
   // 3) COLORES: solo se cambia el color de cada material (no se redibuja).
   useEffect(() => {
@@ -298,13 +345,19 @@ export default function LoftCanvas({ params, estructura, aberturas, paneles, col
   }, [autoRotar]);
 
   const alternarCapa = (clave) => setCapas((prev) => ({ ...prev, [clave]: !prev[clave] }));
-  const alternarPanel = (clave) => setPanelesVisibles((prev) => ({ ...prev, [clave]: !prev[clave] }));
-  // Lista de paneles individuales: paredes en orden desde el frente, y el techo.
+  const alternarGrupo = (clave) => setGruposVisibles((prev) => ({ ...prev, [clave]: !prev[clave] }));
+
+  // Partes que se pueden ocultar (con sus hierros): paredes desde el frente, techo y pisos.
   const ordenDesdeFrente = [0, 1, 2, 3].map((i) => LADOS[(LADOS.indexOf(params.ladoFrente) + i) % 4]);
-  const panelesIndividuales = [
+  const partes = [
     ...ordenDesdeFrente.map((lado) => ({ clave: lado, nombre: nombreLado(lado, params.ladoFrente) })),
     { clave: 'techo', nombre: 'Techo' },
+    { clave: 'piso', nombre: 'Piso' },
+    { clave: 'piso2', nombre: 'Piso 2' },
   ];
+
+  // La pieza seleccionada puede desaparecer (se eliminó o cambió una medida).
+  const piezaSeleccionada = seleccionada ? listarPiezas(estructura).find((p) => p.id === seleccionada) : null;
 
   return (
     <div className="canvas-box">
@@ -316,8 +369,21 @@ export default function LoftCanvas({ params, estructura, aberturas, paneles, col
         <button className="btn-ctrl" onClick={() => visorRef.current && mirarAlFrente(visorRef.current.camara, visorRef.current.controles, params)}>
           Ver frente
         </button>
-        <span className="ctrl-tip">Arrastrá para orbitar · rueda para zoom</span>
+        <span className="ctrl-tip">Arrastrá para orbitar · rueda para zoom · clic en un hierro para seleccionarlo</span>
       </div>
+
+      {piezaSeleccionada && (
+        <div className="seleccion no-print" role="dialog" aria-label="Pieza seleccionada">
+          <div><strong>Seleccionada:</strong> {describirPieza(piezaSeleccionada, params.ladoFrente)}</div>
+          <div className="seleccion-acciones">
+            <button className="btn-del-texto" onClick={() => { onEliminarPieza(piezaSeleccionada.id); setSeleccionada(null); }}>
+              Eliminar pieza
+            </button>
+            <button className="btn-ctrl" onClick={() => setSeleccionada(null)}>Cancelar</button>
+          </div>
+        </div>
+      )}
+
       <div className="capas no-print" role="group" aria-label="Capas visibles">
         {Object.entries(CAPAS)
           .filter(([, { colorPorTipo }]) => !colorPorTipo)
@@ -325,26 +391,25 @@ export default function LoftCanvas({ params, estructura, aberturas, paneles, col
             <span key={clave} className="capa">
               <input type="checkbox" checked={capas[clave]} onChange={() => alternarCapa(clave)}
                 aria-label={`Mostrar ${nombre}`} />
-              {/* El cuadradito de color abre el selector de color del navegador */}
               <input type="color" className="muestra" value={colores[clave]}
                 onChange={(e) => onCambiarColor(clave, e.target.value)} aria-label={`Color de ${nombre}`}
                 title={`Cambiar color de ${nombre}`} />
               <span onClick={() => alternarCapa(clave)}>{nombre}</span>
             </span>
           ))}
-        {/* Paneles: interruptor general + uno por pared y techo.
-            El color de cada uno es el de su tipo de panel (tarjeta "Tipos de panel"). */}
+        <span className="capa">
+          <input type="checkbox" checked={capas.paneles} onChange={() => alternarCapa('paneles')}
+            aria-label="Mostrar paneles" />
+          <span onClick={() => alternarCapa('paneles')} title="Superficies; el color es el de cada tipo de panel">Paneles</span>
+        </span>
+        {/* Partes completas: ocultar una oculta su panel Y sus hierros. */}
         <span className="capas-paneles">
-          <span className="capa">
-            <input type="checkbox" checked={capas.paneles} onChange={() => alternarCapa('paneles')}
-              aria-label="Mostrar paneles" />
-            <span onClick={() => alternarCapa('paneles')}><strong>Paneles:</strong></span>
-          </span>
-          {panelesIndividuales.map(({ clave, nombre }) => (
-            <span key={clave} className={`capa${capas.paneles ? '' : ' apagada'}`}>
-              <input type="checkbox" checked={panelesVisibles[clave]} disabled={!capas.paneles}
-                onChange={() => alternarPanel(clave)} aria-label={`Mostrar panel ${nombre}`} />
-              <span onClick={() => capas.paneles && alternarPanel(clave)}>{nombre}</span>
+          <span className="capa"><strong>Mostrar:</strong></span>
+          {partes.map(({ clave, nombre }) => (
+            <span key={clave} className="capa">
+              <input type="checkbox" checked={gruposVisibles[clave]} onChange={() => alternarGrupo(clave)}
+                aria-label={`Mostrar ${nombre} completo`} />
+              <span onClick={() => alternarGrupo(clave)}>{nombre}</span>
             </span>
           ))}
         </span>

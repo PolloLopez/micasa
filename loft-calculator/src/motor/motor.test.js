@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import { optimizarCortes, dividirPiezaLarga } from './optimizadorCortes.js';
 import { validarParametros, validarAbertura } from './validacion.js';
-import { generarEstructura, posicionAbertura, piezasRefuerzoAbertura } from './estructura.js';
+import { generarEstructura, posicionAbertura, listarPiezas } from './estructura.js';
 import { nombreLado, alturaEn, alturaMaxima, geometriaLados } from './geometria.js';
 import { calcularPresupuesto, CATALOGO_INICIAL, CATALOGO_FIJO, TIPOS_PANEL_INICIALES } from './presupuesto.js';
 import { migrarParams, normalizarCatalogo } from './migracion.js';
@@ -146,8 +146,33 @@ describe('generarEstructura', () => {
 
   it('columnas: perímetro sin duplicar esquinas + borde libre del entrepiso', () => {
     // A y C: 7,5/2,5 => 4 columnas c/u; B y D: 4,5/2,5 => 3 c/u. Esquinas compartidas: 4.
-    // Perímetro: 4+4+3+3-4 = 10. Borde del entrepiso (paralelo a D): 3 columnas.
-    expect(e.columnas).toHaveLength(13);
+    // Perímetro: 4+4+3+3-4 = 10. Borde del entrepiso (paralelo a D): 3 columnas => 13.
+    const posiciones = new Set(e.columnas.map((c) => `${c.x.toFixed(2)},${c.z.toFixed(2)}`));
+    expect(posiciones.size).toBe(13);
+    // La columna de x = 1,25 cae dentro de la ventana (1,05 a 2,55) => se corta en 2 tramos.
+    expect(e.columnas).toHaveLength(14);
+  });
+
+  it('columna dentro de un vano: tramo hasta el antepecho y tramo desde el dintel', () => {
+    const tramos = e.columnas.filter((c) => Math.abs(c.x - 1.25) < 1e-6 && Math.abs(c.z - 2.25) < 1e-6);
+    expect(tramos.map((t) => t.id).sort()).toEqual(['col:125,225:abajo', 'col:125,225:arriba']);
+    const abajo = tramos.find((t) => t.id.endsWith('abajo'));
+    const arriba = tramos.find((t) => t.id.endsWith('arriba'));
+    expect(abajo.largo).toBeCloseTo(1.1); // antepecho de la ventana
+    expect(arriba.largo).toBeCloseTo(4.95 - 1.7); // del dintel (1,10 + 0,60) a la solera
+  });
+
+  it('cada pieza tiene id único, tipo y grupos', () => {
+    const piezas = listarPiezas(e);
+    expect(new Set(piezas.map((p) => p.id)).size).toBe(piezas.length);
+    piezas.forEach((p) => {
+      expect(typeof p.tipo).toBe('string');
+      expect(p.grupos.length).toBeGreaterThan(0);
+    });
+    // Una columna de esquina es de las dos paredes.
+    expect(e.columnas.find((c) => c.id === 'col:-375,225').grupos.sort()).toEqual(['A', 'D']);
+    // Las del borde libre del entrepiso no son de ninguna pared.
+    expect(e.columnas.find((c) => c.id === 'col:-75,0').grupos).toEqual(['interior']);
   });
 
   it('cada pared respeta su propia separación de verticales', () => {
@@ -160,8 +185,9 @@ describe('generarEstructura', () => {
   });
 
   it('las columnas del lado alto son más largas (pendiente)', () => {
-    const enA = e.columnas.filter((c) => Math.abs(c.z - 2.25) < 1e-6);
-    const enC = e.columnas.filter((c) => Math.abs(c.z + 2.25) < 1e-6);
+    const sinVanos = generarEstructura(P, []);
+    const enA = sinVanos.columnas.filter((c) => Math.abs(c.z - 2.25) < 1e-6);
+    const enC = sinVanos.columnas.filter((c) => Math.abs(c.z + 2.25) < 1e-6);
     enA.forEach((c) => expect(c.largo).toBeCloseTo(4.95));
     enC.forEach((c) => expect(c.largo).toBeCloseTo(4.5));
   });
@@ -203,7 +229,7 @@ describe('generarEstructura', () => {
   it('sin entrepiso no hay piso 2 ni columnas extra', () => {
     const sin = generarEstructura({ ...P, anchoEntrepiso: 0 }, []);
     expect(sin.piso2.tirantes).toHaveLength(0);
-    expect(sin.columnas).toHaveLength(10);
+    expect(sin.columnas.filter((c) => c.grupos[0] === 'interior')).toHaveLength(0);
   });
 
   it('horizontales de pared: sin pendiente, 5 niveles x 4 paredes', () => {
@@ -240,9 +266,56 @@ describe('generarEstructura', () => {
   });
 
   it('refuerzos: puerta = dintel + 2 jambas; ventana suma alféizar', () => {
-    expect(piezasRefuerzoAbertura(PUERTA)).toEqual([0.9, 2.05, 2.05]);
-    expect(piezasRefuerzoAbertura(VENTANA)).toEqual([1.5, 0.6, 0.6, 1.5]);
-    expect(e.refuerzosAberturas).toHaveLength(7);
+    const tipos = (id) => e.refuerzosAberturas.filter((r) => r.id.startsWith(`ref:${id}:`)).map((r) => r.tipo).sort();
+    expect(tipos(1)).toEqual(['dintel', 'jamba', 'jamba']);
+    expect(tipos(2)).toEqual(['alfeizar', 'dintel', 'jamba', 'jamba']);
+    const largo = (id) => e.refuerzosAberturas.find((r) => r.id === id).largo;
+    expect(largo('ref:1:dintel')).toBeCloseTo(0.9);
+    expect(largo('ref:1:jamba-izq')).toBeCloseTo(2.05);
+    expect(largo('ref:2:alfeizar')).toBeCloseTo(1.5);
+  });
+
+  it('jamba sobre una columna: no se agrega (la columna hace de jamba)', () => {
+    // Puerta en A desde la izquierda a 1,15 m => su borde izquierdo queda en x = -2,60.
+    // Con verticales cada 1,15 m en A hay una columna ahí mismo.
+    const p = conPared('A', { separacionVerticales: 7.5 / 7 }); // columnas cada 1,0714 m
+    const puerta = { ...PUERTA, offsetHorizontal: 7.5 / 7 }; // borde izquierdo justo en una columna
+    const r = generarEstructura(p, [puerta]).refuerzosAberturas.map((x) => x.id).sort();
+    expect(r).toEqual(['ref:1:dintel', 'ref:1:jamba-der']);
+  });
+
+  it('piezas eliminadas a mano: salen de la estructura y se informan', () => {
+    const p = { ...P, piezasEliminadas: ['col:-375,225', 'viga-techo:100', 'no-existe'] };
+    const est = generarEstructura(p, ABERTURAS_INICIALES);
+    expect(est.columnas.find((c) => c.id === 'col:-375,225')).toBeUndefined();
+    expect(est.techo.vigas).toHaveLength(6);
+    expect(est.eliminadasEncontradas.map((x) => x.id).sort()).toEqual(['col:-375,225', 'viga-techo:100']);
+    // Y no se cotizan.
+    const antes = calcularPresupuesto(e, CATALOGO_INICIAL).items.find((i) => i.id === INSUMO.VIGA_TECHO).cortes.metrosNetos;
+    const despues = calcularPresupuesto(est, CATALOGO_INICIAL).items.find((i) => i.id === INSUMO.VIGA_TECHO).cortes.metrosNetos;
+    expect(antes - despues).toBeCloseTo(Math.hypot(4.5, 0.45));
+  });
+
+  it('no hay piezas superpuestas (misma línea, tramo compartido)', () => {
+    const sub = (p, q) => p.map((v, i) => v - q[i]);
+    const dot = (p, q) => p.reduce((acc, v, i) => acc + v * q[i], 0);
+    const norma = (p) => Math.hypot(...p);
+    const piezas = listarPiezas(e);
+    let solapes = 0;
+    for (let i = 0; i < piezas.length; i++) {
+      for (let j = i + 1; j < piezas.length; j++) {
+        const s1 = piezas[i]; const s2 = piezas[j];
+        const d = sub(s1.hasta, s1.desde); const u = d.map((v) => v / norma(d));
+        const d2 = sub(s2.hasta, s2.desde);
+        const cruz = norma([u[1] * d2[2] - u[2] * d2[1], u[2] * d2[0] - u[0] * d2[2], u[0] * d2[1] - u[1] * d2[0]]);
+        if (cruz > 1e-6 * norma(d2)) continue;
+        const w = sub(s2.desde, s1.desde);
+        if (norma(sub(w, u.map((v) => v * dot(w, u)))) > 0.06) continue;
+        const t0 = dot(sub(s2.desde, s1.desde), u); const t1 = dot(sub(s2.hasta, s1.desde), u);
+        if (Math.min(norma(d), Math.max(t0, t1)) - Math.max(0, Math.min(t0, t1)) > 0.05) solapes++;
+      }
+    }
+    expect(solapes).toBe(0);
   });
 });
 

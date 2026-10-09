@@ -57,6 +57,9 @@ export function validarParametros(params) {
     if (!esIdValido(pared?.panel)) anotar(`paredes.${lado}.panel`, 'Elegí un tipo de panel');
   });
   if (!esIdValido(params.panelTecho)) anotar('panelTecho', 'Elegí un tipo de panel');
+  if (!Array.isArray(params.piezasEliminadas) || !params.piezasEliminadas.every(esIdValido) || params.piezasEliminadas.length > 5000) {
+    anotar('piezasEliminadas', 'Lista de piezas eliminadas inválida');
+  }
 
   if (Object.keys(errores).length > 0) return errores;
 

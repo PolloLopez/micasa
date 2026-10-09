@@ -7,8 +7,13 @@
 //   - El visor 3D usa las POSICIONES.
 // Como los dos leen la misma lista, lo que se ve es lo que se cotiza.
 //
-// Cada pieza lineal es un "segmento": { desde: [x,y,z], hasta: [x,y,z], largo }.
-// Así una viga inclinada de techo y una correa horizontal se tratan igual.
+// Cada pieza es un "segmento" con:
+//   id      identificador estable (sale del tipo y la posición, en cm).
+//           Sirve para eliminar piezas a mano (params.piezasEliminadas).
+//   tipo    'columna', 'solera', 'horizontal', 'dintel', ...
+//   grupos  a qué panel pertenece: 'A'..'D' (paredes), 'techo', 'piso',
+//           'piso2' o 'interior'. Ocultar un panel oculta sus piezas.
+//   desde, hasta, largo
 // Coordenadas y nombres de lados: ver motor/geometria.js.
 // ==========================================================
 
@@ -20,18 +25,52 @@ import { inicioAbertura } from './validacion.js';
 
 const EPSILON = 0.01; // 1 cm: margen para no duplicar piezas en bordes
 const LARGO_MINIMO = 0.05; // piezas más cortas que 5 cm no se fabrican
+const MARGEN_JAMBA = 0.1; // jamba a menos de 10 cm de una columna => la columna hace de jamba
+const MARGEN_VANO = MARGEN_JAMBA; // columna más adentro del vano que eso => se corta (si no, hace de jamba)
+
+/** Nombre legible de cada tipo de pieza (para la UI). */
+export const NOMBRE_TIPO_PIEZA = {
+  columna: 'Columna',
+  'marco-piso': 'Marco de piso',
+  solera: 'Solera superior',
+  'marco-piso2': 'Marco de piso 2',
+  piso: 'Estructura de piso',
+  piso2: 'Estructura de piso 2',
+  'transv-piso': 'Transversal de piso',
+  'transv-piso2': 'Transversal de piso 2',
+  horizontal: 'Horizontal de pared',
+  'viga-techo': 'Viga de techo',
+  'correa-techo': 'Correa de techo',
+  dintel: 'Dintel',
+  jamba: 'Jamba',
+  alfeizar: 'Alféizar',
+};
 
 // ---------------- Utilidades ----------------
 
+const cm = (metros) => Math.round(metros * 100);
+
 /** Pieza lineal entre dos puntos 3D. */
-function segmento(desde, hasta) {
+function pieza(id, tipo, grupos, desde, hasta) {
   const largo = Math.hypot(hasta[0] - desde[0], hasta[1] - desde[1], hasta[2] - desde[2]);
-  return { desde, hasta, largo: Number(largo.toFixed(4)) };
+  return { id, tipo, grupos, desde, hasta, largo: Number(largo.toFixed(4)) };
 }
 
 /** Dirección "hacia adentro" de la planta desde un lado (perpendicular a la pared). */
 function haciaAdentro(geoLado) {
   return [geoLado.direccion[1], -geoLado.direccion[0]];
+}
+
+/** Distancia de un punto (x, z) a lo largo de una pared, desde su esquina izquierda. */
+function distanciaSobreLado(geo, x, z) {
+  return (x - geo.p1[0]) * geo.direccion[0] + (z - geo.p1[1]) * geo.direccion[1];
+}
+
+/** true si el punto (x, z) está sobre la línea de esa pared (entre sus esquinas). */
+function estaSobreLado(geo, x, z) {
+  const d = distanciaSobreLado(geo, x, z);
+  const [px, pz] = puntoSobreLado(geo, d);
+  return Math.hypot(px - x, pz - z) < 1e-6 && d > -1e-6 && d < geo.largo + 1e-6;
 }
 
 /** Posiciones repartidas parejo de 0 a `largo`, con separación máxima `separacion`. */
@@ -45,6 +84,17 @@ function interiores(largo, separacion) {
   const posiciones = [];
   for (let i = 1; i * separacion < largo - EPSILON; i++) posiciones.push(i * separacion);
   return posiciones;
+}
+
+/** Tramo [inicio, fin] (sobre la pared) y alturas del vano de una abertura. */
+function vano(abertura, params) {
+  const inicio = inicioAbertura(abertura, params);
+  return {
+    inicio,
+    fin: inicio + abertura.ancho,
+    abajo: abertura.alturaAntepecho,
+    arriba: abertura.alturaAntepecho + abertura.alto,
+  };
 }
 
 // ---------------- Fundación ----------------
@@ -65,15 +115,17 @@ function generarPilotines({ largo, ancho, filasPilotines, pilotinesPorFila }) {
 // ---------------- Columnas ----------------
 
 /**
- * Columnas (verticales) de cada pared según su separación, más las que
- * sostienen el borde libre del entrepiso. Las esquinas compartidas entre
- * dos paredes se cuentan una sola vez.
+ * Posiciones de columnas: las de cada pared según su separación, más las
+ * del borde libre del entrepiso. Una esquina compartida es UNA columna.
+ * Cada posición sabe sobre qué paredes está (lados).
  */
-function generarColumnas(params, lados) {
+function posicionesDeColumnas(params, lados) {
   const porPosicion = new Map();
   const agregar = (x, z) => {
-    const clave = `${x.toFixed(3)}|${z.toFixed(3)}`;
-    if (!porPosicion.has(clave)) porPosicion.set(clave, { x, z, largo: alturaEn(x, z, params) });
+    const clave = `${cm(x)},${cm(z)}`;
+    if (porPosicion.has(clave)) return;
+    const sobre = LADOS.filter((l) => estaSobreLado(lados[l], x, z));
+    porPosicion.set(clave, { x, z, clave, lados: sobre });
   };
 
   LADOS.forEach((lado) => {
@@ -83,7 +135,6 @@ function generarColumnas(params, lados) {
     );
   });
 
-  // Borde libre del entrepiso: misma separación que la pared donde se apoya.
   const { ladoEntrepiso, anchoEntrepiso } = params;
   const geo = lados[ladoEntrepiso];
   const profundidadPlanta = lados[LADOS[(LADOS.indexOf(ladoEntrepiso) + 1) % 4]].largo;
@@ -94,33 +145,98 @@ function generarColumnas(params, lados) {
       agregar(x + ax * anchoEntrepiso, z + az * anchoEntrepiso);
     });
   }
+  return [...porPosicion.values()];
+}
 
-  return [...porPosicion.values()].map((c) => ({ ...c, largo: Number(c.largo.toFixed(4)) }));
+/**
+ * Columnas como piezas verticales. Si una columna cae DENTRO del vano de
+ * una abertura, se corta: queda el tramo de abajo (hasta el antepecho) y
+ * el de arriba (desde el dintel). Las jambas y el dintel toman su lugar.
+ */
+function generarColumnas(params, lados, posiciones, aberturas) {
+  const y0 = params.elevacion;
+  const columnas = [];
+  posiciones.forEach(({ x, z, clave, lados: sobre }) => {
+    const alto = alturaEn(x, z, params);
+    const grupos = sobre.length > 0 ? sobre : ['interior'];
+    const base = { x, z };
+    const vanoQueLaCorta = aberturas
+      .filter((op) => sobre.includes(op.lado))
+      .map((op) => ({ op, v: vano(op, params), d: distanciaSobreLado(lados[op.lado], x, z) }))
+      .find(({ v, d }) => d > v.inicio + MARGEN_VANO && d < v.fin - MARGEN_VANO);
+
+    if (!vanoQueLaCorta) {
+      columnas.push({ ...pieza(`col:${clave}`, 'columna', grupos, [x, y0, z], [x, y0 + alto, z]), ...base });
+      return;
+    }
+    const { v } = vanoQueLaCorta;
+    if (v.abajo > LARGO_MINIMO) {
+      columnas.push({ ...pieza(`col:${clave}:abajo`, 'columna', grupos, [x, y0, z], [x, y0 + v.abajo, z]), ...base });
+    }
+    if (alto - v.arriba > LARGO_MINIMO) {
+      columnas.push({ ...pieza(`col:${clave}:arriba`, 'columna', grupos, [x, y0 + v.arriba, z], [x, y0 + alto, z]), ...base });
+    }
+  });
+  return columnas;
+}
+
+// ---------------- Refuerzos de aberturas ----------------
+
+/**
+ * Refuerzos del vano de cada abertura (van con el perfil de columnas):
+ *   - dintel arriba y alféizar abajo (si no arranca del piso);
+ *   - jambas a cada lado, SALVO que ya haya una columna ahí
+ *     (a menos de 10 cm): la columna hace de jamba.
+ */
+function generarRefuerzos(params, lados, posiciones, aberturas) {
+  const y0 = params.elevacion;
+  const piezas = [];
+  aberturas.forEach((op) => {
+    const geo = lados[op.lado];
+    const v = vano(op, params);
+    const punto = (d, h) => {
+      const [x, z] = puntoSobreLado(geo, d);
+      return [x, y0 + h, z];
+    };
+    const hayColumnaEn = (d) => posiciones.some(
+      (c) => c.lados.includes(op.lado) && Math.abs(distanciaSobreLado(geo, c.x, c.z) - d) < MARGEN_JAMBA
+    );
+    const grupos = [op.lado];
+    piezas.push(pieza(`ref:${op.id}:dintel`, 'dintel', grupos, punto(v.inicio, v.arriba), punto(v.fin, v.arriba)));
+    if (v.abajo > 0) {
+      piezas.push(pieza(`ref:${op.id}:alfeizar`, 'alfeizar', grupos, punto(v.inicio, v.abajo), punto(v.fin, v.abajo)));
+    }
+    if (!hayColumnaEn(v.inicio)) {
+      piezas.push(pieza(`ref:${op.id}:jamba-izq`, 'jamba', grupos, punto(v.inicio, v.abajo), punto(v.inicio, v.arriba)));
+    }
+    if (!hayColumnaEn(v.fin)) {
+      piezas.push(pieza(`ref:${op.id}:jamba-der`, 'jamba', grupos, punto(v.fin, v.abajo), punto(v.fin, v.arriba)));
+    }
+  });
+  return piezas;
 }
 
 // ---------------- Marcos (vigas perimetrales) ----------------
 
-function generarMarcos(params, lados) {
+function generarMarcos(params, lados, rectEntrepiso) {
   const { elevacion } = params;
   const marcos = [];
 
   LADOS.forEach((lado) => {
     const { p1, p2 } = lados[lado];
-    // Marco del piso (a nivel del piso del loft).
-    marcos.push(segmento([p1[0], elevacion, p1[1]], [p2[0], elevacion, p2[1]]));
-    // Solera superior: sigue la pendiente del techo.
+    // Marco del piso (a nivel del piso del loft): es parte del piso.
+    marcos.push(pieza(`marco-piso:${lado}`, 'marco-piso', ['piso'], [p1[0], elevacion, p1[1]], [p2[0], elevacion, p2[1]]));
+    // Solera superior de la pared: sigue la pendiente del techo.
     const [h1, h2] = alturasPared(lados[lado], params);
-    marcos.push(segmento([p1[0], elevacion + h1, p1[1]], [p2[0], elevacion + h2, p2[1]]));
+    marcos.push(pieza(`solera:${lado}`, 'solera', [lado], [p1[0], elevacion + h1, p1[1]], [p2[0], elevacion + h2, p2[1]]));
   });
 
-  // Marco del entrepiso (rectángulo apoyado contra su lado).
-  const rect = rectanguloEntrepiso(params, lados);
-  if (rect) {
-    const { esquinas, y } = rect;
+  if (rectEntrepiso) {
+    const { esquinas, y } = rectEntrepiso;
     for (let i = 0; i < 4; i++) {
       const a = esquinas[i];
       const b = esquinas[(i + 1) % 4];
-      marcos.push(segmento([a[0], y, a[1]], [b[0], y, b[1]]));
+      marcos.push(pieza(`marco-piso2:${i}`, 'marco-piso2', ['piso2'], [a[0], y, a[1]], [b[0], y, b[1]]));
     }
   }
   return marcos;
@@ -158,9 +274,9 @@ function rectanguloEntrepiso(params, lados) {
  * Entramado de un piso: tirantes que cruzan la LUZ MÁS CORTA del
  * rectángulo (los extremos ya tienen viga de marco) y, si se pide,
  * filas de transversales entre tirantes para que no arqueen.
+ * `nivel` es 'piso' o 'piso2' (tipo, grupo e id de las piezas).
  */
-function entramadoPiso(rect, separacion, separacionTransversales, y) {
-  // Elegir el sentido: los tirantes van paralelos al lado corto.
+function entramadoPiso(rect, separacion, separacionTransversales, y, nivel) {
   const cruzanV = rect.largoV <= rect.largoU;
   const luz = cruzanV ? rect.largoV : rect.largoU; // largo de cada tirante
   const largoReparto = cruzanV ? rect.largoU : rect.largoV; // dónde se reparten
@@ -174,22 +290,24 @@ function entramadoPiso(rect, separacion, separacionTransversales, y) {
   ];
 
   const posicionesTirantes = interiores(largoReparto, separacion);
-  const tirantes = posicionesTirantes.map((a) => segmento(punto(a, 0), punto(a, luz)));
+  const tirantes = posicionesTirantes.map((a) =>
+    pieza(`${nivel}:${cm(a)}`, nivel, [nivel], punto(a, 0), punto(a, luz))
+  );
 
-  // Transversales: tramos cortos entre tirantes consecutivos (y los marcos).
   const transversales = [];
   if (separacionTransversales > 0) {
     const apoyos = [0, ...posicionesTirantes, largoReparto];
     interiores(luz, separacionTransversales).forEach((b) => {
       for (let i = 0; i < apoyos.length - 1; i++) {
-        transversales.push(segmento(punto(apoyos[i], b), punto(apoyos[i + 1], b)));
+        transversales.push(pieza(`transv-${nivel}:${cm(apoyos[i])},${cm(b)}`, `transv-${nivel}`, [nivel],
+          punto(apoyos[i], b), punto(apoyos[i + 1], b)));
       }
     });
   }
   return { tirantes, transversales };
 }
 
-// ---------------- Paredes: horizontales (correas) ----------------
+// ---------------- Paredes: horizontales ----------------
 
 /**
  * Horizontales de cada pared cada `separacionHorizontales`.
@@ -204,7 +322,6 @@ function generarCorreasPared(params, lados) {
     const separacion = params.paredes[lado].separacionHorizontales;
     for (let k = 1; k * separacion < Math.max(h1, h2) - EPSILON; k++) {
       const h = k * separacion;
-      // Tramo [a, b] (desde la esquina izquierda) donde la pared supera h.
       let a = 0;
       let b = geo.largo;
       if (Math.abs(h2 - h1) > 1e-9) {
@@ -218,7 +335,7 @@ function generarCorreasPared(params, lados) {
       const [x1, z1] = puntoSobreLado(geo, a);
       const [x2, z2] = puntoSobreLado(geo, b);
       const y = params.elevacion + h;
-      correas.push(segmento([x1, y, z1], [x2, y, z2]));
+      correas.push(pieza(`horiz:${lado}:${k}`, 'horizontal', [lado], [x1, y, z1], [x2, y, z2]));
     }
   });
   return correas;
@@ -245,15 +362,14 @@ function generarTecho(params, lados) {
   };
 
   const vigas = interiores(bajo.largo, params.separacionVigasTecho).map((d) =>
-    segmento(puntoTecho(d, 0), puntoTecho(d, luz))
+    pieza(`viga-techo:${cm(d)}`, 'viga-techo', ['techo'], puntoTecho(d, 0), puntoTecho(d, luz))
   );
 
-  // Separación horizontal equivalente a la separación sobre la pendiente.
   const pasoHorizontal = params.separacionCorreasTecho / factorPendiente;
   const posiciones = [0, ...interiores(luz, pasoHorizontal), luz];
   const ALTO_VIGA = 0.1; // las correas apoyan arriba de las vigas
   const correas = posiciones.map((s) =>
-    segmento(puntoTecho(0, s, ALTO_VIGA), puntoTecho(bajo.largo, s, ALTO_VIGA))
+    pieza(`correa-techo:${cm(s)}`, 'correa-techo', ['techo'], puntoTecho(0, s, ALTO_VIGA), puntoTecho(bajo.largo, s, ALTO_VIGA))
   );
 
   const esquinas = [
@@ -267,24 +383,13 @@ function generarTecho(params, lados) {
     vigas,
     correas,
     esquinas,
-    panel: params.panelTecho, // tipo de panel del techo
+    panel: params.panelTecho,
     superficie: bajo.largo * luz * factorPendiente,
     ladoAlto: ladoOpuesto(params.caidaTecho),
   };
 }
 
-// ---------------- Aberturas ----------------
-
-/**
- * Refuerzos del vano de cada abertura (van con el perfil de columnas):
- *   - dintel arriba (ancho) y 2 jambas laterales (alto)
- *   - alféizar abajo (ancho) solo si la abertura no arranca del piso
- */
-export function piezasRefuerzoAbertura({ ancho, alto, alturaAntepecho }) {
-  const piezas = [ancho, alto, alto];
-  if (alturaAntepecho > 0) piezas.push(ancho);
-  return piezas;
-}
+// ---------------- Aberturas (posición para el 3D) ----------------
 
 /** Centro y rotación de una abertura para dibujarla en su pared. */
 export function posicionAbertura(abertura, params) {
@@ -312,11 +417,10 @@ function generarParedes(params, lados, aberturas) {
     const y = params.elevacion;
     return {
       lado,
-      panel: params.paredes[lado].panel, // tipo de panel de esta pared
+      panel: params.paredes[lado].panel,
       superficieBruta: bruta,
       superficieAberturas: huecos,
       superficieNeta: Math.max(0, bruta - huecos),
-      // Contorno para el 3D: abajo-izq, abajo-der, arriba-der, arriba-izq.
       esquinas: [
         [geo.p1[0], y, geo.p1[1]],
         [geo.p2[0], y, geo.p2[1]],
@@ -325,6 +429,39 @@ function generarParedes(params, lados, aberturas) {
       ],
     };
   });
+}
+
+// ---------------- Listado y eliminación ----------------
+
+/** Todas las piezas lineales de la estructura en una sola lista. */
+export function listarPiezas(e) {
+  return [
+    ...e.columnas, ...e.refuerzosAberturas, ...e.marcos,
+    ...e.piso.tirantes, ...e.piso.transversales,
+    ...e.piso2.tirantes, ...e.piso2.transversales,
+    ...e.correas, ...e.techo.vigas, ...e.techo.correas,
+  ];
+}
+
+/**
+ * Saca de la estructura las piezas eliminadas a mano.
+ * Devuelve la estructura filtrada y qué IDs se encontraron.
+ */
+function quitarEliminadas(e, idsEliminados) {
+  if (idsEliminados.size === 0) return { ...e, eliminadasEncontradas: [] };
+  const encontradas = listarPiezas(e).filter((p) => idsEliminados.has(p.id));
+  const quedan = (lista) => lista.filter((p) => !idsEliminados.has(p.id));
+  return {
+    ...e,
+    columnas: quedan(e.columnas),
+    refuerzosAberturas: quedan(e.refuerzosAberturas),
+    marcos: quedan(e.marcos),
+    piso: { tirantes: quedan(e.piso.tirantes), transversales: quedan(e.piso.transversales) },
+    piso2: { tirantes: quedan(e.piso2.tirantes), transversales: quedan(e.piso2.transversales) },
+    correas: quedan(e.correas),
+    techo: { ...e.techo, vigas: quedan(e.techo.vigas), correas: quedan(e.techo.correas) },
+    eliminadasEncontradas: encontradas,
+  };
 }
 
 // ---------------- Punto de entrada ----------------
@@ -339,18 +476,19 @@ export function generarEstructura(params, aberturas) {
   const entrepiso = rectanguloEntrepiso(params, lados);
   const paredes = generarParedes(params, lados, aberturas);
   const techo = generarTecho(params, lados);
+  const posiciones = posicionesDeColumnas(params, lados);
 
-  return {
+  const completa = {
     pilotines: generarPilotines(params),
-    columnas: generarColumnas(params, lados),
-    marcos: generarMarcos(params, lados),
-    piso: entramadoPiso(planta, params.separacionPiso, params.separacionTransversalesPiso, params.elevacion),
+    columnas: generarColumnas(params, lados, posiciones, aberturas),
+    refuerzosAberturas: generarRefuerzos(params, lados, posiciones, aberturas),
+    marcos: generarMarcos(params, lados, entrepiso),
+    piso: entramadoPiso(planta, params.separacionPiso, params.separacionTransversalesPiso, params.elevacion, 'piso'),
     piso2: entrepiso
-      ? entramadoPiso(entrepiso, params.separacionPiso2, params.separacionTransversalesPiso2, entrepiso.y)
+      ? entramadoPiso(entrepiso, params.separacionPiso2, params.separacionTransversalesPiso2, entrepiso.y, 'piso2')
       : { tirantes: [], transversales: [] },
     correas: generarCorreasPared(params, lados),
     techo,
-    refuerzosAberturas: aberturas.flatMap(piezasRefuerzoAbertura),
     paredes,
     entrepiso,
     superficies: {
@@ -361,4 +499,5 @@ export function generarEstructura(params, aberturas) {
       techo: techo.superficie,
     },
   };
+  return quitarEliminadas(completa, new Set(params.piezasEliminadas ?? []));
 }
