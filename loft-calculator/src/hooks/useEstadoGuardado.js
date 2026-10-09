@@ -29,16 +29,20 @@ function leer(clave, inicial, esValido, migrar) {
  * @param {*} inicial - valor por defecto
  * @param {(valor) => boolean} esValido - descarta datos rotos
  * @param {(valor) => valor} migrar - convierte datos de versiones anteriores
+ * @param {() => void} alFallar - se llama si no se pudo guardar (ej. navegador sin lugar)
  */
-export function useEstadoGuardado(clave, inicial, esValido = () => true, migrar = (v) => v) {
+export function useEstadoGuardado(clave, inicial, esValido = () => true, migrar = (v) => v, alFallar = () => {}) {
   const [valor, setValor] = useState(() => leer(clave, inicial, esValido, migrar));
 
   useEffect(() => {
     try {
       localStorage.setItem(PREFIJO + clave, JSON.stringify(valor));
     } catch {
-      // Sin almacenamiento disponible: no pasa nada, solo no se guarda.
+      // Sin almacenamiento disponible o sin lugar: la app sigue andando, pero se avisa.
+      alFallar();
     }
+    // alFallar no va en las dependencias: solo importa cuando cambia el valor.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clave, valor]);
 
   return [valor, setValor];

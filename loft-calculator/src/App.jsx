@@ -9,7 +9,7 @@
 // válidos. Un valor inválido se muestra en el campo pero no se guarda.
 // ==========================================================
 
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import LoftCanvas from './LoftCanvas.jsx';
 import CampoNumero from './componentes/CampoNumero.jsx';
 import SelectorLado from './componentes/SelectorLado.jsx';
@@ -27,6 +27,11 @@ import { nombreLado, alturasPared, geometriaLados, alturaMaxima } from './motor/
 import { COLORES_INICIALES, coloresValidos } from './capas.js';
 import { crearArchivoProyecto, leerArchivoProyecto, nombreDeArchivo } from './proyecto/archivoProyecto.js';
 import { proyectoVacio, proyectoEjemplo } from './proyecto/proyectosBase.js';
+import {
+  crearEntrada, guardarEntrada, borrarEntrada, duplicarEntrada, renombrarEntrada, abrirEntrada,
+  hayCambiosSinGuardar, esBibliotecaValida, crearRespaldo, importarRespaldo, nuevoId,
+} from './proyecto/biblioteca.js';
+import MisProyectos from './componentes/MisProyectos.jsx';
 import { describirPieza } from './descripcionPiezas.js';
 import './App.css';
 
@@ -65,8 +70,12 @@ export default function App() {
   const params = useMemo(() => conPanelesExistentes(paramsGuardados, catalogo), [paramsGuardados, catalogo]);
   const [colores, setColores] = useEstadoGuardado('colores', COLORES_INICIALES, coloresValidos);
   const [nombreProyecto, setNombreProyecto] = useEstadoGuardado('nombre', 'Loft', (n) => typeof n === 'string');
-  const [avisoProyecto, setAvisoProyecto] = useState(null); // { tipo: 'ok' | 'error', texto }
-  const entradaArchivoRef = useRef(null);
+  const [aviso, setAviso] = useState(null); // { tipo: 'ok' | 'error', texto }
+  // "Mis proyectos": lista guardada en el navegador y cuál está abierto (null = sin guardar).
+  const [biblioteca, setBiblioteca] = useEstadoGuardado('biblioteca', [], esBibliotecaValida, undefined, () =>
+    setAviso({ tipo: 'error', texto: 'No se pudo guardar en Mis proyectos: el navegador no tiene lugar. Descargá el proyecto como archivo (.json).' }));
+  const [idProyectoActual, setIdProyectoActual] = useEstadoGuardado('proyectoActual', null, (v) => v === null || typeof v === 'string');
+  const [mostrarProyectos, setMostrarProyectos] = useState(false);
 
   // --- Cálculos (solo se rehacen si cambian sus datos) ---
   // Por seguridad se ignoran aberturas que no entren (ej. datos viejos guardados).
@@ -129,56 +138,135 @@ export default function App() {
 
   const cambiarColor = (capa, color) => setColores((prev) => ({ ...prev, [capa]: color }));
 
-  /** Reemplaza todo el proyecto actual (nuevo, ejemplo o archivo abierto). */
-  const cargarProyecto = (proyecto) => {
+  // --- Proyecto en pantalla y "Mis proyectos" ---
+
+  /** El proyecto que se está editando, en un solo objeto. */
+  const proyectoActual = { nombre: nombreProyecto, params, aberturas, catalogo, colores };
+  const entradaActual = biblioteca.find((e) => e.id === idProyectoActual);
+  const cambiosSinGuardar = hayCambiosSinGuardar(proyectoActual, entradaActual);
+
+  /** Reemplaza todo el proyecto en pantalla (nuevo, ejemplo, de la lista o de un archivo). */
+  const cargarProyecto = (proyecto, idEnBiblioteca = null) => {
     setNombreProyecto(proyecto.nombre);
     setParams(proyecto.params);
     setAberturas(proyecto.aberturas);
     setCatalogo(proyecto.catalogo);
     setColores(proyecto.colores);
+    setIdProyectoActual(idEnBiblioteca);
   };
 
-  /** "Nuevo": borra todo y arranca un proyecto sin datos. */
-  const nuevoProyecto = () => {
-    if (!window.confirm('¿Empezar un proyecto nuevo sin datos? Lo que no guardaste con "Guardar proyecto" se pierde.')) return;
-    cargarProyecto(proyectoVacio());
-    setAvisoProyecto({ tipo: 'ok', texto: 'Proyecto nuevo: cargá las medidas, los perfiles y los precios.' });
+  /** Antes de reemplazar el proyecto en pantalla: avisa si hay cambios sin guardar. */
+  const puedoReemplazar = () =>
+    !cambiosSinGuardar ||
+    window.confirm(`"${nombreProyecto || 'Proyecto sin nombre'}" tiene cambios sin guardar. ¿Seguir igual y perderlos?`);
+
+  /** Guarda en Mis proyectos con un id (nuevo o el actual). Si el navegador no tiene lugar, avisa el hook. */
+  const guardarEnBiblioteca = (id, nombre) => {
+    const entrada = crearEntrada(proyectoActual, { id, nombre });
+    setBiblioteca((prev) => guardarEntrada(prev, entrada));
+    setNombreProyecto(entrada.nombre);
+    setIdProyectoActual(entrada.id);
+    setAviso({ tipo: 'ok', texto: `Guardado en Mis proyectos: "${entrada.nombre}"` });
   };
 
-  /** "Ejemplo": carga el loft de referencia. */
-  const cargarEjemplo = () => {
-    if (!window.confirm('¿Cargar el loft de ejemplo? Lo que no guardaste con "Guardar proyecto" se pierde.')) return;
-    cargarProyecto(proyectoEjemplo());
-    setAvisoProyecto({ tipo: 'ok', texto: 'Ejemplo cargado: loft 7,50 x 4,50 con entrepiso.' });
-  };
-
-  // --- Archivo de proyecto ---
-
-  /** Descarga el proyecto como .json (queda en la carpeta Descargas). */
-  const guardarProyecto = () => {
-    const archivo = crearArchivoProyecto({ nombre: nombreProyecto, params, aberturas, catalogo, colores });
-    const blob = new Blob([JSON.stringify(archivo, null, 2)], { type: 'application/json' });
-    const enlace = document.createElement('a');
-    enlace.href = URL.createObjectURL(blob);
-    enlace.download = nombreDeArchivo(nombreProyecto);
-    enlace.click();
-    URL.revokeObjectURL(enlace.href);
-    setAvisoProyecto({ tipo: 'ok', texto: `Guardado como ${enlace.download}` });
-  };
-
-  /** Lee el .json elegido; si es válido, reemplaza el proyecto actual. */
-  const abrirProyecto = async (e) => {
-    const archivo = e.target.files?.[0];
-    e.target.value = ''; // permite volver a elegir el mismo archivo
-    if (!archivo) return;
-    const resultado = leerArchivoProyecto(await archivo.text());
-    if (!resultado.ok) {
-      setAvisoProyecto({ tipo: 'error', texto: resultado.error });
+  /** "Guardar como…": pide un nombre y crea un proyecto nuevo en la lista. */
+  const guardarComo = () => {
+    const nombre = window.prompt('¿Con qué nombre guardás el proyecto?', nombreProyecto || '');
+    if (nombre === null) return; // canceló
+    if (!nombre.trim()) {
+      setAviso({ tipo: 'error', texto: 'Poné un nombre para guardar el proyecto.' });
       return;
     }
-    const { proyecto } = resultado;
-    cargarProyecto(proyecto);
-    setAvisoProyecto({ tipo: 'ok', texto: `Proyecto "${proyecto.nombre}" abierto` });
+    guardarEnBiblioteca(nuevoId(), nombre);
+  };
+
+  /** "Guardar": pisa el proyecto abierto; si nunca se guardó, funciona como "Guardar como…". */
+  const guardar = () => (entradaActual ? guardarEnBiblioteca(entradaActual.id, nombreProyecto) : guardarComo());
+
+  const abrirDeBiblioteca = (entrada) => {
+    if (entrada.id !== idProyectoActual && !puedoReemplazar()) return;
+    const r = abrirEntrada(entrada);
+    if (!r.ok) {
+      setAviso({ tipo: 'error', texto: `No se pudo abrir "${entrada.nombre}": ${r.error}` });
+      return;
+    }
+    cargarProyecto(r.proyecto, entrada.id);
+    setMostrarProyectos(false);
+    setAviso({ tipo: 'ok', texto: `Proyecto "${entrada.nombre}" abierto` });
+  };
+
+  const duplicarDeBiblioteca = (id) => setBiblioteca((prev) => duplicarEntrada(prev, id));
+  const renombrarDeBiblioteca = (id, nombre) => {
+    setBiblioteca((prev) => renombrarEntrada(prev, id, nombre));
+    if (id === idProyectoActual && nombre.trim()) setNombreProyecto(nombre.trim());
+  };
+  const borrarDeBiblioteca = (id) => {
+    setBiblioteca((prev) => borrarEntrada(prev, id));
+    if (id === idProyectoActual) setIdProyectoActual(null); // lo que está en pantalla queda sin guardar
+  };
+
+  /** "Nuevo": arranca un proyecto sin datos (sin guardar todavía). */
+  const nuevoProyecto = () => {
+    if (!puedoReemplazar()) return;
+    cargarProyecto(proyectoVacio());
+    setMostrarProyectos(false);
+    setAviso({ tipo: 'ok', texto: 'Proyecto nuevo: cargá las medidas, los perfiles y los precios. Después "Guardar como…".' });
+  };
+
+  /** "Ejemplo": carga el loft de referencia (sin guardar). */
+  const cargarEjemplo = () => {
+    if (!puedoReemplazar()) return;
+    cargarProyecto(proyectoEjemplo());
+    setMostrarProyectos(false);
+    setAviso({ tipo: 'ok', texto: 'Ejemplo cargado: loft 7,50 x 4,50 con entrepiso.' });
+  };
+
+  // --- Archivos (.json) ---
+
+  /** Descarga un objeto como archivo .json (queda en la carpeta Descargas). */
+  const descargarJson = (objeto, nombreArchivo) => {
+    const blob = new Blob([JSON.stringify(objeto, null, 2)], { type: 'application/json' });
+    const enlace = document.createElement('a');
+    enlace.href = URL.createObjectURL(blob);
+    enlace.download = nombreArchivo;
+    enlace.click();
+    URL.revokeObjectURL(enlace.href);
+  };
+
+  const descargarProyecto = () => {
+    const nombre = nombreDeArchivo(nombreProyecto);
+    descargarJson(crearArchivoProyecto(proyectoActual), nombre);
+    setAviso({ tipo: 'ok', texto: `Descargado como ${nombre}` });
+  };
+
+  /** Abre un .json: queda en pantalla como proyecto sin guardar (después "Guardar como…"). */
+  const abrirArchivo = (texto) => {
+    const r = leerArchivoProyecto(texto);
+    if (!r.ok) {
+      setAviso({ tipo: 'error', texto: r.error });
+      return;
+    }
+    if (!puedoReemplazar()) return;
+    cargarProyecto(r.proyecto);
+    setMostrarProyectos(false);
+    setAviso({ tipo: 'ok', texto: `Archivo "${r.proyecto.nombre}" abierto. Usá "Guardar como…" para sumarlo a Mis proyectos.` });
+  };
+
+  const exportarRespaldo = () => {
+    const nombre = `micasa-respaldo-${new Date().toISOString().slice(0, 10)}.json`;
+    descargarJson(crearRespaldo(biblioteca), nombre);
+    setAviso({ tipo: 'ok', texto: `Respaldo de ${biblioteca.length} proyectos descargado como ${nombre}` });
+  };
+
+  const importarRespaldoDeArchivo = (texto) => {
+    const r = importarRespaldo(biblioteca, texto);
+    if (!r.ok) {
+      setAviso({ tipo: 'error', texto: r.error });
+      return;
+    }
+    setBiblioteca(r.lista);
+    const salteados = r.salteados.length ? ` (salteados por errores: ${r.salteados.join(', ')})` : '';
+    setAviso({ tipo: r.salteados.length ? 'error' : 'ok', texto: `Se importaron ${r.importados} proyectos${salteados}.` });
   };
 
   /** Select de tipo de panel (paredes y techo). */
@@ -204,13 +292,14 @@ export default function App() {
           <h1>micasa</h1>
           <input className="nombre-proyecto" value={nombreProyecto} aria-label="Nombre del proyecto"
             onChange={(e) => setNombreProyecto(e.target.value)} placeholder="Nombre del proyecto…" />
+          <span className={`estado-guardado${cambiosSinGuardar ? ' sin-guardar' : ''}`} role="status">
+            {!entradaActual ? 'Sin guardar' : cambiosSinGuardar ? '● Cambios sin guardar' : '✓ Guardado'}
+          </span>
         </div>
         <div className="header-actions no-print">
-          <button className="btn-sec" onClick={nuevoProyecto}>Nuevo</button>
-          <button className="btn-sec" onClick={cargarEjemplo}>Ejemplo</button>
-          <button className="btn-sec" onClick={() => entradaArchivoRef.current.click()}>Abrir…</button>
-          <input ref={entradaArchivoRef} type="file" accept=".json,application/json" hidden onChange={abrirProyecto} />
-          <button className="btn-sec" onClick={guardarProyecto}>Guardar proyecto</button>
+          <button className="btn-sec" onClick={() => setMostrarProyectos(true)}>Mis proyectos ({biblioteca.length})</button>
+          <button className="btn-print" onClick={guardar} disabled={entradaActual && !cambiosSinGuardar}>Guardar</button>
+          <button className="btn-sec" onClick={guardarComo}>Guardar como…</button>
           <label htmlFor="unidad">Unidad</label>
           <select id="unidad" value={unidad} onChange={(e) => setUnidad(e.target.value)}>
             <option value="m">Metros</option>
@@ -221,10 +310,20 @@ export default function App() {
         </div>
       </header>
 
-      {avisoProyecto && (
-        <div className={`aviso aviso-${avisoProyecto.tipo} no-print`} role={avisoProyecto.tipo === 'error' ? 'alert' : 'status'}>
-          {avisoProyecto.texto}
-          <button onClick={() => setAvisoProyecto(null)} aria-label="Cerrar aviso">✕</button>
+      {mostrarProyectos && (
+        <MisProyectos
+          biblioteca={biblioteca} idActual={idProyectoActual} onCerrar={() => setMostrarProyectos(false)}
+          onAbrir={abrirDeBiblioteca} onDuplicar={duplicarDeBiblioteca} onRenombrar={renombrarDeBiblioteca}
+          onBorrar={borrarDeBiblioteca} onNuevo={nuevoProyecto} onEjemplo={cargarEjemplo}
+          onAbrirArchivo={abrirArchivo} onDescargarArchivo={descargarProyecto}
+          onExportarRespaldo={exportarRespaldo} onImportarRespaldo={importarRespaldoDeArchivo}
+        />
+      )}
+
+      {aviso && (
+        <div className={`aviso aviso-${aviso.tipo} no-print`} role={aviso.tipo === 'error' ? 'alert' : 'status'}>
+          {aviso.texto}
+          <button onClick={() => setAviso(null)} aria-label="Cerrar aviso">✕</button>
         </div>
       )}
 
