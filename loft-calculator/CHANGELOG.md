@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.5.0] - 2026-10-09
+### Agregado
+- Seleccionar un hierro con un clic en el 3D (se resalta en amarillo) y eliminarlo. Las piezas eliminadas
+  salen del dibujo y del presupuesto, se guardan con el proyecto y se pueden restaurar desde una lista.
+- "Mostrar:" en la leyenda del 3D: ocultar una pared, el techo, el piso o el piso 2 oculta su panel y sus hierros.
+- Los refuerzos de las aberturas (dintel, jambas y alféizar) se dibujan en el 3D.
+### Corregido
+- Una columna que caía dentro de un vano se contaba entera: ahora se corta (tramo bajo el antepecho y sobre el dintel).
+- Una jamba que coincidía con una columna se contaba dos veces: ahora la columna hace de jamba.
+
 ## [1.4.0] - 2026-10-02
 ### Cambiado
 - "Nuevo" borra todos los datos: caja mínima de 3 x 3 x 2,40 m, sin aberturas, sin entrepiso ni transversales,

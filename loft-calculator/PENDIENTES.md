@@ -3,8 +3,9 @@
 ## 🔴 Antes de considerar el presupuesto "de obra"
 - [ ] Validar con el herrero los supuestos de `constantes.js` y del modelo estructural: ubicación de
       columnas, empalmes, perfiles de cada renglón y separación de transversales.
-- [ ] Las columnas y horizontales de pared no se interrumpen en las aberturas (cálculo conservador:
-      sobra material; además una columna puede caer dentro de un vano).
+- [ ] Las horizontales de pared no se interrumpen en las aberturas (cálculo conservador: sobra material).
+- [ ] Validar con el herrero las reglas de vanos: columna dentro del vano se corta (tramo bajo el antepecho
+      y sobre el dintel); jamba a menos de 10 cm de una columna no se agrega.
 
 ## 🟡 Funcionalidad
 - [ ] Aleros del techo (voladizo de vigas y chapa más allá de las paredes).
@@ -18,11 +19,23 @@
       para todos los proyectos: requiere backend → se resuelve en Construcción Modular (Django).
 - [ ] "Plantilla de catálogo": guardar/abrir solo perfiles y precios, para reutilizarlos entre proyectos.
 
+- [ ] Seleccionar varias piezas a la vez (ej. Shift + clic) para eliminarlas juntas.
+- [ ] Las piezas eliminadas se reconocen por su posición: si se cambia una medida y la pieza se mueve,
+      la eliminación deja de aplicarse (se avisa en la lista). Evaluar si hace falta algo más robusto.
+
 ## 🟢 Técnico
 - [ ] Ayuda (tooltip) en campos poco obvios: "Dist. a esquina", "Sep. verticales" (glosario en CONTEXT.md).
 - [ ] Bundle de ~800 KB (Three.js completo): evaluar carga diferida del visor.
 - [ ] Tests de componentes (testing-library) para CampoNumero, SelectorLado y PanelAberturas.
 - [ ] Migrar el motor a Django cuando arranque Construcción Modular (los tests sirven de especificación).
+
+## ✅ Resuelto en v1.5.0 (2026-10-09)
+- [x] Ocultar una pared, el techo o un piso oculta también sus hierros ("Mostrar:" en la leyenda).
+- [x] Seleccionar un hierro con un clic en el 3D y eliminarlo; lista de piezas eliminadas con "Restaurar".
+- [x] Columna dentro de un vano: se corta (ya no se cuenta entera dentro de la ventana).
+- [x] Jamba sobre una columna: no se duplica.
+- [x] Refuerzos de aberturas (dintel, jambas, alféizar) dibujados en el 3D.
+- [x] Test que verifica que no hay piezas superpuestas en el modelo.
 
 ## ✅ Resuelto en v1.4.0 (2026-10-02)
 - [x] "Nuevo" borra todo: caja mínima 3 x 3 x 2,40 sin aberturas, sin entrepiso ni transversales, techo plano,

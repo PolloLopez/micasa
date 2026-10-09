@@ -41,6 +41,9 @@ valores inválidos.
 | 2026-10-02 | Catálogo = insumos fijos + tipos de panel (lista libre) | Paredes y techo no siempre llevan el mismo panel; cada uno referencia un tipo por id. Un tipo en uso no se puede borrar. |
 | 2026-10-02 | Transversales: una separación por piso | Cada piso puede tener otro panel/luz y el herrero las define por separado. |
 | 2026-10-02 | "Nuevo" = proyecto vacío (`proyecto/proyectosBase.js`); el loft pasa a "Ejemplo" | Un proyecto nuevo no debe arrastrar datos del loft. Se usan medidas mínimas (3 x 3 x 2,40) porque el 3D y el motor necesitan una planta válida. |
+| 2026-10-09 | Cada pieza tiene `id` (tipo + posición en cm), `tipo` y `grupos` (pared/techo/piso) | Permite eliminar piezas a mano y ocultar una parte con sus hierros. El id por posición es simple y no necesita base de datos; contra: si la pieza se mueve, la eliminación deja de aplicar. |
+| 2026-10-09 | Eliminaciones manuales en `params.piezasEliminadas` | Viajan con el proyecto (.json y navegador) y se aplican en el motor: lo eliminado no se dibuja ni se cotiza. |
+| 2026-10-09 | Columna dentro de un vano se corta; jamba a < 10 cm de una columna se omite | Evita contar hierro que no se coloca y duplicar la columna como jamba. A validar con el herrero. |
 | 2026-10-02 | Migración explícita de datos (`motor/migracion.js`); archivo de proyecto versión 3 que abre también la 2 | El usuario ya tenía datos y archivos v1.2: no se pierden ni se resetean. |
 
 ## Supuestos de obra (en `src/motor/constantes.js`)
@@ -60,6 +63,7 @@ techo medido sobre la pendiente (sin aleros) · refuerzo de vano = dintel + 2 ja
 - **Estructura de piso / de piso 2**: perfiles que forman el piso de planta baja y del entrepiso (antes "tirantes").
 - **Transversales**: tramos cortos entre los perfiles de un piso para que no arqueen. Cada piso tiene su separación.
 - **Tipo de panel**: revestimiento (ej. panel PUR, chapa) con precio por m² y color; lo elige cada pared y el techo.
+- **Pieza**: cada hierro del modelo (columna, solera, horizontal, dintel...). Se puede seleccionar en el 3D y eliminar.
 - **Excedente de barras**: % que las barras comerciales traen de más sobre su largo nominal (1-2 %).
 - **Vigas de techo**: siguen la pendiente, de la pared baja a la alta. **Correas de techo**: van sobre las vigas,
   paralelas a la pared baja; su separación se mide sobre la pendiente.
@@ -74,4 +78,5 @@ techo medido sobre la pendiente (sin aleros) · refuerzo de vano = dintel + 2 ja
 - 2026-10-01 v1.2.0: guardar/abrir proyecto (.json), colores por capa, transversales visibles.
 - 2026-10-02 v1.3.0: transversales por piso, tipos de panel por pared/techo, excedente de barras.
 - 2026-10-02 v1.4.0: "Nuevo" sin datos + botón "Ejemplo"; paneles visibles uno por uno en el 3D.
+- 2026-10-09 v1.5.0: seleccionar y eliminar piezas, ocultar partes con sus hierros, columnas cortadas en vanos.
 - Nota: el elemento `id="flonnect-my-app"` que aparece en la página no es de la app: lo inyecta la extensión Flonnect (grabador de pantalla) de Chrome.
