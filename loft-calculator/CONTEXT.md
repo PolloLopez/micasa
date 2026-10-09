@@ -44,6 +44,7 @@ valores inválidos.
 | 2026-10-09 | Cada pieza tiene `id` (tipo + posición en cm), `tipo` y `grupos` (pared/techo/piso) | Permite eliminar piezas a mano y ocultar una parte con sus hierros. El id por posición es simple y no necesita base de datos; contra: si la pieza se mueve, la eliminación deja de aplicar. |
 | 2026-10-09 | Eliminaciones manuales en `params.piezasEliminadas` | Viajan con el proyecto (.json y navegador) y se aplican en el motor: lo eliminado no se dibuja ni se cotiza. |
 | 2026-10-09 | Columna dentro de un vano se corta; jamba a < 10 cm de una columna se omite | Evita contar hierro que no se coloca y duplicar la columna como jamba. A validar con el herrero. |
+| 2026-10-09 | "Mis proyectos" en el navegador (localStorage, clave `micasa.v2.biblioteca`) | Que el herrero guarde varios proyectos con nombre y los retome sin servidor ni cuentas. Cada entrada guarda el mismo formato que el `.json` (se valida y migra igual). Contra: la lista es por navegador; se compensa con respaldo/importación. La nube queda para el backend. |
 | 2026-10-02 | Migración explícita de datos (`motor/migracion.js`); archivo de proyecto versión 3 que abre también la 2 | El usuario ya tenía datos y archivos v1.2: no se pierden ni se resetean. |
 
 ## Supuestos de obra (en `src/motor/constantes.js`)
@@ -79,4 +80,5 @@ techo medido sobre la pendiente (sin aleros) · refuerzo de vano = dintel + 2 ja
 - 2026-10-02 v1.3.0: transversales por piso, tipos de panel por pared/techo, excedente de barras.
 - 2026-10-02 v1.4.0: "Nuevo" sin datos + botón "Ejemplo"; paneles visibles uno por uno en el 3D.
 - 2026-10-09 v1.5.0: seleccionar y eliminar piezas, ocultar partes con sus hierros, columnas cortadas en vanos.
+- 2026-10-09 v1.6.0: "Mis proyectos" (guardar, guardar como, abrir, duplicar, renombrar, borrar, respaldo).
 - Nota: el elemento `id="flonnect-my-app"` que aparece en la página no es de la app: lo inyecta la extensión Flonnect (grabador de pantalla) de Chrome.

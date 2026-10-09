@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.6.0] - 2026-10-09
+### Agregado
+- "Mis proyectos": lista de proyectos guardados en el navegador. Guardar, Guardar como… (con el nombre que se
+  quiera), Abrir, Duplicar, Renombrar y Borrar. Indicador "✓ Guardado / ● Cambios sin guardar" al lado del nombre
+  y aviso antes de perder cambios.
+- Exportar un respaldo de todos los proyectos e importarlo en otro navegador (no pisa los existentes y saltea
+  proyectos rotos avisando cuáles).
+### Cambiado
+- El encabezado queda con "Mis proyectos", "Guardar" y "Guardar como…". Nuevo, Ejemplo y los archivos .json
+  (descargar / abrir) pasan a la ventana "Mis proyectos".
+
 ## [1.5.0] - 2026-10-09
 ### Agregado
 - Seleccionar un hierro con un clic en el 3D (se resalta en amarillo) y eliminarlo. Las piezas eliminadas

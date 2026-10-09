@@ -15,8 +15,9 @@
 - [ ] El largo de barra y precios se editan siempre en metros/pesos, aunque la unidad global sea cm/mm.
 - [ ] Orientación real (norte) en el 3D para estudiar asoleamiento de aberturas.
 
-- [ ] Compartir el proyecto online (link en vez de archivo) y que el herrero cargue sus precios una sola vez
-      para todos los proyectos: requiere backend → se resuelve en Construcción Modular (Django).
+- [ ] Proyectos en la nube (verlos desde cualquier compu/celular, compartir con el herrero por link) y que el
+      herrero cargue sus precios una sola vez para todos los proyectos: requiere backend → Construcción Modular
+      (Django) o Firebase. Hoy "Mis proyectos" vive en cada navegador.
 - [ ] "Plantilla de catálogo": guardar/abrir solo perfiles y precios, para reutilizarlos entre proyectos.
 
 - [ ] Seleccionar varias piezas a la vez (ej. Shift + clic) para eliminarlas juntas.
@@ -28,6 +29,11 @@
 - [ ] Bundle de ~800 KB (Three.js completo): evaluar carga diferida del visor.
 - [ ] Tests de componentes (testing-library) para CampoNumero, SelectorLado y PanelAberturas.
 - [ ] Migrar el motor a Django cuando arranque Construcción Modular (los tests sirven de especificación).
+
+## ✅ Resuelto en v1.6.0 (2026-10-09)
+- [x] "Mis proyectos": lista de proyectos guardados en el navegador con Guardar, Guardar como… (con nombre),
+      Abrir, Duplicar, Renombrar y Borrar; aviso de cambios sin guardar.
+- [x] Respaldo de todos los proyectos en un archivo e importación en otro navegador (sin pisar los existentes).
 
 ## ✅ Resuelto en v1.5.0 (2026-10-09)
 - [x] Ocultar una pared, el techo o un piso oculta también sus hierros ("Mostrar:" en la leyenda).
