@@ -36,7 +36,8 @@ src/
     escalera.js         escalones, zanca, apoyos y descanso
     segmentos.js        helpers de piezas (compartidos)
     edicionPiezas.js    recortar / mover / cambiar perfil de una pieza
-    grada.js            grada para espectadores (proyecto de tipo grada)
+    grada.js            grada para espectadores (proyecto de tipo grada, desmontable en módulos)
+    canos.js            caños comunes y grosor para el 3D
     montaje.js          montaje industrial: mesas / bastidores y tanques
     estructura.js       piezas como segmentos 3D (fuente única para 3D y presupuesto)
     optimizadorCortes.js

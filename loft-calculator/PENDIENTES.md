@@ -1,6 +1,6 @@
 # PENDIENTES — loft-calculator
 
-Última limpieza: 2026-10-14 (v1.12.0). Espejo en Trello: tablero "Desarrollo", tarjetas `[CALC]`.
+Última limpieza: 2026-10-14 (v1.13.0). Espejo en Trello: tablero "Desarrollo", tarjetas `[CALC]`.
 
 ## 🔴 Antes de considerar el presupuesto "de obra" (validar con el herrero)
 - [ ] Supuestos de `constantes.js` y del modelo: ubicación de columnas, empalmes, perfil de cada renglón
@@ -27,6 +27,8 @@
 
 ### Grada
 - [ ] Baranda trasera y lateral (aviso cuando pasa de 1 m de alto).
+- [ ] Peso por módulo (para saber si lo levantan dos personas): necesita kg/m de cada caño.
+- [ ] Planchuelas o placas de unión entre módulos (hoy solo se cuentan los bulones).
 - [ ] Escalera o pasillo de acceso entre filas; riostras también en el sentido de adelante hacia atrás.
 - [ ] Validar con el herrero los perfiles de la grada y la carga por pórtico.
 
@@ -63,6 +65,9 @@
 - [ ] Piezas eliminadas/editadas se reconocen por su posición: si una medida las mueve, el cambio deja de
       aplicarse (se avisa en la lista). Evaluar si hace falta algo más robusto.
 - [ ] Migrar el motor a Django cuando arranque Construcción Modular (los tests sirven de especificación).
+
+## ✅ Resuelto en v1.13.0 (2026-10-14)
+- [x] Grada: caño que une los parantes, tabla de respaldo, elegir el caño de cada parte, módulos y filas atornillables.
 
 ## ✅ Resuelto en v1.12.0 (2026-10-14)
 - [x] Opacidad de paneles, OSB y hierros; color interior y exterior de los paneles.

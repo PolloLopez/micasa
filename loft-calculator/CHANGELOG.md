@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.13.0] - 2026-10-14
+### Agregado
+- Grada: **unión de parantes** con un caño bajo en cada pórtico (de adelante hacia atrás) y a lo largo (uniendo los
+  pórticos), a la altura que se elija.
+- Grada: **respaldo**, tabla de ancho elegible arriba de cada contrahuella (renglón "Tablón de respaldo", por metro).
+- Grada: **elegir el caño** de cada parte (zancas, parantes, apoyos, vigas, uniones, riostras) de una lista de caños
+  comunes. Escribe el perfil del renglón del presupuesto y el 3D dibuja la barra con ese grosor (también en escalera
+  y montaje).
+- Grada **desmontable**: en módulos a lo largo que se atornillan entre sí (pórticos en las puntas de cada módulo,
+  junta de 2 cm, bulones en cada unión) y filas atornillables (tornillos por tablón en cada pórtico).
+### Cambiado
+- Las gradas guardadas antes se abren con unión de parantes y respaldo (se pueden destildar).
+- Con módulos, las riostras "en los extremos" van en las puntas de cada módulo (cada uno se sostiene solo).
+
 ## [1.12.0] - 2026-10-14
 ### Agregado
 - **Opacidad** regulable en la leyenda del 3D: Paneles, OSB y Hierros (de "se ve a través" a sólido), para ver cómo

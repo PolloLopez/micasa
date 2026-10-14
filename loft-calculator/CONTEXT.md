@@ -68,6 +68,8 @@ valores inválidos.
 | 2026-10-14 | Paneles con dos caras (exterior FrontSide / interior BackSide) orientadas hacia afuera | Permite color exterior e interior sin duplicar la geometría del motor. |
 | 2026-10-14 | Opacidad por navegador (como ver/ocultar el 3D); colores de panel en el catálogo (viajan con el proyecto) | La opacidad es cómo quiere mirar cada uno; el color de un panel es un dato de la obra. |
 | 2026-10-14 | Foto del 3D para el PDF tomada en `beforeprint` (render + toDataURL en el mismo momento) | Sirve también para Ctrl+P; sin preserveDrawingBuffer (que hace más lento el 3D). |
+| 2026-10-14 | Caño elegido = texto del perfil del catálogo (`motor/canos.js`); el 3D lee la medida de ese texto | Una sola fuente de verdad: la lista solo ayuda a escribirlo. Si el herrero escribe otro perfil, sigue andando ("Otro"). El loft mantiene grosores fijos para que el modelo se lea claro. |
+| 2026-10-14 | Grada desmontable: módulos con pórticos propios en las puntas y junta de 2 cm; ids iguales a los de antes si hay un solo módulo | Así cada módulo se arma y se sostiene solo; no se rompen las ediciones guardadas de gradas de una pieza. Bulones: 2 por parante y 2 por zanca en cada unión (supuesto a validar). |
 
 ## Supuestos de obra (en `src/motor/constantes.js`)
 Piso del entrepiso a 2,30 m · merma de corte 3 mm · excedente de barras 1 % (editable; depende del proveedor) · placa OSB 2,44 × 1,22 + 10 % de recortes ·
@@ -116,4 +118,5 @@ techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 
 - 2026-10-14 v1.10.0: tablones de grada separados, del mismo material o únicos por fila.
 - 2026-10-14 v1.11.0: montaje industrial (mesas / bastidores y tanques cilíndricos).
 - 2026-10-14 v1.12.0: opacidad, paneles con color interior/exterior, compartir por link, 3D en el PDF.
+- 2026-10-14 v1.13.0: grada con unión de parantes, respaldo, caños a elección y módulos desmontables.
 - Nota: el elemento `id="flonnect-my-app"` que aparece en la página no es de la app: lo inyecta la extensión Flonnect (grabador de pantalla) de Chrome.
