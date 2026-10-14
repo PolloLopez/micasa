@@ -22,10 +22,16 @@ export const CAPAS = {
   escalera: { nombre: 'Escalera', color: '#e11d48' }, // hierros de la escalera
   escalones: { nombre: 'Escalones y tablones', color: '#b45309' }, // madera (escalera y grada)
   grada: { nombre: 'Grada', color: '#a855f7' }, // hierros de la grada
+  montaje: { nombre: 'Estructura', color: '#f59e0b' }, // hierros de un montaje (mesas, patas de tanques)
+  chapa: { nombre: 'Chapa', color: '#cbd5e1' }, // tanques y tapas de chapa (semitransparente)
 };
 
 /** Capas que se muestran en la leyenda de un proyecto de grada (el resto no tiene piezas). */
 export const CAPAS_GRADA = ['grada', 'escalones'];
+/** Capas de un montaje industrial. */
+export const CAPAS_MONTAJE = ['montaje', 'chapa', 'escalones'];
+/** Capas que solo existen en grada o montaje (no se muestran en una construcción). */
+export const CAPAS_SOLO_PROYECTOS_SUELTOS = ['grada', 'montaje', 'chapa'];
 
 /** Colores por defecto: { capa: '#rrggbb' }. */
 export const COLORES_INICIALES = Object.fromEntries(

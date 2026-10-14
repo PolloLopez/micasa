@@ -43,6 +43,13 @@ export const CATALOGO_FIJO = [
   { id: INSUMO.GRADA_VIGA, categoria: 'perfil', nombre: 'Vigas longitudinales', perfil: 'Caño estructural 80x40x2.0', unidad: 'barra', largoBarra: 6, precio: 27000 },
   { id: INSUMO.GRADA_ASIENTO, categoria: 'metro', nombre: 'Tablón de asiento', perfil: 'Madera 2" x 12"', unidad: 'm', largoBarra: null, precio: 9000 },
   { id: INSUMO.GRADA_PIE, categoria: 'metro', nombre: 'Tablón de pie', perfil: 'Madera 2" x 12"', unidad: 'm', largoBarra: null, precio: 9000 },
+  // Montaje industrial
+  { id: INSUMO.MONTAJE_PATA, categoria: 'perfil', nombre: 'Patas y cunas', perfil: 'Caño estructural 50x50x2.0', unidad: 'barra', largoBarra: 6, precio: 21000 },
+  { id: INSUMO.MONTAJE_MARCO, categoria: 'perfil', nombre: 'Marcos y travesaños', perfil: 'Caño estructural 40x40x1.6', unidad: 'barra', largoBarra: 6, precio: 15000 },
+  { id: INSUMO.MONTAJE_CHAPA_TANQUE, categoria: 'unidad', nombre: 'Chapa para tanques', perfil: 'Chapa lisa 3 mm 2.44 x 1.22', unidad: 'chapas', largoBarra: null, precio: 95000 },
+  { id: INSUMO.MONTAJE_CHAPA_MESA, categoria: 'unidad', nombre: 'Chapa para tapas de mesa', perfil: 'Chapa lisa 2 mm 2.44 x 1.22', unidad: 'chapas', largoBarra: null, precio: 65000 },
+  { id: INSUMO.MONTAJE_MADERA, categoria: 'placa', nombre: 'Tapas de madera', perfil: 'Fenólico 18 mm', unidad: 'm²', largoBarra: null, precio: 25000 },
+  { id: INSUMO.MONTAJE_SOLDADURA, categoria: 'metro', nombre: 'Soldadura de chapa', perfil: 'Cordón continuo', unidad: 'm', largoBarra: null, precio: 2500 },
   { id: INSUMO.GRADA_TABLON, categoria: 'metro', nombre: 'Tablones de grada', perfil: 'Madera 2" x 10"', unidad: 'm', largoBarra: null, precio: 8000 },
 ];
 
@@ -50,6 +57,12 @@ export const CATALOGO_FIJO = [
 export const INSUMOS_GRADA = [
   INSUMO.GRADA_ZANCA, INSUMO.GRADA_PARANTE, INSUMO.GRADA_APOYO, INSUMO.GRADA_VIGA, INSUMO.GRADA_ASIENTO, INSUMO.GRADA_PIE,
   INSUMO.GRADA_TABLON,
+];
+
+/** Renglones que solo se usan en un proyecto de montaje. */
+export const INSUMOS_MONTAJE = [
+  INSUMO.MONTAJE_PATA, INSUMO.MONTAJE_MARCO, INSUMO.MONTAJE_CHAPA_TANQUE, INSUMO.MONTAJE_CHAPA_MESA,
+  INSUMO.MONTAJE_MADERA, INSUMO.MONTAJE_SOLDADURA,
 ];
 
 /** Tipos de panel iniciales: uno para paredes y otro para el techo. */
@@ -117,6 +130,7 @@ export function calcularPresupuesto(estructura, catalogo, { excedenteBarras = 0 
     itemPerfil(insumo(id), largos([...propias(piezas), ...reasignadas.filter((p) => p.insumo === id)]), excedenteBarras);
 
   if (e.grada) return conSubtotales(presupuestoGrada(e.grada, insumo, perfil));
+  if (e.montaje) return conSubtotales(presupuestoMontaje(e.montaje, insumo, perfil));
 
   const items = [
     perfil(INSUMO.COLUMNA, [...e.columnas, ...e.refuerzosAberturas]),
@@ -180,6 +194,26 @@ function conSubtotales(items) {
   });
   const total = items.reduce((acc, item) => acc + item.subtotal, 0);
   return { items, total };
+}
+
+/** Renglones de un montaje: perfiles por el optimizador; chapas, madera y soldadura por cantidad. */
+function presupuestoMontaje(montaje, insumo, perfil) {
+  const de = (...tipos) => montaje.piezas.filter((p) => tipos.includes(p.tipo));
+  const { chapasMesa, chapasTanque, m2Madera, soldadura } = montaje.cantidades;
+  const arriba = (n, paso) => (n > 0 ? Math.ceil(n / paso - 1e-9) * paso : 0); // redondeo hacia arriba (m² al 0,01; m al 0,1)
+  const items = [
+    perfil(INSUMO.MONTAJE_PATA, de('mont-pata')),
+    perfil(INSUMO.MONTAJE_MARCO, de('mont-marco', 'mont-travesano')),
+  ];
+  const riostras = de('riostra');
+  if (riostras.length > 0) items.push(perfil(INSUMO.RIOSTRA, riostras));
+  items.push(
+    itemSimple(insumo(INSUMO.MONTAJE_CHAPA_TANQUE), chapasTanque, chapasTanque ? 'envolventes y tapas' : 'no lleva'),
+    itemSimple(insumo(INSUMO.MONTAJE_CHAPA_MESA), chapasMesa, chapasMesa ? 'tapas de mesa' : 'no lleva'),
+    itemSimple(insumo(INSUMO.MONTAJE_MADERA), Number(arriba(m2Madera, 0.01).toFixed(2)), m2Madera ? `${m2Madera.toFixed(2)} m²` : 'no lleva'),
+    itemSimple(insumo(INSUMO.MONTAJE_SOLDADURA), Number(arriba(soldadura, 0.1).toFixed(1)), soldadura ? 'costuras de chapa (tanques)' : 'no lleva'),
+  );
+  return items;
 }
 
 /** Renglones de una grada: perfiles por el optimizador y tablones por metro. */

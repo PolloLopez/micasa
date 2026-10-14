@@ -26,6 +26,7 @@ import { inicioAbertura } from './validacion.js';
 import { cm, pieza, haciaAdentro } from './segmentos.js';
 import { generarEscalera } from './escalera.js';
 import { generarGrada } from './grada.js';
+import { generarMontaje } from './montaje.js';
 import { aplicarEdicion } from './edicionPiezas.js';
 
 const EPSILON = 0.01; // 1 cm: margen para no duplicar piezas en bordes
@@ -58,6 +59,9 @@ export const NOMBRE_TIPO_PIEZA = {
   'grada-apoyo': 'Apoyo de fila',
   'grada-parante': 'Parante de grada',
   'grada-viga': 'Viga longitudinal',
+  'mont-pata': 'Pata',
+  'mont-marco': 'Marco',
+  'mont-travesano': 'Travesaño',
 };
 
 // ---------------- Utilidades ----------------
@@ -443,6 +447,7 @@ export function listarPiezas(e) {
     ...e.correas, ...e.techo.vigas, ...e.techo.correas,
     ...(e.escalera?.piezas ?? []),
     ...(e.grada?.piezas ?? []),
+    ...(e.montaje?.piezas ?? []),
   ];
 }
 
@@ -463,6 +468,7 @@ function transformarPiezas(e, cambiar) {
     techo: { ...e.techo, vigas: t(e.techo.vigas), correas: t(e.techo.correas) },
     escalera: e.escalera ? { ...e.escalera, piezas: t(e.escalera.piezas) } : null,
     grada: e.grada ? { ...e.grada, piezas: t(e.grada.piezas) } : null,
+    montaje: e.montaje ? { ...e.montaje, piezas: t(e.montaje.piezas) } : null,
   };
 }
 
@@ -483,21 +489,24 @@ function aplicarCambiosManuales(e, idsEliminados, ediciones) {
   };
 }
 
-// ---------------- Grada (proyecto propio) ----------------
+// ---------------- Grada y montaje (proyectos propios) ----------------
 
 /**
- * Proyecto de grada: no hay paredes, pisos ni techo; solo la grada.
- * Se devuelve la misma forma que una construcción (listas vacías) para que
- * el 3D, el presupuesto y la edición de piezas funcionen igual.
+ * Proyecto de grada o de montaje: no hay paredes, pisos ni techo.
+ * Se devuelve la misma forma que una construcción (listas vacías) más la
+ * parte propia (`grada` o `montaje`), para que el 3D, el presupuesto y la
+ * edición de piezas funcionen igual.
  */
-function generarEstructuraGrada(params) {
+function generarEstructuraSuelta(params, propia) {
   const vacia = {
     pilotines: [], columnas: [], refuerzosAberturas: [], marcos: [],
     piso: { tirantes: [], transversales: [] }, piso2: { tirantes: [], transversales: [] },
     correas: [], techo: { vigas: [], correas: [], esquinas: [], superficie: 0 },
     escalera: null, paredes: [], entrepiso: null,
     superficies: { piso: 0, piso2: 0, murosNetos: 0, aberturas: 0, techo: 0 },
-    grada: generarGrada(params.grada),
+    grada: null,
+    montaje: null,
+    ...propia,
   };
   return aplicarCambiosManuales(vacia, new Set(params.piezasEliminadas ?? []), params.piezasEditadas ?? {});
 }
@@ -509,7 +518,8 @@ function generarEstructuraGrada(params) {
  * Precondición: params y aberturas ya validados.
  */
 export function generarEstructura(params, aberturas) {
-  if (params.tipoProyecto === 'grada') return generarEstructuraGrada(params);
+  if (params.tipoProyecto === 'grada') return generarEstructuraSuelta(params, { grada: generarGrada(params.grada) });
+  if (params.tipoProyecto === 'montaje') return generarEstructuraSuelta(params, { montaje: generarMontaje(params.montaje) });
   const lados = geometriaLados(params);
   const planta = rectanguloPlanta(params);
   const entrepiso = rectanguloEntrepiso(params, lados);

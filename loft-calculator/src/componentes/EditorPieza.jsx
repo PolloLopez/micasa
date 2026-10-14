@@ -12,7 +12,7 @@ import { useId } from 'react';
 import CampoNumero from './CampoNumero.jsx';
 import { nombreLado } from '../motor/geometria.js';
 import {
-  EDICION_VACIA, PERFILES_CONSTRUCCION, PERFILES_GRADA, esEdicionVacia, esVertical, revisarEdicionDePieza,
+  EDICION_VACIA, PERFILES_CONSTRUCCION, PERFILES_GRADA, PERFILES_MONTAJE, esEdicionVacia, esVertical, revisarEdicionDePieza,
 } from '../motor/edicionPiezas.js';
 
 /**
@@ -58,7 +58,8 @@ export default function EditorPieza({ pieza, edicion, catalogo, unidad, ladoFren
   };
 
   // Solo los renglones que existen en este tipo de proyecto (construcción o grada).
-  const asignables = pieza.grupos.includes('grada') ? PERFILES_GRADA : PERFILES_CONSTRUCCION;
+  const asignables = pieza.grupos.includes('grada') ? PERFILES_GRADA
+    : pieza.grupos.includes('montaje') ? PERFILES_MONTAJE : PERFILES_CONSTRUCCION;
   const perfiles = asignables.map((id) => catalogo.find((p) => p.id === id)).filter(Boolean);
 
   return (

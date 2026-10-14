@@ -8,6 +8,7 @@
 //   (caja de 3 x 3 x 2,40 m).
 // - proyectoEjemplo(): el loft de referencia (botón "Ejemplo").
 // - gradaNueva() / gradaEjemplo(): proyectos de tipo grada (precios en $0 / con precios).
+// - montajeNuevo() / montajeEjemplo(): montaje industrial (una mesa / mesa + tanque con precios).
 // Son funciones (no constantes) para devolver siempre copias nuevas.
 // ==========================================================
 
@@ -16,6 +17,7 @@ import { CATALOGO_FIJO, CATALOGO_INICIAL } from '../motor/presupuesto.js';
 import { COLORES_INICIALES } from '../capas.js';
 import { ESCALERA_INICIAL } from '../motor/escalera.js';
 import { GRADA_INICIAL } from '../motor/grada.js';
+import { MONTAJE_INICIAL } from '../motor/montaje.js';
 
 const ID_PANEL_GENERICO = 'panel';
 
@@ -50,6 +52,7 @@ export function proyectoVacio() {
       escalera: { ...ESCALERA_INICIAL, activa: false }, // sin escalera (no hay entrepiso)
       tipoProyecto: 'construccion',
       grada: { ...GRADA_INICIAL },
+      montaje: structuredClone(MONTAJE_INICIAL),
     },
     aberturas: [],
     catalogo: [
@@ -84,6 +87,24 @@ export function gradaEjemplo() {
     ...ejemplo,
     nombre: 'Ejemplo: grada 6 filas x 6 m',
     params: { ...ejemplo.params, tipoProyecto: 'grada', grada: { ...GRADA_INICIAL } },
+    aberturas: [],
+  };
+}
+
+/** Montaje nuevo (botón "+ Montaje nuevo"): una mesa, sin precios ni perfiles. */
+export function montajeNuevo() {
+  const vacio = proyectoVacio();
+  const mesa = structuredClone(MONTAJE_INICIAL.componentes[0]);
+  return { ...vacio, params: { ...vacio.params, tipoProyecto: 'montaje', montaje: { componentes: [{ ...mesa, x: 0, nombre: 'Mesa' }] } } };
+}
+
+/** Montaje de ejemplo (botón "Ejemplo: montaje"): mesa de trabajo + tanque vertical con precios. */
+export function montajeEjemplo() {
+  const ejemplo = proyectoEjemplo();
+  return {
+    ...ejemplo,
+    nombre: 'Ejemplo: mesa + tanque',
+    params: { ...ejemplo.params, tipoProyecto: 'montaje', montaje: structuredClone(MONTAJE_INICIAL) },
     aberturas: [],
   };
 }

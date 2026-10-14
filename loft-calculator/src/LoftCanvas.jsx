@@ -18,7 +18,7 @@ import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { LADOS } from './motor/constantes.js';
-import { CAPAS, CAPAS_GRADA } from './capas.js';
+import { CAPAS, CAPAS_GRADA, CAPAS_MONTAJE, CAPAS_SOLO_PROYECTOS_SUELTOS } from './capas.js';
 import { posicionAbertura, listarPiezas } from './motor/estructura.js';
 import { geometriaLados, nombreLado } from './motor/geometria.js';
 import { describirPieza } from './descripcionPiezas.js';
@@ -49,10 +49,17 @@ const ESTILO_PIEZA = {
   'grada-apoyo': { capa: 'grada', seccion: 0.06 },
   'grada-parante': { capa: 'grada', seccion: 0.07 },
   'grada-viga': { capa: 'grada', seccion: 0.06 },
+  'mont-pata': { capa: 'montaje', seccion: 0.06 },
+  'mont-marco': { capa: 'montaje', seccion: 0.05 },
+  'mont-travesano': { capa: 'montaje', seccion: 0.045 },
 };
 
 /** Capa de una pieza: la de su tipo, salvo las riostras de la grada. */
-const capaDe = (p) => (p.tipo === 'riostra' && p.grupos.includes('grada') ? 'grada' : ESTILO_PIEZA[p.tipo]?.capa);
+const capaDe = (p) => {
+  if (p.tipo === 'riostra' && p.grupos.includes('grada')) return 'grada';
+  if (p.tipo === 'riostra' && p.grupos.includes('montaje')) return 'montaje';
+  return ESTILO_PIEZA[p.tipo]?.capa;
+};
 const ESPESOR_ESCALON = 0.05; // madera de 2"
 
 
@@ -77,6 +84,7 @@ function crearMateriales(colores) {
   transparente(materiales.osb, 0.45); // deja ver la estructura de piso y las transversales
   transparente(materiales.paneles, 0.16);
   transparente(materiales.aberturas, 0.7);
+  transparente(materiales.chapa, 0.55); // se ve la estructura a través de los tanques
   // Pieza seleccionada: amarillo que brilla.
   materiales.seleccion = new THREE.MeshStandardMaterial({ color: COLOR_SELECCION, emissive: COLOR_SELECCION, emissiveIntensity: 0.6 });
   return materiales;
@@ -171,6 +179,22 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
     return; // una grada no tiene pilotines, pisos, paneles, aberturas ni carteles de paredes
   }
 
+  // Montaje: tapas de mesa (chapa o madera) y tanques (cilindros de chapa con sus tapas).
+  if (e.montaje) {
+    e.montaje.placas.filter((t) => grupoVisible(`comp:${t.id.split(':')[0]}`)).forEach((t) => {
+      const capa = t.material === 'madera' ? 'escalones' : 'chapa';
+      if (!capas[capa]) return;
+      const [lx, lz] = t.rotacion === 90 ? [t.ancho, t.largo] : [t.largo, t.ancho];
+      const malla = new THREE.Mesh(new THREE.BoxGeometry(lx, 0.02, lz), materiales[capa]);
+      malla.position.set(...t.centro);
+      grupo.add(malla);
+    });
+    if (capas.chapa) {
+      e.montaje.cilindros.filter((c) => grupoVisible(c.grupo)).forEach((c) => grupo.add(cilindroDeChapa(c, materiales.chapa)));
+    }
+    return; // un montaje no tiene pilotines, pisos, paneles, aberturas ni carteles de paredes
+  }
+
   if (capas.pilotines) {
     e.pilotines.forEach(({ x, z }) => {
       const p = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, elevacion || 0.01, 16), materiales.pilotines);
@@ -228,6 +252,27 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
   });
 }
 
+/**
+ * Tanque: envolvente abierta + tapas planas (discos). En vertical la tapa
+ * "una" es la de abajo (tanque abierto arriba); en horizontal, la de un extremo.
+ */
+function cilindroDeChapa({ centro, eje, radio, largo, tapas }, material) {
+  const tanque = new THREE.Group();
+  tanque.add(new THREE.Mesh(new THREE.CylinderGeometry(radio, radio, largo, 40, 1, true), material));
+  const extremos = { ninguna: [], una: [-1], dos: [-1, 1] }[tapas];
+  extremos.forEach((lado) => {
+    const tapa = new THREE.Mesh(new THREE.CircleGeometry(radio, 40), material);
+    tapa.rotation.x = Math.PI / 2;
+    tapa.position.y = (lado * largo) / 2;
+    tanque.add(tapa);
+  });
+  // CylinderGeometry es vertical (eje y): se acuesta si el tanque es horizontal.
+  if (eje === 'x') tanque.rotation.z = Math.PI / 2;
+  if (eje === 'z') tanque.rotation.x = Math.PI / 2;
+  tanque.position.set(...centro);
+  return tanque;
+}
+
 /** Libera la memoria de GPU del grupo (geometrías, texturas de carteles) y lo vacía. */
 function vaciarGrupo(grupo) {
   grupo.traverse((obj) => {
@@ -245,8 +290,8 @@ function vaciarGrupo(grupo) {
  * la grada (largo de fila x profundidad x altura), mirando desde adelante (A).
  */
 function medidasVista(params, estructura) {
-  if (!estructura?.grada) return params;
-  const m = estructura.grada.medidas;
+  const m = estructura?.grada?.medidas ?? estructura?.montaje?.medidas;
+  if (!m) return params;
   return { ...params, largo: m.largo, ancho: m.profundidad, altura: m.alturaTotal, ladoFrente: 'A' };
 }
 
@@ -407,12 +452,16 @@ export default function LoftCanvas({
   const [capasAbiertas, setCapasAbiertas] = useState(() => !window.matchMedia?.('(max-width: 1000px)').matches);
 
   const alternarCapa = (clave) => setCapas((prev) => ({ ...prev, [clave]: !prev[clave] }));
-  const alternarGrupo = (clave) => setGruposVisibles((prev) => ({ ...prev, [clave]: !prev[clave] }));
+  // Un grupo que nunca se tocó está visible (undefined): el primer clic lo oculta.
+  const alternarGrupo = (clave) => setGruposVisibles((prev) => ({ ...prev, [clave]: prev[clave] === false }));
 
   // Partes que se pueden ocultar (con sus hierros): paredes desde el frente, techo y pisos.
   const ordenDesdeFrente = [0, 1, 2, 3].map((i) => LADOS[(LADOS.indexOf(params.ladoFrente) + i) % 4]);
   const esGrada = Boolean(estructura?.grada);
-  const partes = esGrada ? [{ clave: 'grada', nombre: 'Grada' }] : [
+  const esMontaje = Boolean(estructura?.montaje);
+  const partes = esGrada ? [{ clave: 'grada', nombre: 'Grada' }]
+    : esMontaje ? params.montaje.componentes.map((c) => ({ clave: `comp:${c.id}`, nombre: c.nombre || 'Componente' }))
+    : [
     ...ordenDesdeFrente.map((lado) => ({ clave: lado, nombre: nombreLado(lado, params.ladoFrente) })),
     { clave: 'techo', nombre: 'Techo' },
     { clave: 'piso', nombre: 'Piso' },
@@ -467,7 +516,8 @@ export default function LoftCanvas({
         {capasAbiertas && (<>
         {Object.entries(CAPAS)
           // Cada tipo de proyecto muestra solo las capas que tienen piezas.
-          .filter(([clave, { colorPorTipo }]) => !colorPorTipo && (esGrada ? CAPAS_GRADA.includes(clave) : clave !== 'grada'))
+          .filter(([clave, { colorPorTipo }]) => !colorPorTipo && (esGrada ? CAPAS_GRADA.includes(clave)
+            : esMontaje ? CAPAS_MONTAJE.includes(clave) : !CAPAS_SOLO_PROYECTOS_SUELTOS.includes(clave)))
           .map(([clave, { nombre }]) => (
             <span key={clave} className="capa">
               <input type="checkbox" checked={capas[clave]} onChange={() => alternarCapa(clave)}
@@ -478,7 +528,7 @@ export default function LoftCanvas({
               <span onClick={() => alternarCapa(clave)}>{nombre}</span>
             </span>
           ))}
-        {!esGrada && (
+        {!esGrada && !esMontaje && (
           <span className="capa">
             <input type="checkbox" checked={capas.paneles} onChange={() => alternarCapa('paneles')}
               aria-label="Mostrar paneles" />
@@ -490,7 +540,7 @@ export default function LoftCanvas({
           <span className="capa"><strong>Mostrar:</strong></span>
           {partes.map(({ clave, nombre }) => (
             <span key={clave} className="capa">
-              <input type="checkbox" checked={gruposVisibles[clave]} onChange={() => alternarGrupo(clave)}
+              <input type="checkbox" checked={gruposVisibles[clave] !== false} onChange={() => alternarGrupo(clave)}
                 aria-label={`Mostrar ${nombre} completo`} />
               <span onClick={() => alternarGrupo(clave)}>{nombre}</span>
             </span>

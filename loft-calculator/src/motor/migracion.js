@@ -22,6 +22,8 @@
 // v1.8 -> v1.9:
 //   - nuevo: tipoProyecto ('construccion' | 'grada') y datos de la grada.
 //   - escalera.riostras (cruces entre parantes), desactivada.
+// v1.10 -> v1.11:
+//   - nuevo: montaje industrial (componentes); los proyectos viejos traen el de ejemplo, sin usarlo.
 // ==========================================================
 
 import { LADOS, INSUMO } from './constantes.js';
@@ -29,6 +31,7 @@ import { PARAMS_INICIALES } from './parametrosIniciales.js';
 import { CATALOGO_FIJO, TIPOS_PANEL_INICIALES } from './presupuesto.js';
 import { ESCALERA_INICIAL } from './escalera.js';
 import { GRADA_INICIAL } from './grada.js';
+import { MONTAJE_INICIAL } from './montaje.js';
 
 const esObjeto = (x) => x !== null && typeof x === 'object' && !Array.isArray(x);
 const esColor = (c) => typeof c === 'string' && /^#[0-9a-fA-F]{6}$/.test(c);
@@ -62,6 +65,7 @@ export function migrarParams(params) {
   nuevos.escalera.riostras ??= false; // v1.9
   nuevos.tipoProyecto ??= 'construccion'; // v1.9: todo lo anterior es una construcción
   nuevos.grada = esObjeto(nuevos.grada) ? { ...GRADA_INICIAL, ...nuevos.grada } : { ...GRADA_INICIAL };
+  nuevos.montaje = esObjeto(nuevos.montaje) ? nuevos.montaje : structuredClone(MONTAJE_INICIAL); // v1.11
 
   if (esObjeto(nuevos.paredes)) {
     nuevos.paredes = Object.fromEntries(

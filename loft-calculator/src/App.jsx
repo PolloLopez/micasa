@@ -17,6 +17,7 @@ import PanelAberturas from './componentes/PanelAberturas.jsx';
 import PanelTiposPanel from './componentes/PanelTiposPanel.jsx';
 import PanelEscalera from './componentes/PanelEscalera.jsx';
 import PanelGrada from './componentes/PanelGrada.jsx';
+import PanelMontaje from './componentes/PanelMontaje.jsx';
 import TablaPresupuesto from './componentes/TablaPresupuesto.jsx';
 import { useEstadoGuardado } from './hooks/useEstadoGuardado.js';
 import { validarParametros, validarAbertura, LARGO_MAXIMO_ETIQUETA } from './motor/validacion.js';
@@ -29,7 +30,9 @@ import { LADOS } from './motor/constantes.js';
 import { nombreLado, alturasPared, geometriaLados, alturaMaxima } from './motor/geometria.js';
 import { COLORES_INICIALES, coloresValidos, completarColores } from './capas.js';
 import { crearArchivoProyecto, leerArchivoProyecto, nombreDeArchivo } from './proyecto/archivoProyecto.js';
-import { proyectoVacio, proyectoEjemplo, gradaNueva, gradaEjemplo } from './proyecto/proyectosBase.js';
+import {
+  proyectoVacio, proyectoEjemplo, gradaNueva, gradaEjemplo, montajeNuevo, montajeEjemplo,
+} from './proyecto/proyectosBase.js';
 import {
   crearEntrada, guardarEntrada, borrarEntrada, duplicarEntrada, renombrarEntrada, abrirEntrada,
   hayCambiosSinGuardar, esBibliotecaValida, crearRespaldo, importarRespaldo, nuevoId,
@@ -98,6 +101,8 @@ export default function App() {
   );
   const estructura = useMemo(() => generarEstructura(params, aberturasValidas), [params, aberturasValidas]);
   const esGrada = params.tipoProyecto === 'grada'; // proyecto de grada: otra pantalla de datos
+  const esMontaje = params.tipoProyecto === 'montaje'; // montaje industrial: mesas, tanques...
+  const esConstruccion = !esGrada && !esMontaje;
   const { items, total } = useMemo(
     () => calcularPresupuesto(estructura, catalogo, { excedenteBarras: params.excedenteBarras }),
     [estructura, catalogo, params.excedenteBarras]
@@ -247,6 +252,20 @@ export default function App() {
     setAviso({ tipo: 'ok', texto: 'Ejemplo cargado: grada de 6 filas x 6 m.' });
   };
 
+  /** "+ Montaje nuevo" y "Ejemplo: montaje": proyectos de montaje industrial. */
+  const nuevoMontaje = () => {
+    if (!puedoReemplazar()) return;
+    cargarProyecto(montajeNuevo());
+    setMostrarProyectos(false);
+    setAviso({ tipo: 'ok', texto: 'Montaje nuevo: agregá mesas y tanques, cargá sus medidas, perfiles y precios. Después "Guardar como…".' });
+  };
+  const cargarEjemploMontaje = () => {
+    if (!puedoReemplazar()) return;
+    cargarProyecto(montajeEjemplo());
+    setMostrarProyectos(false);
+    setAviso({ tipo: 'ok', texto: 'Ejemplo cargado: mesa de trabajo + tanque de agua.' });
+  };
+
   /** "Ejemplo": carga el loft de referencia (sin guardar). */
   const cargarEjemplo = () => {
     if (!puedoReemplazar()) return;
@@ -353,6 +372,7 @@ export default function App() {
           onAbrir={abrirDeBiblioteca} onDuplicar={duplicarDeBiblioteca} onRenombrar={renombrarDeBiblioteca}
           onBorrar={borrarDeBiblioteca} onNuevo={nuevoProyecto} onEjemplo={cargarEjemplo}
           onNuevaGrada={nuevaGrada} onEjemploGrada={cargarEjemploGrada}
+          onNuevoMontaje={nuevoMontaje} onEjemploMontaje={cargarEjemploMontaje}
           onAbrirArchivo={abrirArchivo} onDescargarArchivo={descargarProyecto}
           onExportarRespaldo={exportarRespaldo} onImportarRespaldo={importarRespaldoDeArchivo}
         />
@@ -377,9 +397,13 @@ export default function App() {
           {esGrada && (
             <PanelGrada params={params} resumen={estructura.grada.resumen} unidad={unidad} cambiar={cambiar} />
           )}
+          {/* MONTAJE INDUSTRIAL: componentes (mesas, tanques). */}
+          {esMontaje && (
+            <PanelMontaje params={params} resumenes={estructura.montaje.resumenes} unidad={unidad} cambiar={cambiar} />
+          )}
 
           {/* CONSTRUCCIÓN: planta, paredes, pisos, escalera, techo y fundación. */}
-          {!esGrada && (<>
+          {esConstruccion && (<>
           {/* PLANTA */}
           <Tarjeta id="planta" titulo="Planta y altura">
             <div className="grid-params">
@@ -538,7 +562,7 @@ export default function App() {
             )}
           </Tarjeta>
 
-          {!esGrada && (<>
+          {esConstruccion && (<>
             <PanelAberturas aberturas={aberturasValidas} params={params} unidad={unidad}
               onAgregar={agregarAbertura} onActualizar={actualizarAbertura} onQuitar={quitarAbertura} />
 

@@ -4,6 +4,7 @@
 // ==========================================================
 
 import { GRADA_INICIAL } from './grada.js';
+import { MONTAJE_INICIAL } from './montaje.js';
 import { ESCALERA_INICIAL } from './escalera.js';
 
 /** Configuración de una pared (panel). */
@@ -54,8 +55,9 @@ export const PARAMS_INICIALES = {
   pilotinesPorFila: 3,
 
   // Piezas que el usuario eliminó a mano (IDs de motor/estructura.js)
-  tipoProyecto: 'construccion', // 'construccion' | 'grada'
+  tipoProyecto: 'construccion', // 'construccion' | 'grada' | 'montaje'
   grada: { ...GRADA_INICIAL }, // solo se usa si tipoProyecto = 'grada'
+  montaje: structuredClone(MONTAJE_INICIAL), // solo se usa si tipoProyecto = 'montaje'
   piezasEliminadas: [],
   piezasEditadas: {}, // { idPieza: { recorteInicio, recorteFin, moverX, moverY, moverZ, perfil } }
 

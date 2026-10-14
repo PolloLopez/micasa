@@ -8,7 +8,9 @@
 // Los campos de cada pared usan la clave "paredes.A.separacionVerticales".
 // ==========================================================
 
-import { LIMITES, LIMITES_PARED, LIMITES_ESCALERA, LIMITES_GRADA, LADOS, ALTURA_PISO_2 } from './constantes.js';
+import {
+  LIMITES, LIMITES_PARED, LIMITES_ESCALERA, LIMITES_GRADA, LIMITES_COMPONENTE, LIMITES_MESA, LIMITES_TANQUE, LADOS, ALTURA_PISO_2,
+} from './constantes.js';
 import { calcularEscalones, DESCANSOS_POR_FORMA } from './escalera.js';
 import { revisarEdicion } from './edicionPiezas.js';
 
@@ -79,6 +81,7 @@ export function validarParametros(params) {
 
   validarEscalera(params, anotar);
   validarGrada(params, anotar);
+  validarMontaje(params, anotar);
 
   if (Object.keys(errores).length > 0) return errores;
 
@@ -103,7 +106,7 @@ const opuesto = (lado) => LADOS[(LADOS.indexOf(lado) + 2) % 4];
  * comodidad o de si entra en la planta NO son errores (ver escalera.js).
  */
 /** Tipos de proyecto: una construcción (loft, galpón...) o una grada suelta. */
-export const TIPOS_PROYECTO = ['construccion', 'grada'];
+export const TIPOS_PROYECTO = ['construccion', 'grada', 'montaje'];
 
 /** Grada (solo se usa si tipoProyecto = 'grada', pero siempre tiene que ser válida). */
 function validarGrada(params, anotar) {
@@ -129,6 +132,45 @@ function validarGrada(params, anotar) {
     anotar('grada.anchoPie', `Asiento + pie no entran en la fila de ${(grada.huella * 100).toFixed(0)} cm`);
     anotar('grada.huella', 'La fila es más angosta que asiento + pie');
   }
+}
+
+/** Largo máximo del nombre de un componente de montaje. */
+export const LARGO_MAXIMO_NOMBRE_COMPONENTE = 40;
+
+/**
+ * Montaje: lista de componentes (mesas, tanques). Cada error se anota en
+ * "montaje.componentes.<i>.<campo>" para que salga en su campo.
+ */
+function validarMontaje(params, anotar) {
+  const montaje = params.montaje;
+  if (!montaje || typeof montaje !== 'object' || !Array.isArray(montaje.componentes) || montaje.componentes.length > 30) {
+    anotar('montaje', 'Lista de componentes inválida (hasta 30)');
+    return;
+  }
+  const ids = new Set();
+  montaje.componentes.forEach((c, i) => {
+    const ruta = `montaje.componentes.${i}`;
+    if (!c || typeof c !== 'object') return anotar(ruta, 'Componente inválido');
+    if (typeof c.id !== 'string' || !c.id || ids.has(c.id)) anotar(`${ruta}.id`, 'Id de componente repetido o vacío');
+    ids.add(c.id);
+    if (typeof c.nombre !== 'string' || c.nombre.length > LARGO_MAXIMO_NOMBRE_COMPONENTE) {
+      anotar(`${ruta}.nombre`, `El nombre puede tener hasta ${LARGO_MAXIMO_NOMBRE_COMPONENTE} letras`);
+    }
+    if (![0, 90].includes(c.rotacion)) anotar(`${ruta}.rotacion`, 'Elegí 0° o 90°');
+    const limites = { mesa: LIMITES_MESA, tanque: LIMITES_TANQUE }[c.tipo];
+    if (!limites) return anotar(`${ruta}.tipo`, 'Tipo de componente desconocido');
+    Object.entries({ ...LIMITES_COMPONENTE, ...limites }).forEach(([campo, l]) => anotar(`${ruta}.${campo}`, revisarNumero(c[campo], l)));
+    if (c.tipo === 'mesa') {
+      if (typeof c.marcoInferior !== 'boolean') anotar(`${ruta}.marcoInferior`, 'Valor inválido');
+      if (!['no', 'cabeceras', 'todas'].includes(c.riostras)) anotar(`${ruta}.riostras`, 'Elegí dónde van las riostras');
+      if (!['ninguna', 'chapa', 'madera'].includes(c.tapa)) anotar(`${ruta}.tapa`, 'Elegí la tapa');
+      if (c.marcoInferior && c.alturaMarcoInferior >= c.alto - 0.05) anotar(`${ruta}.alturaMarcoInferior`, 'El marco inferior tiene que quedar debajo del superior');
+    } else {
+      if (!['vertical', 'horizontal'].includes(c.orientacion)) anotar(`${ruta}.orientacion`, 'Elegí vertical u horizontal');
+      if (!['ninguna', 'una', 'dos'].includes(c.tapas)) anotar(`${ruta}.tapas`, 'Elegí cuántas tapas');
+      if (c.orientacion === 'horizontal' && c.apoyos > 4) anotar(`${ruta}.apoyos`, 'Un tanque horizontal lleva de 2 a 4 cunas');
+    }
+  });
 }
 
 function validarEscalera(params, anotar) {

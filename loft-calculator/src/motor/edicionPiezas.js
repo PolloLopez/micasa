@@ -41,8 +41,14 @@ export const PERFILES_CONSTRUCCION = [
 ];
 /** Renglones de perfil a los que se puede pasar una pieza de una grada. */
 export const PERFILES_GRADA = [INSUMO.GRADA_ZANCA, INSUMO.GRADA_PARANTE, INSUMO.GRADA_APOYO, INSUMO.GRADA_VIGA, INSUMO.RIOSTRA];
+/** Renglones de perfil a los que se puede pasar una pieza de un montaje. */
+export const PERFILES_MONTAJE = [INSUMO.MONTAJE_PATA, INSUMO.MONTAJE_MARCO, INSUMO.RIOSTRA];
 /** Todos (para validar lo guardado). */
-export const PERFILES_ASIGNABLES = [...PERFILES_CONSTRUCCION, ...PERFILES_GRADA.filter((id) => id !== INSUMO.RIOSTRA)];
+export const PERFILES_ASIGNABLES = [
+  ...PERFILES_CONSTRUCCION,
+  ...PERFILES_GRADA.filter((id) => id !== INSUMO.RIOSTRA),
+  ...PERFILES_MONTAJE.filter((id) => id !== INSUMO.RIOSTRA),
+];
 
 const esNumero = (n) => typeof n === 'number' && Number.isFinite(n);
 

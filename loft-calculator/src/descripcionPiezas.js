@@ -17,6 +17,8 @@ export function nombreGrupo(grupo, ladoFrente) {
 /** Texto completo de una pieza. */
 export function describirPieza(pieza, ladoFrente) {
   const tipo = NOMBRE_TIPO_PIEZA[pieza.tipo] ?? pieza.tipo;
+  // Piezas de un montaje: se nombran por su componente (ej. "Pata · Mesa de trabajo").
+  if (pieza.componente !== undefined) return `${tipo} · ${pieza.componente || 'Componente'} · ${pieza.largo.toFixed(2)} m`;
   const donde = pieza.grupos.map((g) => nombreGrupo(g, ladoFrente)).join(' y ');
   return `${tipo} · ${donde} · ${pieza.largo.toFixed(2)} m`;
 }

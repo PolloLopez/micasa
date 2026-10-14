@@ -49,6 +49,34 @@ export const INSUMO = {
   GRADA_ASIENTO: 'gradaAsiento',
   GRADA_PIE: 'gradaPie',
   GRADA_TABLON: 'gradaTablon', // asiento y pie del mismo tablón, o tablón único
+  // Montaje industrial
+  MONTAJE_PATA: 'montajePata',
+  MONTAJE_MARCO: 'montajeMarco',
+  MONTAJE_CHAPA_TANQUE: 'montajeChapaTanque',
+  MONTAJE_CHAPA_MESA: 'montajeChapaMesa',
+  MONTAJE_MADERA: 'montajeMadera',
+  MONTAJE_SOLDADURA: 'montajeSoldadura',
+};
+
+// Límites de los componentes de un montaje (ver motor/montaje.js).
+export const LIMITES_COMPONENTE = {
+  x: { min: -50, max: 50 },
+  z: { min: -50, max: 50 },
+};
+export const LIMITES_MESA = {
+  largo: { min: 0.3, max: 20 },
+  ancho: { min: 0.3, max: 5 },
+  alto: { min: 0.2, max: 5 },
+  separacionPatas: { min: 0.5, max: 20, opcional: true }, // 0 = solo esquinas
+  alturaMarcoInferior: { min: 0.05, max: 2 },
+  separacionTravesanos: { min: 0.2, max: 5, opcional: true }, // 0 = sin
+};
+export const LIMITES_TANQUE = {
+  diametro: { min: 0.2, max: 6 },
+  largo: { min: 0.2, max: 20 },
+  espesorChapa: { min: 0.5, max: 25 },
+  alturaSoporte: { min: 0, max: 10 },
+  apoyos: { min: 2, max: 8, entero: true },
 };
 
 // Límites de la grada (ver motor/grada.js).

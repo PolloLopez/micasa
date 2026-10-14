@@ -4,7 +4,7 @@ import { optimizarCortes, dividirPiezaLarga } from './optimizadorCortes.js';
 import { validarParametros, validarAbertura } from './validacion.js';
 import { generarEstructura, posicionAbertura, listarPiezas } from './estructura.js';
 import { nombreLado, alturaEn, alturaMaxima, geometriaLados } from './geometria.js';
-import { calcularPresupuesto, INSUMOS_GRADA, CATALOGO_INICIAL, CATALOGO_FIJO, TIPOS_PANEL_INICIALES } from './presupuesto.js';
+import { calcularPresupuesto, INSUMOS_GRADA, INSUMOS_MONTAJE, CATALOGO_INICIAL, CATALOGO_FIJO, TIPOS_PANEL_INICIALES } from './presupuesto.js';
 import { migrarParams, normalizarCatalogo } from './migracion.js';
 import { validarPanelesUsados } from './validacion.js';
 import { INSUMO } from './constantes.js';
@@ -343,8 +343,9 @@ describe('calcularPresupuesto', () => {
   const { items, total } = calcularPresupuesto(e, CATALOGO_INICIAL);
   const item = (id) => items.find((i) => i.id === id);
 
-  it('una construcción tiene un renglón por cada insumo, menos los de grada y las riostras sin usar', () => {
-    const esperados = CATALOGO_INICIAL.map((p) => p.id).filter((id) => !INSUMOS_GRADA.includes(id) && id !== INSUMO.RIOSTRA);
+  it('una construcción tiene un renglón por cada insumo, menos los de grada, montaje y las riostras sin usar', () => {
+    const esperados = CATALOGO_INICIAL.map((p) => p.id)
+      .filter((id) => !INSUMOS_GRADA.includes(id) && !INSUMOS_MONTAJE.includes(id) && id !== INSUMO.RIOSTRA);
     expect(items.map((i) => i.id).sort()).toEqual(esperados.sort());
   });
 
