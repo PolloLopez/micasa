@@ -33,6 +33,8 @@ src/
     parametrosIniciales.js  valores por defecto del loft
     migracion.js        convierte datos de versiones anteriores
     validacion.js       límites y reglas de parámetros/aberturas
+    escalera.js         escalones, zanca, apoyos y descanso
+    segmentos.js        helpers de piezas (compartidos)
     estructura.js       piezas como segmentos 3D (fuente única para 3D y presupuesto)
     optimizadorCortes.js
     presupuesto.js

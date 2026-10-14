@@ -6,6 +6,8 @@
 - [ ] Las horizontales de pared no se interrumpen en las aberturas (cálculo conservador: sobra material).
 - [ ] Validar con el herrero las reglas de vanos: columna dentro del vano se corta (tramo bajo el antepecho
       y sobre el dintel); jamba a menos de 10 cm de una columna no se agrega.
+- [ ] Validar con el herrero la escalera: perfil de zanca (caño 120x60), ángulos de apoyo, espesor de
+      piso 2 (8 cm para la altura automática) y cantidad de columnas.
 
 ## 🟡 Funcionalidad
 - [ ] Aleros del techo (voladizo de vigas y chapa más allá de las paredes).
@@ -24,11 +26,19 @@
 - [ ] Las piezas eliminadas se reconocen por su posición: si se cambia una medida y la pieza se mueve,
       la eliminación deja de aplicarse (se avisa en la lista). Evaluar si hace falta algo más robusto.
 
+- [ ] Escalera: baranda (en la escalera y en el borde del entrepiso).
+- [ ] Escalera atravesando el entrepiso (hueco en la estructura de piso 2 con su marco).
+- [ ] Escalera en U (dos descansos o descanso de media vuelta) y escalones compensados.
+
 ## 🟢 Técnico
 - [ ] Ayuda (tooltip) en campos poco obvios: "Dist. a esquina", "Sep. verticales" (glosario en CONTEXT.md).
 - [ ] Bundle de ~800 KB (Three.js completo): evaluar carga diferida del visor.
 - [ ] Tests de componentes (testing-library) para CampoNumero, SelectorLado y PanelAberturas.
 - [ ] Migrar el motor a Django cuando arranque Construcción Modular (los tests sirven de especificación).
+
+## ✅ Resuelto en v1.7.0 (2026-10-13)
+- [x] Diseño de escaleras: recta o en L con descanso, al borde del entrepiso; ancho, huella, contrahuella,
+      altura total; zanca central, apoyos de ángulo o recorte de caño, columnas de soporte; presupuesto y 3D.
 
 ## ✅ Resuelto en v1.6.0 (2026-10-09)
 - [x] "Mis proyectos": lista de proyectos guardados en el navegador con Guardar, Guardar como… (con nombre),

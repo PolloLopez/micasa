@@ -46,10 +46,15 @@ valores inválidos.
 | 2026-10-09 | Columna dentro de un vano se corta; jamba a < 10 cm de una columna se omite | Evita contar hierro que no se coloca y duplicar la columna como jamba. A validar con el herrero. |
 | 2026-10-09 | "Mis proyectos" en el navegador (localStorage, clave `micasa.v2.biblioteca`) | Que el herrero guarde varios proyectos con nombre y los retome sin servidor ni cuentas. Cada entrada guarda el mismo formato que el `.json` (se valida y migra igual). Contra: la lista es por navegador; se compensa con respaldo/importación. La nube queda para el backend. |
 | 2026-10-02 | Migración explícita de datos (`motor/migracion.js`); archivo de proyecto versión 3 que abre también la 2 | El usuario ya tenía datos y archivos v1.2: no se pierden ni se resetean. |
+| 2026-10-13 | Escalera en su propio módulo (`motor/escalera.js`) con piezas en `motor/segmentos.js` | Mantiene `estructura.js` manejable y evita importaciones circulares; usa el mismo formato de pieza (id/tipo/grupos) así se dibuja, cotiza y elimina igual que el resto. |
+| 2026-10-13 | Escalera solo al borde libre del entrepiso; "baja hacia" una pared | Es lo que se construye primero y no requiere cortar el piso 2. El hueco atravesando el entrepiso queda para después. |
+| 2026-10-13 | Contrahuellas todas iguales (altura / cantidad redondeada al objetivo) y altura automática = piso 2 + 8 cm | Escalones desparejos son peligrosos; el usuario da un objetivo y el sistema reparte. |
+| 2026-10-13 | Regla de comodidad (Blondel) y "se sale de la planta" como avisos, no errores | Son recomendaciones: el herrero puede decidir otra cosa; los errores quedan para lo imposible (sin entrepiso, bajar hacia la pared del entrepiso, posición fuera del borde). |
+| 2026-10-13 | Migración: proyectos viejos abren con `escalera.activa = false`; colores con `completarColores` | No aparece una escalera que nadie pidió y no se pierden los colores al sumar capas nuevas. |
 
 ## Supuestos de obra (en `src/motor/constantes.js`)
 Piso del entrepiso a 2,30 m · merma de corte 3 mm · excedente de barras 1 % (editable) · placa OSB 2,44 × 1,22 + 10 % de recortes ·
-techo medido sobre la pendiente (sin aleros) · refuerzo de vano = dintel + 2 jambas (+ alféizar en ventanas).
+techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 cm, comodidad 60-65 cm · refuerzo de vano = dintel + 2 jambas (+ alféizar en ventanas).
 
 ## Glosario
 - **Antepecho**: altura desde el piso terminado hasta el borde inferior de la ventana (el alféizar).
@@ -68,6 +73,9 @@ techo medido sobre la pendiente (sin aleros) · refuerzo de vano = dintel + 2 ja
 - **Excedente de barras**: % que las barras comerciales traen de más sobre su largo nominal (1-2 %).
 - **Vigas de techo**: siguen la pendiente, de la pared baja a la alta. **Correas de techo**: van sobre las vigas,
   paralelas a la pared baja; su separación se mide sobre la pendiente.
+- **Huella**: profundidad de cada pisada. **Contrahuella**: altura de cada escalón.
+- **Regla de comodidad (Blondel)**: 2 contrahuellas + 1 huella entre 60 y 65 cm.
+- **Zanca**: viga inclinada que carga los escalones (acá una sola, central). **Descanso**: plataforma donde gira la escalera en L.
 - **Empalme**: unión de dos tramos cuando la pieza es más larga que la barra comercial.
 
 ## Historial relevante
@@ -81,4 +89,5 @@ techo medido sobre la pendiente (sin aleros) · refuerzo de vano = dintel + 2 ja
 - 2026-10-02 v1.4.0: "Nuevo" sin datos + botón "Ejemplo"; paneles visibles uno por uno en el 3D.
 - 2026-10-09 v1.5.0: seleccionar y eliminar piezas, ocultar partes con sus hierros, columnas cortadas en vanos.
 - 2026-10-09 v1.6.0: "Mis proyectos" (guardar, guardar como, abrir, duplicar, renombrar, borrar, respaldo).
+- 2026-10-13 v1.7.0: escaleras (recta o en L, al borde del entrepiso).
 - Nota: el elemento `id="flonnect-my-app"` que aparece en la página no es de la app: lo inyecta la extensión Flonnect (grabador de pantalla) de Chrome.

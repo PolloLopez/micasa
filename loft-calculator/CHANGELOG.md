@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.7.0] - 2026-10-13
+### Agregado
+- Escaleras (panel "Escalera"): llegan al borde libre del entrepiso y bajan hacia la pared elegida
+  (paralela al borde o perpendicular). Forma recta o en L con descanso (contrahuellas hasta el descanso y
+  hacia dónde baja el 2º tramo).
+- Medidas: ancho, huella, contrahuella objetivo y altura total (0 = automática, piso 2 + espesor del piso).
+  Todas las contrahuellas salen iguales; resumen con cantidad y medida de escalones y regla de comodidad
+  (2 contrahuellas + huella entre 60 y 65 cm). Avisos si es incómoda, empinada o se sale de la planta.
+- Estructura: zanca central por tramo, apoyos de escalón (2 ángulos o 1 recorte de caño central, editables),
+  columnas bajo la zanca y 1/2/4 columnas en el descanso. Todo se puede seleccionar y eliminar en el 3D.
+- Presupuesto: zanca y marco de descanso, apoyos, columnas de escalera, escalones de madera (u) y piso del descanso (m²).
+- Capas "Escalera" y "Escalones" con color propio y "Mostrar: Escalera".
+### Cambiado
+- Los proyectos y datos guardados con versiones anteriores se abren sin escalera.
+- Los colores guardados se conservan al agregar capas nuevas (antes se hubieran reseteado).
+
 ## [1.6.0] - 2026-10-09
 ### Agregado
 - "Mis proyectos": lista de proyectos guardados en el navegador. Guardar, Guardar como… (con el nombre que se
