@@ -80,7 +80,7 @@ describe('estructura de la grada (ejemplo)', () => {
   });
 
   it('tablones: asiento adelante y pie atrás en cada fila', () => {
-    expect(e.grada.tablones).toHaveLength(12);
+    expect(e.grada.tablones).toHaveLength(12 + 5); // asiento + pie en 6 filas + 5 respaldos (entre filas)
     const asiento = e.grada.tablones.find((t) => t.id === 'asiento:1');
     const pie = e.grada.tablones.find((t) => t.id === 'pie:1');
     expect(asiento.centro[2]).toBeGreaterThan(pie.centro[2]); // adelante = z mayor
@@ -110,9 +110,9 @@ describe('presupuesto de la grada', () => {
 
   it('solo los renglones de la grada', () => {
     expect(items.map((i) => i.id)).toEqual([
-      INSUMO.GRADA_ZANCA, INSUMO.GRADA_PARANTE, INSUMO.GRADA_APOYO, INSUMO.GRADA_VIGA, INSUMO.RIOSTRA,
-      INSUMO.GRADA_ASIENTO, INSUMO.GRADA_PIE,
-    ]);
+      INSUMO.GRADA_ZANCA, INSUMO.GRADA_PARANTE, INSUMO.GRADA_APOYO, INSUMO.GRADA_VIGA, INSUMO.GRADA_UNION, INSUMO.RIOSTRA,
+      INSUMO.GRADA_ASIENTO, INSUMO.GRADA_PIE, INSUMO.GRADA_RESPALDO,
+    ]); // sin bulones ni tornillos: la grada de ejemplo es de una pieza
   });
 
   it('tablones por metro: 6 filas x 6 m = 36 m de asiento y 36 m de pie', () => {
@@ -188,7 +188,7 @@ describe('tablones: separados, del mismo material o un solo tipo por fila', () =
 
   it('mismo material: los mismos dos tablones por fila, un solo renglón con los metros sumados', () => {
     const e = generarEstructura(conGrada({ tipoTablones: 'mismoMaterial' }), []);
-    expect(e.grada.tablones).toHaveLength(12); // igual que separados: asiento + pie en 6 filas
+    expect(e.grada.tablones.filter((t) => t.tipo !== 'respaldo')).toHaveLength(12); // igual que separados: asiento + pie en 6 filas
     expect(ids({ tipoTablones: 'mismoMaterial' })).not.toContain(INSUMO.GRADA_ASIENTO);
     const t = item({ tipoTablones: 'mismoMaterial' }, INSUMO.GRADA_TABLON);
     expect(t.cantidad).toBe(72); // 36 m de asiento + 36 m de pie
@@ -220,5 +220,73 @@ describe('tablones: separados, del mismo material o un solo tipo por fila', () =
     const m = migrarParams({ ...P, tipoProyecto: 'grada', grada: gradaV19 });
     expect(m.grada.tipoTablones).toBe('separados');
     expect(validarParametros(m)).toEqual({});
+  });
+});
+
+describe('unión de parantes, respaldo y grada desmontable', () => {
+  const items = (cambios) => calcularPresupuesto(generarEstructura(conGrada(cambios), []), CATALOGO_INICIAL).items;
+  const item = (cambios, id) => items(cambios).find((i) => i.id === id);
+
+  it('unión de parantes: un caño bajo por pórtico y uno a lo largo por línea de parantes', () => {
+    const e = generarEstructura(conGrada(), []);
+    const uniones = deTipo(e, 'grada-union');
+    expect(uniones.filter((u) => u.id.startsWith('grada-union:'))).toHaveLength(5); // 5 pórticos
+    expect(uniones.filter((u) => u.id.startsWith('grada-union-largo:'))).toHaveLength(7); // 7 líneas de parantes
+    uniones.forEach((u) => expect(u.desde[1]).toBeCloseTo(0.15));
+    expect(deTipo(generarEstructura(conGrada({ unionParantes: false }), []), 'grada-union')).toHaveLength(0);
+  });
+
+  it('respaldo: tabla parada arriba de cada contrahuella, del ancho elegido', () => {
+    const e = generarEstructura(conGrada({ anchoRespaldo: 0.2 }), []);
+    const r = e.grada.tablones.find((t) => t.id === 'respaldo:1');
+    expect(r.vertical).toBe(true);
+    expect(r.ancho).toBe(0.2);
+    expect(r.centro[1] + r.ancho / 2).toBeCloseTo(2 * 0.4 - ESPESOR_TABLON); // llega hasta la fila 2
+    expect(item({}, INSUMO.GRADA_RESPALDO).cantidad).toBe(5 * 6);
+  });
+
+  it('en 3 módulos: pórticos en las puntas de cada módulo, junta de 2 cm y bulones en cada unión', () => {
+    const e = generarEstructura(conGrada({ modulos: 3 }), []);
+    expect(e.grada.resumen.modulos).toBe(3);
+    expect(e.grada.resumen.largoModulo).toBeCloseTo((6 - 2 * 0.02) / 3);
+    // Cada módulo de ~2 m lleva 3 pórticos (2 vanos de ~1 m): 9 pórticos.
+    expect(deTipo(e, 'grada-zanca')).toHaveLength(9);
+    const xs = deTipo(e, 'grada-zanca').map((z) => z.desde[0]).sort((a, b) => a - b);
+    expect(xs[3] - xs[2]).toBeCloseTo(0.02); // los dos pórticos de la unión, separados por la junta
+    // Bulones: 2 uniones x 2 x (7 parantes + 1 zanca) = 32
+    expect(item({ modulos: 3 }, INSUMO.GRADA_BULON).cantidad).toBe(32);
+    // Vigas: cada módulo tiene las suyas.
+    expect(deTipo(e, 'grada-viga')).toHaveLength(12 * 3);
+  });
+
+  it('filas atornillables: 2 tornillos por tablón en cada pórtico', () => {
+    // 1 módulo, 5 pórticos; por fila asiento + pie (6 filas) + 5 respaldos = 17 tablones => 17 x 5 x 2
+    expect(item({ filasAtornillables: true }, INSUMO.GRADA_TORNILLO).cantidad).toBe(17 * 5 * 2);
+    expect(item({}, INSUMO.GRADA_TORNILLO)).toBeUndefined();
+  });
+
+  it('validación: unión debajo de la primera fila, respaldo y largo de módulo', () => {
+    expect(validarParametros(conGrada({ alturaUnion: 0.35 }))).toHaveProperty(['grada.alturaUnion']);
+    expect(validarParametros(conGrada({ anchoRespaldo: 0.5 }))).toHaveProperty(['grada.anchoRespaldo']);
+    expect(validarParametros(conGrada({ modulos: 7 }))).toHaveProperty(['grada.modulos']);
+    expect(validarParametros(conGrada({ modulos: 6 }))).toEqual({});
+  });
+
+  it('aviso: módulos sin riostras', () => {
+    expect(generarEstructura(conGrada({ modulos: 2, riostras: 'no' }), []).grada.resumen.avisos.join(' ')).toMatch(/módulos sin riostras/);
+  });
+});
+
+describe('caños comunes: grosor para el 3D a partir del perfil', () => {
+  it('lee caños en mm y ángulos en pulgadas', async () => {
+    const { seccionDesdePerfil, CANOS_COMUNES } = await import('./canos.js');
+    expect(seccionDesdePerfil('Caño estructural 60x40x2.0')).toBeCloseTo(0.06);
+    expect(seccionDesdePerfil('Caño estructural 100x100x2.0')).toBeCloseTo(0.1);
+    expect(seccionDesdePerfil('Ángulo 1 1/4" x 1/8"')).toBeCloseTo(0.03175);
+    expect(seccionDesdePerfil('Ángulo 1" x 1/8"')).toBeCloseTo(0.0254);
+    expect(seccionDesdePerfil('Perfil C 120x50x2.0')).toBeCloseTo(0.12);
+    expect(seccionDesdePerfil('lo que diga el herrero')).toBeNull();
+    expect(seccionDesdePerfil('')).toBeNull();
+    CANOS_COMUNES.forEach((c) => expect(seccionDesdePerfil(c)).not.toBeNull());
   });
 });

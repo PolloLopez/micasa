@@ -49,6 +49,10 @@ export const INSUMO = {
   GRADA_ASIENTO: 'gradaAsiento',
   GRADA_PIE: 'gradaPie',
   GRADA_TABLON: 'gradaTablon', // asiento y pie del mismo tablón, o tablón único
+  GRADA_UNION: 'gradaUnion', // caño bajo que une los parantes
+  GRADA_RESPALDO: 'gradaRespaldo', // tabla de respaldo sobre la contrahuella
+  GRADA_BULON: 'gradaBulon', // bulones para unir módulos
+  GRADA_TORNILLO: 'gradaTornillo', // tornillos de tablones (filas atornillables)
   // Montaje industrial
   MONTAJE_PATA: 'montajePata',
   MONTAJE_MARCO: 'montajeMarco',
@@ -92,6 +96,9 @@ export const LIMITES_GRADA = {
   anchoPie: { min: 0.15, max: 0.6 },
   anchoTablon: { min: 0.1, max: 0.6 },
   tablonesPorFila: { min: 1, max: 6, entero: true },
+  alturaUnion: { min: 0.05, max: 1 },
+  anchoRespaldo: { min: 0.08, max: 0.6 },
+  modulos: { min: 1, max: 20, entero: true },
 };
 
 // Límites de validación (ver motor/validacion.js).

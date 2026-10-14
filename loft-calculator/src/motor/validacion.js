@@ -119,6 +119,20 @@ function validarGrada(params, anotar) {
   Object.entries(LIMITES_GRADA).forEach(([campo, limites]) => anotar(`grada.${campo}`, revisarNumero(grada[campo], limites)));
   if (!['no', 'extremos', 'todos'].includes(grada.riostras)) anotar('grada.riostras', 'Elegí dónde van las riostras');
   if (!['separados', 'mismoMaterial', 'unico'].includes(grada.tipoTablones)) anotar('grada.tipoTablones', 'Elegí el tipo de tablones');
+  ['unionParantes', 'respaldo', 'filasAtornillables'].forEach((campo) => {
+    if (typeof grada[campo] !== 'boolean') anotar(`grada.${campo}`, 'Valor inválido');
+  });
+  // La unión de parantes va por debajo de la primera fila (si no, choca con el apoyo).
+  if (grada.unionParantes && grada.alturaUnion > grada.contrahuella - 0.1 + 1e-9) {
+    anotar('grada.alturaUnion', `La unión tiene que ir por debajo de la primera fila (hasta ${((grada.contrahuella - 0.1) * 100).toFixed(0)} cm)`);
+  }
+  if (grada.respaldo && grada.anchoRespaldo > grada.contrahuella + 1e-9) {
+    anotar('grada.anchoRespaldo', `El respaldo no puede ser más alto que la contrahuella (${(grada.contrahuella * 100).toFixed(0)} cm)`);
+  }
+  // Cada módulo tiene que tener por lo menos 1 m (si no, no se puede armar).
+  if (grada.largoFila / grada.modulos < 1 - 1e-9) {
+    anotar('grada.modulos', `Con ${grada.largoFila.toFixed(2)} m entran hasta ${Math.floor(grada.largoFila)} módulos (mínimo 1 m cada uno)`);
+  }
   if (grada.tipoTablones === 'unico') {
     // Los N tablones tienen que entrar en la profundidad de la fila.
     if (grada.tablonesPorFila * grada.anchoTablon > grada.huella + 1e-9) {

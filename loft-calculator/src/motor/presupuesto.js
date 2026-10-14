@@ -50,13 +50,17 @@ export const CATALOGO_FIJO = [
   { id: INSUMO.MONTAJE_CHAPA_MESA, categoria: 'unidad', nombre: 'Chapa para tapas de mesa', perfil: 'Chapa lisa 2 mm 2.44 x 1.22', unidad: 'chapas', largoBarra: null, precio: 65000 },
   { id: INSUMO.MONTAJE_MADERA, categoria: 'placa', nombre: 'Tapas de madera', perfil: 'Fenólico 18 mm', unidad: 'm²', largoBarra: null, precio: 25000 },
   { id: INSUMO.MONTAJE_SOLDADURA, categoria: 'metro', nombre: 'Soldadura de chapa', perfil: 'Cordón continuo', unidad: 'm', largoBarra: null, precio: 2500 },
+  { id: INSUMO.GRADA_UNION, categoria: 'perfil', nombre: 'Uniones de parantes', perfil: 'Caño estructural 40x40x1.6', unidad: 'barra', largoBarra: 6, precio: 15000 },
+  { id: INSUMO.GRADA_RESPALDO, categoria: 'metro', nombre: 'Tablón de respaldo', perfil: 'Madera 1" x 6"', unidad: 'm', largoBarra: null, precio: 5000 },
+  { id: INSUMO.GRADA_BULON, categoria: 'unidad', nombre: 'Bulones de unión de módulos', perfil: 'Bulón 3/8" x 2 1/2" c/tuerca y arandela', unidad: 'u', largoBarra: null, precio: 900 },
+  { id: INSUMO.GRADA_TORNILLO, categoria: 'unidad', nombre: 'Tornillos de tablones', perfil: 'Bulón carrocero 5/16" x 3"', unidad: 'u', largoBarra: null, precio: 600 },
   { id: INSUMO.GRADA_TABLON, categoria: 'metro', nombre: 'Tablones de grada', perfil: 'Madera 2" x 10"', unidad: 'm', largoBarra: null, precio: 8000 },
 ];
 
 /** Renglones que solo se usan en un proyecto de grada. */
 export const INSUMOS_GRADA = [
   INSUMO.GRADA_ZANCA, INSUMO.GRADA_PARANTE, INSUMO.GRADA_APOYO, INSUMO.GRADA_VIGA, INSUMO.GRADA_ASIENTO, INSUMO.GRADA_PIE,
-  INSUMO.GRADA_TABLON,
+  INSUMO.GRADA_TABLON, INSUMO.GRADA_UNION, INSUMO.GRADA_RESPALDO, INSUMO.GRADA_BULON, INSUMO.GRADA_TORNILLO,
 ];
 
 /** Renglones que solo se usan en un proyecto de montaje. */
@@ -234,6 +238,7 @@ function presupuestoGrada(grada, insumo, perfil) {
     perfil(INSUMO.GRADA_PARANTE, de('grada-parante')),
     perfil(INSUMO.GRADA_APOYO, de('grada-apoyo')),
     perfil(INSUMO.GRADA_VIGA, de('grada-viga')),
+    perfil(INSUMO.GRADA_UNION, de('grada-union')),
     perfil(INSUMO.RIOSTRA, de('riostra')),
   ];
   // Tablones: dos renglones si asiento y pie son distintos; uno solo si son el mismo tablón.
@@ -243,8 +248,17 @@ function presupuestoGrada(grada, insumo, perfil) {
       tablon(INSUMO.GRADA_PIE, ['pie'], `${filas} filas de ${largo} m`),
     );
   } else {
-    const porFila = grada.tablones.length / filas; // todas las filas llevan los mismos tablones
+    const porFila = grada.tablones.filter((t) => t.tipo !== 'respaldo').length / filas / grada.resumen.modulos; // por fila y por módulo
     items.push(tablon(INSUMO.GRADA_TABLON, ['asiento', 'pie', 'tablon'], `${porFila} por fila x ${filas} filas de ${largo} m`));
+  }
+  items.push(tablon(INSUMO.GRADA_RESPALDO, ['respaldo'], `${Math.max(filas - 1, 0)} contrahuellas de ${largo} m`));
+  // Fijaciones: solo aparecen si la grada es desmontable (módulos o filas atornillables).
+  const { bulonesModulos, tornillosTablones } = grada.fijaciones;
+  if (bulonesModulos > 0) {
+    items.push(itemSimple(insumo(INSUMO.GRADA_BULON), bulonesModulos, `${grada.resumen.modulos - 1} uniones entre módulos`));
+  }
+  if (tornillosTablones > 0) {
+    items.push(itemSimple(insumo(INSUMO.GRADA_TORNILLO), tornillosTablones, '2 por tablón en cada pórtico'));
   }
   return items;
 }

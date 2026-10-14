@@ -9,8 +9,49 @@ import { useId, useState } from 'react';
 import CampoNumero from './CampoNumero.jsx';
 import Tarjeta from './Tarjeta.jsx';
 import { TIPOS_TABLONES } from '../motor/grada.js';
+import { CANOS_COMUNES } from '../motor/canos.js';
+import { INSUMO } from '../motor/constantes.js';
 
-export default function PanelGrada({ params, resumen, unidad, cambiar }) {
+/** Partes de la grada a las que se les elige el caño (cada una es un renglón del presupuesto). */
+const PARTES_CANO = [
+  [INSUMO.GRADA_ZANCA, 'Zancas'],
+  [INSUMO.GRADA_PARANTE, 'Parantes'],
+  [INSUMO.GRADA_APOYO, 'Apoyos de fila'],
+  [INSUMO.GRADA_VIGA, 'Vigas longitudinales'],
+  [INSUMO.GRADA_UNION, 'Uniones de parantes'],
+  [INSUMO.RIOSTRA, 'Riostras'],
+];
+
+/**
+ * Elegir el caño de una parte de una lista de caños comunes. Escribe el perfil del
+ * renglón del catálogo (el mismo texto que se edita en el presupuesto); si ese texto
+ * no está en la lista, aparece como "Otro".
+ */
+function SelectorCano({ etiqueta, perfil, onElegir }) {
+  const id = useId();
+  const enLista = CANOS_COMUNES.includes(perfil);
+  return (
+    <div className="group">
+      <label htmlFor={id}>{etiqueta}</label>
+      <select id={id} value={enLista ? perfil : ''} onChange={(e) => e.target.value && onElegir(e.target.value)}>
+        {!enLista && <option value="">Otro: {perfil || 'sin definir'}</option>}
+        {CANOS_COMUNES.map((c) => <option key={c} value={c}>{c.replace('Caño estructural ', 'Caño ')}</option>)}
+      </select>
+    </div>
+  );
+}
+
+/** Casilla (sí / no) que cambia un campo de la grada. */
+function Casilla({ etiqueta, valor, onCambio }) {
+  return (
+    <label className="capa casilla-campo">
+      <input type="checkbox" checked={valor} aria-label={etiqueta} onChange={(e) => onCambio(e.target.checked)} />
+      {etiqueta}
+    </label>
+  );
+}
+
+export default function PanelGrada({ params, resumen, unidad, cambiar, catalogo, onCambiarInsumo }) {
   const grada = params.grada;
   const idRiostras = useId();
   const idTablones = useId();
@@ -54,6 +95,8 @@ export default function PanelGrada({ params, resumen, unidad, cambiar }) {
         {!tablonUnico && medida('anchoPie', 'Tablón de pie (ancho)')}
         {tablonUnico && medida('anchoTablon', 'Ancho de cada tablón')}
         {tablonUnico && entero('tablonesPorFila', 'Tablones por fila')}
+        <Casilla etiqueta="Respaldo (tabla sobre la contrahuella)" valor={grada.respaldo} onCambio={cambiar('grada.respaldo')} />
+        {grada.respaldo && medida('anchoRespaldo', 'Ancho del respaldo')}
       </div>
       <p className="nota">
         {grada.tipoTablones === 'separados' && 'Asiento y pie son tablones distintos: cada uno tiene su renglón y su precio en el presupuesto.'}
@@ -75,13 +118,35 @@ export default function PanelGrada({ params, resumen, unidad, cambiar }) {
           </select>
           {errorRiostras && <small className="error" role="alert">{errorRiostras}</small>}
         </div>
+        <Casilla etiqueta="Unir los parantes (caño bajo)" valor={grada.unionParantes} onCambio={cambiar('grada.unionParantes')} />
+        {grada.unionParantes && medida('alturaUnion', 'Altura de la unión')}
       </div>
+
+      <h3 className="subtitulo">Caños</h3>
+      <div className="grid-params">
+        {PARTES_CANO.map(([id, etiqueta]) => (
+          <SelectorCano key={id} etiqueta={etiqueta} perfil={catalogo.find((i) => i.id === id)?.perfil ?? ''}
+            onElegir={(texto) => onCambiarInsumo(id, 'perfil', texto)} />
+        ))}
+      </div>
+      <p className="nota">El caño elegido se ve en el presupuesto (y ahí se puede escribir otro) y cambia el grosor en el 3D.</p>
+
+      <h3 className="subtitulo">Desmontable</h3>
+      <div className="grid-params">
+        {entero('modulos', 'Módulos a lo largo (1 = una pieza)')}
+        <Casilla etiqueta="Filas atornillables" valor={grada.filasAtornillables} onCambio={cambiar('grada.filasAtornillables')} />
+      </div>
+      <p className="nota">
+        En módulos, cada bloque lleva sus pórticos en las puntas y se atornilla al de al lado (bulones en los parantes y
+        la zanca). Con filas atornillables, los tablones se fijan con tornillos para poder sacarlos.
+      </p>
 
       {resumen && (
         <div className="resumen-escalera" role="status">
           <strong>{resumen.filas} filas · {resumen.alturaTotal.toFixed(2)} m de alto · {resumen.profundidad.toFixed(2)} m de profundidad</strong>
           <br />
           {resumen.porticos} pórticos · capacidad aprox. {resumen.capacidad} personas (45 cm por persona)
+          {resumen.modulos > 1 && <> · {resumen.modulos} módulos de {resumen.largoModulo.toFixed(2)} m</>}
           {resumen.avisos.length === 0 && <span className="ok"> ✓</span>}
           {resumen.avisos.map((a) => <p key={a} className="error">{a}</p>)}
         </div>

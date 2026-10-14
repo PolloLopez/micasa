@@ -22,6 +22,8 @@ import { CAPAS, CAPAS_GRADA, CAPAS_MONTAJE, CAPAS_SOLO_PROYECTOS_SUELTOS } from 
 import { posicionAbertura, listarPiezas } from './motor/estructura.js';
 import { geometriaLados, nombreLado } from './motor/geometria.js';
 import { describirPieza } from './descripcionPiezas.js';
+import { seccionDesdePerfil } from './motor/canos.js';
+import { INSUMO } from './motor/constantes.js';
 import EditorPieza from './componentes/EditorPieza.jsx';
 
 // Capa y sección (grosor en el 3D) de cada tipo de pieza.
@@ -49,10 +51,31 @@ const ESTILO_PIEZA = {
   'grada-apoyo': { capa: 'grada', seccion: 0.06 },
   'grada-parante': { capa: 'grada', seccion: 0.07 },
   'grada-viga': { capa: 'grada', seccion: 0.06 },
+  'grada-union': { capa: 'grada', seccion: 0.04 },
   'mont-pata': { capa: 'montaje', seccion: 0.06 },
   'mont-marco': { capa: 'montaje', seccion: 0.05 },
   'mont-travesano': { capa: 'montaje', seccion: 0.045 },
 };
+
+/**
+ * Renglón del catálogo de cada tipo de pieza de escalera, grada y montaje: el
+ * 3D dibuja la barra con el grosor del caño elegido ahí (si se puede leer).
+ * Las piezas del loft mantienen su grosor fijo (para que el modelo se lea claro).
+ */
+const INSUMO_POR_TIPO = {
+  zanca: INSUMO.ZANCA, 'apoyo-escalon': INSUMO.APOYO_ESCALON, 'columna-escalera': INSUMO.COLUMNA_ESCALERA,
+  riostra: INSUMO.RIOSTRA,
+  'grada-zanca': INSUMO.GRADA_ZANCA, 'grada-parante': INSUMO.GRADA_PARANTE, 'grada-apoyo': INSUMO.GRADA_APOYO,
+  'grada-viga': INSUMO.GRADA_VIGA, 'grada-union': INSUMO.GRADA_UNION,
+  'mont-pata': INSUMO.MONTAJE_PATA, 'mont-marco': INSUMO.MONTAJE_MARCO, 'mont-travesano': INSUMO.MONTAJE_MARCO,
+};
+
+/** Grosor con el que se dibuja una pieza: el de su caño (catálogo) o el fijo de su tipo. */
+function seccionDe(p, catalogo, estilo) {
+  const id = p.insumo ?? INSUMO_POR_TIPO[p.tipo];
+  const perfil = id && catalogo?.find((i) => i.id === id)?.perfil;
+  return seccionDesdePerfil(perfil) ?? estilo.seccion;
+}
 
 /** Capa de una pieza: la de su tipo, salvo las riostras de la grada. */
 const capaDe = (p) => {
@@ -177,7 +200,7 @@ function cartel(texto, esFrente) {
 
 /** Arma todas las mallas del modelo dentro de `grupo`. */
 function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
-  const { params, estructura: e, aberturas, capas, gruposVisibles, seleccionada } = opciones;
+  const { params, estructura: e, aberturas, capas, gruposVisibles, seleccionada, catalogo } = opciones;
   const { elevacion } = params;
   const grupoVisible = (g) => gruposVisibles[g] !== false; // 'interior' no tiene interruptor
 
@@ -187,7 +210,8 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
     const capa = capaDe(p);
     if (!estilo || !capas[capa] || !p.grupos.every(grupoVisible)) return;
     const material = p.id === seleccionada ? materiales.seleccion : materiales[capa];
-    const malla = barra(p, p.id === seleccionada ? estilo.seccion * 1.6 : estilo.seccion, material);
+    const seccion = seccionDe(p, catalogo, estilo);
+    const malla = barra(p, p.id === seleccionada ? seccion * 1.6 : seccion, material);
     malla.userData.idPieza = p.id;
     grupo.add(malla);
   });
@@ -208,8 +232,11 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
   if (e.grada) {
     if (capas.escalones && grupoVisible('grada')) {
       e.grada.tablones.forEach((t) => {
-        const malla = new THREE.Mesh(new THREE.BoxGeometry(t.largo, ESPESOR_ESCALON, t.ancho), materiales.escalones);
-        malla.position.set(t.centro[0], t.centro[1] + ESPESOR_ESCALON / 2, t.centro[2]);
+        // Acostados (asiento, pie) o parados (respaldo sobre la contrahuella, 2,5 cm de espesor).
+        const malla = t.vertical
+          ? new THREE.Mesh(new THREE.BoxGeometry(t.largo, t.ancho, 0.025), materiales.escalones)
+          : new THREE.Mesh(new THREE.BoxGeometry(t.largo, ESPESOR_ESCALON, t.ancho), materiales.escalones);
+        malla.position.set(t.centro[0], t.vertical ? t.centro[1] : t.centro[1] + ESPESOR_ESCALON / 2, t.centro[2]);
         grupo.add(malla);
       });
     }
@@ -492,14 +519,14 @@ export default function LoftCanvas({
       interior: materialPanel(p.colorInterior ?? p.color, opacidades.paneles, THREE.BackSide),
     }));
     dibujarModelo(visor.grupo, visor.materiales, visor.materialesPanel,
-      { params, estructura, aberturas, capas, gruposVisibles, seleccionada });
+      { params, estructura, aberturas, capas, gruposVisibles, seleccionada, catalogo });
     // Se reacomoda la cámara si cambia el frente o el tipo de proyecto (construcción / grada).
     const encuadre = `${params.tipoProyecto}:${params.ladoFrente}`;
     if (visor.frente !== encuadre) {
       mirarAlFrente(visor.camara, visor.controles, medidasVista(params, estructura));
       visor.frente = encuadre;
     }
-  }, [params, estructura, aberturas, capas, paneles, gruposVisibles, seleccionada, opacidades.paneles]);
+  }, [params, estructura, aberturas, capas, paneles, gruposVisibles, seleccionada, opacidades.paneles, catalogo]);
 
   // 3b) OPACIDAD de OSB, hierros y paneles genéricos: se cambia el material (no se redibuja).
   useEffect(() => {

@@ -446,7 +446,8 @@ export default function App() {
           </figure>
           {/* GRADA (proyecto propio): solo su tarjeta, las piezas y el presupuesto. */}
           {esGrada && (
-            <PanelGrada params={params} resumen={estructura.grada.resumen} unidad={unidad} cambiar={cambiar} />
+            <PanelGrada params={params} resumen={estructura.grada.resumen} unidad={unidad} cambiar={cambiar}
+              catalogo={catalogo} onCambiarInsumo={cambiarInsumo} />
           )}
           {/* MONTAJE INDUSTRIAL: componentes (mesas, tanques). */}
           {esMontaje && (
