@@ -34,13 +34,13 @@ export function crearArchivoProyecto({ nombre, params, aberturas, catalogo, colo
   };
 }
 
-/** Nombre de archivo seguro: "micasa-loft-mercedes-2026-10-01.json". */
+/** Nombre de archivo seguro: "pollo-loft-mercedes-2026-10-01.json". */
 export function nombreDeArchivo(nombre, fecha = new Date()) {
   const limpio = (nombre || 'proyecto')
     .normalize('NFD').replace(/[̀-ͯ]/g, '') // saca tildes
     .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
     .slice(0, 40) || 'proyecto';
-  return `micasa-${limpio}-${fecha.toISOString().slice(0, 10)}.json`;
+  return `pollo-${limpio}-${fecha.toISOString().slice(0, 10)}.json`;
 }
 
 /**
@@ -56,7 +56,7 @@ export function leerArchivoProyecto(texto) {
   }
 
   if (!datos || datos.formato !== FORMATO) {
-    return { ok: false, error: 'El archivo no es un proyecto de micasa.' };
+    return { ok: false, error: 'El archivo no es un proyecto de Pollo Calculator.' };
   }
   if (!VERSIONES_QUE_SE_ABREN.includes(datos.version)) {
     return { ok: false, error: `El proyecto es de otra versión (${datos.version}); esta app abre las versiones ${VERSIONES_QUE_SE_ABREN.join(' y ')}.` };

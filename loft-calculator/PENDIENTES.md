@@ -53,7 +53,8 @@
 - [ ] Pieza editada con otro perfil: dibujarla con la sección/color de ese perfil en el 3D (hoy solo cambia el presupuesto).
 - [ ] Orientación real (norte) en el 3D para estudiar asoleamiento de aberturas.
 
-### Requiere backend (Construcción Modular / Django o Firebase)
+### Requiere backend (Construcción Modular / Django o Firebase) — a futuro
+- [ ] Cuentas por herrero (usuario y contraseña): cada uno ve sus planos desde cualquier compu o celular.
 - [ ] Proyectos en la nube: verlos desde cualquier compu/celular y compartirlos con el herrero por link.
 - [ ] Catálogo compartido: el herrero carga sus precios una sola vez ("plantilla de catálogo").
 

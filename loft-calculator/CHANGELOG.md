@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.13.1] - 2026-10-14
+### Cambiado
+- La app se llama **Pollo Calculator** (título de la pestaña, encabezado y README). Los archivos descargados empiezan
+  con "pollo-". La dirección, el formato de los archivos (.json) y lo guardado en el navegador no cambian.
+
 ## [1.13.0] - 2026-10-14
 ### Agregado
 - Grada: **unión de parantes** con un caño bajo en cada pórtico (de adelante hacia atrás) y a lo largo (uniendo los

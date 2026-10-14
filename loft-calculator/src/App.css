@@ -26,7 +26,7 @@ header {
   padding: 10px 20px; background: var(--tarjeta); border-bottom: 1px solid var(--borde);
   display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center;
 }
-header h1 { font-size: 1.15rem; color: var(--acento); margin: 0; }
+header h1 { font-size: 1.15rem; color: var(--acento); margin: 0; white-space: nowrap; }
 .titulo { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .nombre-proyecto {
   font: inherit; font-weight: 600; color: var(--texto); background: transparent; min-width: 0; width: 260px;

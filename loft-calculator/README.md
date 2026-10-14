@@ -1,8 +1,11 @@
-# micasa · Calculadora de loft
+# Pollo Calculator · Calculadora de estructuras
 
-Calculadora paramétrica de un loft steel frame: modelo 3D (paredes por panel, entrepiso y techo a una agua), optimización de cortes y presupuesto de materiales.
+Calculadora paramétrica para herrería: lofts steel frame (paredes por panel, entrepiso, escaleras y techo a una agua),
+gradas para espectadores y montajes industriales (mesas, tanques). Modelo 3D, optimización de cortes y presupuesto de
+materiales.
 
-**Producción:** https://pollolopez.github.io/micasa/
+**Producción:** https://pollolopez.github.io/micasa/ (el repositorio de GitHub sigue llamándose `micasa` y la app vive
+en la carpeta `loft-calculator/`).
 
 ## Uso local
 

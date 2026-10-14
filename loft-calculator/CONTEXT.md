@@ -1,4 +1,4 @@
-# CONTEXT — micasa / loft-calculator
+# CONTEXT — Pollo Calculator (repo micasa / loft-calculator)
 
 ## Qué es
 Calculadora web del loft modular (steel frame) que estoy construyendo. Es el caso de validación del proyecto
@@ -70,6 +70,7 @@ valores inválidos.
 | 2026-10-14 | Foto del 3D para el PDF tomada en `beforeprint` (render + toDataURL en el mismo momento) | Sirve también para Ctrl+P; sin preserveDrawingBuffer (que hace más lento el 3D). |
 | 2026-10-14 | Caño elegido = texto del perfil del catálogo (`motor/canos.js`); el 3D lee la medida de ese texto | Una sola fuente de verdad: la lista solo ayuda a escribirlo. Si el herrero escribe otro perfil, sigue andando ("Otro"). El loft mantiene grosores fijos para que el modelo se lea claro. |
 | 2026-10-14 | Grada desmontable: módulos con pórticos propios en las puntas y junta de 2 cm; ids iguales a los de antes si hay un solo módulo | Así cada módulo se arma y se sostiene solo; no se rompen las ediciones guardadas de gradas de una pieza. Bulones: 2 por parante y 2 por zanca en cada unión (supuesto a validar). |
+| 2026-10-14 | Nombre visible "Pollo Calculator"; se mantienen repo `micasa`, carpeta `loft-calculator`, `base: /micasa/`, formato `micasa-proyecto` y prefijo `micasa.v2.` | Cambiar el repo o la base cambia la dirección y "Mis proyectos" (localStorage es por dirección): los herreros perderían lo guardado. Se renombra solo lo que se ve. |
 
 ## Supuestos de obra (en `src/motor/constantes.js`)
 Piso del entrepiso a 2,30 m · merma de corte 3 mm · excedente de barras 1 % (editable; depende del proveedor) · placa OSB 2,44 × 1,22 + 10 % de recortes ·
@@ -119,4 +120,5 @@ techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 
 - 2026-10-14 v1.11.0: montaje industrial (mesas / bastidores y tanques cilíndricos).
 - 2026-10-14 v1.12.0: opacidad, paneles con color interior/exterior, compartir por link, 3D en el PDF.
 - 2026-10-14 v1.13.0: grada con unión de parantes, respaldo, caños a elección y módulos desmontables.
+- 2026-10-14 v1.13.1: la app pasa a llamarse Pollo Calculator.
 - Nota: el elemento `id="flonnect-my-app"` que aparece en la página no es de la app: lo inyecta la extensión Flonnect (grabador de pantalla) de Chrome.

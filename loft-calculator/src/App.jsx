@@ -350,7 +350,7 @@ export default function App() {
   };
 
   const exportarRespaldo = () => {
-    const nombre = `micasa-respaldo-${new Date().toISOString().slice(0, 10)}.json`;
+    const nombre = `pollo-calculator-respaldo-${new Date().toISOString().slice(0, 10)}.json`;
     descargarJson(crearRespaldo(biblioteca), nombre);
     setAviso({ tipo: 'ok', texto: `Respaldo de ${biblioteca.length} proyectos descargado como ${nombre}` });
   };
@@ -386,7 +386,7 @@ export default function App() {
     <div className="app">
       <header>
         <div className="titulo">
-          <h1>micasa</h1>
+          <h1>Pollo Calculator</h1>
           <input className="nombre-proyecto" value={nombreProyecto} aria-label="Nombre del proyecto"
             onChange={(e) => setNombreProyecto(e.target.value)} placeholder="Nombre del proyecto…" />
           <span className={`estado-guardado${cambiosSinGuardar ? ' sin-guardar' : ''}`} role="status">
