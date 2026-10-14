@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.11.0] - 2026-10-14
+### Agregado
+- Proyecto de **montaje industrial** ("+ Montaje nuevo" y "Ejemplo: montaje" en Mis proyectos): varios componentes
+  paramétricos en un mismo proyecto, cada uno con nombre, posición (x, z) y giro (0° o 90°).
+  - **Mesa / bastidor**: largo, ancho, alto, patas en las esquinas e intermedias, marco superior e inferior,
+    travesaños bajo la tapa, riostras en cruz (cabeceras o todos los lados) y tapa de chapa, madera o sin tapa.
+  - **Tanque cilíndrico**: vertical (sobre patas) u horizontal (sobre cunas), diámetro, largo, espesor de chapa y
+    tapas planas. Calcula chapas (anillos de envolvente + tapas), metros de soldadura, peso de chapa y litros.
+- Presupuesto del montaje: patas y cunas, marcos y travesaños, riostras, chapa para tanques, chapa para tapas de mesa,
+  tapas de madera (m²) y soldadura de chapa (m).
+- 3D: tanques de chapa semitransparentes, tapas de mesa, capas "Estructura" y "Chapa", y "Mostrar" por componente.
+
 ## [1.10.0] - 2026-10-14
 ### Agregado
 - Grada: campo "Tablones" con tres opciones: asiento y pie separados (como antes), asiento y pie del mismo tablón

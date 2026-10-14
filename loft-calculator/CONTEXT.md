@@ -61,6 +61,9 @@ valores inválidos.
 | 2026-10-14 | Pórtico de grada = zanca + apoyo por fila + parantes en las líneas de fila; riostras en cruz solo atrás | Es el esquema típico de tribuna metálica: la zanca triangula cada pórtico y las cruces de atrás frenan el movimiento lateral. Lo demás queda a criterio del herrero. |
 | 2026-10-14 | Riostra = tipo de pieza compartido (`cruz()` en `segmentos.js`) para escalera y grada | Un solo helper y un solo renglón de presupuesto. |
 | 2026-10-14 | Tablones de grada: `tipoTablones` separados / mismoMaterial / unico | Pedido de Leandro: que asiento y pie puedan ser el mismo tablón. "Mismo material" junta los metros en un renglón; "único" reparte N tablones iguales en la fila (tribuna simple). |
+| 2026-10-14 | Montaje industrial como tipo de proyecto con lista de componentes paramétricos (`motor/montaje.js`) | Pedido de Leandro: cintas, mesas, tanques, cilindros. Se arrancó por componentes con medidas (no croquis) porque reusa todo el motor y deja la base (chapa, varios equipos juntos) para el croquis en tablet. Prototipo de lo que después va a Construcción Modular. |
+| 2026-10-14 | Componentes en coordenadas locales + giro 0°/90° + posición; ids "c<n>:<pieza>" | Cada componente se arma solo y se ubica después; los ids con el componente permiten eliminar y editar piezas igual que en el resto. |
+| 2026-10-14 | Chapa de tanques por anillos del ancho de la chapa (1,22) x chapas por vuelta; tapas en cuadrados de D x D | Cálculo simple y conservador que entiende cualquier calderero. Si D > 1,22 la tapa va en partes (aviso). |
 
 ## Supuestos de obra (en `src/motor/constantes.js`)
 Piso del entrepiso a 2,30 m · merma de corte 3 mm · excedente de barras 1 % (editable; depende del proveedor) · placa OSB 2,44 × 1,22 + 10 % de recortes ·
@@ -87,6 +90,7 @@ techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 
 - **Regla de comodidad (Blondel)**: 2 contrahuellas + 1 huella entre 60 y 65 cm.
 - **Paso libre**: altura para pasar debajo de un tramo o del entrepiso sin golpearse la cabeza (mínimo 2 m).
 - **Grada**: filas escalonadas para sentarse. **Pórtico**: cada "costilla" de la grada (zanca + apoyos + parantes). **Parante**: vertical que baja al piso. **Riostra en cruz**: dos diagonales entre parantes (cruz de San Andrés) para que no se mueva de costado.
+- **Montaje**: proyecto con varios equipos (componentes). **Envolvente**: la chapa curvada que forma el cilindro de un tanque; se arma en **anillos** (virolas). **Cuna**: apoyo de un tanque horizontal (dos patas y un travesaño).
 - **Pieza editada**: hierro recortado, movido o cotizado con otro perfil a mano desde el 3D.
 - **Zanca**: viga inclinada que carga los escalones (acá una sola, central). **Descanso**: plataforma donde gira la escalera en L.
 - **Empalme**: unión de dos tramos cuando la pieza es más larga que la barra comercial.
@@ -106,4 +110,5 @@ techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 
 - 2026-10-14 v1.8.0: escalera en U y 3/4 de vuelta, edición de piezas, etiquetas de paredes.
 - 2026-10-14 v1.9.0: gradas para espectadores; parantes y riostras en la escalera.
 - 2026-10-14 v1.10.0: tablones de grada separados, del mismo material o únicos por fila.
+- 2026-10-14 v1.11.0: montaje industrial (mesas / bastidores y tanques cilíndricos).
 - Nota: el elemento `id="flonnect-my-app"` que aparece en la página no es de la app: lo inyecta la extensión Flonnect (grabador de pantalla) de Chrome.

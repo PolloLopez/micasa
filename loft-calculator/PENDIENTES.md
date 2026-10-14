@@ -1,6 +1,6 @@
 # PENDIENTES — loft-calculator
 
-Última limpieza: 2026-10-14 (v1.10.0). Espejo en Trello: tablero "Desarrollo", tarjetas `[CALC]`.
+Última limpieza: 2026-10-14 (v1.11.0). Espejo en Trello: tablero "Desarrollo", tarjetas `[CALC]`.
 
 ## 🔴 Antes de considerar el presupuesto "de obra" (validar con el herrero)
 - [ ] Supuestos de `constantes.js` y del modelo: ubicación de columnas, empalmes, perfil de cada renglón
@@ -30,6 +30,15 @@
 - [ ] Escalera o pasillo de acceso entre filas; riostras también en el sentido de adelante hacia atrás.
 - [ ] Validar con el herrero los perfiles de la grada y la carga por pórtico.
 
+### Montaje industrial
+- [ ] Cinta transportadora (estructura, rodillos de carga y retorno, tambores, largo de banda).
+- [ ] Cilindro / cono / tolva sueltos de chapa, con su desarrollo.
+- [ ] Croquis en la tablet (dibujar o calcar una foto, acotar líneas, repetir el bastidor a lo largo).
+- [ ] Chapa por espesor: hoy hay un solo renglón para tanques y uno para tapas; si hay tanques de distinto espesor,
+      separar renglones. Tamaño de chapa comercial editable (hoy 2,44 x 1,22).
+- [ ] Anclajes, bridas, bocas y accesorios de tanques; giro libre (no solo 0° / 90°).
+- [ ] Más adelante: que la IA lea la foto de un croquis (necesita servidor, Construcción Modular).
+
 ### Presupuesto
 - [ ] Bulonería, soldadura, pintura, fijaciones de paneles, babetas/zinguería y mano de obra.
 - [ ] Exportar PDF propio (hoy es "Imprimir → Guardar como PDF" del navegador).
@@ -53,6 +62,9 @@
 - [ ] Piezas eliminadas/editadas se reconocen por su posición: si una medida las mueve, el cambio deja de
       aplicarse (se avisa en la lista). Evaluar si hace falta algo más robusto.
 - [ ] Migrar el motor a Django cuando arranque Construcción Modular (los tests sirven de especificación).
+
+## ✅ Resuelto en v1.11.0 (2026-10-14)
+- [x] Montaje industrial con varios componentes: mesa / bastidor y tanque cilíndrico (chapas, soldadura, peso, litros).
 
 ## ✅ Resuelto en v1.10.0 (2026-10-14)
 - [x] Grada: asiento y pie pueden ser el mismo tablón, o un solo tipo de tablón por fila.

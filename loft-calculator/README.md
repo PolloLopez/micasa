@@ -37,6 +37,7 @@ src/
     segmentos.js        helpers de piezas (compartidos)
     edicionPiezas.js    recortar / mover / cambiar perfil de una pieza
     grada.js            grada para espectadores (proyecto de tipo grada)
+    montaje.js          montaje industrial: mesas / bastidores y tanques
     estructura.js       piezas como segmentos 3D (fuente única para 3D y presupuesto)
     optimizadorCortes.js
     presupuesto.js
