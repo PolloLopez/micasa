@@ -51,6 +51,7 @@ valores inválidos.
 | 2026-10-13 | Contrahuellas todas iguales (altura / cantidad redondeada al objetivo) y altura automática = piso 2 + 8 cm | Escalones desparejos son peligrosos; el usuario da un objetivo y el sistema reparte. |
 | 2026-10-13 | Regla de comodidad (Blondel) y "se sale de la planta" como avisos, no errores | Son recomendaciones: el herrero puede decidir otra cosa; los errores quedan para lo imposible (sin entrepiso, bajar hacia la pared del entrepiso, posición fuera del borde). |
 | 2026-10-13 | Migración: proyectos viejos abren con `escalera.activa = false`; colores con `completarColores` | No aparece una escalera que nadie pidió y no se pierden los colores al sumar capas nuevas. |
+| 2026-10-13 | Tarjetas plegables con CSS (contenido sigue montado) y estado por navegador (`micasa.v2.tarjeta.<id>`, `micasa.v2.ver3D`) | Plegar no pierde lo que se está escribiendo ni el estado interno de los campos; al imprimir sale todo. Es preferencia de pantalla, por eso no viaja con el proyecto. |
 
 ## Supuestos de obra (en `src/motor/constantes.js`)
 Piso del entrepiso a 2,30 m · merma de corte 3 mm · excedente de barras 1 % (editable) · placa OSB 2,44 × 1,22 + 10 % de recortes ·

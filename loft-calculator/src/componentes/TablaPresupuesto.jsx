@@ -4,6 +4,7 @@
 // ==========================================================
 
 import CampoNumero from './CampoNumero.jsx';
+import Tarjeta from './Tarjeta.jsx';
 
 const pesos = (n) => n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
 
@@ -52,8 +53,7 @@ export default function TablaPresupuesto({ items, total, catalogo, onCambiarInsu
   const perfiles = items.filter((i) => i.cortes);
 
   return (
-    <section className="card presupuesto">
-      <h2>Presupuesto de materiales</h2>
+    <Tarjeta id="presupuesto" titulo="Presupuesto de materiales" className="presupuesto">
       <div className="grid-params">
         <CampoNumero etiqueta="Excedente de las barras" sufijo="%" decimales={1}
           valor={excedenteBarras} onCambio={onCambiarExcedente} />
@@ -110,6 +110,6 @@ export default function TablaPresupuesto({ items, total, catalogo, onCambiarInsu
 
       <h3 className="subtitulo">Diagrama de cortes</h3>
       {perfiles.filter((i) => i.cantidad > 0).map((item) => <DiagramaCortes key={item.id} item={item} />)}
-    </section>
+    </Tarjeta>
   );
 }

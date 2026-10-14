@@ -31,6 +31,7 @@
 - [ ] Escalera en U (dos descansos o descanso de media vuelta) y escalones compensados.
 
 ## 🟢 Técnico
+- [ ] En el celular el encabezado ocupa ~3 renglones: evaluar un menú compacto.
 - [ ] Ayuda (tooltip) en campos poco obvios: "Dist. a esquina", "Sep. verticales" (glosario en CONTEXT.md).
 - [ ] Bundle de ~800 KB (Three.js completo): evaluar carga diferida del visor.
 - [ ] Tests de componentes (testing-library) para CampoNumero, SelectorLado y PanelAberturas.
@@ -39,6 +40,7 @@
 ## ✅ Resuelto en v1.7.0 (2026-10-13)
 - [x] Diseño de escaleras: recta o en L con descanso, al borde del entrepiso; ancho, huella, contrahuella,
       altura total; zanca central, apoyos de ángulo o recorte de caño, columnas de soporte; presupuesto y 3D.
+- [x] Tarjetas del panel y leyenda de capas plegables; ocultar el 3D para cargar datos (sobre todo en celular).
 
 ## ✅ Resuelto en v1.6.0 (2026-10-09)
 - [x] "Mis proyectos": lista de proyectos guardados en el navegador con Guardar, Guardar como… (con nombre),

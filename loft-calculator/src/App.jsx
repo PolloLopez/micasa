@@ -35,6 +35,7 @@ import {
 import MisProyectos from './componentes/MisProyectos.jsx';
 import { describirPieza } from './descripcionPiezas.js';
 import './App.css';
+import Tarjeta from './componentes/Tarjeta.jsx';
 
 // --- Validadores para descartar datos viejos de localStorage ---
 const paramsGuardadosValidos = (p) =>
@@ -76,6 +77,8 @@ export default function App() {
   const [biblioteca, setBiblioteca] = useEstadoGuardado('biblioteca', [], esBibliotecaValida, undefined, () =>
     setAviso({ tipo: 'error', texto: 'No se pudo guardar en Mis proyectos: el navegador no tiene lugar. Descargá el proyecto como archivo (.json).' }));
   const [idProyectoActual, setIdProyectoActual] = useEstadoGuardado('proyectoActual', null, (v) => v === null || typeof v === 'string');
+  // Ver u ocultar el 3D: oculto, el panel de datos usa todo el ancho (cómodo para cargar en el celular).
+  const [ver3D, setVer3D] = useEstadoGuardado('ver3D', true, (v) => typeof v === 'boolean');
   const [mostrarProyectos, setMostrarProyectos] = useState(false);
 
   // --- Cálculos (solo se rehacen si cambian sus datos) ---
@@ -301,6 +304,9 @@ export default function App() {
           <button className="btn-sec" onClick={() => setMostrarProyectos(true)}>Mis proyectos ({biblioteca.length})</button>
           <button className="btn-print" onClick={guardar} disabled={entradaActual && !cambiosSinGuardar}>Guardar</button>
           <button className="btn-sec" onClick={guardarComo}>Guardar como…</button>
+          <button className="btn-sec" onClick={() => setVer3D((v) => !v)} aria-pressed={!ver3D}>
+            {ver3D ? 'Ocultar 3D' : 'Ver 3D'}
+          </button>
           <label htmlFor="unidad">Unidad</label>
           <select id="unidad" value={unidad} onChange={(e) => setUnidad(e.target.value)}>
             <option value="m">Metros</option>
@@ -328,7 +334,7 @@ export default function App() {
         </div>
       )}
 
-      <main className="layout">
+      <main className={`layout${ver3D ? '' : ' sin-visor'}`}>
         <div className="columna-visor">
           <LoftCanvas params={params} estructura={estructura} aberturas={aberturasValidas} paneles={paneles}
             colores={colores} onCambiarColor={cambiarColor} onEliminarPieza={eliminarPieza} />
@@ -336,8 +342,7 @@ export default function App() {
 
         <div className="columna-panel">
           {/* PLANTA */}
-          <section className="card">
-            <h2>Planta y altura</h2>
+          <Tarjeta id="planta" titulo="Planta y altura">
             <div className="grid-params">
               {medida('largo', 'Largo (lados A y C)')}
               {medida('ancho', 'Ancho (lados B y D)')}
@@ -346,11 +351,10 @@ export default function App() {
               <SelectorLado etiqueta="¿Qué lado es el frente?" valor={params.ladoFrente} params={params}
                 onCambio={cambiar('ladoFrente')} ocultarFrente />
             </div>
-          </section>
+          </Tarjeta>
 
           {/* PAREDES (PANELES) */}
-          <section className="card">
-            <h2>Paredes</h2>
+          <Tarjeta id="paredes" titulo="Paredes">
             <p className="nota">
               <strong>Verticales</strong>: separación de columnas a lo largo de la pared (eje X).{' '}
               <strong>Horizontales</strong>: separación en altura (eje Y).
@@ -371,11 +375,10 @@ export default function App() {
                 </div>
               );
             })}
-          </section>
+          </Tarjeta>
 
           {/* PISOS */}
-          <section className="card">
-            <h2>Pisos</h2>
+          <Tarjeta id="pisos" titulo="Pisos">
             <h3 className="subtitulo">Planta baja</h3>
             <div className="grid-params">
               {medida('separacionPiso', 'Sep. estructura de piso')}
@@ -393,15 +396,14 @@ export default function App() {
               La estructura de cada piso cruza la luz más corta. Las transversales unen la estructura para que
               no arquee; su separación la define el herrero según el panel.
             </p>
-          </section>
+          </Tarjeta>
 
           {/* ESCALERA */}
           <PanelEscalera params={params} resumen={estructura.escalera?.resumen} unidad={unidad}
             cambiar={cambiar} cambiarEscalera={(cambios) => cambiar('escalera')({ ...params.escalera, ...cambios })} />
 
           {/* TECHO */}
-          <section className="card">
-            <h2>Techo a una agua</h2>
+          <Tarjeta id="techo" titulo="Techo a una agua">
             <div className="grid-params">
               <SelectorLado etiqueta="Cae hacia" valor={params.caidaTecho} params={params}
                 onCambio={cambiar('caidaTecho')} />
@@ -415,22 +417,20 @@ export default function App() {
               Lado bajo: {params.altura.toFixed(2)} m ({nombreLado(params.caidaTecho, params.ladoFrente).toLowerCase()}) ·
               lado alto: {alturaMaxima(params).toFixed(2)} m
             </p>
-          </section>
+          </Tarjeta>
 
           {/* FUNDACIÓN */}
-          <section className="card">
-            <h2>Fundación</h2>
+          <Tarjeta id="fundacion" titulo="Fundación">
             <div className="grid-params">
               <CampoNumero etiqueta="Filas de pilotines (largo)" sufijo="u" decimales={0}
                 valor={params.filasPilotines} onCambio={cambiar('filasPilotines')} />
               <CampoNumero etiqueta="Pilotines por fila (ancho)" sufijo="u" decimales={0}
                 valor={params.pilotinesPorFila} onCambio={cambiar('pilotinesPorFila')} />
             </div>
-          </section>
+          </Tarjeta>
 
           {/* PIEZAS ELIMINADAS */}
-          <section className="card">
-            <h2>Piezas eliminadas ({params.piezasEliminadas.length})</h2>
+          <Tarjeta id="eliminadas" titulo={`Piezas eliminadas (${params.piezasEliminadas.length})`}>
             <p className="nota">
               Hacé clic en un hierro del 3D y tocá "Eliminar pieza". Sale del dibujo y del presupuesto.
               Cada pieza se reconoce por su posición: si cambiás una medida y la pieza se mueve, vuelve a aparecer.
@@ -454,7 +454,7 @@ export default function App() {
                 <button className="btn-sec no-print" onClick={restaurarTodas}>Restaurar todas</button>
               </>
             )}
-          </section>
+          </Tarjeta>
 
           <PanelAberturas aberturas={aberturasValidas} params={params} unidad={unidad}
             onAgregar={agregarAbertura} onActualizar={actualizarAbertura} onQuitar={quitarAbertura} />

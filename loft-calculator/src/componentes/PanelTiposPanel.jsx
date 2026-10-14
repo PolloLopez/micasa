@@ -7,6 +7,7 @@
 // ==========================================================
 
 import CampoNumero from './CampoNumero.jsx';
+import Tarjeta from './Tarjeta.jsx';
 
 const validarPrecio = (actualizar) => (v) => {
   if (v < 0) return 'No puede ser negativo';
@@ -16,8 +17,7 @@ const validarPrecio = (actualizar) => (v) => {
 
 export default function PanelTiposPanel({ paneles, usosDePanel, onCambiar, onAgregar, onQuitar }) {
   return (
-    <section className="card">
-      <h2>Tipos de panel</h2>
+    <Tarjeta id="tipos-panel" titulo="Tipos de panel">
       <p className="nota">Cada pared y el techo eligen su tipo de panel. El presupuesto suma los m² por tipo.</p>
       <ul className="opening-list">
         {paneles.map((panel) => {
@@ -49,6 +49,6 @@ export default function PanelTiposPanel({ paneles, usosDePanel, onCambiar, onAgr
         })}
       </ul>
       <button className="btn-add no-print" onClick={onAgregar}>+ Agregar tipo de panel</button>
-    </section>
+    </Tarjeta>
   );
 }

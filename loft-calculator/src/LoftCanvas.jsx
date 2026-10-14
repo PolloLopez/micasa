@@ -365,6 +365,9 @@ export default function LoftCanvas({ params, estructura, aberturas, paneles, col
     if (visorRef.current) visorRef.current.controles.autoRotate = autoRotar;
   }, [autoRotar]);
 
+  // Leyenda de capas plegable: en pantallas chicas arranca plegada para no tapar el modelo.
+  const [capasAbiertas, setCapasAbiertas] = useState(() => !window.matchMedia?.('(max-width: 1000px)').matches);
+
   const alternarCapa = (clave) => setCapas((prev) => ({ ...prev, [clave]: !prev[clave] }));
   const alternarGrupo = (clave) => setGruposVisibles((prev) => ({ ...prev, [clave]: !prev[clave] }));
 
@@ -406,7 +409,12 @@ export default function LoftCanvas({ params, estructura, aberturas, paneles, col
         </div>
       )}
 
-      <div className="capas no-print" role="group" aria-label="Capas visibles">
+      <div className={`capas no-print${capasAbiertas ? '' : ' plegada'}`} role="group" aria-label="Capas visibles">
+        <button type="button" className="btn-ctrl btn-capas" aria-expanded={capasAbiertas}
+          onClick={() => setCapasAbiertas((v) => !v)}>
+          {capasAbiertas ? '▾ Capas' : '▸ Capas y colores'}
+        </button>
+        {capasAbiertas && (<>
         {Object.entries(CAPAS)
           .filter(([, { colorPorTipo }]) => !colorPorTipo)
           .map(([clave, { nombre }]) => (
@@ -435,6 +443,7 @@ export default function LoftCanvas({ params, estructura, aberturas, paneles, col
             </span>
           ))}
         </span>
+        </>)}
       </div>
     </div>
   );

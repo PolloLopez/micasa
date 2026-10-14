@@ -7,6 +7,7 @@
 import { useId, useState } from 'react';
 import CampoNumero from './CampoNumero.jsx';
 import SelectorLado from './SelectorLado.jsx';
+import Tarjeta from './Tarjeta.jsx';
 
 /** Select simple con etiqueta y mensaje de error. */
 function CampoOpciones({ etiqueta, valor, opciones, onCambio }) {
@@ -42,8 +43,7 @@ export default function PanelEscalera({ params, resumen, unidad, cambiar, cambia
       : { tipoApoyo: 'angulos', apoyosPorEscalon: 2, largoApoyo: Number((esc.ancho - 0.04).toFixed(2)) });
 
   return (
-    <section className="card">
-      <h2>Escalera</h2>
+    <Tarjeta id="escalera" titulo="Escalera">
       <label className="capa">
         <input type="checkbox" checked={esc.activa} aria-label="Lleva escalera"
           onChange={(e) => setErrorActiva(cambiar('escalera.activa')(e.target.checked))} />
@@ -104,6 +104,6 @@ export default function PanelEscalera({ params, resumen, unidad, cambiar, cambia
           </p>
         </>
       )}
-    </section>
+    </Tarjeta>
   );
 }

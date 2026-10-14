@@ -12,6 +12,9 @@
   columnas bajo la zanca y 1/2/4 columnas en el descanso. Todo se puede seleccionar y eliminar en el 3D.
 - Presupuesto: zanca y marco de descanso, apoyos, columnas de escalera, escalones de madera (u) y piso del descanso (m²).
 - Capas "Escalera" y "Escalones" con color propio y "Mostrar: Escalera".
+- Tarjetas del panel plegables (tocando el título); cada una recuerda si estaba abierta. Al imprimir sale todo.
+- Leyenda de capas del 3D plegable ("Capas y colores"); en el celular arranca plegada.
+- Botón "Ocultar 3D / Ver 3D": sin el visor, el panel de datos usa todo el ancho (cómodo para cargar en el celular).
 ### Cambiado
 - Los proyectos y datos guardados con versiones anteriores se abren sin escalera.
 - Los colores guardados se conservan al agregar capas nuevas (antes se hubieran reseteado).

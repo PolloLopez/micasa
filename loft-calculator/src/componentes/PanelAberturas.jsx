@@ -9,6 +9,7 @@ import CampoNumero from './CampoNumero.jsx';
 import SelectorLado from './SelectorLado.jsx';
 import { validarAbertura } from '../motor/validacion.js';
 import { nombreLado } from '../motor/geometria.js';
+import Tarjeta from './Tarjeta.jsx';
 
 /** Abertura nueva: ventana en el frente, a 0,50 m de la esquina izquierda. */
 function aberturaNueva(ladoFrente) {
@@ -87,8 +88,7 @@ export default function PanelAberturas({ aberturas, params, unidad, onAgregar, o
   };
 
   return (
-    <section className="card">
-      <h2>Aberturas</h2>
+    <Tarjeta id="aberturas" titulo="Aberturas">
       <p className="nota">
         Las medidas se toman mirando la pared desde afuera. <strong>Antepecho</strong>: altura desde el piso
         hasta el borde inferior de la ventana.
@@ -102,6 +102,6 @@ export default function PanelAberturas({ aberturas, params, unidad, onAgregar, o
       </ul>
       {error && <p className="error" role="alert">{error}</p>}
       <button className="btn-add no-print" onClick={agregar}>+ Agregar abertura</button>
-    </section>
+    </Tarjeta>
   );
 }

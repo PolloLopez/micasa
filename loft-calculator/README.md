@@ -41,7 +41,7 @@ src/
     motor.test.js
   proyecto/         guardar/abrir proyecto (.json) con validación + tests
   capas.js          capas del 3D y sus colores por defecto
-  componentes/      piezas de UI reutilizables
+  componentes/      piezas de UI reutilizables (Tarjeta plegable, CampoNumero, paneles…)
   hooks/            useEstadoGuardado (localStorage)
   LoftCanvas.jsx    visor 3D (Three.js)
   App.jsx           estado y armado de la pantalla
