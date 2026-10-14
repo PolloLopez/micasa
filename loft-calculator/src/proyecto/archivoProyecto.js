@@ -14,7 +14,7 @@
 
 import { validarParametros, validarAbertura, validarPanelesUsados } from '../motor/validacion.js';
 import { migrarParams, normalizarCatalogo } from '../motor/migracion.js';
-import { coloresValidos, COLORES_INICIALES } from '../capas.js';
+import { completarColores } from '../capas.js';
 
 export const FORMATO = 'micasa-proyecto';
 export const VERSION_FORMATO = 3; // v3 (app 1.3): transversales por piso, tipos de panel, excedente
@@ -90,7 +90,7 @@ export function leerArchivoProyecto(texto) {
       params,
       aberturas: datos.aberturas,
       catalogo,
-      colores: coloresValidos(datos.colores) ? datos.colores : COLORES_INICIALES,
+      colores: completarColores(datos.colores),
     },
   };
 }

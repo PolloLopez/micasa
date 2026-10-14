@@ -13,11 +13,14 @@
 //     los paneles pasan a ser "tipos de panel" con color.
 // v1.4 -> v1.5:
 //   - nuevo: piezasEliminadas (IDs de piezas quitadas a mano).
+// v1.6 -> v1.7:
+//   - nuevo: escalera (se agrega desactivada).
 // ==========================================================
 
 import { LADOS, INSUMO } from './constantes.js';
 import { PARAMS_INICIALES } from './parametrosIniciales.js';
 import { CATALOGO_FIJO, TIPOS_PANEL_INICIALES } from './presupuesto.js';
+import { ESCALERA_INICIAL } from './escalera.js';
 
 const esObjeto = (x) => x !== null && typeof x === 'object' && !Array.isArray(x);
 const esColor = (c) => typeof c === 'string' && /^#[0-9a-fA-F]{6}$/.test(c);
@@ -36,6 +39,8 @@ export function migrarParams(params) {
   nuevos.excedenteBarras ??= PARAMS_INICIALES.excedenteBarras;
   nuevos.panelTecho ??= PARAMS_INICIALES.panelTecho;
   nuevos.piezasEliminadas ??= []; // v1.5
+  // v1.7: los proyectos viejos se abren SIN escalera (no se agrega nada que no tenían).
+  nuevos.escalera = esObjeto(nuevos.escalera) ? { ...ESCALERA_INICIAL, activa: false, ...nuevos.escalera } : { ...ESCALERA_INICIAL, activa: false };
 
   if (esObjeto(nuevos.paredes)) {
     nuevos.paredes = Object.fromEntries(

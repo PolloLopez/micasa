@@ -27,6 +27,12 @@ export const CATALOGO_FIJO = [
   { id: INSUMO.CORREA_TECHO, categoria: 'perfil', nombre: 'Correas de techo', perfil: 'Perfil C 80x40x1.6', unidad: 'barra', largoBarra: 6, precio: 22000 },
   { id: INSUMO.OSB, categoria: 'placa', nombre: 'Placas OSB', perfil: 'OSB 18 mm 2.44x1.22', unidad: 'placa', largoBarra: null, precio: 28000 },
   { id: INSUMO.PILOTIN, categoria: 'unidad', nombre: 'Pilotines', perfil: 'Pilotín de hormigón', unidad: 'u', largoBarra: null, precio: 15000 },
+  // Escalera
+  { id: INSUMO.ZANCA, categoria: 'perfil', nombre: 'Zanca y marco de descanso', perfil: 'Caño estructural 120x60x2.0', unidad: 'barra', largoBarra: 6, precio: 42000 },
+  { id: INSUMO.APOYO_ESCALON, categoria: 'perfil', nombre: 'Apoyos de escalón', perfil: 'Ángulo 1 1/2" x 3/16"', unidad: 'barra', largoBarra: 6, precio: 18000 },
+  { id: INSUMO.COLUMNA_ESCALERA, categoria: 'perfil', nombre: 'Columnas de escalera', perfil: 'Caño estructural 80x80x2.0', unidad: 'barra', largoBarra: 6, precio: 30000 },
+  { id: INSUMO.ESCALON, categoria: 'unidad', nombre: 'Escalones de madera', perfil: 'Tablón 2" (ancho x huella)', unidad: 'u', largoBarra: null, precio: 20000 },
+  { id: INSUMO.PISO_DESCANSO, categoria: 'placa', nombre: 'Piso del descanso', perfil: 'Madera 2"', unidad: 'm²', largoBarra: null, precio: 60000 },
 ];
 
 /** Tipos de panel iniciales: uno para paredes y otro para el techo. */
@@ -120,6 +126,22 @@ export function calcularPresupuesto(estructura, catalogo, { excedenteBarras = 0 
   });
 
   items.push(itemSimple(insumo(INSUMO.PILOTIN), e.pilotines.length, 'grilla de fundación'));
+
+  // Escalera (si no hay, los renglones quedan en 0 con "no lleva").
+  const escalera = e.escalera;
+  const piezasEsc = (...tipos) => (escalera?.piezas ?? []).filter((p) => tipos.includes(p.tipo));
+  items.push(
+    perfil(INSUMO.ZANCA, piezasEsc('zanca', 'marco-descanso')),
+    perfil(INSUMO.APOYO_ESCALON, piezasEsc('apoyo-escalon')),
+    perfil(INSUMO.COLUMNA_ESCALERA, piezasEsc('columna-escalera'))
+  );
+  const pisadas = escalera?.escalones.length ?? 0;
+  items.push(itemSimple(insumo(INSUMO.ESCALON), pisadas,
+    pisadas ? `${pisadas} pisadas de ${(escalera.resumen.huella * 100).toFixed(0)} cm` : 'no lleva'));
+  const m2Descanso = escalera?.descanso?.superficie ?? 0;
+  // Redondeo hacia arriba al cm² sin arrastrar el error de coma flotante (0,8 x 0,8 = 0,6400000000000001).
+  items.push(itemSimple(insumo(INSUMO.PISO_DESCANSO), m2Descanso > 0 ? Math.ceil(m2Descanso * 100 - 1e-9) / 100 : 0,
+    m2Descanso ? `${m2Descanso.toFixed(2)} m²` : 'no lleva'));
 
   items.forEach((item) => {
     item.subtotal = item.cantidad * (item.precio || 0);

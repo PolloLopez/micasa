@@ -15,6 +15,7 @@ import CampoNumero from './componentes/CampoNumero.jsx';
 import SelectorLado from './componentes/SelectorLado.jsx';
 import PanelAberturas from './componentes/PanelAberturas.jsx';
 import PanelTiposPanel from './componentes/PanelTiposPanel.jsx';
+import PanelEscalera from './componentes/PanelEscalera.jsx';
 import TablaPresupuesto from './componentes/TablaPresupuesto.jsx';
 import { useEstadoGuardado } from './hooks/useEstadoGuardado.js';
 import { validarParametros, validarAbertura } from './motor/validacion.js';
@@ -24,7 +25,7 @@ import { migrarParams, normalizarCatalogo } from './motor/migracion.js';
 import { PARAMS_INICIALES, ABERTURAS_INICIALES } from './motor/parametrosIniciales.js';
 import { LADOS } from './motor/constantes.js';
 import { nombreLado, alturasPared, geometriaLados, alturaMaxima } from './motor/geometria.js';
-import { COLORES_INICIALES, coloresValidos } from './capas.js';
+import { COLORES_INICIALES, coloresValidos, completarColores } from './capas.js';
 import { crearArchivoProyecto, leerArchivoProyecto, nombreDeArchivo } from './proyecto/archivoProyecto.js';
 import { proyectoVacio, proyectoEjemplo } from './proyecto/proyectosBase.js';
 import {
@@ -68,7 +69,7 @@ export default function App() {
   const [aberturas, setAberturas] = useEstadoGuardado('aberturas', ABERTURAS_INICIALES, aberturasGuardadasValidas);
   const [catalogo, setCatalogo] = useEstadoGuardado('catalogo', CATALOGO_INICIAL, catalogoGuardadoValido, normalizarCatalogo);
   const params = useMemo(() => conPanelesExistentes(paramsGuardados, catalogo), [paramsGuardados, catalogo]);
-  const [colores, setColores] = useEstadoGuardado('colores', COLORES_INICIALES, coloresValidos);
+  const [colores, setColores] = useEstadoGuardado('colores', COLORES_INICIALES, coloresValidos, completarColores);
   const [nombreProyecto, setNombreProyecto] = useEstadoGuardado('nombre', 'Loft', (n) => typeof n === 'string');
   const [aviso, setAviso] = useState(null); // { tipo: 'ok' | 'error', texto }
   // "Mis proyectos": lista guardada en el navegador y cuál está abierto (null = sin guardar).
@@ -393,6 +394,10 @@ export default function App() {
               no arquee; su separación la define el herrero según el panel.
             </p>
           </section>
+
+          {/* ESCALERA */}
+          <PanelEscalera params={params} resumen={estructura.escalera?.resumen} unidad={unidad}
+            cambiar={cambiar} cambiarEscalera={(cambios) => cambiar('escalera')({ ...params.escalera, ...cambios })} />
 
           {/* TECHO */}
           <section className="card">

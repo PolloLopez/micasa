@@ -39,7 +39,13 @@ const ESTILO_PIEZA = {
   horizontal: { capa: 'correas', seccion: 0.04 },
   'viga-techo': { capa: 'techo', seccion: 0.1 },
   'correa-techo': { capa: 'techo', seccion: 0.05 },
+  zanca: { capa: 'escalera', seccion: 0.12 },
+  'marco-descanso': { capa: 'escalera', seccion: 0.1 },
+  'apoyo-escalon': { capa: 'escalera', seccion: 0.04 },
+  'columna-escalera': { capa: 'escalera', seccion: 0.08 },
 };
+const ESPESOR_ESCALON = 0.05; // madera de 2"
+
 
 const COLOR_SELECCION = '#facc15';
 const MOVIMIENTO_MAXIMO_CLIC = 5; // px: si el mouse se movió más, fue un arrastre (orbitar)
@@ -131,6 +137,21 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
     grupo.add(malla);
   });
 
+  // Escalones y piso del descanso (madera): cajas finas orientadas según el tramo.
+  if (e.escalera && capas.escalones && grupoVisible('escalera')) {
+    const tabla = ({ centro, direccion, ancho, largo }) => {
+      const malla = new THREE.Mesh(new THREE.BoxGeometry(ancho, ESPESOR_ESCALON, largo), materiales.escalones);
+      malla.position.set(centro[0], centro[1] + ESPESOR_ESCALON / 2, centro[2]);
+      malla.rotation.y = Math.atan2(direccion[0], direccion[1]); // el largo (z local) va a lo largo del tramo
+      grupo.add(malla);
+    };
+    e.escalera.escalones.forEach((s) => tabla({ ...s, largo: s.huella }));
+    if (e.escalera.descanso) {
+      const d = e.escalera.descanso;
+      tabla({ centro: d.centro, direccion: d.direccion, ancho: d.lado, largo: d.lado });
+    }
+  }
+
   if (capas.pilotines) {
     e.pilotines.forEach(({ x, z }) => {
       const p = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, elevacion || 0.01, 16), materiales.pilotines);
@@ -218,7 +239,7 @@ export default function LoftCanvas({ params, estructura, aberturas, paneles, col
   const [autoRotar, setAutoRotar] = useState(false);
   const [seleccionada, setSeleccionada] = useState(null); // id de la pieza seleccionada
   // Partes visibles: cada pared, el techo y los pisos (con sus hierros).
-  const [gruposVisibles, setGruposVisibles] = useState({ A: true, B: true, C: true, D: true, techo: true, piso: true, piso2: true });
+  const [gruposVisibles, setGruposVisibles] = useState({ A: true, B: true, C: true, D: true, techo: true, piso: true, piso2: true, escalera: true });
   const [capas, setCapas] = useState(() =>
     Object.fromEntries(Object.keys(CAPAS).map((clave) => [clave, true]))
   );
@@ -354,6 +375,7 @@ export default function LoftCanvas({ params, estructura, aberturas, paneles, col
     { clave: 'techo', nombre: 'Techo' },
     { clave: 'piso', nombre: 'Piso' },
     { clave: 'piso2', nombre: 'Piso 2' },
+    ...(estructura?.escalera ? [{ clave: 'escalera', nombre: 'Escalera' }] : []),
   ];
 
   // La pieza seleccionada puede desaparecer (se eliminó o cambió una medida).

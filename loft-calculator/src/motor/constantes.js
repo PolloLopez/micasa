@@ -35,6 +35,11 @@ export const INSUMO = {
   CORREA_TECHO: 'correaTecho',
   OSB: 'osb',
   PILOTIN: 'pilotin',
+  ZANCA: 'zanca',
+  APOYO_ESCALON: 'apoyoEscalon',
+  COLUMNA_ESCALERA: 'columnaEscalera',
+  ESCALON: 'escalon',
+  PISO_DESCANSO: 'pisoDescanso',
 };
 
 // Límites de validación (ver motor/validacion.js).
@@ -63,4 +68,17 @@ export const LIMITES = {
 export const LIMITES_PARED = {
   separacionVerticales: { min: 0.3, max: 10 },
   separacionHorizontales: { min: 0.2, max: 2 },
+};
+
+// Límites de la escalera (ver motor/escalera.js).
+export const LIMITES_ESCALERA = {
+  posicion: { min: 0, max: 30 },
+  ancho: { min: 0.6, max: 1.5 },
+  huella: { min: 0.2, max: 0.4 },
+  contrahuellaObjetivo: { min: 0.12, max: 0.22 },
+  alturaTotal: { min: 1, max: 6, opcional: true }, // 0 = automática
+  escalonesHastaDescanso: { min: 2, max: 40, entero: true },
+  apoyosPorEscalon: { min: 1, max: 3, entero: true },
+  largoApoyo: { min: 0.1, max: 1.5 },
+  apoyosIntermedios: { min: 0, max: 3, entero: true },
 };

@@ -19,6 +19,8 @@ export const CAPAS = {
   osb: { nombre: 'OSB', color: '#d97706' },
   paneles: { nombre: 'Paneles', color: '#10b981', colorPorTipo: true }, // color: el de cada tipo de panel
   aberturas: { nombre: 'Aberturas', color: '#38bdf8' },
+  escalera: { nombre: 'Escalera', color: '#e11d48' }, // hierros de la escalera
+  escalones: { nombre: 'Escalones', color: '#b45309' }, // madera
 };
 
 /** Colores por defecto: { capa: '#rrggbb' }. */
@@ -32,3 +34,15 @@ export const esColorValido = (c) => typeof c === 'string' && /^#[0-9a-fA-F]{6}$/
 /** Valida un objeto de colores guardado: debe tener todas las capas. */
 export const coloresValidos = (colores) =>
   colores && typeof colores === 'object' && Object.keys(CAPAS).every((clave) => esColorValido(colores[clave]));
+
+/**
+ * Completa un objeto de colores guardado: conserva los válidos y usa el de
+ * fábrica para los que falten (por ejemplo, capas nuevas de una versión
+ * posterior). Así nadie pierde sus colores al actualizar la app.
+ */
+export function completarColores(colores) {
+  const guardados = colores && typeof colores === 'object' ? colores : {};
+  return Object.fromEntries(
+    Object.keys(CAPAS).map((clave) => [clave, esColorValido(guardados[clave]) ? guardados[clave] : COLORES_INICIALES[clave]])
+  );
+}

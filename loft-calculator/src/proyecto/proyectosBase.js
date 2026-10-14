@@ -13,6 +13,7 @@
 import { PARAMS_INICIALES, ABERTURAS_INICIALES } from '../motor/parametrosIniciales.js';
 import { CATALOGO_FIJO, CATALOGO_INICIAL } from '../motor/presupuesto.js';
 import { COLORES_INICIALES } from '../capas.js';
+import { ESCALERA_INICIAL } from '../motor/escalera.js';
 
 const ID_PANEL_GENERICO = 'panel';
 
@@ -43,6 +44,7 @@ export function proyectoVacio() {
       filasPilotines: 2,
       pilotinesPorFila: 2,
       piezasEliminadas: [],
+      escalera: { ...ESCALERA_INICIAL, activa: false }, // sin escalera (no hay entrepiso)
     },
     aberturas: [],
     catalogo: [

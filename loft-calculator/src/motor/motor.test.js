@@ -113,7 +113,9 @@ describe('validarParametros', () => {
     // Apoyado en D (eje X), la profundidad disponible es el largo (7,50).
     expect(validarParametros({ ...P, anchoEntrepiso: 5 })).toEqual({});
     // Apoyado en A (eje Z), la disponible es el ancho (4,50).
-    expect(validarParametros({ ...P, ladoEntrepiso: 'A', anchoEntrepiso: 5 })).toHaveProperty('anchoEntrepiso');
+    // (sin escalera: la del ejemplo baja hacia A y chocaría con un entrepiso apoyado en A)
+    const sinEscalera = { ...P, escalera: { ...P.escalera, activa: false } };
+    expect(validarParametros({ ...sinEscalera, ladoEntrepiso: 'A', anchoEntrepiso: 5 })).toHaveProperty('anchoEntrepiso');
   });
 });
 

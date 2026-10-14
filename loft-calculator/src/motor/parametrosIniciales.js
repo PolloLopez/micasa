@@ -3,6 +3,8 @@
 // Los usan la app (estado inicial / "Restablecer") y los tests.
 // ==========================================================
 
+import { ESCALERA_INICIAL } from './escalera.js';
+
 /** Configuración de una pared (panel). */
 export const PARED_INICIAL = {
   separacionVerticales: 2.5, // columnas a lo largo de la pared (eje X)
@@ -50,6 +52,9 @@ export const PARAMS_INICIALES = {
 
   // Piezas que el usuario eliminó a mano (IDs de motor/estructura.js)
   piezasEliminadas: [],
+
+  // Escalera al borde del entrepiso (ver motor/escalera.js)
+  escalera: { ...ESCALERA_INICIAL },
 };
 
 export const ABERTURAS_INICIALES = [

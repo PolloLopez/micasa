@@ -22,6 +22,8 @@ import {
   geometriaLados, alturaEn, alturasPared, puntoSobreLado, luzTecho, ladoOpuesto,
 } from './geometria.js';
 import { inicioAbertura } from './validacion.js';
+import { cm, pieza, haciaAdentro } from './segmentos.js';
+import { generarEscalera } from './escalera.js';
 
 const EPSILON = 0.01; // 1 cm: margen para no duplicar piezas en bordes
 const LARGO_MINIMO = 0.05; // piezas más cortas que 5 cm no se fabrican
@@ -44,22 +46,13 @@ export const NOMBRE_TIPO_PIEZA = {
   dintel: 'Dintel',
   jamba: 'Jamba',
   alfeizar: 'Alféizar',
+  zanca: 'Zanca de escalera',
+  'marco-descanso': 'Marco del descanso',
+  'apoyo-escalon': 'Apoyo de escalón',
+  'columna-escalera': 'Columna de escalera',
 };
 
 // ---------------- Utilidades ----------------
-
-const cm = (metros) => Math.round(metros * 100);
-
-/** Pieza lineal entre dos puntos 3D. */
-function pieza(id, tipo, grupos, desde, hasta) {
-  const largo = Math.hypot(hasta[0] - desde[0], hasta[1] - desde[1], hasta[2] - desde[2]);
-  return { id, tipo, grupos, desde, hasta, largo: Number(largo.toFixed(4)) };
-}
-
-/** Dirección "hacia adentro" de la planta desde un lado (perpendicular a la pared). */
-function haciaAdentro(geoLado) {
-  return [geoLado.direccion[1], -geoLado.direccion[0]];
-}
 
 /** Distancia de un punto (x, z) a lo largo de una pared, desde su esquina izquierda. */
 function distanciaSobreLado(geo, x, z) {
@@ -440,6 +433,7 @@ export function listarPiezas(e) {
     ...e.piso.tirantes, ...e.piso.transversales,
     ...e.piso2.tirantes, ...e.piso2.transversales,
     ...e.correas, ...e.techo.vigas, ...e.techo.correas,
+    ...(e.escalera?.piezas ?? []),
   ];
 }
 
@@ -460,6 +454,7 @@ function quitarEliminadas(e, idsEliminados) {
     piso2: { tirantes: quedan(e.piso2.tirantes), transversales: quedan(e.piso2.transversales) },
     correas: quedan(e.correas),
     techo: { ...e.techo, vigas: quedan(e.techo.vigas), correas: quedan(e.techo.correas) },
+    escalera: e.escalera ? { ...e.escalera, piezas: quedan(e.escalera.piezas) } : null,
     eliminadasEncontradas: encontradas,
   };
 }
@@ -489,6 +484,7 @@ export function generarEstructura(params, aberturas) {
       : { tirantes: [], transversales: [] },
     correas: generarCorreasPared(params, lados),
     techo,
+    escalera: params.escalera?.activa && entrepiso ? generarEscalera(params, lados, entrepiso) : null,
     paredes,
     entrepiso,
     superficies: {
