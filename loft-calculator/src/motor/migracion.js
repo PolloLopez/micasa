@@ -22,6 +22,8 @@
 // v1.8 -> v1.9:
 //   - nuevo: tipoProyecto ('construccion' | 'grada') y datos de la grada.
 //   - escalera.riostras (cruces entre parantes), desactivada.
+// v1.11 -> v1.12:
+//   - tipos de panel: colorInterior (cara de adentro); los viejos toman el gris claro de fábrica.
 // v1.10 -> v1.11:
 //   - nuevo: montaje industrial (componentes); los proyectos viejos traen el de ejemplo, sin usarlo.
 // ==========================================================
@@ -129,6 +131,8 @@ export function normalizarCatalogo(catalogo) {
         largoBarra: null,
         precio: esPrecio(p.precio) ? p.precio : base.precio,
         color: esColor(p.color) ? p.color : base.color,
+        // v1.12: color de la cara interior (antes un solo color).
+        colorInterior: esColor(p.colorInterior) ? p.colorInterior : base.colorInterior,
       };
     });
 

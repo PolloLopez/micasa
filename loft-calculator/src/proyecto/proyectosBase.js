@@ -57,7 +57,7 @@ export function proyectoVacio() {
     aberturas: [],
     catalogo: [
       ...CATALOGO_FIJO.map((insumo) => ({ ...insumo, perfil: '', precio: 0 })),
-      { id: ID_PANEL_GENERICO, categoria: 'panel', nombre: 'Panel', perfil: '', unidad: 'm²', largoBarra: null, precio: 0, color: '#10b981' },
+      { id: ID_PANEL_GENERICO, categoria: 'panel', nombre: 'Panel', perfil: '', unidad: 'm²', largoBarra: null, precio: 0, color: '#10b981', colorInterior: '#e5e7eb' },
     ],
     colores: { ...COLORES_INICIALES },
   };

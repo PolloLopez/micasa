@@ -67,8 +67,9 @@ export const INSUMOS_MONTAJE = [
 
 /** Tipos de panel iniciales: uno para paredes y otro para el techo. */
 export const TIPOS_PANEL_INICIALES = [
-  { id: 'panelMuros', categoria: 'panel', nombre: 'Panel de pared', perfil: 'Panel PUR 50 mm', unidad: 'm²', largoBarra: null, precio: 35000, color: '#10b981' },
-  { id: 'panelTecho', categoria: 'panel', nombre: 'Panel de techo', perfil: 'Panel PUR techo 50 mm', unidad: 'm²', largoBarra: null, precio: 38000, color: '#14b8a6' },
+  // color = cara exterior; colorInterior = cara de adentro (los paneles PUR suelen ser blancos por dentro).
+  { id: 'panelMuros', categoria: 'panel', nombre: 'Panel de pared', perfil: 'Panel PUR 50 mm', unidad: 'm²', largoBarra: null, precio: 35000, color: '#10b981', colorInterior: '#e5e7eb' },
+  { id: 'panelTecho', categoria: 'panel', nombre: 'Panel de techo', perfil: 'Panel PUR techo 50 mm', unidad: 'm²', largoBarra: null, precio: 38000, color: '#14b8a6', colorInterior: '#e5e7eb' },
 ];
 
 export const CATALOGO_INICIAL = [...CATALOGO_FIJO, ...TIPOS_PANEL_INICIALES];

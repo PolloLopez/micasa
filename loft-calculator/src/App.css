@@ -174,6 +174,9 @@ input.perfil:focus { outline: 2px solid var(--acento); border-style: solid; }
   .layout { display: block; }
   .columna-panel { border: none; padding: 0; overflow: visible; }
   .card.cerrada .cuerpo-tarjeta { display: block; } /* al imprimir sale todo, aunque esté plegado */
+  figure.solo-impresion { display: block; margin: 0 0 12px; break-inside: avoid; } /* figure.: le gana a la regla de pantalla */
+  .solo-impresion img { width: 100%; max-height: 120mm; object-fit: contain; border: 1px solid #ccc; }
+  .solo-impresion figcaption { font-size: 0.75rem; color: #444; }
   .titulo-tarjeta .flecha { display: none; }
   .card { background: #fff; border: 1px solid #ccc; color: #000; break-inside: avoid; }
   .card h2, .subtitulo { color: #000; }
@@ -206,6 +209,13 @@ input.perfil:focus { outline: 2px solid var(--acento); border-style: solid; }
 .componente-montaje .pared-titulo { display: flex; align-items: center; gap: 8px; }
 .nombre-componente { flex: 1; min-width: 0; font-weight: 600; }
 .resumen-componente { margin-top: 6px; }
+.color-cara { display: flex; flex-direction: column; align-items: center; font-size: 0.6rem; color: var(--texto-tenue); cursor: pointer; }
+.capas-opacidad { align-items: center; }
+.control-opacidad { gap: 6px; }
+.control-opacidad input[type="range"] { width: 90px; accent-color: var(--acento); }
+.valor-opacidad { min-width: 3.2em; text-align: right; color: var(--texto-tenue); }
+/* Foto del 3D para el PDF: invisible en pantalla, sale arriba de todo al imprimir. */
+.solo-impresion { display: none; }
 .marca-editada { color: #facc15; font-weight: bold; }
 .btn-del-texto { background: var(--peligro); color: #fff; border: none; border-radius: 4px; padding: 4px 10px; font-weight: bold; }
 .pieza-eliminada { display: flex; justify-content: space-between; align-items: center; gap: 8px; }

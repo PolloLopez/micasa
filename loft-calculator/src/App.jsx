@@ -9,7 +9,7 @@
 // válidos. Un valor inválido se muestra en el campo pero no se guarda.
 // ==========================================================
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import LoftCanvas from './LoftCanvas.jsx';
 import CampoNumero from './componentes/CampoNumero.jsx';
 import SelectorLado from './componentes/SelectorLado.jsx';
@@ -30,6 +30,7 @@ import { LADOS } from './motor/constantes.js';
 import { nombreLado, alturasPared, geometriaLados, alturaMaxima } from './motor/geometria.js';
 import { COLORES_INICIALES, coloresValidos, completarColores } from './capas.js';
 import { crearArchivoProyecto, leerArchivoProyecto, nombreDeArchivo } from './proyecto/archivoProyecto.js';
+import { crearLinkProyecto, leerLinkProyecto, tieneProyectoEnLink } from './proyecto/linkProyecto.js';
 import {
   proyectoVacio, proyectoEjemplo, gradaNueva, gradaEjemplo, montajeNuevo, montajeEjemplo,
 } from './proyecto/proyectosBase.js';
@@ -63,6 +64,11 @@ function conPanelesExistentes(params, catalogo) {
   };
 }
 
+/** Opacidad de fábrica del 3D: paneles y OSB se ven a través; los hierros, sólidos. */
+const OPACIDADES_INICIALES = { paneles: 0.35, osb: 0.45, hierros: 1 };
+const opacidadesValidas = (o) => o && typeof o === 'object'
+  && Object.keys(OPACIDADES_INICIALES).every((k) => Number.isFinite(o[k]) && o[k] >= 0.05 && o[k] <= 1);
+
 /** Copia `obj` cambiando el valor en una ruta tipo "paredes.A.separacionVerticales". */
 function conValor(obj, ruta, valor) {
   const [clave, ...resto] = ruta.split('.');
@@ -83,6 +89,9 @@ export default function App() {
   const [catalogo, setCatalogo] = useEstadoGuardado('catalogo', CATALOGO_INICIAL, catalogoGuardadoValido, normalizarCatalogo);
   const params = useMemo(() => conPanelesExistentes(paramsGuardados, catalogo), [paramsGuardados, catalogo]);
   const [colores, setColores] = useEstadoGuardado('colores', COLORES_INICIALES, coloresValidos, completarColores);
+  // Opacidad del 3D (por navegador, como ver u ocultar el 3D): paneles, OSB y hierros.
+  const [opacidades, setOpacidades] = useEstadoGuardado('opacidades', OPACIDADES_INICIALES, opacidadesValidas);
+  const imagenImpresionRef = useRef(null); // foto del 3D que sale en el PDF
   const [nombreProyecto, setNombreProyecto] = useEstadoGuardado('nombre', 'Loft', (n) => typeof n === 'string');
   const [aviso, setAviso] = useState(null); // { tipo: 'ok' | 'error', texto }
   // "Mis proyectos": lista guardada en el navegador y cuál está abierto (null = sin guardar).
@@ -162,6 +171,7 @@ export default function App() {
   const deshacerEdiciones = () => cambiar('piezasEditadas')({});
 
   const cambiarColor = (capa, color) => setColores((prev) => ({ ...prev, [capa]: color }));
+  const cambiarOpacidad = (clave, valor) => setOpacidades((prev) => ({ ...prev, [clave]: valor }));
 
   // --- Proyecto en pantalla y "Mis proyectos" ---
 
@@ -292,6 +302,40 @@ export default function App() {
     setAviso({ tipo: 'ok', texto: `Descargado como ${nombre}` });
   };
 
+  // --- Link para compartir ---
+
+  /** "Compartir": copia un link que trae el proyecto adentro (medidas, aberturas, precios y colores). */
+  const compartirLink = async () => {
+    const base = `${window.location.origin}${window.location.pathname}`;
+    const link = await crearLinkProyecto(proyectoActual, base);
+    try {
+      await navigator.clipboard.writeText(link);
+      setAviso({ tipo: 'ok', texto: 'Link copiado: pegalo en WhatsApp o en un mail. Quien lo abra ve este proyecto (con tus medidas y precios).' });
+    } catch {
+      // Sin permiso para el portapapeles: se muestra para copiarlo a mano.
+      window.prompt('Copiá este link para compartir el proyecto:', link);
+    }
+  };
+
+  // Al abrir la app con un link compartido: ofrece abrir ese proyecto (queda sin guardar).
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (!tieneProyectoEnLink(hash)) return;
+    const limpiarLink = () => window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    leerLinkProyecto(hash).then((r) => {
+      limpiarLink(); // si se recarga la página no vuelve a preguntar
+      if (!r.ok) {
+        setAviso({ tipo: 'error', texto: r.error });
+        return;
+      }
+      if (!window.confirm(`¿Abrir el proyecto compartido "${r.proyecto.nombre}"? Reemplaza lo que tenés en pantalla.`)) return;
+      cargarProyecto(r.proyecto);
+      setAviso({ tipo: 'ok', texto: `Proyecto compartido "${r.proyecto.nombre}" abierto. Usá "Guardar como…" para quedártelo.` });
+    });
+    // Solo al cargar la página.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   /** Abre un .json: queda en pantalla como proyecto sin guardar (después "Guardar como…"). */
   const abrirArchivo = (texto) => {
     const r = leerArchivoProyecto(texto);
@@ -353,6 +397,7 @@ export default function App() {
           <button className="btn-sec" onClick={() => setMostrarProyectos(true)}>Mis proyectos ({biblioteca.length})</button>
           <button className="btn-print" onClick={guardar} disabled={entradaActual && !cambiosSinGuardar}>Guardar</button>
           <button className="btn-sec" onClick={guardarComo}>Guardar como…</button>
+          <button className="btn-sec" onClick={compartirLink} title="Copia un link que abre este proyecto con tus medidas">Compartir</button>
           <button className="btn-sec" onClick={() => setVer3D((v) => !v)} aria-pressed={!ver3D}>
             {ver3D ? 'Ocultar 3D' : 'Ver 3D'}
           </button>
@@ -389,10 +434,16 @@ export default function App() {
         <div className="columna-visor">
           <LoftCanvas params={params} estructura={estructura} aberturas={aberturasValidas} paneles={paneles}
             colores={colores} catalogo={catalogo} unidad={unidad}
+            opacidades={opacidades} onCambiarOpacidad={cambiarOpacidad} imagenImpresionRef={imagenImpresionRef}
             onCambiarColor={cambiarColor} onEliminarPieza={eliminarPieza} onEditarPieza={editarPieza} />
         </div>
 
         <div className="columna-panel">
+          {/* Foto del 3D para el PDF (se completa al imprimir; ver LoftCanvas). */}
+          <figure className="solo-impresion">
+            <img ref={imagenImpresionRef} alt="Vista 3D de la estructura" />
+            <figcaption>{nombreProyecto || 'Proyecto sin nombre'} · vista 3D al {new Date().toLocaleDateString('es-AR')}</figcaption>
+          </figure>
           {/* GRADA (proyecto propio): solo su tarjeta, las piezas y el presupuesto. */}
           {esGrada && (
             <PanelGrada params={params} resumen={estructura.grada.resumen} unidad={unidad} cambiar={cambiar} />

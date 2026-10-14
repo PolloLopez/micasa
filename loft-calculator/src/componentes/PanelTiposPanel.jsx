@@ -1,8 +1,8 @@
 // ==========================================================
 // PanelTiposPanel: lista editable de tipos de panel (ej. "Panel PUR
 // 50 mm", "Chapa trapezoidal"). Cada pared y el techo eligen uno.
-// Cada tipo tiene nombre, descripción, precio por m² y color (el 3D
-// pinta cada pared con el color de su panel).
+// Cada tipo tiene nombre, descripción, precio por m² y dos colores:
+// exterior e interior (el 3D pinta cada cara de la pared con el suyo).
 // Un tipo que está en uso no se puede borrar.
 // ==========================================================
 
@@ -26,8 +26,17 @@ export default function PanelTiposPanel({ paneles, usosDePanel, onCambiar, onAgr
           return (
             <li key={panel.id} className="abertura">
               <div className="abertura-titulo">
-                <input type="color" className="muestra" value={panel.color} aria-label={`Color de ${panel.nombre}`}
-                  onChange={(e) => onCambiar(panel.id, 'color', e.target.value)} />
+                {/* Dos colores: la cara de afuera y la de adentro (se ven distintas en el 3D). */}
+                <label className="color-cara" title="Color exterior">
+                  <input type="color" className="muestra" value={panel.color} aria-label={`Color exterior de ${panel.nombre}`}
+                    onChange={(e) => onCambiar(panel.id, 'color', e.target.value)} />
+                  <span>Ext.</span>
+                </label>
+                <label className="color-cara" title="Color interior">
+                  <input type="color" className="muestra" value={panel.colorInterior} aria-label={`Color interior de ${panel.nombre}`}
+                    onChange={(e) => onCambiar(panel.id, 'colorInterior', e.target.value)} />
+                  <span>Int.</span>
+                </label>
                 <input className="perfil nombre-panel" value={panel.nombre} aria-label="Nombre del tipo de panel"
                   onChange={(e) => onCambiar(panel.id, 'nombre', e.target.value)} />
                 <button className="btn-del no-print" onClick={() => onQuitar(panel.id)}

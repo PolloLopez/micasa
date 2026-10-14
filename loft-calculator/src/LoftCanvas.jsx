@@ -90,11 +90,48 @@ function crearMateriales(colores) {
   return materiales;
 }
 
-/** Material semitransparente para un tipo de panel. */
-function materialPanel(color) {
-  return new THREE.MeshStandardMaterial({
-    color, transparent: true, opacity: 0.32, depthWrite: false, side: THREE.DoubleSide,
-  });
+/** Controles de opacidad de la leyenda. */
+const OPACIDADES = [
+  { clave: 'paneles', nombre: 'Paneles' },
+  { clave: 'osb', nombre: 'OSB' },
+  { clave: 'hierros', nombre: 'Hierros' },
+];
+
+/** Capas de hierro (todas menos superficies y madera): comparten la opacidad "Hierros". */
+const CAPAS_SUPERFICIE = ['paneles', 'osb', 'aberturas', 'chapa', 'escalones'];
+const CAPAS_HIERRO = Object.keys(CAPAS).filter((c) => !CAPAS_SUPERFICIE.includes(c));
+
+/** Opacidad de un material: 1 = sólido (tapa lo de atrás); menos = se ve a través. */
+function aplicarOpacidad(material, opacidad) {
+  const transparente = opacidad < 0.999;
+  material.opacity = opacidad;
+  material.transparent = transparente;
+  material.depthWrite = !transparente; // sólido: escribe profundidad y tapa bien lo que está detrás
+  material.needsUpdate = true;
+}
+
+/** Material de UNA cara de un tipo de panel (exterior = FrontSide, interior = BackSide). */
+function materialPanel(color, opacidad, lado) {
+  const material = new THREE.MeshStandardMaterial({ color, side: lado });
+  aplicarOpacidad(material, opacidad);
+  return material;
+}
+
+/**
+ * Panel con dos caras: la de afuera con el color exterior y la de adentro con el interior.
+ * `haciaAfuera` es un vector que apunta al exterior; si el orden de las esquinas deja la
+ * cara "de frente" mirando hacia adentro, se invierte.
+ */
+function panelDosCaras(esquinas, materiales, haciaAfuera) {
+  const [a, b, c] = esquinas;
+  const u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
+  const v = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
+  const normal = [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]];
+  const mira = normal[0] * haciaAfuera[0] + normal[1] * haciaAfuera[1] + normal[2] * haciaAfuera[2];
+  const ordenadas = mira >= 0 ? esquinas : [...esquinas].reverse();
+  const panel = new THREE.Group();
+  panel.add(cuadrilatero(ordenadas, materiales.exterior), cuadrilatero(ordenadas, materiales.interior));
+  return panel;
 }
 
 /** Barra entre dos puntos 3D (vertical, horizontal o inclinada). */
@@ -216,11 +253,17 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
   }
 
   if (capas.paneles) {
-    const material = (id) => materialesPanel.get(id) ?? materiales.paneles;
-    e.paredes
-      .filter((pared) => grupoVisible(pared.lado))
-      .forEach((pared) => grupo.add(cuadrilatero(pared.esquinas, material(pared.panel))));
-    if (grupoVisible('techo')) grupo.add(cuadrilatero(e.techo.esquinas, material(e.techo.panel)));
+    // Cada panel con su color exterior e interior; si el tipo no existe, el material genérico.
+    const dibujar = (esquinas, idPanel, haciaAfuera) => {
+      const mats = materialesPanel.get(idPanel);
+      grupo.add(mats ? panelDosCaras(esquinas, mats, haciaAfuera) : cuadrilatero(esquinas, materiales.paneles));
+    };
+    e.paredes.filter((pared) => grupoVisible(pared.lado)).forEach((pared) => {
+      // Afuera = desde el centro de la planta hacia el centro de la pared.
+      const centro = pared.esquinas.reduce((acc, p) => [acc[0] + p[0] / 4, 0, acc[2] + p[2] / 4], [0, 0, 0]);
+      dibujar(pared.esquinas, pared.panel, centro);
+    });
+    if (grupoVisible('techo')) dibujar(e.techo.esquinas, e.techo.panel, [0, 1, 0]);
   }
 
   if (capas.aberturas) {
@@ -312,6 +355,7 @@ function mirarAlFrente(camara, controles, params) {
 
 export default function LoftCanvas({
   params, estructura, aberturas, paneles, colores, catalogo, unidad, onCambiarColor, onEliminarPieza, onEditarPieza,
+  opacidades, onCambiarOpacidad, imagenImpresionRef,
 }) {
   const lienzoRef = useRef(null);
   const visorRef = useRef(null); // { grupo, controles, camara, materiales, ... }
@@ -398,24 +442,42 @@ export default function LoftCanvas({
     renderer.domElement.addEventListener('pointerdown', alApretar);
     renderer.domElement.addEventListener('pointerup', alSoltar);
 
+    // Al imprimir (botón o Ctrl+P): foto de la vista actual con fondo blanco para el PDF.
+    // Se dibuja y se lee en el mismo momento (WebGL borra el lienzo después de mostrarlo).
+    const alImprimir = () => {
+      const imagen = imagenImpresionRef?.current;
+      if (!imagen) return;
+      const fondo = escena.background;
+      escena.background = new THREE.Color(0xffffff);
+      grilla.visible = false;
+      renderer.render(escena, camara);
+      imagen.src = renderer.domElement.toDataURL('image/png');
+      escena.background = fondo;
+      grilla.visible = true;
+    };
+    window.addEventListener('beforeprint', alImprimir);
+
     const materialesPanel = new Map();
     visorRef.current = { grupo, controles, camara, materiales, materialesPanel, frente: null };
 
     return () => {
       cancelAnimationFrame(idCuadro);
+      window.removeEventListener('beforeprint', alImprimir);
       renderer.domElement.removeEventListener('pointerdown', alApretar);
       renderer.domElement.removeEventListener('pointerup', alSoltar);
       observador.disconnect();
       controles.dispose();
       vaciarGrupo(grupo);
       Object.values(materiales).forEach((m) => m.dispose());
-      materialesPanel.forEach((m) => m.dispose());
+      materialesPanel.forEach((m) => { m.exterior.dispose(); m.interior.dispose(); });
       grilla.geometry.dispose();
       grilla.material.dispose();
       renderer.dispose();
       renderer.domElement.remove();
       visorRef.current = null;
     };
+    // Se monta una sola vez; imagenImpresionRef es un ref (no cambia entre renders).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 2) MODELO: se redibuja cuando cambian datos, capas, partes visibles o la selección.
@@ -423,9 +485,12 @@ export default function LoftCanvas({
     const visor = visorRef.current;
     if (!visor || !estructura) return;
     vaciarGrupo(visor.grupo);
-    visor.materialesPanel.forEach((m) => m.dispose());
+    visor.materialesPanel.forEach((m) => { m.exterior.dispose(); m.interior.dispose(); });
     visor.materialesPanel.clear();
-    paneles.forEach((p) => visor.materialesPanel.set(p.id, materialPanel(p.color)));
+    paneles.forEach((p) => visor.materialesPanel.set(p.id, {
+      exterior: materialPanel(p.color, opacidades.paneles, THREE.FrontSide),
+      interior: materialPanel(p.colorInterior ?? p.color, opacidades.paneles, THREE.BackSide),
+    }));
     dibujarModelo(visor.grupo, visor.materiales, visor.materialesPanel,
       { params, estructura, aberturas, capas, gruposVisibles, seleccionada });
     // Se reacomoda la cámara si cambia el frente o el tipo de proyecto (construcción / grada).
@@ -434,7 +499,16 @@ export default function LoftCanvas({
       mirarAlFrente(visor.camara, visor.controles, medidasVista(params, estructura));
       visor.frente = encuadre;
     }
-  }, [params, estructura, aberturas, capas, paneles, gruposVisibles, seleccionada]);
+  }, [params, estructura, aberturas, capas, paneles, gruposVisibles, seleccionada, opacidades.paneles]);
+
+  // 3b) OPACIDAD de OSB, hierros y paneles genéricos: se cambia el material (no se redibuja).
+  useEffect(() => {
+    const visor = visorRef.current;
+    if (!visor) return;
+    aplicarOpacidad(visor.materiales.osb, opacidades.osb);
+    aplicarOpacidad(visor.materiales.paneles, opacidades.paneles);
+    CAPAS_HIERRO.forEach((capa) => aplicarOpacidad(visor.materiales[capa], opacidades.hierros));
+  }, [opacidades]);
 
   // 3) COLORES: solo se cambia el color de cada material (no se redibuja).
   useEffect(() => {
@@ -535,6 +609,20 @@ export default function LoftCanvas({
             <span onClick={() => alternarCapa('paneles')} title="Superficies; el color es el de cada tipo de panel">Paneles</span>
           </span>
         )}
+        {/* Opacidad: de "se ve a través" a sólido, para ver cómo queda cerrada. */}
+        <span className="capas-paneles capas-opacidad">
+          <span className="capa"><strong>Opacidad:</strong></span>
+          {/* Grada y montaje no tienen paneles ni OSB: solo la opacidad de los hierros. */}
+          {OPACIDADES.filter(({ clave }) => clave === 'hierros' || (!esGrada && !esMontaje))
+            .map(({ clave, nombre }) => (
+              <label key={clave} className="capa control-opacidad">
+                {nombre}
+                <input type="range" min="0.05" max="1" step="0.05" value={opacidades[clave]}
+                  aria-label={`Opacidad de ${nombre}`} onChange={(e) => onCambiarOpacidad(clave, Number(e.target.value))} />
+                <span className="valor-opacidad">{Math.round(opacidades[clave] * 100)} %</span>
+              </label>
+            ))}
+        </span>
         {/* Partes completas: ocultar una oculta su panel Y sus hierros. */}
         <span className="capas-paneles">
           <span className="capa"><strong>Mostrar:</strong></span>
