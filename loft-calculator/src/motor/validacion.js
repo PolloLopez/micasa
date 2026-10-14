@@ -115,7 +115,16 @@ function validarGrada(params, anotar) {
   }
   Object.entries(LIMITES_GRADA).forEach(([campo, limites]) => anotar(`grada.${campo}`, revisarNumero(grada[campo], limites)));
   if (!['no', 'extremos', 'todos'].includes(grada.riostras)) anotar('grada.riostras', 'Elegí dónde van las riostras');
-  if (grada.anchoAsiento + grada.anchoPie > grada.huella + 1e-9) {
+  if (!['separados', 'mismoMaterial', 'unico'].includes(grada.tipoTablones)) anotar('grada.tipoTablones', 'Elegí el tipo de tablones');
+  if (grada.tipoTablones === 'unico') {
+    // Los N tablones tienen que entrar en la profundidad de la fila.
+    if (grada.tablonesPorFila * grada.anchoTablon > grada.huella + 1e-9) {
+      const total = (grada.tablonesPorFila * grada.anchoTablon * 100).toFixed(0);
+      anotar('grada.anchoTablon', `${grada.tablonesPorFila} tablones de ${(grada.anchoTablon * 100).toFixed(0)} cm (${total} cm) no entran en la fila de ${(grada.huella * 100).toFixed(0)} cm`);
+      anotar('grada.tablonesPorFila', `No entran en la fila de ${(grada.huella * 100).toFixed(0)} cm`);
+      anotar('grada.huella', 'La fila es más angosta que los tablones');
+    }
+  } else if (grada.anchoAsiento + grada.anchoPie > grada.huella + 1e-9) {
     anotar('grada.anchoAsiento', `Asiento + pie (${((grada.anchoAsiento + grada.anchoPie) * 100).toFixed(0)} cm) no entran en la fila de ${(grada.huella * 100).toFixed(0)} cm`);
     anotar('grada.anchoPie', `Asiento + pie no entran en la fila de ${(grada.huella * 100).toFixed(0)} cm`);
     anotar('grada.huella', 'La fila es más angosta que asiento + pie');

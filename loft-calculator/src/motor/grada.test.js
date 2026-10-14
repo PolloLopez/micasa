@@ -174,3 +174,51 @@ describe('parantes y riostras de la escalera', () => {
     expect(items.find((i) => i.id === INSUMO.RIOSTRA)).toBeUndefined();
   });
 });
+
+describe('tablones: separados, del mismo material o un solo tipo por fila', () => {
+  const items = (cambios) => calcularPresupuesto(generarEstructura(conGrada(cambios), []), CATALOGO_INICIAL).items;
+  const ids = (cambios) => items(cambios).map((i) => i.id);
+  const item = (cambios, id) => items(cambios).find((i) => i.id === id);
+
+  it('separados (por defecto): renglón de asiento y renglón de pie', () => {
+    expect(GRADA_INICIAL.tipoTablones).toBe('separados');
+    expect(ids({})).toEqual(expect.arrayContaining([INSUMO.GRADA_ASIENTO, INSUMO.GRADA_PIE]));
+    expect(ids({})).not.toContain(INSUMO.GRADA_TABLON);
+  });
+
+  it('mismo material: los mismos dos tablones por fila, un solo renglón con los metros sumados', () => {
+    const e = generarEstructura(conGrada({ tipoTablones: 'mismoMaterial' }), []);
+    expect(e.grada.tablones).toHaveLength(12); // igual que separados: asiento + pie en 6 filas
+    expect(ids({ tipoTablones: 'mismoMaterial' })).not.toContain(INSUMO.GRADA_ASIENTO);
+    const t = item({ tipoTablones: 'mismoMaterial' }, INSUMO.GRADA_TABLON);
+    expect(t.cantidad).toBe(72); // 36 m de asiento + 36 m de pie
+    expect(t.detalle).toBe('2 por fila x 6 filas de 6.00 m');
+  });
+
+  it('un solo tipo: N tablones iguales repartidos de adelante hacia atrás', () => {
+    const e = generarEstructura(conGrada({ tipoTablones: 'unico', tablonesPorFila: 3, anchoTablon: 0.25 }), []);
+    const fila1 = e.grada.tablones.filter((t) => t.id.startsWith('tablon:1:'));
+    expect(fila1).toHaveLength(3);
+    // 3 x 25 cm en una fila de 75 cm: cubren toda la profundidad, sin huecos.
+    expect(fila1.map((t) => t.centro[2])).toEqual([2.125, 1.875, 1.625].map((z) => expect.closeTo(z, 6)));
+    expect(item({ tipoTablones: 'unico' }, INSUMO.GRADA_TABLON).cantidad).toBe(3 * 6 * 6);
+  });
+
+  it('un solo tablón por fila queda adelante (donde se sienta)', () => {
+    const e = generarEstructura(conGrada({ tipoTablones: 'unico', tablonesPorFila: 1, anchoTablon: 0.4 }), []);
+    expect(e.grada.tablones.find((t) => t.id === 'tablon:1:0').centro[2]).toBeCloseTo(2.25 - 0.2);
+  });
+
+  it('validación: los tablones tienen que entrar en la fila', () => {
+    expect(validarParametros(conGrada({ tipoTablones: 'unico', tablonesPorFila: 4, anchoTablon: 0.25 }))).toHaveProperty(['grada.anchoTablon']);
+    expect(validarParametros(conGrada({ tipoTablones: 'unico', tablonesPorFila: 3, anchoTablon: 0.25 }))).toEqual({});
+    expect(validarParametros(conGrada({ tipoTablones: 'otro' }))).toHaveProperty(['grada.tipoTablones']);
+  });
+
+  it('una grada guardada con la v1.9 se abre con tablones separados', () => {
+    const { tipoTablones, anchoTablon, tablonesPorFila, ...gradaV19 } = GRADA_INICIAL; // eslint-disable-line no-unused-vars
+    const m = migrarParams({ ...P, tipoProyecto: 'grada', grada: gradaV19 });
+    expect(m.grada.tipoTablones).toBe('separados');
+    expect(validarParametros(m)).toEqual({});
+  });
+});

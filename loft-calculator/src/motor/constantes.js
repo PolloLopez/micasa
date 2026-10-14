@@ -48,6 +48,7 @@ export const INSUMO = {
   GRADA_VIGA: 'gradaViga',
   GRADA_ASIENTO: 'gradaAsiento',
   GRADA_PIE: 'gradaPie',
+  GRADA_TABLON: 'gradaTablon', // asiento y pie del mismo tablón, o tablón único
 };
 
 // Límites de la grada (ver motor/grada.js).
@@ -61,6 +62,8 @@ export const LIMITES_GRADA = {
   vigasPorFila: { min: 0, max: 3, entero: true },
   anchoAsiento: { min: 0.15, max: 0.6 },
   anchoPie: { min: 0.15, max: 0.6 },
+  anchoTablon: { min: 0.1, max: 0.6 },
+  tablonesPorFila: { min: 1, max: 6, entero: true },
 };
 
 // Límites de validación (ver motor/validacion.js).

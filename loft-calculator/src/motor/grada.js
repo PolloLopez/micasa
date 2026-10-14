@@ -17,8 +17,14 @@
 //   - RIOSTRAS EN CRUZ: atrás (plano más alto), entre pórticos, para que la
 //     grada no se mueva de costado: ninguna, en los vanos de los extremos o
 //     en todos.
-//   - TABLONES (madera): asiento adelante y pie atrás en cada fila. Se sienta
-//     en el borde de la fila y se apoyan los pies en la fila de abajo.
+//   - TABLONES (madera), según `tipoTablones`:
+//       · 'separados': asiento adelante y pie atrás, cada uno con su ancho y su
+//         renglón en el presupuesto;
+//       · 'mismoMaterial': igual que separados, pero los dos son el mismo tablón
+//         (un solo renglón "Tablones de grada");
+//       · 'unico': N tablones iguales repartidos en la profundidad de la fila,
+//         que sirven de asiento y de pie (tribuna simple).
+//     Se sienta en el borde de la fila y se apoyan los pies en la fila de abajo.
 // ==========================================================
 
 import { pieza, cruz } from './segmentos.js';
@@ -36,9 +42,19 @@ export const GRADA_INICIAL = {
   parantesCadaFilas: 1, // 0 = sin parantes
   vigasPorFila: 2,
   riostras: 'extremos', // 'no' | 'extremos' | 'todos'
+  tipoTablones: 'separados', // 'separados' | 'mismoMaterial' | 'unico'
   anchoAsiento: 0.3,
   anchoPie: 0.3,
+  anchoTablon: 0.25, // solo 'unico'
+  tablonesPorFila: 3, // solo 'unico'
 };
+
+/** Opciones de tablones (para la pantalla). */
+export const TIPOS_TABLONES = [
+  ['separados', 'Asiento y pie separados'],
+  ['mismoMaterial', 'Asiento y pie del mismo tablón'],
+  ['unico', 'Un solo tipo de tablón por fila'],
+];
 
 /** Posiciones de los pórticos a lo largo de la fila (x), repartidas parejo. */
 export function posicionesPorticos(largoFila, separacion) {
@@ -109,20 +125,41 @@ export function generarGrada(grada) {
     piezas.push(...cruz(`grada-riostra:${k}`, 'riostra', grupos, [xs[k], 0.05, z], [xs[k], arriba, z], [xs[k + 1], 0.05, z], [xs[k + 1], arriba, z]));
   }
 
-  // Tablones de madera: asiento adelante y pie atrás, en cada fila.
-  const tablones = [];
-  for (let i = 1; i <= n; i++) {
-    const y = i * C - ESPESOR_TABLON;
-    tablones.push({ id: `asiento:${i}`, tipo: 'asiento', centro: [0, y, zFila(i - 1) - grada.anchoAsiento / 2], largo: L, ancho: grada.anchoAsiento });
-    tablones.push({ id: `pie:${i}`, tipo: 'pie', centro: [0, y, zFila(i) + grada.anchoPie / 2], largo: L, ancho: grada.anchoPie });
-  }
+  const tablones = armarTablones(grada, zFila);
 
   return {
     piezas,
     tablones,
+    tipoTablones: grada.tipoTablones,
     medidas,
     resumen: { ...medidas, porticos: xs.length, filas: n, avisos: avisosGrada(grada, medidas) },
   };
+}
+
+/**
+ * Tablones de madera de cada fila (ver los tres modos arriba).
+ * Cada tablón: { id, tipo: 'asiento' | 'pie' | 'tablon', centro, largo, ancho }.
+ */
+function armarTablones(grada, zFila) {
+  const { filas: n, contrahuella: C, largoFila: L, huella: h } = grada;
+  const tablones = [];
+  for (let i = 1; i <= n; i++) {
+    const y = i * C - ESPESOR_TABLON;
+    const adelante = zFila(i - 1);
+    if (grada.tipoTablones === 'unico') {
+      // N tablones iguales: el primero al ras de adelante, el último al ras de atrás, el resto parejo.
+      const k = grada.tablonesPorFila;
+      const paso = k > 1 ? (h - grada.anchoTablon) / (k - 1) : 0;
+      for (let t = 0; t < k; t++) {
+        const z = adelante - grada.anchoTablon / 2 - t * paso;
+        tablones.push({ id: `tablon:${i}:${t}`, tipo: 'tablon', centro: [0, y, z], largo: L, ancho: grada.anchoTablon });
+      }
+    } else {
+      tablones.push({ id: `asiento:${i}`, tipo: 'asiento', centro: [0, y, adelante - grada.anchoAsiento / 2], largo: L, ancho: grada.anchoAsiento });
+      tablones.push({ id: `pie:${i}`, tipo: 'pie', centro: [0, y, zFila(i) + grada.anchoPie / 2], largo: L, ancho: grada.anchoPie });
+    }
+  }
+  return tablones;
 }
 
 /** Recomendaciones (no bloquean). */

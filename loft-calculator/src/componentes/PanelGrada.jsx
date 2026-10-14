@@ -8,11 +8,15 @@
 import { useId, useState } from 'react';
 import CampoNumero from './CampoNumero.jsx';
 import Tarjeta from './Tarjeta.jsx';
+import { TIPOS_TABLONES } from '../motor/grada.js';
 
 export default function PanelGrada({ params, resumen, unidad, cambiar }) {
   const grada = params.grada;
   const idRiostras = useId();
+  const idTablones = useId();
   const [errorRiostras, setErrorRiostras] = useState(null);
+  const [errorTablones, setErrorTablones] = useState(null);
+  const tablonUnico = grada.tipoTablones === 'unico';
   const medida = (campo, etiqueta) => (
     <CampoNumero key={campo} etiqueta={etiqueta} unidad={unidad} valor={grada[campo]} onCambio={cambiar(`grada.${campo}`)} />
   );
@@ -33,9 +37,29 @@ export default function PanelGrada({ params, resumen, unidad, cambiar }) {
         {medida('largoFila', 'Largo de cada fila')}
         {medida('huella', 'Profundidad de fila')}
         {medida('contrahuella', 'Altura de fila')}
-        {medida('anchoAsiento', 'Tablón de asiento (ancho)')}
-        {medida('anchoPie', 'Tablón de pie (ancho)')}
       </div>
+
+      <h3 className="subtitulo">Tablones</h3>
+      <div className="grid-params">
+        <div className={`group${errorTablones ? ' con-error' : ''}`}>
+          <label htmlFor={idTablones}>Tablones</label>
+          <select id={idTablones} value={grada.tipoTablones}
+            onChange={(e) => setErrorTablones(cambiar('grada.tipoTablones')(e.target.value))}>
+            {TIPOS_TABLONES.map(([valor, texto]) => <option key={valor} value={valor}>{texto}</option>)}
+          </select>
+          {errorTablones && <small className="error" role="alert">{errorTablones}</small>}
+        </div>
+        {/* Separados o del mismo material: asiento adelante y pie atrás. Único: N tablones iguales. */}
+        {!tablonUnico && medida('anchoAsiento', 'Tablón de asiento (ancho)')}
+        {!tablonUnico && medida('anchoPie', 'Tablón de pie (ancho)')}
+        {tablonUnico && medida('anchoTablon', 'Ancho de cada tablón')}
+        {tablonUnico && entero('tablonesPorFila', 'Tablones por fila')}
+      </div>
+      <p className="nota">
+        {grada.tipoTablones === 'separados' && 'Asiento y pie son tablones distintos: cada uno tiene su renglón y su precio en el presupuesto.'}
+        {grada.tipoTablones === 'mismoMaterial' && 'Asiento y pie son el mismo tablón: un solo renglón "Tablones de grada" con los metros sumados.'}
+        {tablonUnico && 'Tablones iguales repartidos de adelante hacia atrás: sirven de asiento y de pie. Un solo renglón en el presupuesto.'}
+      </p>
 
       <h3 className="subtitulo">Estructura</h3>
       <div className="grid-params">

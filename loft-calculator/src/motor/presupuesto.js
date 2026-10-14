@@ -43,11 +43,13 @@ export const CATALOGO_FIJO = [
   { id: INSUMO.GRADA_VIGA, categoria: 'perfil', nombre: 'Vigas longitudinales', perfil: 'Caño estructural 80x40x2.0', unidad: 'barra', largoBarra: 6, precio: 27000 },
   { id: INSUMO.GRADA_ASIENTO, categoria: 'metro', nombre: 'Tablón de asiento', perfil: 'Madera 2" x 12"', unidad: 'm', largoBarra: null, precio: 9000 },
   { id: INSUMO.GRADA_PIE, categoria: 'metro', nombre: 'Tablón de pie', perfil: 'Madera 2" x 12"', unidad: 'm', largoBarra: null, precio: 9000 },
+  { id: INSUMO.GRADA_TABLON, categoria: 'metro', nombre: 'Tablones de grada', perfil: 'Madera 2" x 10"', unidad: 'm', largoBarra: null, precio: 8000 },
 ];
 
 /** Renglones que solo se usan en un proyecto de grada. */
 export const INSUMOS_GRADA = [
   INSUMO.GRADA_ZANCA, INSUMO.GRADA_PARANTE, INSUMO.GRADA_APOYO, INSUMO.GRADA_VIGA, INSUMO.GRADA_ASIENTO, INSUMO.GRADA_PIE,
+  INSUMO.GRADA_TABLON,
 ];
 
 /** Tipos de panel iniciales: uno para paredes y otro para el techo. */
@@ -183,20 +185,31 @@ function conSubtotales(items) {
 /** Renglones de una grada: perfiles por el optimizador y tablones por metro. */
 function presupuestoGrada(grada, insumo, perfil) {
   const de = (tipo) => grada.piezas.filter((p) => p.tipo === tipo);
-  const metros = (tipo) => grada.tablones.filter((t) => t.tipo === tipo).reduce((acc, t) => acc + t.largo, 0);
+  const metros = (...tipos) => grada.tablones.filter((t) => tipos.includes(t.tipo)).reduce((acc, t) => acc + t.largo, 0);
   // Metros de tablón hacia arriba al decímetro (sin arrastrar error de coma flotante).
   const redondear = (m) => (m > 0 ? Math.ceil(m * 10 - 1e-9) / 10 : 0);
-  const tablon = (id, tipo) => {
-    const m = metros(tipo);
-    return itemSimple(insumo(id), redondear(m), m ? `${grada.resumen.filas} filas de ${grada.medidas.largo.toFixed(2)} m` : 'no lleva');
+  const { filas } = grada.resumen;
+  const largo = grada.medidas.largo.toFixed(2);
+  const tablon = (id, tipos, detalle) => {
+    const m = metros(...tipos);
+    return itemSimple(insumo(id), redondear(m), m ? detalle : 'no lleva');
   };
-  return [
+  const items = [
     perfil(INSUMO.GRADA_ZANCA, de('grada-zanca')),
     perfil(INSUMO.GRADA_PARANTE, de('grada-parante')),
     perfil(INSUMO.GRADA_APOYO, de('grada-apoyo')),
     perfil(INSUMO.GRADA_VIGA, de('grada-viga')),
     perfil(INSUMO.RIOSTRA, de('riostra')),
-    tablon(INSUMO.GRADA_ASIENTO, 'asiento'),
-    tablon(INSUMO.GRADA_PIE, 'pie'),
   ];
+  // Tablones: dos renglones si asiento y pie son distintos; uno solo si son el mismo tablón.
+  if (grada.tipoTablones === 'separados') {
+    items.push(
+      tablon(INSUMO.GRADA_ASIENTO, ['asiento'], `${filas} filas de ${largo} m`),
+      tablon(INSUMO.GRADA_PIE, ['pie'], `${filas} filas de ${largo} m`),
+    );
+  } else {
+    const porFila = grada.tablones.length / filas; // todas las filas llevan los mismos tablones
+    items.push(tablon(INSUMO.GRADA_TABLON, ['asiento', 'pie', 'tablon'], `${porFila} por fila x ${filas} filas de ${largo} m`));
+  }
+  return items;
 }
