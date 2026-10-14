@@ -15,6 +15,10 @@
 //   - nuevo: piezasEliminadas (IDs de piezas quitadas a mano).
 // v1.6 -> v1.7:
 //   - nuevo: escalera (se agrega desactivada).
+// v1.7 -> v1.8:
+//   - escalera.escalonesHastaDescanso (un número) pasa a escalera.descansos (lista).
+//   - nuevo: piezasEditadas (recortes, movimientos y perfil de piezas sueltas).
+//   - cada pared: etiqueta del 3D (texto propio) y si se muestra.
 // ==========================================================
 
 import { LADOS, INSUMO } from './constantes.js';
@@ -41,12 +45,27 @@ export function migrarParams(params) {
   nuevos.piezasEliminadas ??= []; // v1.5
   // v1.7: los proyectos viejos se abren SIN escalera (no se agrega nada que no tenían).
   nuevos.escalera = esObjeto(nuevos.escalera) ? { ...ESCALERA_INICIAL, activa: false, ...nuevos.escalera } : { ...ESCALERA_INICIAL, activa: false };
+  // v1.8: el descanso único de la L pasa a una lista de descansos.
+  const escaleraGuardada = esObjeto(params.escalera) ? params.escalera : {};
+  const { escalonesHastaDescanso, ...escaleraSinCampoViejo } = nuevos.escalera;
+  nuevos.escalera = {
+    ...escaleraSinCampoViejo,
+    descansos: Array.isArray(escaleraGuardada.descansos) ? [...escaleraGuardada.descansos]
+      : Number.isInteger(escalonesHastaDescanso) ? [escalonesHastaDescanso]
+        : [...ESCALERA_INICIAL.descansos],
+  };
+  nuevos.piezasEditadas ??= {}; // v1.8
 
   if (esObjeto(nuevos.paredes)) {
     nuevos.paredes = Object.fromEntries(
       LADOS.map((lado) => {
         const pared = nuevos.paredes[lado];
-        return [lado, esObjeto(pared) ? { ...pared, panel: pared.panel ?? PARAMS_INICIALES.paredes[lado].panel } : pared];
+        return [lado, esObjeto(pared) ? {
+          ...pared,
+          panel: pared.panel ?? PARAMS_INICIALES.paredes[lado].panel,
+          etiqueta: pared.etiqueta ?? '', // v1.8: '' = nombre automático (Frente, Lateral…)
+          mostrarEtiqueta: pared.mostrarEtiqueta ?? true,
+        } : pared];
       })
     );
   }

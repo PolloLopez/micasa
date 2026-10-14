@@ -77,7 +77,6 @@ export const LIMITES_ESCALERA = {
   huella: { min: 0.2, max: 0.4 },
   contrahuellaObjetivo: { min: 0.12, max: 0.22 },
   alturaTotal: { min: 1, max: 6, opcional: true }, // 0 = automática
-  escalonesHastaDescanso: { min: 2, max: 40, entero: true },
   apoyosPorEscalon: { min: 1, max: 3, entero: true },
   largoApoyo: { min: 0.1, max: 1.5 },
   apoyosIntermedios: { min: 0, max: 3, entero: true },

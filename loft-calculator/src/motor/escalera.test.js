@@ -1,6 +1,6 @@
 // Tests de la escalera. Correr con: npm test
 import { describe, it, expect } from 'vitest';
-import { calcularEscalones, alturaEscalera, ESCALERA_INICIAL } from './escalera.js';
+import { calcularEscalones, alturaEscalera, repartirDescansos, ESCALERA_INICIAL } from './escalera.js';
 import { generarEstructura, listarPiezas } from './estructura.js';
 import { validarParametros } from './validacion.js';
 import { calcularPresupuesto, CATALOGO_INICIAL } from './presupuesto.js';
@@ -9,7 +9,9 @@ import { INSUMO } from './constantes.js';
 import { PARAMS_INICIALES as P, ABERTURAS_INICIALES } from './parametrosIniciales.js';
 
 const conEscalera = (cambios) => ({ ...P, escalera: { ...P.escalera, ...cambios } });
-const enL = conEscalera({ forma: 'L', escalonesHastaDescanso: 6, giroHacia: 'B' });
+const enL = conEscalera({ forma: 'L', descansos: [6], giroHacia: 'B' });
+// Caracol de 3/4 de vuelta que entra en el loft: arranca perpendicular al borde (hacia B) y gira hacia A.
+const tresCuartos = conEscalera({ forma: '3/4', descansos: [3, 5, 8], bajaHacia: 'B', posicion: 2, giroHacia: 'A' });
 
 describe('cálculo de escalones', () => {
   it('altura automática = piso 2 + espesor del piso', () => {
@@ -73,8 +75,9 @@ describe('escalera en L', () => {
 
   it('pisadas: 6 arriba (7..12) + 5 abajo (1..5) = 11; el descanso hace de pisada 6', () => {
     expect(esc.escalones).toHaveLength(11);
-    expect(esc.descanso.centro[1]).toBeCloseTo(0.5 + 6 * (2.38 / 13));
-    expect(esc.descanso.superficie).toBeCloseTo(0.64);
+    expect(esc.descansos).toHaveLength(1);
+    expect(esc.descansos[0].centro[1]).toBeCloseTo(0.5 + 6 * (2.38 / 13));
+    expect(esc.descansos[0].superficie).toBeCloseTo(0.64);
   });
 
   it('dos zancas, marco del descanso y una columna central', () => {
@@ -91,6 +94,74 @@ describe('escalera en L', () => {
   it('4 columnas en el descanso si se piden', () => {
     const r = generarEstructura({ ...enL, escalera: { ...enL.escalera, columnasDescanso: 4 } }, []);
     expect(r.escalera.piezas.filter((p) => p.id.startsWith('esc-col-descanso'))).toHaveLength(4);
+  });
+});
+
+describe('escalera en U y de 3/4 de vuelta (varios descansos)', () => {
+  it('reparte los descansos parejo, con tramos de 2 o más contrahuellas', () => {
+    expect(repartirDescansos(1, 13)).toEqual([7]);
+    expect(repartirDescansos(2, 13)).toEqual([4, 9]);
+    expect(repartirDescansos(3, 13)).toEqual([3, 7, 10]);
+    expect(repartirDescansos(3, 8)).toEqual([2, 4, 6]); // justo: 4 tramos de 2
+  });
+
+  it('en U: 2 descansos, 3 zancas, cada giro de 90° en el mismo sentido', () => {
+    const u = generarEstructura(conEscalera({ forma: 'U', descansos: [4, 9], bajaHacia: 'B', posicion: 2, giroHacia: 'A' }), []).escalera;
+    expect(u.descansos).toHaveLength(2);
+    expect(u.escalones).toHaveLength(12 - 2); // dos pisadas son descansos
+    expect(u.piezas.filter((p) => p.tipo === 'zanca')).toHaveLength(3);
+    // El tramo de arriba baja hacia B (x+) y el de abajo vuelve hacia D (x-): media vuelta.
+    const arriba = u.piezas.find((p) => p.id === 'esc-zanca:3');
+    const abajo = u.piezas.find((p) => p.id === 'esc-zanca:1');
+    expect(arriba.desde[0]).toBeGreaterThan(arriba.hasta[0]);
+    expect(abajo.desde[0]).toBeLessThan(abajo.hasta[0]);
+    expect(u.resumen.avisos).toEqual([]);
+  });
+
+  it('3/4 de vuelta: 3 descansos a su altura, 4 tramos, entra sin avisos', () => {
+    const e = generarEstructura(tresCuartos, []).escalera;
+    expect(validarParametros(tresCuartos)).toEqual({});
+    expect(e.descansos.map((d) => d.numero)).toEqual([1, 2, 3]);
+    e.descansos.forEach((d, i) => expect(d.centro[1]).toBeCloseTo(0.5 + [3, 5, 8][i] * (2.38 / 13)));
+    expect(e.piezas.filter((p) => p.tipo === 'zanca')).toHaveLength(4);
+    expect(e.piezas.filter((p) => p.tipo === 'marco-descanso')).toHaveLength(12);
+    expect(e.escalones).toHaveLength(12 - 3);
+    expect(e.resumen.avisos).toEqual([]);
+  });
+
+  it('las 4 direcciones de los tramos dan la vuelta (B, A, D, C)', () => {
+    const e = generarEstructura(tresCuartos, []).escalera;
+    const direccion = (n) => {
+      const z = e.piezas.find((p) => p.id === `esc-zanca:${n}`); // de pie (abajo) a tope (arriba): baja al revés
+      return [Math.sign(Math.round((z.desde[0] - z.hasta[0]) * 100)), Math.sign(Math.round((z.desde[2] - z.hasta[2]) * 100))];
+    };
+    expect([4, 3, 2, 1].map(direccion)).toEqual([[1, 0], [0, 1], [-1, 0], [0, -1]]);
+  });
+
+  it('avisa el paso libre si un tramo pasa por debajo de otro', () => {
+    const bajo = generarEstructura(conEscalera({ forma: '3/4', descansos: [3, 5, 7], bajaHacia: 'B', posicion: 2, giroHacia: 'A' }), []);
+    expect(bajo.escalera.resumen.avisos.join(' ')).toMatch(/Paso libre de 1\.46 m/);
+  });
+
+  it('avisa el paso libre bajo el entrepiso', () => {
+    const r = generarEstructura(conEscalera({ forma: '3/4', descansos: [2, 5, 8], bajaHacia: 'B', posicion: 2, giroHacia: 'A' }), []);
+    expect(r.escalera.resumen.avisos.join(' ')).toMatch(/Paso libre bajo el entrepiso de 1\.93 m/);
+  });
+
+  it('errores: descansos fuera de orden, faltantes o sin lugar para los tramos', () => {
+    const conDescansos = (forma, descansos) => validarParametros(conEscalera({ forma, descansos, bajaHacia: 'B', posicion: 2, giroHacia: 'A' }));
+    expect(conDescansos('U', [9, 4])).toHaveProperty(['escalera.descansos.1']);
+    // El mensaje sale en el descanso que quedó fuera de lugar, con el rango que le dejan sus vecinos.
+    expect(conDescansos('3/4', [3, 9, 8])['escalera.descansos.1']).toBe('El descanso 2 va entre la contrahuella 5 y la 6');
+    expect(conDescansos('3/4', [3, 7])).toHaveProperty('escalera.descansos');
+    expect(conDescansos('3/4', [3, 5, 12])).toHaveProperty(['escalera.descansos.2']);
+    const corta = conEscalera({ forma: '3/4', descansos: [2, 4, 6], alturaTotal: 1, bajaHacia: 'B', posicion: 2, giroHacia: 'A' });
+    expect(validarParametros(corta)).toHaveProperty('escalera.forma'); // 6 contrahuellas no dan para 4 tramos
+  });
+
+  it('presupuesto: suma el piso de los 3 descansos', () => {
+    const items = calcularPresupuesto(generarEstructura(tresCuartos, []), CATALOGO_INICIAL).items;
+    expect(items.find((i) => i.id === INSUMO.PISO_DESCANSO).cantidad).toBeCloseTo(3 * 0.64);
   });
 });
 
@@ -118,7 +189,7 @@ describe('avisos y validación', () => {
   });
 
   it('errores en L: descanso fuera de rango y giro que no es de 90°', () => {
-    expect(validarParametros({ ...enL, escalera: { ...enL.escalera, escalonesHastaDescanso: 12 } })).toHaveProperty('escalera.escalonesHastaDescanso');
+    expect(validarParametros({ ...enL, escalera: { ...enL.escalera, descansos: [12] } })).toHaveProperty(['escalera.descansos.0']);
     expect(validarParametros({ ...enL, escalera: { ...enL.escalera, giroHacia: 'C' } })).toHaveProperty('escalera.giroHacia');
   });
 
@@ -153,6 +224,14 @@ describe('presupuesto de la escalera', () => {
 });
 
 describe('migración', () => {
+  it('una L guardada con la v1.7 (escalonesHastaDescanso) pasa a la lista de descansos', () => {
+    const { descansos, ...escaleraV17 } = enL.escalera; // eslint-disable-line no-unused-vars
+    const m = migrarParams({ ...P, escalera: { ...escaleraV17, escalonesHastaDescanso: 5 } });
+    expect(m.escalera.descansos).toEqual([5]);
+    expect(m.escalera).not.toHaveProperty('escalonesHastaDescanso');
+    expect(validarParametros(m)).toEqual({});
+  });
+
   it('un proyecto de antes de la v1.7 se abre sin escalera', () => {
     const { escalera, ...viejo } = P; // eslint-disable-line no-unused-vars
     const m = migrarParams(viejo);

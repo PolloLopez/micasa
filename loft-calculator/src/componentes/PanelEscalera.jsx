@@ -7,6 +7,8 @@
 import { useId, useState } from 'react';
 import CampoNumero from './CampoNumero.jsx';
 import SelectorLado from './SelectorLado.jsx';
+import { DESCANSOS_POR_FORMA, calcularEscalones, repartirDescansos } from '../motor/escalera.js';
+import { LADOS } from '../motor/constantes.js';
 import Tarjeta from './Tarjeta.jsx';
 
 /** Select simple con etiqueta y mensaje de error. */
@@ -26,6 +28,18 @@ function CampoOpciones({ etiqueta, valor, opciones, onCambio }) {
 
 const cm = (m) => `${(m * 100).toFixed(1)} cm`;
 
+/**
+ * Pared hacia la que gira el 2º tramo: tiene que ser de costado respecto de
+ * `bajaHacia` (giro de 90°). Si la actual ya sirve se mantiene; si no, se
+ * elige un costado, preferentemente no el del entrepiso.
+ */
+function giroCompatible(bajaHacia, giroActual, ladoEntrepiso) {
+  const i = LADOS.indexOf(bajaHacia);
+  const costados = [LADOS[(i + 1) % 4], LADOS[(i + 3) % 4]];
+  if (costados.includes(giroActual)) return giroActual;
+  return costados.find((l) => l !== ladoEntrepiso) ?? costados[0];
+}
+
 export default function PanelEscalera({ params, resumen, unidad, cambiar, cambiarEscalera }) {
   const esc = params.escalera;
   const [errorActiva, setErrorActiva] = useState(null);
@@ -35,6 +49,20 @@ export default function PanelEscalera({ params, resumen, unidad, cambiar, cambia
   const entero = (campo, etiqueta) => (
     <CampoNumero key={campo} etiqueta={etiqueta} sufijo="u" decimales={0} valor={esc[campo]} onCambio={cambiar(`escalera.${campo}`)} />
   );
+
+  const cantidadDescansos = DESCANSOS_POR_FORMA[esc.forma] ?? 0;
+
+  // Cambiar la forma reparte los descansos parejo (después se editan uno por uno).
+  const cambiarForma = (forma) => {
+    const { contrahuellas } = calcularEscalones(esc);
+    const k = DESCANSOS_POR_FORMA[forma];
+    const descansos = k === 0 ? esc.descansos : repartirDescansos(k, contrahuellas);
+    return cambiarEscalera({ forma, descansos, giroHacia: giroCompatible(esc.bajaHacia, esc.giroHacia, params.ladoEntrepiso) });
+  };
+
+  // Cambiar hacia dónde baja también acomoda el giro (si no, quedaría un giro imposible).
+  const cambiarBajaHacia = (bajaHacia) =>
+    cambiarEscalera({ bajaHacia, giroHacia: giroCompatible(bajaHacia, esc.giroHacia, params.ladoEntrepiso) });
 
   // Cambiar el tipo de apoyo también pone valores típicos (después se editan).
   const cambiarTipoApoyo = (tipo) =>
@@ -55,14 +83,18 @@ export default function PanelEscalera({ params, resumen, unidad, cambiar, cambia
         <>
           <h3 className="subtitulo">Ubicación y forma</h3>
           <div className="grid-params">
-            <CampoOpciones etiqueta="Forma" valor={esc.forma} onCambio={cambiar('escalera.forma')}
-              opciones={[['recta', 'Recta'], ['L', 'En L (con descanso)']]} />
-            <SelectorLado etiqueta="Baja hacia" valor={esc.bajaHacia} params={params} onCambio={cambiar('escalera.bajaHacia')} />
+            <CampoOpciones etiqueta="Forma" valor={esc.forma} onCambio={cambiarForma}
+              opciones={[['recta', 'Recta'], ['L', 'En L (1 descanso)'], ['U', 'En U (2 descansos)'], ['3/4', '3/4 de vuelta (3 descansos)']]} />
+            <SelectorLado etiqueta="Baja hacia" valor={esc.bajaHacia} params={params} onCambio={cambiarBajaHacia} />
             {medida('posicion', 'Posición sobre el borde')}
-            {esc.forma === 'L' && entero('escalonesHastaDescanso', 'Contrahuellas hasta el descanso')}
-            {esc.forma === 'L' && (
+            {cantidadDescansos > 0 && (
               <SelectorLado etiqueta="2º tramo baja hacia" valor={esc.giroHacia} params={params} onCambio={cambiar('escalera.giroHacia')} />
             )}
+            {/* Un campo por descanso: en qué contrahuella va, contando desde el piso. */}
+            {esc.descansos.slice(0, cantidadDescansos).map((m, i) => (
+              <CampoNumero key={`descanso-${i}`} etiqueta={cantidadDescansos === 1 ? 'Contrahuellas hasta el descanso' : `Descanso ${i + 1}: en la contrahuella`}
+                sufijo="nº" decimales={0} valor={m} onCambio={cambiar(`escalera.descansos.${i}`)} />
+            ))}
           </div>
 
           <h3 className="subtitulo">Medidas</h3>
@@ -80,8 +112,8 @@ export default function PanelEscalera({ params, resumen, unidad, cambiar, cambia
             {entero('apoyosPorEscalon', 'Apoyos por escalón')}
             {medida('largoApoyo', 'Largo de cada apoyo')}
             {entero('apoyosIntermedios', 'Columnas bajo la zanca (por tramo)')}
-            {esc.forma === 'L' && (
-              <CampoOpciones etiqueta="Columnas del descanso" valor={esc.columnasDescanso}
+            {cantidadDescansos > 0 && (
+              <CampoOpciones etiqueta={cantidadDescansos === 1 ? 'Columnas del descanso' : 'Columnas de cada descanso'} valor={esc.columnasDescanso}
                 onCambio={(v) => cambiar('escalera.columnasDescanso')(Number(v))}
                 opciones={[['1', '1 (central)'], ['2', '2 (lado de afuera)'], ['4', '4 (esquinas)']]} />
             )}
@@ -99,8 +131,9 @@ export default function PanelEscalera({ params, resumen, unidad, cambiar, cambia
             </div>
           )}
           <p className="nota">
-            Zanca central por tramo. Los escalones son de madera y van sobre los apoyos. La baranda y el hueco
-            en el entrepiso quedan para una próxima versión.
+            Zanca central por tramo. Los escalones son de madera y van sobre los apoyos. Con varios descansos,
+            cada giro es de 90° para el mismo lado (como un caracol) y cada descanso es un cuadrado plano del
+            ancho de la escalera. La baranda y el hueco en el entrepiso quedan para una próxima versión.
           </p>
         </>
       )}

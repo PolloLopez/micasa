@@ -18,8 +18,9 @@ import PanelTiposPanel from './componentes/PanelTiposPanel.jsx';
 import PanelEscalera from './componentes/PanelEscalera.jsx';
 import TablaPresupuesto from './componentes/TablaPresupuesto.jsx';
 import { useEstadoGuardado } from './hooks/useEstadoGuardado.js';
-import { validarParametros, validarAbertura } from './motor/validacion.js';
-import { generarEstructura } from './motor/estructura.js';
+import { validarParametros, validarAbertura, LARGO_MAXIMO_ETIQUETA } from './motor/validacion.js';
+import { esEdicionVacia } from './motor/edicionPiezas.js';
+import { generarEstructura, listarPiezas } from './motor/estructura.js';
 import { calcularPresupuesto, CATALOGO_INICIAL, tiposDePanel } from './motor/presupuesto.js';
 import { migrarParams, normalizarCatalogo } from './motor/migracion.js';
 import { PARAMS_INICIALES, ABERTURAS_INICIALES } from './motor/parametrosIniciales.js';
@@ -61,7 +62,14 @@ function conPanelesExistentes(params, catalogo) {
 /** Copia `obj` cambiando el valor en una ruta tipo "paredes.A.separacionVerticales". */
 function conValor(obj, ruta, valor) {
   const [clave, ...resto] = ruta.split('.');
-  return { ...obj, [clave]: resto.length ? conValor(obj[clave], resto.join('.'), valor) : valor };
+  const nuevo = resto.length ? conValor(obj[clave], resto.join('.'), valor) : valor;
+  if (Array.isArray(obj)) {
+    // Listas (ej. "escalera.descansos.1"): se copia la lista, no se convierte en objeto.
+    const copia = [...obj];
+    copia[Number(clave)] = nuevo;
+    return copia;
+  }
+  return { ...obj, [clave]: nuevo };
 }
 
 export default function App() {
@@ -139,6 +147,12 @@ export default function App() {
   const eliminarPieza = (id) => cambiar('piezasEliminadas')([...params.piezasEliminadas, id]);
   const restaurarPieza = (id) => cambiar('piezasEliminadas')(params.piezasEliminadas.filter((x) => x !== id));
   const restaurarTodas = () => cambiar('piezasEliminadas')([]);
+  /** Guarda la edición de una pieza (recorte, movimiento, perfil). Sin cambios => se borra. */
+  const editarPieza = (id, edicion) => {
+    const { [id]: _anterior, ...resto } = params.piezasEditadas; // eslint-disable-line no-unused-vars
+    return cambiar('piezasEditadas')(esEdicionVacia(edicion) ? resto : { ...resto, [id]: edicion });
+  };
+  const deshacerEdiciones = () => cambiar('piezasEditadas')({});
 
   const cambiarColor = (capa, color) => setColores((prev) => ({ ...prev, [capa]: color }));
 
@@ -337,7 +351,8 @@ export default function App() {
       <main className={`layout${ver3D ? '' : ' sin-visor'}`}>
         <div className="columna-visor">
           <LoftCanvas params={params} estructura={estructura} aberturas={aberturasValidas} paneles={paneles}
-            colores={colores} onCambiarColor={cambiarColor} onEliminarPieza={eliminarPieza} />
+            colores={colores} catalogo={catalogo} unidad={unidad}
+            onCambiarColor={cambiarColor} onEliminarPieza={eliminarPieza} onEditarPieza={editarPieza} />
         </div>
 
         <div className="columna-panel">
@@ -365,7 +380,21 @@ export default function App() {
                 <div key={lado} className="pared">
                   <div className="pared-titulo">
                     <strong>{nombreLado(lado, params.ladoFrente)}</strong>
+                    {params.paredes[lado].etiqueta.trim() && <em>“{params.paredes[lado].etiqueta.trim()}”</em>}
                     <span>lado {lado} · {lados[lado].largo.toFixed(2)} m · alto {h1.toFixed(2)}{Math.abs(h1 - h2) > 0.005 ? ` a ${h2.toFixed(2)}` : ''} m</span>
+                  </div>
+                  <div className="etiqueta-pared">
+                    <label className="capa">
+                      <input type="checkbox" checked={params.paredes[lado].mostrarEtiqueta}
+                        aria-label={`Mostrar la etiqueta de ${nombreLado(lado, params.ladoFrente)} en el 3D`}
+                        onChange={(e) => cambiar(`paredes.${lado}.mostrarEtiqueta`)(e.target.checked)} />
+                      Etiqueta en el 3D
+                    </label>
+                    <input type="text" className="perfil" maxLength={LARGO_MAXIMO_ETIQUETA}
+                      value={params.paredes[lado].etiqueta} disabled={!params.paredes[lado].mostrarEtiqueta}
+                      placeholder={`${nombreLado(lado, params.ladoFrente)} (${lado})`}
+                      aria-label={`Texto de la etiqueta de ${nombreLado(lado, params.ladoFrente)}`}
+                      onChange={(e) => cambiar(`paredes.${lado}.etiqueta`)(e.target.value)} />
                   </div>
                   <div className="grid-params">
                     {medida(`paredes.${lado}.separacionVerticales`, 'Sep. verticales')}
@@ -429,12 +458,40 @@ export default function App() {
             </div>
           </Tarjeta>
 
-          {/* PIEZAS ELIMINADAS */}
-          <Tarjeta id="eliminadas" titulo={`Piezas eliminadas (${params.piezasEliminadas.length})`}>
+          {/* PIEZAS ELIMINADAS Y EDITADAS */}
+          <Tarjeta id="eliminadas" titulo={`Piezas eliminadas y editadas (${params.piezasEliminadas.length + Object.keys(params.piezasEditadas).length})`}>
             <p className="nota">
-              Hacé clic en un hierro del 3D y tocá "Eliminar pieza". Sale del dibujo y del presupuesto.
-              Cada pieza se reconoce por su posición: si cambiás una medida y la pieza se mueve, vuelve a aparecer.
+              Hacé clic en un hierro del 3D: podés <strong>eliminarlo</strong> o <strong>editarlo</strong> (recortar,
+              mover o cotizarlo con otro perfil). Lo eliminado sale del dibujo y del presupuesto; lo editado se dibuja
+              y se cotiza con el cambio. Cada pieza se reconoce por su posición: si cambiás una medida y la pieza se
+              mueve, el cambio deja de aplicarse.
             </p>
+            {Object.keys(params.piezasEditadas).length > 0 && (
+              <>
+                <h3 className="subtitulo">Editadas</h3>
+                <ul className="opening-list">
+                  {Object.keys(params.piezasEditadas).map((id) => {
+                    const original = estructura.editadasEncontradas.find((p) => p.id === id);
+                    const actual = original && listarPiezas(estructura).find((p) => p.id === id);
+                    return (
+                      <li key={id} className="abertura pieza-eliminada">
+                        <span>
+                          {original
+                            ? <>{describirPieza(original, params.ladoFrente)} · {original.largo.toFixed(2)} → {actual.largo.toFixed(2)} m
+                              {actual.insumo && <> · {catalogo.find((p) => p.id === actual.insumo)?.nombre}</>}
+                              {actual.recorteIgnorado && <strong className="error"> · el recorte ya no entra</strong>}</>
+                            : <em>Ya no existe en el modelo (cambió una medida)</em>}
+                          <small className="detalle"> · {id}</small>
+                        </span>
+                        <button className="btn-sec no-print" onClick={() => editarPieza(id, {})}>Deshacer</button>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <button className="btn-sec no-print" onClick={deshacerEdiciones}>Deshacer todas las ediciones</button>
+              </>
+            )}
+            {params.piezasEliminadas.length > 0 && <h3 className="subtitulo">Eliminadas</h3>}
             {params.piezasEliminadas.length > 0 && (
               <>
                 <ul className="opening-list">

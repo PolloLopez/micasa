@@ -9,7 +9,11 @@
 // ==========================================================
 
 import { LIMITES, LIMITES_PARED, LIMITES_ESCALERA, LADOS, ALTURA_PISO_2 } from './constantes.js';
-import { calcularEscalones } from './escalera.js';
+import { calcularEscalones, DESCANSOS_POR_FORMA } from './escalera.js';
+import { revisarEdicion } from './edicionPiezas.js';
+
+/** Largo máximo del texto de la etiqueta de una pared en el 3D. */
+export const LARGO_MAXIMO_ETIQUETA = 30;
 import { geometriaLados, alturaEn, puntoSobreLado, largoLado } from './geometria.js';
 
 /** Revisa un número contra su { min, max, entero, opcional }. */
@@ -56,10 +60,21 @@ export function validarParametros(params) {
       anotar(`paredes.${lado}.${campo}`, revisarNumero(pared?.[campo], limites))
     );
     if (!esIdValido(pared?.panel)) anotar(`paredes.${lado}.panel`, 'Elegí un tipo de panel');
+    if (typeof pared?.etiqueta !== 'string' || pared.etiqueta.length > LARGO_MAXIMO_ETIQUETA) {
+      anotar(`paredes.${lado}.etiqueta`, `La etiqueta puede tener hasta ${LARGO_MAXIMO_ETIQUETA} letras`);
+    }
+    if (typeof pared?.mostrarEtiqueta !== 'boolean') anotar(`paredes.${lado}.mostrarEtiqueta`, 'Valor inválido');
   });
   if (!esIdValido(params.panelTecho)) anotar('panelTecho', 'Elegí un tipo de panel');
   if (!Array.isArray(params.piezasEliminadas) || !params.piezasEliminadas.every(esIdValido) || params.piezasEliminadas.length > 5000) {
     anotar('piezasEliminadas', 'Lista de piezas eliminadas inválida');
+  }
+  const ediciones = params.piezasEditadas;
+  if (!ediciones || typeof ediciones !== 'object' || Array.isArray(ediciones) || Object.keys(ediciones).length > 5000) {
+    anotar('piezasEditadas', 'Lista de piezas editadas inválida');
+  } else {
+    const problema = Object.values(ediciones).map(revisarEdicion).find(Boolean);
+    if (problema) anotar('piezasEditadas', problema);
   }
 
   validarEscalera(params, anotar);
@@ -93,7 +108,8 @@ function validarEscalera(params, anotar) {
     return;
   }
   if (typeof esc.activa !== 'boolean') anotar('escalera.activa', 'Valor inválido');
-  if (!['recta', 'L'].includes(esc.forma)) anotar('escalera.forma', 'Elegí recta o en L');
+  if (!(esc.forma in DESCANSOS_POR_FORMA)) anotar('escalera.forma', 'Elegí recta, en L, en U o 3/4 de vuelta');
+  if (!Array.isArray(esc.descansos) || !esc.descansos.every(Number.isInteger)) anotar('escalera.descansos', 'Lista de descansos inválida');
   if (!['angulos', 'cano'].includes(esc.tipoApoyo)) anotar('escalera.tipoApoyo', 'Elegí ángulos o caño');
   if (![1, 2, 4].includes(esc.columnasDescanso)) anotar('escalera.columnasDescanso', 'Elegí 1, 2 o 4');
   Object.entries(LIMITES_ESCALERA).forEach(([campo, limites]) =>
@@ -117,13 +133,42 @@ function validarEscalera(params, anotar) {
   if (esc.posicion < minimo - 1e-9 || esc.posicion > largoBorde - minimo + 1e-9) {
     anotar('escalera.posicion', `Sobre el borde del entrepiso va de ${minimo.toFixed(2)} a ${(largoBorde - minimo).toFixed(2)} m`);
   }
-  if (esc.forma === 'L') {
-    const { contrahuellas } = calcularEscalones(esc);
-    if (esc.escalonesHastaDescanso > contrahuellas - 2) {
-      anotar('escalera.escalonesHastaDescanso', `Con ${contrahuellas} contrahuellas, el descanso va entre la 2 y la ${contrahuellas - 2}`);
-    }
+  const cantidad = DESCANSOS_POR_FORMA[esc.forma] ?? 0;
+  if (cantidad > 0) {
+    validarDescansos(esc, cantidad, anotar);
     const giraPerpendicular = esc.giroHacia !== esc.bajaHacia && esc.giroHacia !== opuesto(esc.bajaHacia);
     if (!giraPerpendicular) anotar('escalera.giroHacia', 'El segundo tramo tiene que girar 90° (elegí una pared de costado)');
+  }
+}
+
+/**
+ * Descansos: uno por giro, en orden de abajo hacia arriba, y cada tramo
+ * (incluido el de abajo y el de arriba) con al menos 2 contrahuellas.
+ * El error se anota en 'escalera.descansos.<i>' (el campo de ese descanso).
+ */
+function validarDescansos(esc, cantidad, anotar) {
+  if (!Array.isArray(esc.descansos) || esc.descansos.length < cantidad) {
+    anotar('escalera.descansos', `Faltan descansos: esta forma lleva ${cantidad}`);
+    return;
+  }
+  const { contrahuellas } = calcularEscalones(esc);
+  if (contrahuellas < 2 * (cantidad + 1)) {
+    anotar('escalera.forma', `Con ${contrahuellas} contrahuellas no alcanza para ${cantidad + 1} tramos de 2 o más`);
+    return;
+  }
+  // Cada descanso se controla contra sus vecinos (el de abajo y el de arriba),
+  // así el mensaje sale en el campo que se está cambiando.
+  for (let i = 0; i < cantidad; i++) {
+    const m = esc.descansos[i];
+    const abajo = i === 0 ? 0 : esc.descansos[i - 1];
+    const arriba = i === cantidad - 1 ? contrahuellas : esc.descansos[i + 1];
+    const minimo = abajo + 2;
+    const maximo = arriba - 2;
+    if (!Number.isInteger(m) || m < minimo || m > maximo) {
+      anotar(`escalera.descansos.${i}`, minimo > maximo
+        ? `El descanso ${i + 1} no entra: dejá al menos 2 contrahuellas entre descansos`
+        : `El descanso ${i + 1} va entre la contrahuella ${minimo} y la ${maximo}`);
+    }
   }
 }
 

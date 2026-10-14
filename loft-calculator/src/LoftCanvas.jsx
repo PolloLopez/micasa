@@ -22,6 +22,7 @@ import { CAPAS } from './capas.js';
 import { posicionAbertura, listarPiezas } from './motor/estructura.js';
 import { geometriaLados, nombreLado } from './motor/geometria.js';
 import { describirPieza } from './descripcionPiezas.js';
+import EditorPieza from './componentes/EditorPieza.jsx';
 
 // Capa y sección (grosor en el 3D) de cada tipo de pieza.
 const ESTILO_PIEZA = {
@@ -146,10 +147,7 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
       grupo.add(malla);
     };
     e.escalera.escalones.forEach((s) => tabla({ ...s, largo: s.huella }));
-    if (e.escalera.descanso) {
-      const d = e.escalera.descanso;
-      tabla({ centro: d.centro, direccion: d.direccion, ancho: d.lado, largo: d.lado });
-    }
+    e.escalera.descansos.forEach((d) => tabla({ centro: d.centro, direccion: d.direccion, ancho: d.lado, largo: d.lado }));
   }
 
   if (capas.pilotines) {
@@ -191,11 +189,15 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
   }
 
   // Carteles con el nombre de cada lado, un poco afuera de la pared.
+  // Cada pared puede tener su propio texto (etiqueta) u ocultar el cartel.
   const lados = geometriaLados(params);
   LADOS.forEach((lado) => {
+    const pared = params.paredes[lado];
+    if (!pared.mostrarEtiqueta) return;
     const geo = lados[lado];
     const afuera = [-geo.direccion[1], geo.direccion[0]];
-    const sprite = cartel(`${nombreLado(lado, params.ladoFrente)} (${lado})`, lado === params.ladoFrente);
+    const texto = pared.etiqueta.trim() || `${nombreLado(lado, params.ladoFrente)} (${lado})`;
+    const sprite = cartel(texto, lado === params.ladoFrente);
     sprite.position.set(
       (geo.p1[0] + geo.p2[0]) / 2 + afuera[0] * 1.3,
       0.35,
@@ -232,12 +234,15 @@ function mirarAlFrente(camara, controles, params) {
   controles.update();
 }
 
-export default function LoftCanvas({ params, estructura, aberturas, paneles, colores, onCambiarColor, onEliminarPieza }) {
+export default function LoftCanvas({
+  params, estructura, aberturas, paneles, colores, catalogo, unidad, onCambiarColor, onEliminarPieza, onEditarPieza,
+}) {
   const lienzoRef = useRef(null);
   const visorRef = useRef(null); // { grupo, controles, camara, materiales, ... }
   const coloresRef = useRef(colores); // colores iniciales para el montaje
   const [autoRotar, setAutoRotar] = useState(false);
   const [seleccionada, setSeleccionada] = useState(null); // id de la pieza seleccionada
+  const [editandoId, setEditandoId] = useState(null); // pieza con el formulario de edición abierto
   // Partes visibles: cada pared, el techo y los pisos (con sus hierros).
   const [gruposVisibles, setGruposVisibles] = useState({ A: true, B: true, C: true, D: true, techo: true, piso: true, piso2: true, escalera: true });
   const [capas, setCapas] = useState(() =>
@@ -399,12 +404,23 @@ export default function LoftCanvas({ params, estructura, aberturas, paneles, col
 
       {piezaSeleccionada && (
         <div className="seleccion no-print" role="dialog" aria-label="Pieza seleccionada">
-          <div><strong>Seleccionada:</strong> {describirPieza(piezaSeleccionada, params.ladoFrente)}</div>
+          <div>
+            <strong>Seleccionada:</strong> {describirPieza(piezaSeleccionada, params.ladoFrente)}
+            {piezaSeleccionada.editada && <span className="marca-editada"> · editada</span>}
+          </div>
+          {editandoId === piezaSeleccionada.id && (
+            <EditorPieza pieza={piezaSeleccionada} edicion={params.piezasEditadas[piezaSeleccionada.id]}
+              catalogo={catalogo} unidad={unidad} ladoFrente={params.ladoFrente}
+              alturaPiso2={estructura.entrepiso ? estructura.entrepiso.y : null} onEditar={onEditarPieza} />
+          )}
           <div className="seleccion-acciones">
+            {editandoId !== piezaSeleccionada.id && (
+              <button className="btn-ctrl" onClick={() => setEditandoId(piezaSeleccionada.id)}>Editar (recortar, mover, perfil)</button>
+            )}
             <button className="btn-del-texto" onClick={() => { onEliminarPieza(piezaSeleccionada.id); setSeleccionada(null); }}>
               Eliminar pieza
             </button>
-            <button className="btn-ctrl" onClick={() => setSeleccionada(null)}>Cancelar</button>
+            <button className="btn-ctrl" onClick={() => { setSeleccionada(null); setEditandoId(null); }}>Cerrar</button>
           </div>
         </div>
       )}

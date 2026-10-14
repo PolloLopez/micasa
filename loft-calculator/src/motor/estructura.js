@@ -9,7 +9,8 @@
 //
 // Cada pieza es un "segmento" con:
 //   id      identificador estable (sale del tipo y la posición, en cm).
-//           Sirve para eliminar piezas a mano (params.piezasEliminadas).
+//           Sirve para eliminar piezas a mano (params.piezasEliminadas)
+//           y para editarlas (params.piezasEditadas, ver edicionPiezas.js).
 //   tipo    'columna', 'solera', 'horizontal', 'dintel', ...
 //   grupos  a qué panel pertenece: 'A'..'D' (paredes), 'techo', 'piso',
 //           'piso2' o 'interior'. Ocultar un panel oculta sus piezas.
@@ -24,6 +25,7 @@ import {
 import { inicioAbertura } from './validacion.js';
 import { cm, pieza, haciaAdentro } from './segmentos.js';
 import { generarEscalera } from './escalera.js';
+import { aplicarEdicion } from './edicionPiezas.js';
 
 const EPSILON = 0.01; // 1 cm: margen para no duplicar piezas en bordes
 const LARGO_MINIMO = 0.05; // piezas más cortas que 5 cm no se fabrican
@@ -438,24 +440,38 @@ export function listarPiezas(e) {
 }
 
 /**
- * Saca de la estructura las piezas eliminadas a mano.
- * Devuelve la estructura filtrada y qué IDs se encontraron.
+ * Aplica `cambiar` a cada pieza lineal de la estructura: devuelve la
+ * pieza (igual o editada) o null para sacarla.
  */
-function quitarEliminadas(e, idsEliminados) {
-  if (idsEliminados.size === 0) return { ...e, eliminadasEncontradas: [] };
-  const encontradas = listarPiezas(e).filter((p) => idsEliminados.has(p.id));
-  const quedan = (lista) => lista.filter((p) => !idsEliminados.has(p.id));
+function transformarPiezas(e, cambiar) {
+  const t = (lista) => lista.map(cambiar).filter(Boolean);
   return {
     ...e,
-    columnas: quedan(e.columnas),
-    refuerzosAberturas: quedan(e.refuerzosAberturas),
-    marcos: quedan(e.marcos),
-    piso: { tirantes: quedan(e.piso.tirantes), transversales: quedan(e.piso.transversales) },
-    piso2: { tirantes: quedan(e.piso2.tirantes), transversales: quedan(e.piso2.transversales) },
-    correas: quedan(e.correas),
-    techo: { ...e.techo, vigas: quedan(e.techo.vigas), correas: quedan(e.techo.correas) },
-    escalera: e.escalera ? { ...e.escalera, piezas: quedan(e.escalera.piezas) } : null,
-    eliminadasEncontradas: encontradas,
+    columnas: t(e.columnas),
+    refuerzosAberturas: t(e.refuerzosAberturas),
+    marcos: t(e.marcos),
+    piso: { tirantes: t(e.piso.tirantes), transversales: t(e.piso.transversales) },
+    piso2: { tirantes: t(e.piso2.tirantes), transversales: t(e.piso2.transversales) },
+    correas: t(e.correas),
+    techo: { ...e.techo, vigas: t(e.techo.vigas), correas: t(e.techo.correas) },
+    escalera: e.escalera ? { ...e.escalera, piezas: t(e.escalera.piezas) } : null,
+  };
+}
+
+/**
+ * Cambios hechos a mano: saca las piezas eliminadas y aplica las ediciones.
+ * Informa qué piezas (originales) se encontraron, para listarlas en la UI.
+ */
+function aplicarCambiosManuales(e, idsEliminados, ediciones) {
+  const todas = listarPiezas(e);
+  const resultado = transformarPiezas(e, (p) => {
+    if (idsEliminados.has(p.id)) return null;
+    return ediciones[p.id] ? aplicarEdicion(p, ediciones[p.id]) : p;
+  });
+  return {
+    ...resultado,
+    eliminadasEncontradas: todas.filter((p) => idsEliminados.has(p.id)),
+    editadasEncontradas: todas.filter((p) => ediciones[p.id] && !idsEliminados.has(p.id)),
   };
 }
 
@@ -495,5 +511,5 @@ export function generarEstructura(params, aberturas) {
       techo: techo.superficie,
     },
   };
-  return quitarEliminadas(completa, new Set(params.piezasEliminadas ?? []));
+  return aplicarCambiosManuales(completa, new Set(params.piezasEliminadas ?? []), params.piezasEditadas ?? {});
 }

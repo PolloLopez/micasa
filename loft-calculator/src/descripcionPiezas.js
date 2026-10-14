@@ -7,7 +7,7 @@
 import { NOMBRE_TIPO_PIEZA } from './motor/estructura.js';
 import { nombreLado } from './motor/geometria.js';
 
-const NOMBRE_GRUPO = { techo: 'Techo', piso: 'Piso', piso2: 'Piso 2', interior: 'Borde del entrepiso' };
+const NOMBRE_GRUPO = { techo: 'Techo', piso: 'Piso', piso2: 'Piso 2', interior: 'Borde del entrepiso', escalera: 'Escalera' };
 
 /** Nombre de un grupo (pared, techo, piso...). */
 export function nombreGrupo(grupo, ladoFrente) {

@@ -1,7 +1,8 @@
 // ==========================================================
 // ESCALERA
 // ----------------------------------------------------------
-// Escalera recta o en L que llega al BORDE LIBRE del entrepiso.
+// Escalera recta, en L, en U o de 3/4 de vuelta que llega al BORDE
+// LIBRE del entrepiso.
 // Estructura: zanca central por tramo, apoyos de escalón (ángulos o
 // recorte de caño), columnas bajo la zanca y bajo el descanso, y
 // escalones de madera.
@@ -12,8 +13,11 @@
 //     al borde; una de los costados => baja paralela al borde.
 //   - `posicion`: dónde está el escalón de arriba, medido sobre el borde
 //     del entrepiso desde su extremo inicial.
-//   - En L: `escalonesHastaDescanso` (contrahuellas debajo del descanso)
-//     y `giroHacia` (pared hacia la que baja el segundo tramo).
+//   - Con descansos (L = 1, U = 2, 3/4 de vuelta = 3): `descansos`
+//     dice en qué contrahuella (contando desde abajo) va cada descanso,
+//     y `giroHacia` la pared hacia la que baja el segundo tramo. Los
+//     giros siguientes siguen en el MISMO sentido (como un caracol),
+//     cada uno de 90° y con un descanso plano de ancho x ancho.
 //
 // Escalones: con la altura total y la contrahuella objetivo se elige la
 // cantidad de contrahuellas (n) para que TODAS sean iguales. Hay n - 1
@@ -36,14 +40,14 @@ export const BLONDEL = { min: 0.6, max: 0.65 };
 /** Escalera de ejemplo (la que trae el loft). */
 export const ESCALERA_INICIAL = {
   activa: true,
-  forma: 'recta', // 'recta' | 'L'
+  forma: 'recta', // 'recta' | 'L' | 'U' | '3/4'
   bajaHacia: 'A',
   posicion: 0.6,
   ancho: 0.8,
   huella: 0.27,
   contrahuellaObjetivo: 0.18,
   alturaTotal: 0, // 0 = automática (piso 2 + espesor del piso)
-  escalonesHastaDescanso: 6,
+  descansos: [6], // contrahuella (desde abajo) donde va cada descanso; se usan tantos como pida la forma
   giroHacia: 'B',
   tipoApoyo: 'angulos', // 'angulos' | 'cano'
   apoyosPorEscalon: 2,
@@ -51,6 +55,22 @@ export const ESCALERA_INICIAL = {
   apoyosIntermedios: 1, // columnas bajo la zanca, por tramo
   columnasDescanso: 1, // 1 central, 2 o 4
 };
+
+/** Cantidad de descansos de cada forma. */
+export const DESCANSOS_POR_FORMA = { recta: 0, L: 1, U: 2, '3/4': 3 };
+
+/** Altura de paso libre mínima bajo un tramo que pasa por arriba (2 m). */
+export const PASO_LIBRE = 2;
+
+/**
+ * Descansos repartidos parejo para una forma (ej. 13 contrahuellas en U => [4, 9]).
+ * Cada tramo queda con al menos 2 contrahuellas.
+ */
+export function repartirDescansos(cantidadDescansos, contrahuellas) {
+  const tramos = cantidadDescansos + 1;
+  return Array.from({ length: cantidadDescansos }, (_, i) =>
+    Math.min(contrahuellas - 2 * (cantidadDescansos - i), Math.max(2 * (i + 1), Math.round((contrahuellas * (i + 1)) / tramos))));
+}
 
 /** Altura que tiene que salvar la escalera. */
 export function alturaEscalera(escalera) {
@@ -105,7 +125,7 @@ export function bajaPerpendicular(lados, entrepiso, bajaHacia) {
 
 /**
  * Arma la escalera. Precondición: params validados y entrepiso existente.
- * @returns {{ piezas, escalones, descanso, resumen }}
+ * @returns {{ piezas, escalones, descansos, resumen }}
  */
 export function generarEscalera(params, lados, entrepiso) {
   const esc = params.escalera;
@@ -136,7 +156,7 @@ export function generarEscalera(params, lados, entrepiso) {
       const centro = sumar(tope, f, distanciaCentro);
       const yPisada = y0 + j * C;
       escalones.push({ id: `esc-escalon:${j}`, centro: p3(centro, yPisada), direccion: f, ancho: esc.ancho, huella: h });
-      huellasEnPlanta.push({ centro, f, largo: h, ancho: esc.ancho });
+      huellasEnPlanta.push({ centro, f, largo: h, ancho: esc.ancho, y: yPisada });
       // Apoyos del escalón: atraviesan el ancho.
       const posiciones = esc.apoyosPorEscalon === 1 ? [0] : esc.apoyosPorEscalon === 2 ? [-h / 4, h / 4] : [-h / 3, 0, h / 3];
       posiciones.forEach((desplazamiento, k) => {
@@ -163,31 +183,50 @@ export function generarEscalera(params, lados, entrepiso) {
     return { pie, corrida };
   };
 
-  let descanso = null;
-  if (esc.forma === 'L') {
-    const m = esc.escalonesHastaDescanso;
-    const f2 = dirHacia(lados, esc.giroHacia);
-    // Tramo de arriba: pisadas m+1 .. n-1.
-    const { pie: bordeDescanso, corrida: corridaArriba } = tramo(2, arriba, f1, m + 1, n);
-    // Descanso cuadrado, del ancho de la escalera, a la altura m·C.
-    const centroDescanso = sumar(bordeDescanso, f1, esc.ancho / 2);
-    const yDescanso = y0 + m * C;
-    const w1 = lateral(f1);
-    const esquina = (a, b) => sumar(sumar(centroDescanso, f1, a * esc.ancho / 2), w1, b * esc.ancho / 2);
+  /** Descanso nº d: marco perimetral, columnas y piso de madera. */
+  const armarDescanso = (d, centro, f, yDescanso) => {
+    const w = lateral(f);
+    const esquina = (a, b) => sumar(sumar(centro, f, a * esc.ancho / 2), w, b * esc.ancho / 2);
     const esquinas = [esquina(-1, -1), esquina(1, -1), esquina(1, 1), esquina(-1, 1)];
     const yMarco = yDescanso - BAJO_DESCANSO;
     esquinas.forEach((e, i) => {
-      piezas.push(pieza(`esc-marco-descanso:${i}`, 'marco-descanso', grupos, p3(e, yMarco), p3(esquinas[(i + 1) % 4], yMarco)));
+      piezas.push(pieza(`esc-marco-descanso:${d}:${i}`, 'marco-descanso', grupos, p3(e, yMarco), p3(esquinas[(i + 1) % 4], yMarco)));
     });
-    const apoyosDescanso = esc.columnasDescanso === 1 ? [centroDescanso]
+    // 1 = al centro; 2 = del lado de afuera (el más alejado del tramo de arriba); 4 = esquinas.
+    const columnas = esc.columnasDescanso === 1 ? [centro]
       : esc.columnasDescanso === 2 ? [esquina(1, -1), esquina(1, 1)] : esquinas;
-    apoyosDescanso.forEach((p, i) => piezas.push(pieza(`esc-col-descanso:${i}`, 'columna-escalera', grupos, p3(p, y0), p3(p, yMarco))));
-    huellasEnPlanta.push({ centro: centroDescanso, f: f1, largo: esc.ancho, ancho: esc.ancho });
-    descanso = { centro: p3(centroDescanso, yDescanso), direccion: f1, lado: esc.ancho, superficie: esc.ancho * esc.ancho };
-    // Tramo de abajo: arranca en el borde del descanso hacia `giroHacia`; pisadas 1 .. m-1.
-    const topeAbajo = sumar(centroDescanso, f2, esc.ancho / 2);
-    tramo(1, topeAbajo, f2, 1, m);
-    datos.corridaArriba = corridaArriba;
+    columnas.forEach((p, i) => piezas.push(pieza(`esc-col-descanso:${d}:${i}`, 'columna-escalera', grupos, p3(p, y0), p3(p, yMarco))));
+    huellasEnPlanta.push({ centro, f, largo: esc.ancho, ancho: esc.ancho, y: yDescanso });
+    return { numero: d, centro: p3(centro, yDescanso), direccion: f, lado: esc.ancho, superficie: esc.ancho * esc.ancho };
+  };
+
+  // Tramos de arriba hacia abajo: tope = descanso más alto, luego los demás.
+  const k = DESCANSOS_POR_FORMA[esc.forma];
+  const marcas = esc.descansos.slice(0, k); // contrahuellas (desde abajo) de cada descanso, en orden creciente
+  const descansos = [];
+  if (k > 0) {
+    // Sentido del giro: el primero lo define `giroHacia`; los demás giran igual (caracol).
+    const f2 = dirHacia(lados, esc.giroHacia);
+    const sentido = Math.abs(f2[0] - lateral(f1)[0]) < 1e-9 && Math.abs(f2[1] - lateral(f1)[1]) < 1e-9 ? 1 : -1;
+    const girar = (f) => [sentido * lateral(f)[0], sentido * lateral(f)[1]];
+
+    let tope = arriba;
+    let f = f1;
+    let hasta = n;
+    for (let d = k; d >= 1; d--) {
+      const m = marcas[d - 1];
+      // Tramo d + 1: pisadas m+1 .. hasta-1, baja desde `tope` en dirección f.
+      const { pie } = tramo(d + 1, tope, f, m + 1, hasta);
+      // Descanso d: cuadrado del ancho de la escalera, a la altura m·C, a continuación del tramo.
+      const centro = sumar(pie, f, esc.ancho / 2);
+      const yDescanso = y0 + m * C;
+      descansos.unshift(armarDescanso(d, centro, f, yDescanso));
+      // Gira 90° y el tramo de abajo arranca en el borde del descanso.
+      f = girar(f);
+      tope = sumar(centro, f, esc.ancho / 2);
+      hasta = m;
+    }
+    tramo(1, tope, f, 1, hasta);
   } else {
     tramo(1, arriba, f1, 1, n);
   }
@@ -195,7 +234,7 @@ export function generarEscalera(params, lados, entrepiso) {
   return {
     piezas,
     escalones,
-    descanso,
+    descansos,
     resumen: { ...datos, perpendicular, avisos: avisosEscalera(params, datos, huellasEnPlanta, entrepiso) },
   };
 }
@@ -206,6 +245,31 @@ export function generarEscalera(params, lados, entrepiso) {
 function esquinasRect({ centro, f, largo, ancho }) {
   const w = lateral(f);
   return [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([a, b]) => sumar(sumar(centro, f, a * largo / 2), w, b * ancho / 2));
+}
+
+/** Caja en planta (x, z) de un rectángulo. Los tramos siempre van paralelos a las paredes. */
+function cajaEnPlanta(rect) {
+  const esquinas = esquinasRect(rect);
+  const xs = esquinas.map((p) => p[0]);
+  const zs = esquinas.map((p) => p[1]);
+  return { x1: Math.min(...xs), x2: Math.max(...xs), z1: Math.min(...zs), z2: Math.max(...zs) };
+}
+
+/**
+ * Menor altura libre entre una pisada (o descanso) y otra que le pasa por
+ * arriba en planta. null si ninguna se superpone.
+ */
+export function pasoLibreMinimo(rectangulos) {
+  const cajas = rectangulos.map((r) => ({ ...cajaEnPlanta(r), y: r.y }));
+  const seSuperponen = (a, b) =>
+    a.x1 < b.x2 - TOLERANCIA && b.x1 < a.x2 - TOLERANCIA && a.z1 < b.z2 - TOLERANCIA && b.z1 < a.z2 - TOLERANCIA;
+  let menor = null;
+  cajas.forEach((a, i) => cajas.forEach((b, j) => {
+    if (i === j || b.y <= a.y || !seSuperponen(a, b)) return;
+    const paso = b.y - a.y;
+    if (menor === null || paso < menor) menor = paso;
+  }));
+  return menor;
 }
 
 function avisosEscalera(params, datos, rectangulos, entrepiso) {
@@ -223,7 +287,8 @@ function avisosEscalera(params, datos, rectangulos, entrepiso) {
   if (puntos.some(([px, pz]) => Math.abs(px) > x + TOLERANCIA || Math.abs(pz) > z + TOLERANCIA)) {
     avisos.push('La escalera se sale de la planta: corré la posición, cambiá hacia dónde baja o usá forma en L.');
   }
-  // ¿Invade el entrepiso? (algún punto claramente del lado del entrepiso)
+  // Paso libre bajo el entrepiso: una pisada o descanso que queda debajo del entrepiso
+  // (pasa en U o 3/4 de vuelta) necesita 2 m hasta la estructura del piso 2.
   const { origen, u, v, largoU, largoV } = entrepiso;
   const adentroDelEntrepiso = ([px, pz]) => {
     const dx = px - origen[0];
@@ -232,8 +297,18 @@ function avisosEscalera(params, datos, rectangulos, entrepiso) {
     const b = dx * v[0] + dz * v[1];
     return a > TOLERANCIA && a < largoU - TOLERANCIA && b > TOLERANCIA && b < largoV - TOLERANCIA;
   };
-  if (puntos.some(adentroDelEntrepiso)) {
-    avisos.push('La escalera queda debajo del entrepiso: revisá hacia dónde baja.');
+  const debajo = rectangulos.filter((r) => esquinasRect(r).some(adentroDelEntrepiso));
+  if (debajo.length > 0) {
+    const paso = entrepiso.y - Math.max(...debajo.map((r) => r.y));
+    if (paso < PASO_LIBRE - 1e-9) {
+      avisos.push(`Paso libre bajo el entrepiso de ${Math.max(paso, 0).toFixed(2)} m (lo mínimo es ${PASO_LIBRE.toFixed(2)} m): `
+        + 'cambiá hacia dónde baja, dónde van los descansos o usá otra forma.');
+    }
+  }
+  // Paso libre entre tramos: en U o 3/4 un tramo de abajo puede pasar por debajo de uno de arriba.
+  const menorPaso = pasoLibreMinimo(rectangulos);
+  if (menorPaso !== null && menorPaso < PASO_LIBRE - 1e-9) {
+    avisos.push(`Paso libre de ${menorPaso.toFixed(2)} m: un tramo pasa por debajo de otro (lo mínimo es ${PASO_LIBRE.toFixed(2)} m). Cambiá dónde van los descansos o el ancho.`);
   }
   return avisos;
 }

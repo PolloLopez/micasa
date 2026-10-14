@@ -10,6 +10,8 @@ export const PARED_INICIAL = {
   separacionVerticales: 2.5, // columnas a lo largo de la pared (eje X)
   separacionHorizontales: 0.8, // horizontales en altura (eje Y)
   panel: 'panelMuros', // id del tipo de panel (ver TIPOS_PANEL_INICIALES en presupuesto.js)
+  etiqueta: '', // texto del cartel en el 3D; '' = nombre automático (Frente, Lateral…)
+  mostrarEtiqueta: true,
 };
 
 export const PARAMS_INICIALES = {
@@ -52,6 +54,7 @@ export const PARAMS_INICIALES = {
 
   // Piezas que el usuario eliminó a mano (IDs de motor/estructura.js)
   piezasEliminadas: [],
+  piezasEditadas: {}, // { idPieza: { recorteInicio, recorteFin, moverX, moverY, moverZ, perfil } }
 
   // Escalera al borde del entrepiso (ver motor/escalera.js)
   escalera: { ...ESCALERA_INICIAL },

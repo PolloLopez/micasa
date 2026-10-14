@@ -12,6 +12,7 @@
 // ==========================================================
 
 import { optimizarCortes } from './optimizadorCortes.js';
+import { listarPiezas } from './estructura.js';
 import { INSUMO, PLACA_OSB, DESPERDICIO_PLACAS } from './constantes.js';
 
 /** Insumos fijos. El perfil y el precio se editan desde la pantalla. */
@@ -92,10 +93,15 @@ export function calcularPresupuesto(estructura, catalogo, { excedenteBarras = 0 
   const e = estructura;
   const s = e.superficies;
   const insumo = (id) => buscar(catalogo, id);
-  const perfil = (id, piezas) => itemPerfil(insumo(id), largos(piezas), excedenteBarras);
+  // Piezas editadas a mano con otro perfil (`pieza.insumo`) salen de su renglón
+  // y se suman al renglón elegido.
+  const reasignadas = listarPiezas(e).filter((p) => p.insumo);
+  const propias = (piezas) => piezas.filter((p) => !p.insumo);
+  const perfil = (id, piezas) =>
+    itemPerfil(insumo(id), largos([...propias(piezas), ...reasignadas.filter((p) => p.insumo === id)]), excedenteBarras);
 
   const items = [
-    itemPerfil(insumo(INSUMO.COLUMNA), [...largos(e.columnas), ...largos(e.refuerzosAberturas)], excedenteBarras),
+    perfil(INSUMO.COLUMNA, [...e.columnas, ...e.refuerzosAberturas]),
     perfil(INSUMO.MARCO, e.marcos),
     perfil(INSUMO.PISO, e.piso.tirantes),
     perfil(INSUMO.TRANSVERSAL_PISO, e.piso.transversales),
@@ -138,7 +144,7 @@ export function calcularPresupuesto(estructura, catalogo, { excedenteBarras = 0 
   const pisadas = escalera?.escalones.length ?? 0;
   items.push(itemSimple(insumo(INSUMO.ESCALON), pisadas,
     pisadas ? `${pisadas} pisadas de ${(escalera.resumen.huella * 100).toFixed(0)} cm` : 'no lleva'));
-  const m2Descanso = escalera?.descanso?.superficie ?? 0;
+  const m2Descanso = (escalera?.descansos ?? []).reduce((acc, d) => acc + d.superficie, 0);
   // Redondeo hacia arriba al cm² sin arrastrar el error de coma flotante (0,8 x 0,8 = 0,6400000000000001).
   items.push(itemSimple(insumo(INSUMO.PISO_DESCANSO), m2Descanso > 0 ? Math.ceil(m2Descanso * 100 - 1e-9) / 100 : 0,
     m2Descanso ? `${m2Descanso.toFixed(2)} m²` : 'no lleva'));
