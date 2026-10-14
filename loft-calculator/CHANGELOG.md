@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.9.0] - 2026-10-14
+### Agregado
+- Proyecto de **grada para espectadores** ("+ Grada nueva" y "Ejemplo: grada" en Mis proyectos): filas (cantidad,
+  largo, profundidad, altura), tablón de asiento y de pie, pórticos (zanca inclinada + apoyo por fila + parantes cada
+  N filas), vigas longitudinales y riostras en cruz atrás (sin, extremos o todos los vanos). Resumen con altura,
+  profundidad, pórticos y capacidad aproximada; avisos de comodidad, baranda y falta de parantes. Presupuesto propio
+  (perfiles por optimizador de cortes, tablones por metro). Las piezas se seleccionan, editan y eliminan igual.
+- Escalera: hasta 12 parantes bajo la zanca por tramo y riostras en cruz entre parantes (renglón "Riostras en cruz",
+  solo si se usan).
+### Cambiado
+- "Columnas bajo la zanca" pasa a llamarse "Parantes bajo la zanca"; la capa "Escalones" pasa a "Escalones y tablones".
+- Cada tipo de proyecto muestra solo sus tarjetas, capas y renglones del presupuesto.
+
 ## [1.8.1] - 2026-10-14
 ### Cambiado
 - Presupuesto: la nota del excedente de las barras aclara que depende del proveedor y que hay que cargar el de cada uno.

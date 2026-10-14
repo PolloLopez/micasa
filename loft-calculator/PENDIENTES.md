@@ -1,6 +1,6 @@
 # PENDIENTES — loft-calculator
 
-Última limpieza: 2026-10-14 (v1.8.0 en producción). Espejo en Trello: tablero "Desarrollo", tarjetas `[CALC]`.
+Última limpieza: 2026-10-14 (v1.9.0). Espejo en Trello: tablero "Desarrollo", tarjetas `[CALC]`.
 
 ## 🔴 Antes de considerar el presupuesto "de obra" (validar con el herrero)
 - [ ] Supuestos de `constantes.js` y del modelo: ubicación de columnas, empalmes, perfil de cada renglón
@@ -25,6 +25,11 @@
 - [ ] Escalera atravesando el entrepiso (hueco en la estructura de piso 2 con su marco; descontar OSB).
 - [ ] Escalones compensados (en abanico) en los giros, como alternativa al descanso plano.
 
+### Grada
+- [ ] Baranda trasera y lateral (aviso cuando pasa de 1 m de alto).
+- [ ] Escalera o pasillo de acceso entre filas; riostras también en el sentido de adelante hacia atrás.
+- [ ] Validar con el herrero los perfiles de la grada y la carga por pórtico.
+
 ### Presupuesto
 - [ ] Bulonería, soldadura, pintura, fijaciones de paneles, babetas/zinguería y mano de obra.
 - [ ] Exportar PDF propio (hoy es "Imprimir → Guardar como PDF" del navegador).
@@ -48,6 +53,10 @@
 - [ ] Piezas eliminadas/editadas se reconocen por su posición: si una medida las mueve, el cambio deja de
       aplicarse (se avisa en la lista). Evaluar si hace falta algo más robusto.
 - [ ] Migrar el motor a Django cuando arranque Construcción Modular (los tests sirven de especificación).
+
+## ✅ Resuelto en v1.9.0 (2026-10-14)
+- [x] Grada para espectadores como proyecto propio, con parantes, vigas longitudinales y riostras en cruz.
+- [x] Escalera: parantes (hasta 12 por tramo) y riostras en cruz entre parantes.
 
 ## ✅ Resuelto en v1.8.0 (2026-10-14)
 - [x] Escalera con más de un descanso (U y 3/4 de vuelta) y aviso de paso libre.

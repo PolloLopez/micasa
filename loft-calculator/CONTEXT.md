@@ -57,6 +57,9 @@ valores inválidos.
 | 2026-10-14 | Ediciones de piezas en `params.piezasEditadas` (`motor/edicionPiezas.js`) aplicadas en el motor | Igual que las eliminaciones: viajan con el proyecto y el 3D y el presupuesto ven la pieza ya editada. Los recortes se miden sobre la pieza original; si un cambio de medida los deja sin largo se ignoran y se avisa. Eliminar le gana a editar. |
 | 2026-10-14 | Cambio de perfil = la pieza se cotiza en otro renglón del catálogo (`pieza.insumo`) | Reusa el optimizador de cortes del renglón elegido sin crear perfiles nuevos. |
 | 2026-10-14 | Etiqueta de pared en `params.paredes.<lado>` ('' = nombre automático) | El nombre automático sigue el frente elegido; el texto propio solo se usa si se escribe algo. |
+| 2026-10-14 | Grada como tipo de proyecto (`params.tipoProyecto`), motor propio `motor/grada.js` | Una grada no tiene paredes ni techo: mezclarla con el loft complicaba todo. Devuelve la misma forma de estructura (listas vacías + `grada`) para reusar 3D, presupuesto y edición de piezas. |
+| 2026-10-14 | Pórtico de grada = zanca + apoyo por fila + parantes en las líneas de fila; riostras en cruz solo atrás | Es el esquema típico de tribuna metálica: la zanca triangula cada pórtico y las cruces de atrás frenan el movimiento lateral. Lo demás queda a criterio del herrero. |
+| 2026-10-14 | Riostra = tipo de pieza compartido (`cruz()` en `segmentos.js`) para escalera y grada | Un solo helper y un solo renglón de presupuesto. |
 
 ## Supuestos de obra (en `src/motor/constantes.js`)
 Piso del entrepiso a 2,30 m · merma de corte 3 mm · excedente de barras 1 % (editable; depende del proveedor) · placa OSB 2,44 × 1,22 + 10 % de recortes ·
@@ -82,6 +85,7 @@ techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 
 - **Huella**: profundidad de cada pisada. **Contrahuella**: altura de cada escalón.
 - **Regla de comodidad (Blondel)**: 2 contrahuellas + 1 huella entre 60 y 65 cm.
 - **Paso libre**: altura para pasar debajo de un tramo o del entrepiso sin golpearse la cabeza (mínimo 2 m).
+- **Grada**: filas escalonadas para sentarse. **Pórtico**: cada "costilla" de la grada (zanca + apoyos + parantes). **Parante**: vertical que baja al piso. **Riostra en cruz**: dos diagonales entre parantes (cruz de San Andrés) para que no se mueva de costado.
 - **Pieza editada**: hierro recortado, movido o cotizado con otro perfil a mano desde el 3D.
 - **Zanca**: viga inclinada que carga los escalones (acá una sola, central). **Descanso**: plataforma donde gira la escalera en L.
 - **Empalme**: unión de dos tramos cuando la pieza es más larga que la barra comercial.
@@ -99,4 +103,5 @@ techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 
 - 2026-10-09 v1.6.0: "Mis proyectos" (guardar, guardar como, abrir, duplicar, renombrar, borrar, respaldo).
 - 2026-10-13 v1.7.0: escaleras (recta o en L, al borde del entrepiso).
 - 2026-10-14 v1.8.0: escalera en U y 3/4 de vuelta, edición de piezas, etiquetas de paredes.
+- 2026-10-14 v1.9.0: gradas para espectadores; parantes y riostras en la escalera.
 - Nota: el elemento `id="flonnect-my-app"` que aparece en la página no es de la app: lo inyecta la extensión Flonnect (grabador de pantalla) de Chrome.
