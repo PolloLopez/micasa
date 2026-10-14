@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.12.0] - 2026-10-14
+### Agregado
+- **Opacidad** regulable en la leyenda del 3D: Paneles, OSB y Hierros (de "se ve a través" a sólido), para ver cómo
+  queda la construcción cerrada. Se recuerda por navegador.
+- Tipos de panel con **color exterior e interior**: cada cara de las paredes y del techo se pinta con el suyo.
+- **Compartir**: botón que copia un link con el proyecto adentro (medidas, aberturas, perfiles, precios y colores).
+  Quien lo abre ve ese proyecto y puede guardarlo con "Guardar como…". No usa servidor: los datos van en el link.
+- **PDF con la imagen del 3D**: al imprimir, arriba sale la vista actual (fondo blanco) con el nombre y la fecha.
+### Cambiado
+- Los tipos de panel guardados antes toman gris claro como color interior.
+
 ## [1.11.0] - 2026-10-14
 ### Agregado
 - Proyecto de **montaje industrial** ("+ Montaje nuevo" y "Ejemplo: montaje" en Mis proyectos): varios componentes

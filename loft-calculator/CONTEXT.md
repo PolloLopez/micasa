@@ -64,6 +64,10 @@ valores inválidos.
 | 2026-10-14 | Montaje industrial como tipo de proyecto con lista de componentes paramétricos (`motor/montaje.js`) | Pedido de Leandro: cintas, mesas, tanques, cilindros. Se arrancó por componentes con medidas (no croquis) porque reusa todo el motor y deja la base (chapa, varios equipos juntos) para el croquis en tablet. Prototipo de lo que después va a Construcción Modular. |
 | 2026-10-14 | Componentes en coordenadas locales + giro 0°/90° + posición; ids "c<n>:<pieza>" | Cada componente se arma solo y se ubica después; los ids con el componente permiten eliminar y editar piezas igual que en el resto. |
 | 2026-10-14 | Chapa de tanques por anillos del ancho de la chapa (1,22) x chapas por vuelta; tapas en cuadrados de D x D | Cálculo simple y conservador que entiende cualquier calderero. Si D > 1,22 la tapa va en partes (aviso). |
+| 2026-10-14 | Compartir = proyecto comprimido (deflate + base64url) en el "#" del link (`proyecto/linkProyecto.js`) | Lo que va después del "#" no llega al servidor: se comparte sin backend y sin exponer nada. Se valida igual que un .json. Contra: el link es largo (~3 KB para el loft), pero WhatsApp y los navegadores lo aceptan. |
+| 2026-10-14 | Paneles con dos caras (exterior FrontSide / interior BackSide) orientadas hacia afuera | Permite color exterior e interior sin duplicar la geometría del motor. |
+| 2026-10-14 | Opacidad por navegador (como ver/ocultar el 3D); colores de panel en el catálogo (viajan con el proyecto) | La opacidad es cómo quiere mirar cada uno; el color de un panel es un dato de la obra. |
+| 2026-10-14 | Foto del 3D para el PDF tomada en `beforeprint` (render + toDataURL en el mismo momento) | Sirve también para Ctrl+P; sin preserveDrawingBuffer (que hace más lento el 3D). |
 
 ## Supuestos de obra (en `src/motor/constantes.js`)
 Piso del entrepiso a 2,30 m · merma de corte 3 mm · excedente de barras 1 % (editable; depende del proveedor) · placa OSB 2,44 × 1,22 + 10 % de recortes ·
@@ -111,4 +115,5 @@ techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 
 - 2026-10-14 v1.9.0: gradas para espectadores; parantes y riostras en la escalera.
 - 2026-10-14 v1.10.0: tablones de grada separados, del mismo material o únicos por fila.
 - 2026-10-14 v1.11.0: montaje industrial (mesas / bastidores y tanques cilíndricos).
+- 2026-10-14 v1.12.0: opacidad, paneles con color interior/exterior, compartir por link, 3D en el PDF.
 - Nota: el elemento `id="flonnect-my-app"` que aparece en la página no es de la app: lo inyecta la extensión Flonnect (grabador de pantalla) de Chrome.

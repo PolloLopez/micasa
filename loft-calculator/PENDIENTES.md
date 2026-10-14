@@ -1,6 +1,6 @@
 # PENDIENTES — loft-calculator
 
-Última limpieza: 2026-10-14 (v1.11.0). Espejo en Trello: tablero "Desarrollo", tarjetas `[CALC]`.
+Última limpieza: 2026-10-14 (v1.12.0). Espejo en Trello: tablero "Desarrollo", tarjetas `[CALC]`.
 
 ## 🔴 Antes de considerar el presupuesto "de obra" (validar con el herrero)
 - [ ] Supuestos de `constantes.js` y del modelo: ubicación de columnas, empalmes, perfil de cada renglón
@@ -41,7 +41,8 @@
 
 ### Presupuesto
 - [ ] Bulonería, soldadura, pintura, fijaciones de paneles, babetas/zinguería y mano de obra.
-- [ ] Exportar PDF propio (hoy es "Imprimir → Guardar como PDF" del navegador).
+- [ ] Exportar PDF propio (hoy es "Imprimir → Guardar como PDF" del navegador; ya incluye la vista 3D). Sumar
+      vistas fijas (frente, lateral, planta) además de la vista actual.
 
 ### Uso
 - [ ] Botón "aplicar a todas las paredes" para no cargar 4 veces la misma separación.
@@ -62,6 +63,11 @@
 - [ ] Piezas eliminadas/editadas se reconocen por su posición: si una medida las mueve, el cambio deja de
       aplicarse (se avisa en la lista). Evaluar si hace falta algo más robusto.
 - [ ] Migrar el motor a Django cuando arranque Construcción Modular (los tests sirven de especificación).
+
+## ✅ Resuelto en v1.12.0 (2026-10-14)
+- [x] Opacidad de paneles, OSB y hierros; color interior y exterior de los paneles.
+- [x] Compartir un proyecto por link (con las medidas, no el ejemplo).
+- [x] El PDF incluye la imagen de la estructura.
 
 ## ✅ Resuelto en v1.11.0 (2026-10-14)
 - [x] Montaje industrial con varios componentes: mesa / bastidor y tanque cilíndrico (chapas, soldadura, peso, litros).

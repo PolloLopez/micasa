@@ -42,7 +42,7 @@ src/
     optimizadorCortes.js
     presupuesto.js
     motor.test.js
-  proyecto/         guardar/abrir proyecto (.json) con validación + tests
+  proyecto/         guardar/abrir proyecto (.json), link para compartir, Mis proyectos + tests
   capas.js          capas del 3D y sus colores por defecto
   componentes/      piezas de UI reutilizables (Tarjeta plegable, CampoNumero, paneles…)
   hooks/            useEstadoGuardado (localStorage)
