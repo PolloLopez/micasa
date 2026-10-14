@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.8.1] - 2026-10-14
+### Cambiado
+- Presupuesto: la nota del excedente de las barras aclara que depende del proveedor y que hay que cargar el de cada uno.
+- PENDIENTES.md ordenado por tema; lo resuelto antes de la v1.7 queda en este CHANGELOG.
+
 ## [1.8.0] - 2026-10-14
 ### Agregado
 - Escaleras en U (2 descansos) y de 3/4 de vuelta (3 descansos, tipo caracol): cada giro es de 90° para el mismo

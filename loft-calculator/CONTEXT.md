@@ -59,7 +59,7 @@ valores inválidos.
 | 2026-10-14 | Etiqueta de pared en `params.paredes.<lado>` ('' = nombre automático) | El nombre automático sigue el frente elegido; el texto propio solo se usa si se escribe algo. |
 
 ## Supuestos de obra (en `src/motor/constantes.js`)
-Piso del entrepiso a 2,30 m · merma de corte 3 mm · excedente de barras 1 % (editable) · placa OSB 2,44 × 1,22 + 10 % de recortes ·
+Piso del entrepiso a 2,30 m · merma de corte 3 mm · excedente de barras 1 % (editable; depende del proveedor) · placa OSB 2,44 × 1,22 + 10 % de recortes ·
 techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 cm, comodidad 60-65 cm, paso libre 2 m · refuerzo de vano = dintel + 2 jambas (+ alféizar en ventanas).
 
 ## Glosario

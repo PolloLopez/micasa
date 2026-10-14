@@ -59,7 +59,7 @@ export default function TablaPresupuesto({ items, total, catalogo, onCambiarInsu
           valor={excedenteBarras} onCambio={onCambiarExcedente} />
       </div>
       <p className="nota">
-        Las barras vienen entre 1 % y 2 % más largas que su medida nominal: el optimizador corta sobre ese largo real.
+        Las barras suelen venir entre 1 % y 2 % más largas que su medida nominal, <strong>según el proveedor</strong>: consultá el de tu proveedor y cargalo acá. El optimizador corta sobre ese largo real.
       </p>
       <div className="table-wrap">
         <table>
