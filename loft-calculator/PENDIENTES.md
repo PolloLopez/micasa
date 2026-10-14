@@ -1,6 +1,6 @@
 # PENDIENTES — loft-calculator
 
-Última limpieza: 2026-10-14 (v1.9.0). Espejo en Trello: tablero "Desarrollo", tarjetas `[CALC]`.
+Última limpieza: 2026-10-14 (v1.10.0). Espejo en Trello: tablero "Desarrollo", tarjetas `[CALC]`.
 
 ## 🔴 Antes de considerar el presupuesto "de obra" (validar con el herrero)
 - [ ] Supuestos de `constantes.js` y del modelo: ubicación de columnas, empalmes, perfil de cada renglón
@@ -53,6 +53,9 @@
 - [ ] Piezas eliminadas/editadas se reconocen por su posición: si una medida las mueve, el cambio deja de
       aplicarse (se avisa en la lista). Evaluar si hace falta algo más robusto.
 - [ ] Migrar el motor a Django cuando arranque Construcción Modular (los tests sirven de especificación).
+
+## ✅ Resuelto en v1.10.0 (2026-10-14)
+- [x] Grada: asiento y pie pueden ser el mismo tablón, o un solo tipo de tablón por fila.
 
 ## ✅ Resuelto en v1.9.0 (2026-10-14)
 - [x] Grada para espectadores como proyecto propio, con parantes, vigas longitudinales y riostras en cruz.

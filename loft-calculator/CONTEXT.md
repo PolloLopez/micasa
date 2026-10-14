@@ -60,6 +60,7 @@ valores inválidos.
 | 2026-10-14 | Grada como tipo de proyecto (`params.tipoProyecto`), motor propio `motor/grada.js` | Una grada no tiene paredes ni techo: mezclarla con el loft complicaba todo. Devuelve la misma forma de estructura (listas vacías + `grada`) para reusar 3D, presupuesto y edición de piezas. |
 | 2026-10-14 | Pórtico de grada = zanca + apoyo por fila + parantes en las líneas de fila; riostras en cruz solo atrás | Es el esquema típico de tribuna metálica: la zanca triangula cada pórtico y las cruces de atrás frenan el movimiento lateral. Lo demás queda a criterio del herrero. |
 | 2026-10-14 | Riostra = tipo de pieza compartido (`cruz()` en `segmentos.js`) para escalera y grada | Un solo helper y un solo renglón de presupuesto. |
+| 2026-10-14 | Tablones de grada: `tipoTablones` separados / mismoMaterial / unico | Pedido de Leandro: que asiento y pie puedan ser el mismo tablón. "Mismo material" junta los metros en un renglón; "único" reparte N tablones iguales en la fila (tribuna simple). |
 
 ## Supuestos de obra (en `src/motor/constantes.js`)
 Piso del entrepiso a 2,30 m · merma de corte 3 mm · excedente de barras 1 % (editable; depende del proveedor) · placa OSB 2,44 × 1,22 + 10 % de recortes ·
@@ -104,4 +105,5 @@ techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 
 - 2026-10-13 v1.7.0: escaleras (recta o en L, al borde del entrepiso).
 - 2026-10-14 v1.8.0: escalera en U y 3/4 de vuelta, edición de piezas, etiquetas de paredes.
 - 2026-10-14 v1.9.0: gradas para espectadores; parantes y riostras en la escalera.
+- 2026-10-14 v1.10.0: tablones de grada separados, del mismo material o únicos por fila.
 - Nota: el elemento `id="flonnect-my-app"` que aparece en la página no es de la app: lo inyecta la extensión Flonnect (grabador de pantalla) de Chrome.

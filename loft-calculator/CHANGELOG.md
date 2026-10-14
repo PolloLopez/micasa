@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.10.0] - 2026-10-14
+### Agregado
+- Grada: campo "Tablones" con tres opciones: asiento y pie separados (como antes), asiento y pie del mismo tablón
+  (un solo renglón "Tablones de grada" con los metros sumados) o un solo tipo de tablón por fila (N tablones iguales
+  repartidos de adelante hacia atrás, con su ancho y cantidad).
+
 ## [1.9.0] - 2026-10-14
 ### Agregado
 - Proyecto de **grada para espectadores** ("+ Grada nueva" y "Ejemplo: grada" en Mis proyectos): filas (cantidad,
