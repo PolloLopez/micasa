@@ -33,11 +33,16 @@ export const EDICION_VACIA = {
   perfil: null, // id de insumo del catálogo, o null = el de siempre
 };
 
-/** Renglones de perfil a los que se puede pasar una pieza. */
-export const PERFILES_ASIGNABLES = [
+/** Renglones de perfil a los que se puede pasar una pieza de una construcción. */
+export const PERFILES_CONSTRUCCION = [
   INSUMO.COLUMNA, INSUMO.MARCO, INSUMO.PISO, INSUMO.TRANSVERSAL_PISO, INSUMO.PISO_2, INSUMO.TRANSVERSAL_PISO_2,
   INSUMO.CORREA, INSUMO.VIGA_TECHO, INSUMO.CORREA_TECHO, INSUMO.ZANCA, INSUMO.APOYO_ESCALON, INSUMO.COLUMNA_ESCALERA,
+  INSUMO.RIOSTRA,
 ];
+/** Renglones de perfil a los que se puede pasar una pieza de una grada. */
+export const PERFILES_GRADA = [INSUMO.GRADA_ZANCA, INSUMO.GRADA_PARANTE, INSUMO.GRADA_APOYO, INSUMO.GRADA_VIGA, INSUMO.RIOSTRA];
+/** Todos (para validar lo guardado). */
+export const PERFILES_ASIGNABLES = [...PERFILES_CONSTRUCCION, ...PERFILES_GRADA.filter((id) => id !== INSUMO.RIOSTRA)];
 
 const esNumero = (n) => typeof n === 'number' && Number.isFinite(n);
 

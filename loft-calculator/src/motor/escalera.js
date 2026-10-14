@@ -25,7 +25,7 @@
 // ==========================================================
 
 import { ALTURA_PISO_2 } from './constantes.js';
-import { pieza, haciaAdentro } from './segmentos.js';
+import { pieza, haciaAdentro, cruz } from './segmentos.js';
 
 // Espesor desde el eje de la estructura del entrepiso hasta el piso terminado.
 export const ESPESOR_PISO_2 = 0.08;
@@ -52,7 +52,8 @@ export const ESCALERA_INICIAL = {
   tipoApoyo: 'angulos', // 'angulos' | 'cano'
   apoyosPorEscalon: 2,
   largoApoyo: 0.76,
-  apoyosIntermedios: 1, // columnas bajo la zanca, por tramo
+  apoyosIntermedios: 1, // parantes (columnas) bajo la zanca, por tramo
+  riostras: false, // cruz de San Andrés entre parantes consecutivos de cada tramo
   columnasDescanso: 1, // 1 central, 2 o 4
 };
 
@@ -173,12 +174,23 @@ export function generarEscalera(params, lados, entrepiso) {
     const yTope = y0 + hasta * C - BAJO_ZANCA;
     const zanca = pieza(`esc-zanca:${numero}`, 'zanca', grupos, p3(pie, yPie), p3(tope, yTope));
     piezas.push(zanca);
-    // Columnas intermedias bajo la zanca, repartidas parejo.
+    // Parantes bajo la zanca, repartidos parejo.
+    const parantes = [];
     for (let i = 1; i <= esc.apoyosIntermedios; i++) {
       const t = i / (esc.apoyosIntermedios + 1);
       const punto = sumar(pie, f, -corrida * t);
       const y = yPie + (yTope - yPie) * t;
-      if (y - y0 > 0.05) piezas.push(pieza(`esc-col-zanca:${numero}:${i}`, 'columna-escalera', grupos, p3(punto, y0), p3(punto, y)));
+      if (y - y0 > 0.05) {
+        piezas.push(pieza(`esc-col-zanca:${numero}:${i}`, 'columna-escalera', grupos, p3(punto, y0), p3(punto, y)));
+        parantes.push({ i, abajo: p3(punto, y0 + 0.05), arriba: p3(punto, y - 0.05) });
+      }
+    }
+    // Riostras en cruz entre parantes consecutivos (en el plano de la zanca).
+    if (esc.riostras) {
+      for (let k = 0; k + 1 < parantes.length; k++) {
+        const [a, b] = [parantes[k], parantes[k + 1]];
+        piezas.push(...cruz(`esc-riostra:${numero}:${a.i}`, 'riostra', grupos, a.abajo, a.arriba, b.abajo, b.arriba));
+      }
     }
     return { pie, corrida };
   };

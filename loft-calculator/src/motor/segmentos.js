@@ -12,6 +12,17 @@ export function pieza(id, tipo, grupos, desde, hasta) {
   return { id, tipo, grupos, desde, hasta, largo: Number(largo.toFixed(4)) };
 }
 
+/**
+ * Cruz de San Andrés entre dos parantes A y B: dos diagonales
+ * (abajo de A -> arriba de B y abajo de B -> arriba de A).
+ */
+export function cruz(idBase, tipo, grupos, abajoA, arribaA, abajoB, arribaB) {
+  return [
+    pieza(`${idBase}:a`, tipo, grupos, abajoA, arribaB),
+    pieza(`${idBase}:b`, tipo, grupos, abajoB, arribaA),
+  ];
+}
+
 /** Dirección "hacia adentro" de la planta desde un lado (perpendicular a la pared). */
 export function haciaAdentro(geoLado) {
   return [geoLado.direccion[1], -geoLado.direccion[0]];

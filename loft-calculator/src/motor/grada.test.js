@@ -1,0 +1,176 @@
+// Tests de la grada para espectadores y de las riostras. Correr con: npm test
+import { describe, it, expect } from 'vitest';
+import { GRADA_INICIAL, posicionesPorticos, medidasGrada, ESPESOR_TABLON } from './grada.js';
+import { generarEstructura, listarPiezas } from './estructura.js';
+import { calcularPresupuesto, CATALOGO_INICIAL } from './presupuesto.js';
+import { validarParametros } from './validacion.js';
+import { migrarParams } from './migracion.js';
+import { INSUMO } from './constantes.js';
+import { PARAMS_INICIALES as P } from './parametrosIniciales.js';
+import { gradaNueva, gradaEjemplo } from '../proyecto/proyectosBase.js';
+
+// Proyecto de grada con el ejemplo: 6 filas de 6 m, huella 75 cm, contrahuella 40 cm, pórticos cada 1,5 m.
+const conGrada = (cambios = {}) => ({ ...P, tipoProyecto: 'grada', grada: { ...GRADA_INICIAL, ...cambios } });
+const deTipo = (e, tipo) => e.grada.piezas.filter((p) => p.tipo === tipo);
+
+describe('medidas y pórticos', () => {
+  it('pórticos repartidos parejo de punta a punta (6 m cada 1,5 m => 5)', () => {
+    expect(posicionesPorticos(6, 1.5)).toEqual([-3, -1.5, 0, 1.5, 3]);
+    expect(posicionesPorticos(5, 1.5)).toHaveLength(5); // 4 vanos de 1,25 m (no quedan más de 1,5 m)
+  });
+
+  it('altura, profundidad y capacidad (45 cm por persona)', () => {
+    const m = medidasGrada(GRADA_INICIAL);
+    expect(m.alturaTotal).toBeCloseTo(2.4);
+    expect(m.profundidad).toBeCloseTo(4.5);
+    expect(m.capacidad).toBe(13 * 6); // 6 m / 0,45 m = 13 personas por fila
+  });
+});
+
+describe('estructura de la grada (ejemplo)', () => {
+  const e = generarEstructura(conGrada(), []);
+
+  it('es un proyecto propio: sin paredes, pisos, techo ni escalera', () => {
+    expect(e.paredes).toEqual([]);
+    expect(e.columnas).toEqual([]);
+    expect(e.escalera).toBeNull();
+    expect(listarPiezas(e).every((p) => p.grupos.includes('grada'))).toBe(true);
+  });
+
+  it('por pórtico: 1 zanca, 1 apoyo por fila y 1 parante por línea de fila', () => {
+    expect(deTipo(e, 'grada-zanca')).toHaveLength(5);
+    expect(deTipo(e, 'grada-apoyo')).toHaveLength(5 * 6);
+    expect(deTipo(e, 'grada-parante')).toHaveLength(5 * 7);
+  });
+
+  it('cada parante llega a la fila que sostiene (debajo del tablón)', () => {
+    const alto = (j) => e.grada.piezas.find((p) => p.id === `grada-parante:0:${j}`).hasta[1];
+    expect(alto(0)).toBeCloseTo(0.4 - ESPESOR_TABLON); // frente: fila 1
+    expect(alto(3)).toBeCloseTo(1.6 - ESPESOR_TABLON); // línea 3: frente de la fila 4
+    expect(alto(6)).toBeCloseTo(2.4 - ESPESOR_TABLON); // fondo: fila 6
+  });
+
+  it('la zanca va del pie de adelante al tope de atrás', () => {
+    const z = e.grada.piezas.find((p) => p.id === 'grada-zanca:0');
+    expect(z.desde).toEqual([-3, 0, 2.25]);
+    expect(z.hasta[1]).toBeCloseTo(2.35);
+    expect(z.hasta[2]).toBeCloseTo(-2.25);
+  });
+
+  it('2 vigas longitudinales por fila, de punta a punta', () => {
+    const vigas = deTipo(e, 'grada-viga');
+    expect(vigas).toHaveLength(12);
+    vigas.forEach((v) => expect(v.largo).toBeCloseTo(6));
+  });
+
+  it('riostras en cruz atrás, solo en los vanos de los extremos (2 cruces = 4 diagonales)', () => {
+    const riostras = deTipo(e, 'riostra');
+    expect(riostras).toHaveLength(4);
+    riostras.forEach((r) => expect(r.desde[2]).toBeCloseTo(-2.25));
+    expect(deTipo(generarEstructura(conGrada({ riostras: 'todos' }), []), 'riostra')).toHaveLength(8);
+    expect(deTipo(generarEstructura(conGrada({ riostras: 'no' }), []), 'riostra')).toHaveLength(0);
+  });
+
+  it('parantes cada 2 filas (el fondo siempre lleva) y sin parantes', () => {
+    const cada2 = generarEstructura(conGrada({ filas: 5, parantesCadaFilas: 2 }), []);
+    expect(deTipo(cada2, 'grada-parante').map((p) => p.id.split(':')[2]).slice(0, 4)).toEqual(['0', '2', '4', '5']);
+    const sin = generarEstructura(conGrada({ parantesCadaFilas: 0 }), []);
+    expect(deTipo(sin, 'grada-parante')).toHaveLength(0);
+    expect(sin.grada.resumen.avisos.join(' ')).toMatch(/Sin parantes/);
+  });
+
+  it('tablones: asiento adelante y pie atrás en cada fila', () => {
+    expect(e.grada.tablones).toHaveLength(12);
+    const asiento = e.grada.tablones.find((t) => t.id === 'asiento:1');
+    const pie = e.grada.tablones.find((t) => t.id === 'pie:1');
+    expect(asiento.centro[2]).toBeGreaterThan(pie.centro[2]); // adelante = z mayor
+  });
+
+  it('avisos: baranda si pasa de 1 m; comodidad de la fila', () => {
+    expect(e.grada.resumen.avisos.join(' ')).toMatch(/baranda/);
+    const incomoda = generarEstructura(conGrada({ contrahuella: 0.55, huella: 0.65, anchoAsiento: 0.3, anchoPie: 0.3 }), []);
+    expect(incomoda.grada.resumen.avisos.join(' ')).toMatch(/entre 35 y 45 cm/);
+    expect(incomoda.grada.resumen.avisos.join(' ')).toMatch(/piernas/);
+  });
+
+  it('las piezas de la grada se editan y eliminan como cualquier otra', () => {
+    const editada = generarEstructura({ ...conGrada(), piezasEditadas: { 'grada-parante:0:0': { perfil: INSUMO.GRADA_ZANCA } } }, []);
+    const items = calcularPresupuesto(editada, CATALOGO_INICIAL).items;
+    const piezas = (id) => items.find((i) => i.id === id).cortes.barras.flatMap((b) => b.piezas).length;
+    expect(piezas(INSUMO.GRADA_PARANTE)).toBe(35 - 1);
+    expect(piezas(INSUMO.GRADA_ZANCA)).toBe(5 + 1);
+    const sinRiostra = generarEstructura({ ...conGrada(), piezasEliminadas: ['grada-riostra:0:a'] }, []);
+    expect(deTipo(sinRiostra, 'riostra')).toHaveLength(3);
+  });
+});
+
+describe('presupuesto de la grada', () => {
+  const items = calcularPresupuesto(generarEstructura(conGrada(), []), CATALOGO_INICIAL).items;
+  const item = (id) => items.find((i) => i.id === id);
+
+  it('solo los renglones de la grada', () => {
+    expect(items.map((i) => i.id)).toEqual([
+      INSUMO.GRADA_ZANCA, INSUMO.GRADA_PARANTE, INSUMO.GRADA_APOYO, INSUMO.GRADA_VIGA, INSUMO.RIOSTRA,
+      INSUMO.GRADA_ASIENTO, INSUMO.GRADA_PIE,
+    ]);
+  });
+
+  it('tablones por metro: 6 filas x 6 m = 36 m de asiento y 36 m de pie', () => {
+    expect(item(INSUMO.GRADA_ASIENTO).cantidad).toBe(36);
+    expect(item(INSUMO.GRADA_PIE).cantidad).toBe(36);
+  });
+
+  it('los perfiles pasan por el optimizador de cortes', () => {
+    expect(item(INSUMO.GRADA_VIGA).cortes.barras.flatMap((b) => b.piezas)).toHaveLength(12);
+    expect(item(INSUMO.GRADA_VIGA).cantidad).toBeGreaterThanOrEqual(12); // 6 m sobre barras de 6 m (+1 %)
+  });
+});
+
+describe('validación y proyectos de grada', () => {
+  it('asiento + pie tienen que entrar en la fila', () => {
+    expect(validarParametros(conGrada({ anchoAsiento: 0.5, anchoPie: 0.4 }))).toHaveProperty(['grada.anchoAsiento']);
+    expect(validarParametros(conGrada({ riostras: 'muchas' }))).toHaveProperty(['grada.riostras']);
+    expect(validarParametros({ ...P, tipoProyecto: 'otro' })).toHaveProperty('tipoProyecto');
+  });
+
+  it('grada nueva (sin precios) y de ejemplo son válidas', () => {
+    [gradaNueva(), gradaEjemplo()].forEach((proyecto) => {
+      expect(proyecto.params.tipoProyecto).toBe('grada');
+      expect(validarParametros(proyecto.params)).toEqual({});
+    });
+    expect(gradaNueva().catalogo.every((i) => i.precio === 0)).toBe(true);
+  });
+
+  it('un proyecto de la v1.8 se abre como construcción, con la grada por defecto y sin riostras en la escalera', () => {
+    const { tipoProyecto, grada, ...viejo } = P; // eslint-disable-line no-unused-vars
+    const { riostras, ...escaleraVieja } = P.escalera; // eslint-disable-line no-unused-vars
+    const m = migrarParams({ ...viejo, escalera: escaleraVieja });
+    expect(m.tipoProyecto).toBe('construccion');
+    expect(m.grada).toEqual(GRADA_INICIAL);
+    expect(m.escalera.riostras).toBe(false);
+    expect(validarParametros(m)).toEqual({});
+  });
+});
+
+describe('parantes y riostras de la escalera', () => {
+  const conEscalera = (cambios) => ({ ...P, escalera: { ...P.escalera, ...cambios } });
+
+  it('hasta 12 parantes por tramo', () => {
+    const e = generarEstructura(conEscalera({ apoyosIntermedios: 6 }), []);
+    expect(e.escalera.piezas.filter((p) => p.tipo === 'columna-escalera')).toHaveLength(6);
+    expect(validarParametros(conEscalera({ apoyosIntermedios: 13 }))).toHaveProperty(['escalera.apoyosIntermedios']);
+  });
+
+  it('riostras en cruz entre parantes consecutivos (3 parantes => 2 cruces)', () => {
+    const e = generarEstructura(conEscalera({ apoyosIntermedios: 3, riostras: true }), []);
+    const riostras = e.escalera.piezas.filter((p) => p.tipo === 'riostra');
+    expect(riostras).toHaveLength(4);
+    const items = calcularPresupuesto(e, CATALOGO_INICIAL).items;
+    expect(items.find((i) => i.id === INSUMO.RIOSTRA).cortes.barras.flatMap((b) => b.piezas)).toHaveLength(4);
+  });
+
+  it('sin riostras el renglón no aparece en una construcción', () => {
+    const items = calcularPresupuesto(generarEstructura(conEscalera({ apoyosIntermedios: 3 }), []), CATALOGO_INICIAL).items;
+    expect(items.find((i) => i.id === INSUMO.RIOSTRA)).toBeUndefined();
+  });
+});

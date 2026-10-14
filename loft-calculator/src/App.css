@@ -201,6 +201,7 @@ input.perfil:focus { outline: 2px solid var(--acento); border-style: solid; }
 .etiqueta-pared input[type="text"] { flex: 1; min-width: 0; }
 .etiqueta-pared input[type="text"]:disabled { opacity: 0.4; }
 .pared-titulo em { color: var(--texto-suave); margin: 0 6px; }
+.casilla-campo { align-self: end; padding-bottom: 6px; font-size: 0.75rem; }
 .marca-editada { color: #facc15; font-weight: bold; }
 .btn-del-texto { background: var(--peligro); color: #fff; border: none; border-radius: 4px; padding: 4px 10px; font-weight: bold; }
 .pieza-eliminada { display: flex; justify-content: space-between; align-items: center; gap: 8px; }

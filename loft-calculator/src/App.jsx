@@ -16,6 +16,7 @@ import SelectorLado from './componentes/SelectorLado.jsx';
 import PanelAberturas from './componentes/PanelAberturas.jsx';
 import PanelTiposPanel from './componentes/PanelTiposPanel.jsx';
 import PanelEscalera from './componentes/PanelEscalera.jsx';
+import PanelGrada from './componentes/PanelGrada.jsx';
 import TablaPresupuesto from './componentes/TablaPresupuesto.jsx';
 import { useEstadoGuardado } from './hooks/useEstadoGuardado.js';
 import { validarParametros, validarAbertura, LARGO_MAXIMO_ETIQUETA } from './motor/validacion.js';
@@ -28,7 +29,7 @@ import { LADOS } from './motor/constantes.js';
 import { nombreLado, alturasPared, geometriaLados, alturaMaxima } from './motor/geometria.js';
 import { COLORES_INICIALES, coloresValidos, completarColores } from './capas.js';
 import { crearArchivoProyecto, leerArchivoProyecto, nombreDeArchivo } from './proyecto/archivoProyecto.js';
-import { proyectoVacio, proyectoEjemplo } from './proyecto/proyectosBase.js';
+import { proyectoVacio, proyectoEjemplo, gradaNueva, gradaEjemplo } from './proyecto/proyectosBase.js';
 import {
   crearEntrada, guardarEntrada, borrarEntrada, duplicarEntrada, renombrarEntrada, abrirEntrada,
   hayCambiosSinGuardar, esBibliotecaValida, crearRespaldo, importarRespaldo, nuevoId,
@@ -96,6 +97,7 @@ export default function App() {
     [aberturas, params]
   );
   const estructura = useMemo(() => generarEstructura(params, aberturasValidas), [params, aberturasValidas]);
+  const esGrada = params.tipoProyecto === 'grada'; // proyecto de grada: otra pantalla de datos
   const { items, total } = useMemo(
     () => calcularPresupuesto(estructura, catalogo, { excedenteBarras: params.excedenteBarras }),
     [estructura, catalogo, params.excedenteBarras]
@@ -231,6 +233,20 @@ export default function App() {
     setAviso({ tipo: 'ok', texto: 'Proyecto nuevo: cargá las medidas, los perfiles y los precios. Después "Guardar como…".' });
   };
 
+  /** "+ Grada nueva" y "Ejemplo: grada": proyectos de tipo grada. */
+  const nuevaGrada = () => {
+    if (!puedoReemplazar()) return;
+    cargarProyecto(gradaNueva());
+    setMostrarProyectos(false);
+    setAviso({ tipo: 'ok', texto: 'Grada nueva: cargá las filas, los perfiles y los precios. Después "Guardar como…".' });
+  };
+  const cargarEjemploGrada = () => {
+    if (!puedoReemplazar()) return;
+    cargarProyecto(gradaEjemplo());
+    setMostrarProyectos(false);
+    setAviso({ tipo: 'ok', texto: 'Ejemplo cargado: grada de 6 filas x 6 m.' });
+  };
+
   /** "Ejemplo": carga el loft de referencia (sin guardar). */
   const cargarEjemplo = () => {
     if (!puedoReemplazar()) return;
@@ -336,6 +352,7 @@ export default function App() {
           biblioteca={biblioteca} idActual={idProyectoActual} onCerrar={() => setMostrarProyectos(false)}
           onAbrir={abrirDeBiblioteca} onDuplicar={duplicarDeBiblioteca} onRenombrar={renombrarDeBiblioteca}
           onBorrar={borrarDeBiblioteca} onNuevo={nuevoProyecto} onEjemplo={cargarEjemplo}
+          onNuevaGrada={nuevaGrada} onEjemploGrada={cargarEjemploGrada}
           onAbrirArchivo={abrirArchivo} onDescargarArchivo={descargarProyecto}
           onExportarRespaldo={exportarRespaldo} onImportarRespaldo={importarRespaldoDeArchivo}
         />
@@ -356,6 +373,13 @@ export default function App() {
         </div>
 
         <div className="columna-panel">
+          {/* GRADA (proyecto propio): solo su tarjeta, las piezas y el presupuesto. */}
+          {esGrada && (
+            <PanelGrada params={params} resumen={estructura.grada.resumen} unidad={unidad} cambiar={cambiar} />
+          )}
+
+          {/* CONSTRUCCIÓN: planta, paredes, pisos, escalera, techo y fundación. */}
+          {!esGrada && (<>
           {/* PLANTA */}
           <Tarjeta id="planta" titulo="Planta y altura">
             <div className="grid-params">
@@ -457,6 +481,7 @@ export default function App() {
                 valor={params.pilotinesPorFila} onCambio={cambiar('pilotinesPorFila')} />
             </div>
           </Tarjeta>
+          </>)}
 
           {/* PIEZAS ELIMINADAS Y EDITADAS */}
           <Tarjeta id="eliminadas" titulo={`Piezas eliminadas y editadas (${params.piezasEliminadas.length + Object.keys(params.piezasEditadas).length})`}>
@@ -513,11 +538,13 @@ export default function App() {
             )}
           </Tarjeta>
 
-          <PanelAberturas aberturas={aberturasValidas} params={params} unidad={unidad}
-            onAgregar={agregarAbertura} onActualizar={actualizarAbertura} onQuitar={quitarAbertura} />
+          {!esGrada && (<>
+            <PanelAberturas aberturas={aberturasValidas} params={params} unidad={unidad}
+              onAgregar={agregarAbertura} onActualizar={actualizarAbertura} onQuitar={quitarAbertura} />
 
-          <PanelTiposPanel paneles={paneles} usosDePanel={usosDePanel} onCambiar={cambiarInsumo}
-            onAgregar={agregarTipoPanel} onQuitar={quitarTipoPanel} />
+            <PanelTiposPanel paneles={paneles} usosDePanel={usosDePanel} onCambiar={cambiarInsumo}
+              onAgregar={agregarTipoPanel} onQuitar={quitarTipoPanel} />
+          </>)}
 
           <TablaPresupuesto items={items} total={total} catalogo={catalogo} onCambiarInsumo={cambiarInsumo}
             excedenteBarras={params.excedenteBarras} onCambiarExcedente={cambiar('excedenteBarras')} />

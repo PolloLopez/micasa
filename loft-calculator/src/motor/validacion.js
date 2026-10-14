@@ -8,7 +8,7 @@
 // Los campos de cada pared usan la clave "paredes.A.separacionVerticales".
 // ==========================================================
 
-import { LIMITES, LIMITES_PARED, LIMITES_ESCALERA, LADOS, ALTURA_PISO_2 } from './constantes.js';
+import { LIMITES, LIMITES_PARED, LIMITES_ESCALERA, LIMITES_GRADA, LADOS, ALTURA_PISO_2 } from './constantes.js';
 import { calcularEscalones, DESCANSOS_POR_FORMA } from './escalera.js';
 import { revisarEdicion } from './edicionPiezas.js';
 
@@ -78,6 +78,7 @@ export function validarParametros(params) {
   }
 
   validarEscalera(params, anotar);
+  validarGrada(params, anotar);
 
   if (Object.keys(errores).length > 0) return errores;
 
@@ -101,6 +102,26 @@ const opuesto = (lado) => LADOS[(LADOS.indexOf(lado) + 2) % 4];
  * Escalera: rangos, opciones y reglas entre campos. Los avisos de
  * comodidad o de si entra en la planta NO son errores (ver escalera.js).
  */
+/** Tipos de proyecto: una construcción (loft, galpón...) o una grada suelta. */
+export const TIPOS_PROYECTO = ['construccion', 'grada'];
+
+/** Grada (solo se usa si tipoProyecto = 'grada', pero siempre tiene que ser válida). */
+function validarGrada(params, anotar) {
+  if (!TIPOS_PROYECTO.includes(params.tipoProyecto)) anotar('tipoProyecto', 'Tipo de proyecto inválido');
+  const grada = params.grada;
+  if (!grada || typeof grada !== 'object') {
+    anotar('grada', 'Faltan los datos de la grada');
+    return;
+  }
+  Object.entries(LIMITES_GRADA).forEach(([campo, limites]) => anotar(`grada.${campo}`, revisarNumero(grada[campo], limites)));
+  if (!['no', 'extremos', 'todos'].includes(grada.riostras)) anotar('grada.riostras', 'Elegí dónde van las riostras');
+  if (grada.anchoAsiento + grada.anchoPie > grada.huella + 1e-9) {
+    anotar('grada.anchoAsiento', `Asiento + pie (${((grada.anchoAsiento + grada.anchoPie) * 100).toFixed(0)} cm) no entran en la fila de ${(grada.huella * 100).toFixed(0)} cm`);
+    anotar('grada.anchoPie', `Asiento + pie no entran en la fila de ${(grada.huella * 100).toFixed(0)} cm`);
+    anotar('grada.huella', 'La fila es más angosta que asiento + pie');
+  }
+}
+
 function validarEscalera(params, anotar) {
   const esc = params.escalera;
   if (!esc || typeof esc !== 'object') {
@@ -108,6 +129,7 @@ function validarEscalera(params, anotar) {
     return;
   }
   if (typeof esc.activa !== 'boolean') anotar('escalera.activa', 'Valor inválido');
+  if (typeof esc.riostras !== 'boolean') anotar('escalera.riostras', 'Valor inválido');
   if (!(esc.forma in DESCANSOS_POR_FORMA)) anotar('escalera.forma', 'Elegí recta, en L, en U o 3/4 de vuelta');
   if (!Array.isArray(esc.descansos) || !esc.descansos.every(Number.isInteger)) anotar('escalera.descansos', 'Lista de descansos inválida');
   if (!['angulos', 'cano'].includes(esc.tipoApoyo)) anotar('escalera.tipoApoyo', 'Elegí ángulos o caño');

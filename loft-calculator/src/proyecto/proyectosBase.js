@@ -7,6 +7,7 @@
 //   Las medidas son las mínimas para que el 3D tenga algo que dibujar
 //   (caja de 3 x 3 x 2,40 m).
 // - proyectoEjemplo(): el loft de referencia (botón "Ejemplo").
+// - gradaNueva() / gradaEjemplo(): proyectos de tipo grada (precios en $0 / con precios).
 // Son funciones (no constantes) para devolver siempre copias nuevas.
 // ==========================================================
 
@@ -14,6 +15,7 @@ import { PARAMS_INICIALES, ABERTURAS_INICIALES } from '../motor/parametrosInicia
 import { CATALOGO_FIJO, CATALOGO_INICIAL } from '../motor/presupuesto.js';
 import { COLORES_INICIALES } from '../capas.js';
 import { ESCALERA_INICIAL } from '../motor/escalera.js';
+import { GRADA_INICIAL } from '../motor/grada.js';
 
 const ID_PANEL_GENERICO = 'panel';
 
@@ -46,6 +48,8 @@ export function proyectoVacio() {
       piezasEliminadas: [],
       piezasEditadas: {},
       escalera: { ...ESCALERA_INICIAL, activa: false }, // sin escalera (no hay entrepiso)
+      tipoProyecto: 'construccion',
+      grada: { ...GRADA_INICIAL },
     },
     aberturas: [],
     catalogo: [
@@ -64,5 +68,22 @@ export function proyectoEjemplo() {
     aberturas: structuredClone(ABERTURAS_INICIALES),
     catalogo: structuredClone(CATALOGO_INICIAL),
     colores: { ...COLORES_INICIALES },
+  };
+}
+
+/** Grada nueva (botón "+ Grada nueva"): la grada de 6 filas, sin precios ni perfiles. */
+export function gradaNueva() {
+  const vacio = proyectoVacio();
+  return { ...vacio, params: { ...vacio.params, tipoProyecto: 'grada', grada: { ...GRADA_INICIAL } } };
+}
+
+/** Grada de ejemplo (botón "Ejemplo: grada"): 6 filas de 6 m con precios de referencia. */
+export function gradaEjemplo() {
+  const ejemplo = proyectoEjemplo();
+  return {
+    ...ejemplo,
+    nombre: 'Ejemplo: grada 6 filas x 6 m',
+    params: { ...ejemplo.params, tipoProyecto: 'grada', grada: { ...GRADA_INICIAL } },
+    aberturas: [],
   };
 }

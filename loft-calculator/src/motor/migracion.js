@@ -19,12 +19,16 @@
 //   - escalera.escalonesHastaDescanso (un número) pasa a escalera.descansos (lista).
 //   - nuevo: piezasEditadas (recortes, movimientos y perfil de piezas sueltas).
 //   - cada pared: etiqueta del 3D (texto propio) y si se muestra.
+// v1.8 -> v1.9:
+//   - nuevo: tipoProyecto ('construccion' | 'grada') y datos de la grada.
+//   - escalera.riostras (cruces entre parantes), desactivada.
 // ==========================================================
 
 import { LADOS, INSUMO } from './constantes.js';
 import { PARAMS_INICIALES } from './parametrosIniciales.js';
 import { CATALOGO_FIJO, TIPOS_PANEL_INICIALES } from './presupuesto.js';
 import { ESCALERA_INICIAL } from './escalera.js';
+import { GRADA_INICIAL } from './grada.js';
 
 const esObjeto = (x) => x !== null && typeof x === 'object' && !Array.isArray(x);
 const esColor = (c) => typeof c === 'string' && /^#[0-9a-fA-F]{6}$/.test(c);
@@ -55,6 +59,9 @@ export function migrarParams(params) {
         : [...ESCALERA_INICIAL.descansos],
   };
   nuevos.piezasEditadas ??= {}; // v1.8
+  nuevos.escalera.riostras ??= false; // v1.9
+  nuevos.tipoProyecto ??= 'construccion'; // v1.9: todo lo anterior es una construcción
+  nuevos.grada = esObjeto(nuevos.grada) ? { ...GRADA_INICIAL, ...nuevos.grada } : { ...GRADA_INICIAL };
 
   if (esObjeto(nuevos.paredes)) {
     nuevos.paredes = Object.fromEntries(

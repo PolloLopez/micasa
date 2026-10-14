@@ -111,7 +111,12 @@ export default function PanelEscalera({ params, resumen, unidad, cambiar, cambia
               opciones={[['angulos', 'Ángulos'], ['cano', 'Recorte de caño central']]} />
             {entero('apoyosPorEscalon', 'Apoyos por escalón')}
             {medida('largoApoyo', 'Largo de cada apoyo')}
-            {entero('apoyosIntermedios', 'Columnas bajo la zanca (por tramo)')}
+            {entero('apoyosIntermedios', 'Parantes bajo la zanca (por tramo)')}
+            <label className="capa casilla-campo">
+              <input type="checkbox" checked={esc.riostras} aria-label="Riostras en cruz entre parantes"
+                onChange={(e) => cambiar('escalera.riostras')(e.target.checked)} />
+              Riostras en cruz entre parantes
+            </label>
             {cantidadDescansos > 0 && (
               <CampoOpciones etiqueta={cantidadDescansos === 1 ? 'Columnas del descanso' : 'Columnas de cada descanso'} valor={esc.columnasDescanso}
                 onCambio={(v) => cambiar('escalera.columnasDescanso')(Number(v))}

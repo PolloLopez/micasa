@@ -40,6 +40,27 @@ export const INSUMO = {
   COLUMNA_ESCALERA: 'columnaEscalera',
   ESCALON: 'escalon',
   PISO_DESCANSO: 'pisoDescanso',
+  RIOSTRA: 'riostra', // escalera y grada
+  // Grada
+  GRADA_ZANCA: 'gradaZanca',
+  GRADA_PARANTE: 'gradaParante',
+  GRADA_APOYO: 'gradaApoyo',
+  GRADA_VIGA: 'gradaViga',
+  GRADA_ASIENTO: 'gradaAsiento',
+  GRADA_PIE: 'gradaPie',
+};
+
+// Límites de la grada (ver motor/grada.js).
+export const LIMITES_GRADA = {
+  filas: { min: 1, max: 30, entero: true },
+  largoFila: { min: 1, max: 60 },
+  huella: { min: 0.5, max: 1.2 },
+  contrahuella: { min: 0.2, max: 0.6 },
+  separacionPorticos: { min: 0.8, max: 4 },
+  parantesCadaFilas: { min: 0, max: 30, entero: true },
+  vigasPorFila: { min: 0, max: 3, entero: true },
+  anchoAsiento: { min: 0.15, max: 0.6 },
+  anchoPie: { min: 0.15, max: 0.6 },
 };
 
 // Límites de validación (ver motor/validacion.js).
@@ -79,5 +100,5 @@ export const LIMITES_ESCALERA = {
   alturaTotal: { min: 1, max: 6, opcional: true }, // 0 = automática
   apoyosPorEscalon: { min: 1, max: 3, entero: true },
   largoApoyo: { min: 0.1, max: 1.5 },
-  apoyosIntermedios: { min: 0, max: 3, entero: true },
+  apoyosIntermedios: { min: 0, max: 12, entero: true },
 };

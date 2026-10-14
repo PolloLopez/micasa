@@ -34,6 +34,20 @@ export const CATALOGO_FIJO = [
   { id: INSUMO.COLUMNA_ESCALERA, categoria: 'perfil', nombre: 'Columnas de escalera', perfil: 'Caño estructural 80x80x2.0', unidad: 'barra', largoBarra: 6, precio: 30000 },
   { id: INSUMO.ESCALON, categoria: 'unidad', nombre: 'Escalones de madera', perfil: 'Tablón 2" (ancho x huella)', unidad: 'u', largoBarra: null, precio: 20000 },
   { id: INSUMO.PISO_DESCANSO, categoria: 'placa', nombre: 'Piso del descanso', perfil: 'Madera 2"', unidad: 'm²', largoBarra: null, precio: 60000 },
+  // Riostras (cruces de San Andrés): escalera y grada
+  { id: INSUMO.RIOSTRA, categoria: 'perfil', nombre: 'Riostras en cruz', perfil: 'Ángulo 1 1/4" x 1/8"', unidad: 'barra', largoBarra: 6, precio: 12000 },
+  // Grada
+  { id: INSUMO.GRADA_ZANCA, categoria: 'perfil', nombre: 'Zancas de grada', perfil: 'Caño estructural 100x50x2.0', unidad: 'barra', largoBarra: 6, precio: 34000 },
+  { id: INSUMO.GRADA_PARANTE, categoria: 'perfil', nombre: 'Parantes de grada', perfil: 'Caño estructural 60x60x2.0', unidad: 'barra', largoBarra: 6, precio: 25000 },
+  { id: INSUMO.GRADA_APOYO, categoria: 'perfil', nombre: 'Apoyos de fila', perfil: 'Caño estructural 60x40x1.6', unidad: 'barra', largoBarra: 6, precio: 19000 },
+  { id: INSUMO.GRADA_VIGA, categoria: 'perfil', nombre: 'Vigas longitudinales', perfil: 'Caño estructural 80x40x2.0', unidad: 'barra', largoBarra: 6, precio: 27000 },
+  { id: INSUMO.GRADA_ASIENTO, categoria: 'metro', nombre: 'Tablón de asiento', perfil: 'Madera 2" x 12"', unidad: 'm', largoBarra: null, precio: 9000 },
+  { id: INSUMO.GRADA_PIE, categoria: 'metro', nombre: 'Tablón de pie', perfil: 'Madera 2" x 12"', unidad: 'm', largoBarra: null, precio: 9000 },
+];
+
+/** Renglones que solo se usan en un proyecto de grada. */
+export const INSUMOS_GRADA = [
+  INSUMO.GRADA_ZANCA, INSUMO.GRADA_PARANTE, INSUMO.GRADA_APOYO, INSUMO.GRADA_VIGA, INSUMO.GRADA_ASIENTO, INSUMO.GRADA_PIE,
 ];
 
 /** Tipos de panel iniciales: uno para paredes y otro para el techo. */
@@ -100,6 +114,8 @@ export function calcularPresupuesto(estructura, catalogo, { excedenteBarras = 0 
   const perfil = (id, piezas) =>
     itemPerfil(insumo(id), largos([...propias(piezas), ...reasignadas.filter((p) => p.insumo === id)]), excedenteBarras);
 
+  if (e.grada) return conSubtotales(presupuestoGrada(e.grada, insumo, perfil));
+
   const items = [
     perfil(INSUMO.COLUMNA, [...e.columnas, ...e.refuerzosAberturas]),
     perfil(INSUMO.MARCO, e.marcos),
@@ -141,6 +157,9 @@ export function calcularPresupuesto(estructura, catalogo, { excedenteBarras = 0 
     perfil(INSUMO.APOYO_ESCALON, piezasEsc('apoyo-escalon')),
     perfil(INSUMO.COLUMNA_ESCALERA, piezasEsc('columna-escalera'))
   );
+  // Riostras de la escalera: el renglón aparece solo si se usan (para no llenar la tabla).
+  const riostras = piezasEsc('riostra');
+  if (riostras.length > 0 || reasignadas.some((p) => p.insumo === INSUMO.RIOSTRA)) items.push(perfil(INSUMO.RIOSTRA, riostras));
   const pisadas = escalera?.escalones.length ?? 0;
   items.push(itemSimple(insumo(INSUMO.ESCALON), pisadas,
     pisadas ? `${pisadas} pisadas de ${(escalera.resumen.huella * 100).toFixed(0)} cm` : 'no lleva'));
@@ -149,10 +168,35 @@ export function calcularPresupuesto(estructura, catalogo, { excedenteBarras = 0 
   items.push(itemSimple(insumo(INSUMO.PISO_DESCANSO), m2Descanso > 0 ? Math.ceil(m2Descanso * 100 - 1e-9) / 100 : 0,
     m2Descanso ? `${m2Descanso.toFixed(2)} m²` : 'no lleva'));
 
+  return conSubtotales(items);
+}
+
+/** Subtotal por renglón y total. */
+function conSubtotales(items) {
   items.forEach((item) => {
     item.subtotal = item.cantidad * (item.precio || 0);
   });
   const total = items.reduce((acc, item) => acc + item.subtotal, 0);
-
   return { items, total };
+}
+
+/** Renglones de una grada: perfiles por el optimizador y tablones por metro. */
+function presupuestoGrada(grada, insumo, perfil) {
+  const de = (tipo) => grada.piezas.filter((p) => p.tipo === tipo);
+  const metros = (tipo) => grada.tablones.filter((t) => t.tipo === tipo).reduce((acc, t) => acc + t.largo, 0);
+  // Metros de tablón hacia arriba al decímetro (sin arrastrar error de coma flotante).
+  const redondear = (m) => (m > 0 ? Math.ceil(m * 10 - 1e-9) / 10 : 0);
+  const tablon = (id, tipo) => {
+    const m = metros(tipo);
+    return itemSimple(insumo(id), redondear(m), m ? `${grada.resumen.filas} filas de ${grada.medidas.largo.toFixed(2)} m` : 'no lleva');
+  };
+  return [
+    perfil(INSUMO.GRADA_ZANCA, de('grada-zanca')),
+    perfil(INSUMO.GRADA_PARANTE, de('grada-parante')),
+    perfil(INSUMO.GRADA_APOYO, de('grada-apoyo')),
+    perfil(INSUMO.GRADA_VIGA, de('grada-viga')),
+    perfil(INSUMO.RIOSTRA, de('riostra')),
+    tablon(INSUMO.GRADA_ASIENTO, 'asiento'),
+    tablon(INSUMO.GRADA_PIE, 'pie'),
+  ];
 }

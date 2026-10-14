@@ -15,13 +15,15 @@ const fechaCorta = (iso) =>
 function resumen(entrada) {
   const p = entrada.datos?.params;
   if (!p) return '';
+  // Grada: filas x largo. Construcción: planta y aberturas.
+  if (p.tipoProyecto === 'grada' && p.grada) return `Grada · ${p.grada.filas} filas de ${Number(p.grada.largoFila).toFixed(2)} m`;
   const aberturas = entrada.datos.aberturas?.length ?? 0;
   return `${Number(p.largo).toFixed(2)} x ${Number(p.ancho).toFixed(2)} m · ${aberturas} abertura${aberturas === 1 ? '' : 's'}`;
 }
 
 export default function MisProyectos({
   biblioteca, idActual, onCerrar, onAbrir, onDuplicar, onRenombrar, onBorrar,
-  onNuevo, onEjemplo, onAbrirArchivo, onDescargarArchivo, onExportarRespaldo, onImportarRespaldo,
+  onNuevo, onEjemplo, onNuevaGrada, onEjemploGrada, onAbrirArchivo, onDescargarArchivo, onExportarRespaldo, onImportarRespaldo,
 }) {
   const ventanaRef = useRef(null);
   const archivoRef = useRef(null);
@@ -62,6 +64,8 @@ export default function MisProyectos({
         <div className="modal-acciones">
           <button className="btn-sec" onClick={onNuevo}>+ Proyecto nuevo</button>
           <button className="btn-sec" onClick={onEjemplo}>Cargar ejemplo (loft)</button>
+          <button className="btn-sec" onClick={onNuevaGrada}>+ Grada nueva</button>
+          <button className="btn-sec" onClick={onEjemploGrada}>Ejemplo: grada</button>
         </div>
 
         {biblioteca.length === 0 ? (

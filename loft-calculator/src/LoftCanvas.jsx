@@ -18,7 +18,7 @@ import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { LADOS } from './motor/constantes.js';
-import { CAPAS } from './capas.js';
+import { CAPAS, CAPAS_GRADA } from './capas.js';
 import { posicionAbertura, listarPiezas } from './motor/estructura.js';
 import { geometriaLados, nombreLado } from './motor/geometria.js';
 import { describirPieza } from './descripcionPiezas.js';
@@ -44,7 +44,15 @@ const ESTILO_PIEZA = {
   'marco-descanso': { capa: 'escalera', seccion: 0.1 },
   'apoyo-escalon': { capa: 'escalera', seccion: 0.04 },
   'columna-escalera': { capa: 'escalera', seccion: 0.08 },
+  riostra: { capa: 'escalera', seccion: 0.035 }, // en una grada va en la capa "grada" (ver capaDe)
+  'grada-zanca': { capa: 'grada', seccion: 0.1 },
+  'grada-apoyo': { capa: 'grada', seccion: 0.06 },
+  'grada-parante': { capa: 'grada', seccion: 0.07 },
+  'grada-viga': { capa: 'grada', seccion: 0.06 },
 };
+
+/** Capa de una pieza: la de su tipo, salvo las riostras de la grada. */
+const capaDe = (p) => (p.tipo === 'riostra' && p.grupos.includes('grada') ? 'grada' : ESTILO_PIEZA[p.tipo]?.capa);
 const ESPESOR_ESCALON = 0.05; // madera de 2"
 
 
@@ -131,8 +139,9 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
   // Piezas de hierro: una malla cada una, con su id para poder seleccionarla.
   listarPiezas(e).forEach((p) => {
     const estilo = ESTILO_PIEZA[p.tipo];
-    if (!estilo || !capas[estilo.capa] || !p.grupos.every(grupoVisible)) return;
-    const material = p.id === seleccionada ? materiales.seleccion : materiales[estilo.capa];
+    const capa = capaDe(p);
+    if (!estilo || !capas[capa] || !p.grupos.every(grupoVisible)) return;
+    const material = p.id === seleccionada ? materiales.seleccion : materiales[capa];
     const malla = barra(p, p.id === seleccionada ? estilo.seccion * 1.6 : estilo.seccion, material);
     malla.userData.idPieza = p.id;
     grupo.add(malla);
@@ -148,6 +157,18 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
     };
     e.escalera.escalones.forEach((s) => tabla({ ...s, largo: s.huella }));
     e.escalera.descansos.forEach((d) => tabla({ centro: d.centro, direccion: d.direccion, ancho: d.lado, largo: d.lado }));
+  }
+
+  // Tablones de la grada (asiento y pie): cajas a lo largo de cada fila.
+  if (e.grada) {
+    if (capas.escalones && grupoVisible('grada')) {
+      e.grada.tablones.forEach((t) => {
+        const malla = new THREE.Mesh(new THREE.BoxGeometry(t.largo, ESPESOR_ESCALON, t.ancho), materiales.escalones);
+        malla.position.set(t.centro[0], t.centro[1] + ESPESOR_ESCALON / 2, t.centro[2]);
+        grupo.add(malla);
+      });
+    }
+    return; // una grada no tiene pilotines, pisos, paneles, aberturas ni carteles de paredes
   }
 
   if (capas.pilotines) {
@@ -219,6 +240,16 @@ function vaciarGrupo(grupo) {
   grupo.clear();
 }
 
+/**
+ * Medidas que usa la cámara: las de la construcción o, en una grada, las de
+ * la grada (largo de fila x profundidad x altura), mirando desde adelante (A).
+ */
+function medidasVista(params, estructura) {
+  if (!estructura?.grada) return params;
+  const m = estructura.grada.medidas;
+  return { ...params, largo: m.largo, ancho: m.profundidad, altura: m.alturaTotal, ladoFrente: 'A' };
+}
+
 /** Ubica la cámara mirando el frente en diagonal. */
 function mirarAlFrente(camara, controles, params) {
   const geo = geometriaLados(params)[params.ladoFrente];
@@ -244,7 +275,7 @@ export default function LoftCanvas({
   const [seleccionada, setSeleccionada] = useState(null); // id de la pieza seleccionada
   const [editandoId, setEditandoId] = useState(null); // pieza con el formulario de edición abierto
   // Partes visibles: cada pared, el techo y los pisos (con sus hierros).
-  const [gruposVisibles, setGruposVisibles] = useState({ A: true, B: true, C: true, D: true, techo: true, piso: true, piso2: true, escalera: true });
+  const [gruposVisibles, setGruposVisibles] = useState({ A: true, B: true, C: true, D: true, techo: true, piso: true, piso2: true, escalera: true, grada: true });
   const [capas, setCapas] = useState(() =>
     Object.fromEntries(Object.keys(CAPAS).map((clave) => [clave, true]))
   );
@@ -352,9 +383,11 @@ export default function LoftCanvas({
     paneles.forEach((p) => visor.materialesPanel.set(p.id, materialPanel(p.color)));
     dibujarModelo(visor.grupo, visor.materiales, visor.materialesPanel,
       { params, estructura, aberturas, capas, gruposVisibles, seleccionada });
-    if (visor.frente !== params.ladoFrente) {
-      mirarAlFrente(visor.camara, visor.controles, params);
-      visor.frente = params.ladoFrente;
+    // Se reacomoda la cámara si cambia el frente o el tipo de proyecto (construcción / grada).
+    const encuadre = `${params.tipoProyecto}:${params.ladoFrente}`;
+    if (visor.frente !== encuadre) {
+      mirarAlFrente(visor.camara, visor.controles, medidasVista(params, estructura));
+      visor.frente = encuadre;
     }
   }, [params, estructura, aberturas, capas, paneles, gruposVisibles, seleccionada]);
 
@@ -378,7 +411,8 @@ export default function LoftCanvas({
 
   // Partes que se pueden ocultar (con sus hierros): paredes desde el frente, techo y pisos.
   const ordenDesdeFrente = [0, 1, 2, 3].map((i) => LADOS[(LADOS.indexOf(params.ladoFrente) + i) % 4]);
-  const partes = [
+  const esGrada = Boolean(estructura?.grada);
+  const partes = esGrada ? [{ clave: 'grada', nombre: 'Grada' }] : [
     ...ordenDesdeFrente.map((lado) => ({ clave: lado, nombre: nombreLado(lado, params.ladoFrente) })),
     { clave: 'techo', nombre: 'Techo' },
     { clave: 'piso', nombre: 'Piso' },
@@ -396,7 +430,7 @@ export default function LoftCanvas({
         <button className="btn-ctrl" onClick={() => setAutoRotar((v) => !v)}>
           {autoRotar ? '⏸ Pausar giro' : '▶ Girar'}
         </button>
-        <button className="btn-ctrl" onClick={() => visorRef.current && mirarAlFrente(visorRef.current.camara, visorRef.current.controles, params)}>
+        <button className="btn-ctrl" onClick={() => visorRef.current && mirarAlFrente(visorRef.current.camara, visorRef.current.controles, medidasVista(params, estructura))}>
           Ver frente
         </button>
         <span className="ctrl-tip">Arrastrá para orbitar · rueda para zoom · clic en un hierro para seleccionarlo</span>
@@ -432,7 +466,8 @@ export default function LoftCanvas({
         </button>
         {capasAbiertas && (<>
         {Object.entries(CAPAS)
-          .filter(([, { colorPorTipo }]) => !colorPorTipo)
+          // Cada tipo de proyecto muestra solo las capas que tienen piezas.
+          .filter(([clave, { colorPorTipo }]) => !colorPorTipo && (esGrada ? CAPAS_GRADA.includes(clave) : clave !== 'grada'))
           .map(([clave, { nombre }]) => (
             <span key={clave} className="capa">
               <input type="checkbox" checked={capas[clave]} onChange={() => alternarCapa(clave)}
@@ -443,11 +478,13 @@ export default function LoftCanvas({
               <span onClick={() => alternarCapa(clave)}>{nombre}</span>
             </span>
           ))}
-        <span className="capa">
-          <input type="checkbox" checked={capas.paneles} onChange={() => alternarCapa('paneles')}
-            aria-label="Mostrar paneles" />
-          <span onClick={() => alternarCapa('paneles')} title="Superficies; el color es el de cada tipo de panel">Paneles</span>
-        </span>
+        {!esGrada && (
+          <span className="capa">
+            <input type="checkbox" checked={capas.paneles} onChange={() => alternarCapa('paneles')}
+              aria-label="Mostrar paneles" />
+            <span onClick={() => alternarCapa('paneles')} title="Superficies; el color es el de cada tipo de panel">Paneles</span>
+          </span>
+        )}
         {/* Partes completas: ocultar una oculta su panel Y sus hierros. */}
         <span className="capas-paneles">
           <span className="capa"><strong>Mostrar:</strong></span>

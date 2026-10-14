@@ -12,7 +12,7 @@ import { useId } from 'react';
 import CampoNumero from './CampoNumero.jsx';
 import { nombreLado } from '../motor/geometria.js';
 import {
-  EDICION_VACIA, PERFILES_ASIGNABLES, esEdicionVacia, esVertical, revisarEdicionDePieza,
+  EDICION_VACIA, PERFILES_CONSTRUCCION, PERFILES_GRADA, esEdicionVacia, esVertical, revisarEdicionDePieza,
 } from '../motor/edicionPiezas.js';
 
 /**
@@ -57,7 +57,9 @@ export default function EditorPieza({ pieza, edicion, catalogo, unidad, ladoFren
     cambiarCampo(campoArriba)(Number((yArriba - alturaPiso2).toFixed(4)));
   };
 
-  const perfiles = PERFILES_ASIGNABLES.map((id) => catalogo.find((p) => p.id === id)).filter(Boolean);
+  // Solo los renglones que existen en este tipo de proyecto (construcción o grada).
+  const asignables = pieza.grupos.includes('grada') ? PERFILES_GRADA : PERFILES_CONSTRUCCION;
+  const perfiles = asignables.map((id) => catalogo.find((p) => p.id === id)).filter(Boolean);
 
   return (
     <div className="editor-pieza">
