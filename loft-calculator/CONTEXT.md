@@ -52,10 +52,15 @@ valores inválidos.
 | 2026-10-13 | Regla de comodidad (Blondel) y "se sale de la planta" como avisos, no errores | Son recomendaciones: el herrero puede decidir otra cosa; los errores quedan para lo imposible (sin entrepiso, bajar hacia la pared del entrepiso, posición fuera del borde). |
 | 2026-10-13 | Migración: proyectos viejos abren con `escalera.activa = false`; colores con `completarColores` | No aparece una escalera que nadie pidió y no se pierden los colores al sumar capas nuevas. |
 | 2026-10-13 | Tarjetas plegables con CSS (contenido sigue montado) y estado por navegador (`micasa.v2.tarjeta.<id>`, `micasa.v2.ver3D`) | Plegar no pierde lo que se está escribiendo ni el estado interno de los campos; al imprimir sale todo. Es preferencia de pantalla, por eso no viaja con el proyecto. |
+| 2026-10-14 | Varios descansos = lista `escalera.descansos`; giros siempre para el mismo lado | Un solo modelo para L, U y 3/4: el sentido lo da el primer giro (`giroHacia`) y los demás lo repiten, como un caracol. Descanso plano (no compensados) por simple y seguro (decisión de Leandro). |
+| 2026-10-14 | Paso libre (2 m) como aviso, en vez de "debajo del entrepiso" | En U o 3/4 el último tramo puede pasar bajo el entrepiso u otro tramo: lo que importa es la altura para pasar, no la superposición en planta. |
+| 2026-10-14 | Ediciones de piezas en `params.piezasEditadas` (`motor/edicionPiezas.js`) aplicadas en el motor | Igual que las eliminaciones: viajan con el proyecto y el 3D y el presupuesto ven la pieza ya editada. Los recortes se miden sobre la pieza original; si un cambio de medida los deja sin largo se ignoran y se avisa. Eliminar le gana a editar. |
+| 2026-10-14 | Cambio de perfil = la pieza se cotiza en otro renglón del catálogo (`pieza.insumo`) | Reusa el optimizador de cortes del renglón elegido sin crear perfiles nuevos. |
+| 2026-10-14 | Etiqueta de pared en `params.paredes.<lado>` ('' = nombre automático) | El nombre automático sigue el frente elegido; el texto propio solo se usa si se escribe algo. |
 
 ## Supuestos de obra (en `src/motor/constantes.js`)
 Piso del entrepiso a 2,30 m · merma de corte 3 mm · excedente de barras 1 % (editable) · placa OSB 2,44 × 1,22 + 10 % de recortes ·
-techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 cm, comodidad 60-65 cm · refuerzo de vano = dintel + 2 jambas (+ alféizar en ventanas).
+techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 cm, comodidad 60-65 cm, paso libre 2 m · refuerzo de vano = dintel + 2 jambas (+ alféizar en ventanas).
 
 ## Glosario
 - **Antepecho**: altura desde el piso terminado hasta el borde inferior de la ventana (el alféizar).
@@ -76,6 +81,8 @@ techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 
   paralelas a la pared baja; su separación se mide sobre la pendiente.
 - **Huella**: profundidad de cada pisada. **Contrahuella**: altura de cada escalón.
 - **Regla de comodidad (Blondel)**: 2 contrahuellas + 1 huella entre 60 y 65 cm.
+- **Paso libre**: altura para pasar debajo de un tramo o del entrepiso sin golpearse la cabeza (mínimo 2 m).
+- **Pieza editada**: hierro recortado, movido o cotizado con otro perfil a mano desde el 3D.
 - **Zanca**: viga inclinada que carga los escalones (acá una sola, central). **Descanso**: plataforma donde gira la escalera en L.
 - **Empalme**: unión de dos tramos cuando la pieza es más larga que la barra comercial.
 
@@ -91,4 +98,5 @@ techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 
 - 2026-10-09 v1.5.0: seleccionar y eliminar piezas, ocultar partes con sus hierros, columnas cortadas en vanos.
 - 2026-10-09 v1.6.0: "Mis proyectos" (guardar, guardar como, abrir, duplicar, renombrar, borrar, respaldo).
 - 2026-10-13 v1.7.0: escaleras (recta o en L, al borde del entrepiso).
+- 2026-10-14 v1.8.0: escalera en U y 3/4 de vuelta, edición de piezas, etiquetas de paredes.
 - Nota: el elemento `id="flonnect-my-app"` que aparece en la página no es de la app: lo inyecta la extensión Flonnect (grabador de pantalla) de Chrome.

@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.8.0] - 2026-10-14
+### Agregado
+- Escaleras en U (2 descansos) y de 3/4 de vuelta (3 descansos, tipo caracol): cada giro es de 90° para el mismo
+  lado y cada descanso es un cuadrado plano. Un campo por descanso (en qué contrahuella va); al elegir la forma se
+  reparten parejo.
+- Aviso de paso libre (2 m): si un tramo pasa por debajo de otro o por debajo del entrepiso.
+- Editar una pieza seleccionada en el 3D (además de eliminarla): recortar desde cada extremo, moverla (hacia las
+  paredes o subirla) y cotizarla con otro perfil del catálogo. Atajo "Que termine en el piso 2" para columnas.
+  Las ediciones se guardan con el proyecto y se pueden deshacer de a una o todas.
+- Etiquetas de las paredes en el 3D: texto propio (ej. "Cocina") y opción de ocultar cada una.
+### Cambiado
+- La tarjeta "Piezas eliminadas" pasa a "Piezas eliminadas y editadas".
+- "Escalera debajo del entrepiso" deja de ser aviso por sí solo: ahora se controla el paso libre.
+- Una L guardada con la v1.7 se convierte sola (el descanso pasa a la lista de descansos).
+### Corregido
+- Al elegir forma con descansos o cambiar hacia dónde baja, el giro del 2º tramo se acomoda solo si quedaba imposible
+  (antes no dejaba cambiar la forma).
+- Las piezas de la escalera se describían con el nombre de una pared; ahora dicen "Escalera".
+
 ## [1.7.0] - 2026-10-13
 ### Agregado
 - Escaleras (panel "Escalera"): llegan al borde libre del entrepiso y bajan hacia la pared elegida

@@ -35,6 +35,7 @@ src/
     validacion.js       límites y reglas de parámetros/aberturas
     escalera.js         escalones, zanca, apoyos y descanso
     segmentos.js        helpers de piezas (compartidos)
+    edicionPiezas.js    recortar / mover / cambiar perfil de una pieza
     estructura.js       piezas como segmentos 3D (fuente única para 3D y presupuesto)
     optimizadorCortes.js
     presupuesto.js

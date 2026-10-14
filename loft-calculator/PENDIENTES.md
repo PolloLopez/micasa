@@ -22,13 +22,14 @@
       (Django) o Firebase. Hoy "Mis proyectos" vive en cada navegador.
 - [ ] "Plantilla de catálogo": guardar/abrir solo perfiles y precios, para reutilizarlos entre proyectos.
 
-- [ ] Seleccionar varias piezas a la vez (ej. Shift + clic) para eliminarlas juntas.
+- [ ] Seleccionar varias piezas a la vez (ej. Shift + clic) para eliminarlas o editarlas juntas.
+- [ ] Pieza editada con otro perfil: dibujarla con la sección/color de ese perfil en el 3D (hoy solo cambia el presupuesto).
 - [ ] Las piezas eliminadas se reconocen por su posición: si se cambia una medida y la pieza se mueve,
       la eliminación deja de aplicarse (se avisa en la lista). Evaluar si hace falta algo más robusto.
 
 - [ ] Escalera: baranda (en la escalera y en el borde del entrepiso).
 - [ ] Escalera atravesando el entrepiso (hueco en la estructura de piso 2 con su marco).
-- [ ] Escalera en U (dos descansos o descanso de media vuelta) y escalones compensados.
+- [ ] Escalones compensados (en abanico) en los giros, como alternativa al descanso plano.
 
 ## 🟢 Técnico
 - [ ] En el celular el encabezado ocupa ~3 renglones: evaluar un menú compacto.
@@ -36,6 +37,11 @@
 - [ ] Bundle de ~800 KB (Three.js completo): evaluar carga diferida del visor.
 - [ ] Tests de componentes (testing-library) para CampoNumero, SelectorLado y PanelAberturas.
 - [ ] Migrar el motor a Django cuando arranque Construcción Modular (los tests sirven de especificación).
+
+## ✅ Resuelto en v1.8.0 (2026-10-14)
+- [x] Escalera con más de un descanso (U y 3/4 de vuelta) y aviso de paso libre.
+- [x] Editar piezas sueltas: recortar, mover y cambiar el perfil (ej. columna del altillo hasta el piso 2).
+- [x] Etiquetas de las paredes en el 3D: nombre propio y mostrar/ocultar.
 
 ## ✅ Resuelto en v1.7.0 (2026-10-13)
 - [x] Diseño de escaleras: recta o en L con descanso, al borde del entrepiso; ancho, huella, contrahuella,
