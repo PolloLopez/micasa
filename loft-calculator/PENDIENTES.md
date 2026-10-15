@@ -1,8 +1,10 @@
 # PENDIENTES — loft-calculator
 
-Última limpieza: 2026-10-14 (v1.13.0). Espejo en Trello: tablero "Desarrollo", tarjetas `[CALC]`.
+Última limpieza: 2026-10-15 (v1.14.0). Espejo en Trello: tablero "Desarrollo", tarjetas `[CALC]`.
 
 ## 🔴 Antes de considerar el presupuesto "de obra" (validar con el herrero)
+- [ ] Llevarle la hoja "Preguntas para el herrero" (Claude Docs, enlazada en la tarjeta de Trello) — antes,
+      Leandro actualiza su plano y se regenera con los valores de SU proyecto.
 - [ ] Supuestos de `constantes.js` y del modelo: ubicación de columnas, empalmes, perfil de cada renglón
       y separación de transversales.
 - [ ] Horizontales de pared: hoy NO se cortan en las aberturas (cálculo conservador: sobra material). ¿Se cortan en obra?
@@ -16,8 +18,9 @@
 ## 🟡 Funcionalidad
 
 ### Estructura
-- [ ] Entrepiso parcial: que el piso 2 cubra solo una parte del lado donde se apoya (ej. altillo sobre la
-      mitad). Definir: medida (largo × profundidad) o "hasta X m desde la esquina"; viga de cierre en el borde libre.
+- [ ] Entrepiso parcial — confirmar con el herrero (hoja de preguntas, sección 4): si el borde libre necesita
+      columnas y cada cuánto (hoy 2,50 m), sentido de los tirantes, perfil de la viga de cierre.
+- [ ] Escalera que llegue a un borde LATERAL del entrepiso parcial (hoy solo al borde de enfrente de la pared).
 - [ ] Aleros del techo (voladizo de vigas y chapa más allá de las paredes).
 
 ### Escalera
@@ -61,11 +64,19 @@
 ## 🟢 Técnico
 - [ ] En el celular el encabezado ocupa ~3 renglones: evaluar un menú compacto.
 - [ ] Ayuda (tooltip) en campos poco obvios: "Dist. a esquina", "Sep. verticales" (glosario en CONTEXT.md).
-- [ ] Bundle de ~800 KB (Three.js completo): evaluar carga diferida del visor.
+- [ ] Bundle de ~906 KB (Three.js completo; Vite avisa al deployar): evaluar carga diferida del visor.
 - [ ] Tests de componentes (testing-library) para CampoNumero, SelectorLado, PanelAberturas y EditorPieza.
 - [ ] Piezas eliminadas/editadas se reconocen por su posición: si una medida las mueve, el cambio deja de
       aplicarse (se avisa en la lista). Evaluar si hace falta algo más robusto.
 - [ ] Migrar el motor a Django cuando arranque Construcción Modular (los tests sirven de especificación).
+
+## ✅ Resuelto en v1.14.0 (2026-10-15)
+- [x] Entrepiso parcial (largo × profundidad, desde una esquina) con viga de cierre en los bordes libres (renglón
+      propio) y columnas del borde libre cada X m.
+- [x] Encabezado "🐤 Pollo Calculator".
+
+## ✅ Resuelto en v1.13.1 (2026-10-14)
+- [x] La app se llama Pollo Calculator.
 
 ## ✅ Resuelto en v1.13.0 (2026-10-14)
 - [x] Grada: caño que une los parantes, tabla de respaldo, elegir el caño de cada parte, módulos y filas atornillables.

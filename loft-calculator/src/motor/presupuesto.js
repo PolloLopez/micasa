@@ -19,6 +19,8 @@ import { INSUMO, PLACA_OSB, DESPERDICIO_PLACAS } from './constantes.js';
 export const CATALOGO_FIJO = [
   { id: INSUMO.COLUMNA, categoria: 'perfil', nombre: 'Columnas y vanos', perfil: 'Caño estructural 100x100x1.6', unidad: 'barra', largoBarra: 6, precio: 38000 },
   { id: INSUMO.MARCO, categoria: 'perfil', nombre: 'Marcos y soleras', perfil: 'Perfil C 120x50x2.0', unidad: 'barra', largoBarra: 6, precio: 35000 },
+  // v1.14: borde libre del entrepiso. Arranca igual que los marcos; el perfil lo elige el herrero.
+  { id: INSUMO.VIGA_CIERRE, categoria: 'perfil', nombre: 'Viga de cierre del entrepiso', perfil: 'Perfil C 120x50x2.0', unidad: 'barra', largoBarra: 6, precio: 35000 },
   { id: INSUMO.PISO, categoria: 'perfil', nombre: 'Estructura de piso', perfil: 'Perfil C 100x45x2.0', unidad: 'barra', largoBarra: 6, precio: 26000 },
   { id: INSUMO.TRANSVERSAL_PISO, categoria: 'perfil', nombre: 'Transversales de piso', perfil: 'Perfil C 80x40x1.6', unidad: 'barra', largoBarra: 6, precio: 22000 },
   { id: INSUMO.PISO_2, categoria: 'perfil', nombre: 'Estructura de piso 2', perfil: 'Perfil C 100x45x2.0', unidad: 'barra', largoBarra: 6, precio: 26000 },
@@ -139,7 +141,7 @@ export function calcularPresupuesto(estructura, catalogo, { excedenteBarras = 0 
 
   const items = [
     perfil(INSUMO.COLUMNA, [...e.columnas, ...e.refuerzosAberturas]),
-    perfil(INSUMO.MARCO, e.marcos),
+    perfil(INSUMO.MARCO, e.marcos.filter((p) => p.tipo !== 'viga-cierre')),
     perfil(INSUMO.PISO, e.piso.tirantes),
     perfil(INSUMO.TRANSVERSAL_PISO, e.piso.transversales),
     perfil(INSUMO.PISO_2, e.piso2.tirantes),
@@ -148,6 +150,13 @@ export function calcularPresupuesto(estructura, catalogo, { excedenteBarras = 0 
     perfil(INSUMO.VIGA_TECHO, e.techo.vigas),
     perfil(INSUMO.CORREA_TECHO, e.techo.correas),
   ];
+
+  // Viga de cierre del entrepiso: el renglón aparece solo si hay borde libre
+  // (entrepiso que no llega a la pared de enfrente o que no ocupa todo el lado).
+  const vigasCierre = e.marcos.filter((p) => p.tipo === 'viga-cierre');
+  if (vigasCierre.length > 0 || reasignadas.some((p) => p.insumo === INSUMO.VIGA_CIERRE)) {
+    items.splice(2, 0, perfil(INSUMO.VIGA_CIERRE, vigasCierre));
+  }
 
   // Placas OSB: superficie / placa, + desperdicio de recortes.
   const areaPlaca = PLACA_OSB.largo * PLACA_OSB.ancho;

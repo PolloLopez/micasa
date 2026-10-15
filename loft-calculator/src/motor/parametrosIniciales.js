@@ -35,7 +35,11 @@ export const PARAMS_INICIALES = {
   // Pisos
   separacionPiso: 0.4,
   ladoEntrepiso: 'D', // lateral izquierdo si el frente es A
-  anchoEntrepiso: 3,
+  anchoEntrepiso: 3, // profundidad del entrepiso (desde la pared donde se apoya)
+  largoEntrepiso: 0, // 0 = ocupa todo el lado; si no, entrepiso parcial (v1.14)
+  referenciaEntrepiso: 'izquierda', // desde qué esquina se mide la distancia (como las aberturas)
+  distanciaEntrepiso: 0, // distancia de esa esquina al comienzo del entrepiso
+  separacionColumnasEntrepiso: 2.5, // columnas del borde libre cada X m (0 = solo en las puntas)
   separacionPiso2: 0.4,
   separacionTransversalesPiso: 1.5, // 0 = sin transversales (la define el herrero)
   separacionTransversalesPiso2: 1.5,

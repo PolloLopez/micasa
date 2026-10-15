@@ -36,6 +36,10 @@ export function proyectoVacio() {
       separacionPiso: 0.4,
       ladoEntrepiso: 'D',
       anchoEntrepiso: 0, // sin entrepiso
+      largoEntrepiso: 0, // si se agrega, ocupa todo el lado
+      referenciaEntrepiso: 'izquierda',
+      distanciaEntrepiso: 0,
+      separacionColumnasEntrepiso: 3, // igual que las verticales de las paredes
       separacionPiso2: 0.4,
       separacionTransversalesPiso: 0, // sin transversales
       separacionTransversalesPiso2: 0,

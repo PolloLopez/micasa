@@ -35,6 +35,7 @@ const ESTILO_PIEZA = {
   'marco-piso': { capa: 'marcos', seccion: 0.12 },
   solera: { capa: 'marcos', seccion: 0.12 },
   'marco-piso2': { capa: 'marcos', seccion: 0.12 },
+  'viga-cierre': { capa: 'marcos', seccion: 0.12 },
   piso: { capa: 'piso', seccion: 0.08 },
   piso2: { capa: 'piso2', seccion: 0.08 },
   'transv-piso': { capa: 'transversales', seccion: 0.09 },
@@ -63,6 +64,7 @@ const ESTILO_PIEZA = {
  * Las piezas del loft mantienen su grosor fijo (para que el modelo se lea claro).
  */
 const INSUMO_POR_TIPO = {
+  'viga-cierre': INSUMO.VIGA_CIERRE,
   zanca: INSUMO.ZANCA, 'apoyo-escalon': INSUMO.APOYO_ESCALON, 'columna-escalera': INSUMO.COLUMNA_ESCALERA,
   riostra: INSUMO.RIOSTRA,
   'grada-zanca': INSUMO.GRADA_ZANCA, 'grada-parante': INSUMO.GRADA_PARANTE, 'grada-apoyo': INSUMO.GRADA_APOYO,

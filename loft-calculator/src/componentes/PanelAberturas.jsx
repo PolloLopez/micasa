@@ -4,9 +4,10 @@
 // (que entre en su pared) antes de guardarse.
 // ==========================================================
 
-import { useId, useState } from 'react';
+import { useState } from 'react';
 import CampoNumero from './CampoNumero.jsx';
 import SelectorLado from './SelectorLado.jsx';
+import CampoSelect from './CampoSelect.jsx';
 import { validarAbertura } from '../motor/validacion.js';
 import { nombreLado } from '../motor/geometria.js';
 import Tarjeta from './Tarjeta.jsx';
@@ -17,19 +18,6 @@ function aberturaNueva(ladoFrente) {
     id: Date.now(), tipo: 'ventana', lado: ladoFrente, ladoReferencia: 'izquierda',
     offsetHorizontal: 0.5, alturaAntepecho: 1, ancho: 1, alto: 1,
   };
-}
-
-/** Select simple con etiqueta (tipo de abertura, lado de referencia). */
-function CampoSelect({ etiqueta, valor, opciones, onCambio }) {
-  const id = useId();
-  return (
-    <div className="group">
-      <label htmlFor={id}>{etiqueta}</label>
-      <select id={id} value={valor} onChange={(e) => onCambio(e.target.value)}>
-        {opciones.map(([v, texto]) => <option key={v} value={v}>{texto}</option>)}
-      </select>
-    </div>
-  );
 }
 
 /** Una abertura con todos sus campos editables. */

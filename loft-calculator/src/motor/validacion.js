@@ -16,7 +16,7 @@ import { revisarEdicion } from './edicionPiezas.js';
 
 /** Largo máximo del texto de la etiqueta de una pared en el 3D. */
 export const LARGO_MAXIMO_ETIQUETA = 30;
-import { geometriaLados, alturaEn, puntoSobreLado, largoLado } from './geometria.js';
+import { geometriaLados, alturaEn, puntoSobreLado, largoLado, tramoEntrepiso } from './geometria.js';
 
 /** Revisa un número contra su { min, max, entero, opcional }. */
 function revisarNumero(valor, { min, max, entero, opcional }) {
@@ -91,6 +91,7 @@ export function validarParametros(params) {
   if (params.anchoEntrepiso > profundidadDisponible) {
     anotar('anchoEntrepiso', `No puede superar ${profundidadDisponible.toFixed(2)} m`);
   }
+  validarEntrepisoParcial(params, anotar);
   if (params.anchoEntrepiso > 0 && params.altura < ALTURA_PISO_2 + 0.5) {
     anotar('altura', `Con entrepiso, la altura mínima es ${ALTURA_PISO_2 + 0.5} m`);
   }
@@ -187,6 +188,27 @@ function validarMontaje(params, anotar) {
   });
 }
 
+/**
+ * Entrepiso parcial (v1.14): que el tramo elegido entre en el lado donde se apoya.
+ * Con largoEntrepiso = 0 ocupa todo el lado y no hay nada que revisar.
+ */
+function validarEntrepisoParcial(params, anotar) {
+  if (!['izquierda', 'derecha'].includes(params.referenciaEntrepiso)) {
+    anotar('referenciaEntrepiso', 'Elegí izquierda o derecha');
+    return;
+  }
+  if (!(params.largoEntrepiso > 0)) return;
+  const largoDelLado = largoLado(params.ladoEntrepiso, params);
+  if (params.largoEntrepiso > largoDelLado + 1e-9) {
+    anotar('largoEntrepiso', `No puede superar el largo de la pared (${largoDelLado.toFixed(2)} m)`);
+    return;
+  }
+  const sobra = largoDelLado - params.largoEntrepiso;
+  if (params.distanciaEntrepiso > sobra + 1e-9) {
+    anotar('distanciaEntrepiso', `Con ese largo, la distancia a la esquina va de 0 a ${sobra.toFixed(2)} m`);
+  }
+}
+
 function validarEscalera(params, anotar) {
   const esc = params.escalera;
   if (!esc || typeof esc !== 'object') {
@@ -214,7 +236,8 @@ function validarEscalera(params, anotar) {
   if (esc.bajaHacia === params.ladoEntrepiso) {
     anotar('escalera.bajaHacia', 'No puede bajar hacia la pared donde se apoya el entrepiso');
   }
-  const largoBorde = params.ladoEntrepiso === 'A' || params.ladoEntrepiso === 'C' ? params.largo : params.ancho;
+  // El borde libre mide lo que mide el entrepiso (todo el lado o el tramo del entrepiso parcial).
+  const largoBorde = tramoEntrepiso(params).largo;
   const perpendicular = esc.bajaHacia === opuesto(params.ladoEntrepiso);
   const minimo = perpendicular ? esc.ancho / 2 : 0;
   if (esc.posicion < minimo - 1e-9 || esc.posicion > largoBorde - minimo + 1e-9) {

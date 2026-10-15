@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.14.0] - 2026-10-15
+### Agregado
+- **Entrepiso parcial**: el piso 2 puede ocupar solo una parte de la pared donde se apoya (ej. un altillo).
+  Se carga con **largo × profundidad** y desde qué esquina arranca (vista desde afuera, como las aberturas).
+  Largo 0 = toda la pared, como hasta ahora.
+- **Viga de cierre** en los bordes del entrepiso que no tocan una pared, con su propio renglón en el presupuesto
+  ("Viga de cierre del entrepiso") para que el herrero elija el perfil. Se puede pasar a otro perfil desde el editor
+  de piezas.
+- **Columnas del borde libre cada X m** (0 = solo en las puntas). Si un borde libre termina contra una pared, en esa
+  punta va una columna sobre la pared.
+### Cambiado
+- El campo "Ancho" del entrepiso se llama **Profundidad**.
+- En los proyectos con entrepiso que no llega a la pared de enfrente, ese borde pasa del renglón "Marcos" al de
+  "Viga de cierre" (mismo perfil y precio de arranque, mismo total). Las columnas no cambian: los proyectos guardados
+  toman la separación de las verticales de la pared donde se apoya el entrepiso, que era la regla de antes.
+- El encabezado dice **🐤 Pollo Calculator**.
+
 ## [1.13.1] - 2026-10-14
 ### Cambiado
 - La app se llama **Pollo Calculator** (título de la pestaña, encabezado y README). Los archivos descargados empiezan

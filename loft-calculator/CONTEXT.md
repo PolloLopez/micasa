@@ -72,6 +72,10 @@ valores inválidos.
 | 2026-10-14 | Grada desmontable: módulos con pórticos propios en las puntas y junta de 2 cm; ids iguales a los de antes si hay un solo módulo | Así cada módulo se arma y se sostiene solo; no se rompen las ediciones guardadas de gradas de una pieza. Bulones: 2 por parante y 2 por zanca en cada unión (supuesto a validar). |
 | 2026-10-14 | Nombre visible "Pollo Calculator"; se mantienen repo `micasa`, carpeta `loft-calculator`, `base: /micasa/`, formato `micasa-proyecto` y prefijo `micasa.v2.` | Cambiar el repo o la base cambia la dirección y "Mis proyectos" (localStorage es por dirección): los herreros perderían lo guardado. Se renombra solo lo que se ve. |
 
+| 2026-10-15 | Entrepiso parcial = largo × profundidad + "medir desde" izquierda/derecha y distancia (`tramoEntrepiso` en `geometria.js`); largo 0 = toda la pared | Decisión de Leandro (largo × profundidad). Reusa la convención de las aberturas (vista desde afuera) y deja los proyectos viejos iguales sin migrar medidas. |
+| 2026-10-15 | Borde libre = el que no cae sobre una pared; lleva viga de cierre (tipo `viga-cierre`, renglón `vigaCierre`) con el mismo id `marco-piso2:<i>` | El perfil lo elige el herrero (decisión de Leandro), por eso renglón propio. Mismo id para no romper piezas eliminadas o editadas de proyectos guardados. |
+| 2026-10-15 | Columnas del borde libre cada `separacionColumnasEntrepiso` (0 = solo puntas); la migración copia la separación de verticales de la pared del entrepiso | Antes las columnas del borde seguían a las de la pared; copiar ese valor deja los proyectos guardados con las mismas columnas. Cuántas columnas necesita el borde es pregunta abierta para el herrero. |
+
 ## Supuestos de obra (en `src/motor/constantes.js`)
 Piso del entrepiso a 2,30 m · merma de corte 3 mm · excedente de barras 1 % (editable; depende del proveedor) · placa OSB 2,44 × 1,22 + 10 % de recortes ·
 techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 cm, comodidad 60-65 cm, paso libre 2 m · refuerzo de vano = dintel + 2 jambas (+ alféizar en ventanas).
@@ -121,4 +125,5 @@ techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 
 - 2026-10-14 v1.12.0: opacidad, paneles con color interior/exterior, compartir por link, 3D en el PDF.
 - 2026-10-14 v1.13.0: grada con unión de parantes, respaldo, caños a elección y módulos desmontables.
 - 2026-10-14 v1.13.1: la app pasa a llamarse Pollo Calculator.
+- 2026-10-15 v1.14.0: entrepiso parcial (largo × profundidad) con viga de cierre y columnas del borde libre; 🐤 en el encabezado.
 - Nota: el elemento `id="flonnect-my-app"` que aparece en la página no es de la app: lo inyecta la extensión Flonnect (grabador de pantalla) de Chrome.

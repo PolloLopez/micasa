@@ -20,7 +20,7 @@
 
 import { ALTURA_PISO_2, LADOS } from './constantes.js';
 import {
-  geometriaLados, alturaEn, alturasPared, puntoSobreLado, luzTecho, ladoOpuesto,
+  geometriaLados, alturaEn, alturasPared, puntoSobreLado, luzTecho, ladoOpuesto, tramoEntrepiso,
 } from './geometria.js';
 import { inicioAbertura } from './validacion.js';
 import { cm, pieza, haciaAdentro } from './segmentos.js';
@@ -40,6 +40,7 @@ export const NOMBRE_TIPO_PIEZA = {
   'marco-piso': 'Marco de piso',
   solera: 'Solera superior',
   'marco-piso2': 'Marco de piso 2',
+  'viga-cierre': 'Viga de cierre del entrepiso',
   piso: 'Estructura de piso',
   piso2: 'Estructura de piso 2',
   'transv-piso': 'Transversal de piso',
@@ -140,14 +141,17 @@ function posicionesDeColumnas(params, lados) {
     );
   });
 
-  const { ladoEntrepiso, anchoEntrepiso } = params;
-  const geo = lados[ladoEntrepiso];
-  const profundidadPlanta = lados[LADOS[(LADOS.indexOf(ladoEntrepiso) + 1) % 4]].largo;
-  if (anchoEntrepiso > 0 && anchoEntrepiso < profundidadPlanta - EPSILON) {
-    const [ax, az] = haciaAdentro(geo);
-    repartir(geo.largo, params.paredes[ladoEntrepiso].separacionVerticales).forEach((d) => {
-      const [x, z] = puntoSobreLado(geo, d);
-      agregar(x + ax * anchoEntrepiso, z + az * anchoEntrepiso);
+  // Borde libre del entrepiso: columnas en las puntas de cada borde libre y,
+  // si se pide, intermedias cada `separacionColumnasEntrepiso` (0 = solo puntas).
+  // Si un borde libre termina contra una pared, la columna de esa punta queda
+  // sobre la pared (ahí apoya la viga de cierre).
+  const rect = rectanguloEntrepiso(params, lados);
+  if (rect) {
+    const separacion = params.separacionColumnasEntrepiso;
+    bordesEntrepiso(rect, lados).filter((b) => b.libre).forEach(({ a, b }) => {
+      const largo = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      const puntos = separacion > 0 ? repartir(largo, separacion) : [0, largo];
+      puntos.forEach((d) => agregar(a[0] + ((b[0] - a[0]) * d) / largo, a[1] + ((b[1] - a[1]) * d) / largo));
     });
   }
   return [...porPosicion.values()];
@@ -237,12 +241,13 @@ function generarMarcos(params, lados, rectEntrepiso) {
   });
 
   if (rectEntrepiso) {
-    const { esquinas, y } = rectEntrepiso;
-    for (let i = 0; i < 4; i++) {
-      const a = esquinas[i];
-      const b = esquinas[(i + 1) % 4];
-      marcos.push(pieza(`marco-piso2:${i}`, 'marco-piso2', ['piso2'], [a[0], y, a[1]], [b[0], y, b[1]]));
-    }
+    const { y } = rectEntrepiso;
+    // Los bordes contra una pared son marco; los bordes libres son viga de cierre
+    // (renglón propio en el presupuesto: el perfil lo elige el herrero).
+    // El id es el mismo en los dos casos para no romper piezas eliminadas/editadas.
+    bordesEntrepiso(rectEntrepiso, lados).forEach(({ i, a, b, libre }) => {
+      marcos.push(pieza(`marco-piso2:${i}`, libre ? 'viga-cierre' : 'marco-piso2', ['piso2'], [a[0], y, a[1]], [b[0], y, b[1]]));
+    });
   }
   return marcos;
 }
@@ -257,22 +262,42 @@ function rectanguloPlanta({ largo, ancho }) {
   return { origen: [-largo / 2, -ancho / 2], u: [1, 0], largoU: largo, v: [0, 1], largoV: ancho };
 }
 
-/** Rectángulo del entrepiso, o null si no hay entrepiso. */
+/**
+ * Rectángulo del entrepiso, o null si no hay entrepiso.
+ * Se apoya en `ladoEntrepiso`, a lo largo del tramo que da tramoEntrepiso()
+ * (todo el lado o una parte), y entra `anchoEntrepiso` hacia adentro.
+ */
 function rectanguloEntrepiso(params, lados) {
   if (!(params.anchoEntrepiso > 0)) return null;
   const geo = lados[params.ladoEntrepiso];
   const v = haciaAdentro(geo);
   const a = params.anchoEntrepiso;
+  const { inicio, largo } = tramoEntrepiso(params);
+  const origen = puntoSobreLado(geo, inicio);
+  const fin = puntoSobreLado(geo, inicio + largo);
   const esquinas = [
-    geo.p1,
-    geo.p2,
-    [geo.p2[0] + v[0] * a, geo.p2[1] + v[1] * a],
-    [geo.p1[0] + v[0] * a, geo.p1[1] + v[1] * a],
+    origen,
+    fin,
+    [fin[0] + v[0] * a, fin[1] + v[1] * a],
+    [origen[0] + v[0] * a, origen[1] + v[1] * a],
   ];
   return {
-    origen: geo.p1, u: geo.direccion, largoU: geo.largo, v, largoV: a,
+    origen, u: geo.direccion, largoU: largo, v, largoV: a,
     esquinas, y: params.elevacion + ALTURA_PISO_2,
   };
+}
+
+/**
+ * Los 4 bordes del entrepiso. `libre` = no está apoyado sobre una pared
+ * (sus dos puntas no caen sobre la misma pared). El borde 0 es siempre el
+ * que se apoya en `ladoEntrepiso`; el 2 es el de enfrente (donde llega la escalera).
+ */
+function bordesEntrepiso(rect, lados) {
+  return rect.esquinas.map((a, i) => {
+    const b = rect.esquinas[(i + 1) % 4];
+    const sobrePared = LADOS.some((l) => estaSobreLado(lados[l], ...a) && estaSobreLado(lados[l], ...b));
+    return { i, a, b, libre: !sobrePared };
+  });
 }
 
 /**

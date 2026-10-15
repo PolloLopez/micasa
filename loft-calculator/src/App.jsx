@@ -13,6 +13,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import LoftCanvas from './LoftCanvas.jsx';
 import CampoNumero from './componentes/CampoNumero.jsx';
 import SelectorLado from './componentes/SelectorLado.jsx';
+import CampoSelect from './componentes/CampoSelect.jsx';
 import PanelAberturas from './componentes/PanelAberturas.jsx';
 import PanelTiposPanel from './componentes/PanelTiposPanel.jsx';
 import PanelEscalera from './componentes/PanelEscalera.jsx';
@@ -386,7 +387,7 @@ export default function App() {
     <div className="app">
       <header>
         <div className="titulo">
-          <h1>Pollo Calculator</h1>
+          <h1>🐤 Pollo Calculator</h1>
           <input className="nombre-proyecto" value={nombreProyecto} aria-label="Nombre del proyecto"
             onChange={(e) => setNombreProyecto(e.target.value)} placeholder="Nombre del proyecto…" />
           <span className={`estado-guardado${cambiosSinGuardar ? ' sin-guardar' : ''}`} role="status">
@@ -517,11 +518,22 @@ export default function App() {
             <div className="grid-params">
               <SelectorLado etiqueta="Apoyado en" valor={params.ladoEntrepiso} params={params}
                 onCambio={cambiar('ladoEntrepiso')} />
-              {medida('anchoEntrepiso', 'Ancho (0 = sin entrepiso)')}
+              {medida('anchoEntrepiso', 'Profundidad (0 = sin entrepiso)')}
+              {params.anchoEntrepiso > 0 && medida('largoEntrepiso', 'Largo (0 = toda la pared)')}
+              {params.anchoEntrepiso > 0 && params.largoEntrepiso > 0 && (
+                <CampoSelect etiqueta="Medir desde" valor={params.referenciaEntrepiso}
+                  opciones={[['izquierda', 'Esquina izquierda'], ['derecha', 'Esquina derecha']]}
+                  onCambio={cambiar('referenciaEntrepiso')} />
+              )}
+              {params.anchoEntrepiso > 0 && params.largoEntrepiso > 0 && medida('distanciaEntrepiso', 'Dist. a esquina')}
+              {params.anchoEntrepiso > 0 && medida('separacionColumnasEntrepiso', 'Columnas del borde libre cada (0 = solo puntas)')}
               {medida('separacionPiso2', 'Sep. estructura de piso 2')}
               {medida('separacionTransversalesPiso2', 'Sep. transversales (0 = sin)')}
             </div>
             <p className="nota">
+              Entrepiso parcial: poné el largo y desde qué esquina arranca (vista desde afuera, como las
+              aberturas). Los bordes que no tocan una pared llevan <strong>viga de cierre</strong>, con su
+              propio renglón en el presupuesto para elegir el perfil.
               La estructura de cada piso cruza la luz más corta. Las transversales unen la estructura para que
               no arquee; su separación la define el herrero según el panel.
             </p>

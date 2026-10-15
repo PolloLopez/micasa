@@ -28,6 +28,7 @@ export const INSUMO = {
   MARCO: 'marco',
   PISO: 'piso',
   PISO_2: 'piso2',
+  VIGA_CIERRE: 'vigaCierre', // borde libre del entrepiso (v1.14)
   TRANSVERSAL_PISO: 'transversalPiso',
   TRANSVERSAL_PISO_2: 'transversalPiso2',
   CORREA: 'correa',
@@ -112,6 +113,9 @@ export const LIMITES = {
   elevacion: { min: 0, max: 2 },
   separacionPiso: { min: 0.2, max: 2 },
   anchoEntrepiso: { min: 0, max: 30 },
+  largoEntrepiso: { min: 1, max: 30, opcional: true }, // 0 = todo el lado
+  distanciaEntrepiso: { min: 0, max: 30 },
+  separacionColumnasEntrepiso: { min: 0.5, max: 30, opcional: true }, // 0 = solo en las puntas
   separacionPiso2: { min: 0.2, max: 2 },
   separacionTransversalesPiso: { min: 0.3, max: 6, opcional: true },
   separacionTransversalesPiso2: { min: 0.3, max: 6, opcional: true },

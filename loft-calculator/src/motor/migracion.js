@@ -26,6 +26,10 @@
 //   - tipos de panel: colorInterior (cara de adentro); los viejos toman el gris claro de fábrica.
 // v1.10 -> v1.11:
 //   - nuevo: montaje industrial (componentes); los proyectos viejos traen el de ejemplo, sin usarlo.
+// v1.13 -> v1.14:
+//   - entrepiso parcial: largoEntrepiso (0 = todo el lado, como antes), referencia y distancia.
+//   - separacionColumnasEntrepiso: los proyectos viejos toman la de las verticales de la pared
+//     donde se apoya el entrepiso, que era la regla de antes => mismas columnas.
 // ==========================================================
 
 import { LADOS, INSUMO } from './constantes.js';
@@ -68,6 +72,12 @@ export function migrarParams(params) {
   nuevos.tipoProyecto ??= 'construccion'; // v1.9: todo lo anterior es una construcción
   nuevos.grada = esObjeto(nuevos.grada) ? { ...GRADA_INICIAL, ...nuevos.grada } : { ...GRADA_INICIAL };
   nuevos.montaje = esObjeto(nuevos.montaje) ? nuevos.montaje : structuredClone(MONTAJE_INICIAL); // v1.11
+  // v1.14: entrepiso parcial. Sin estos datos el entrepiso sigue ocupando todo el lado.
+  nuevos.largoEntrepiso ??= 0;
+  nuevos.referenciaEntrepiso ??= 'izquierda';
+  nuevos.distanciaEntrepiso ??= 0;
+  nuevos.separacionColumnasEntrepiso ??=
+    nuevos.paredes?.[nuevos.ladoEntrepiso]?.separacionVerticales ?? PARAMS_INICIALES.separacionColumnasEntrepiso;
 
   if (esObjeto(nuevos.paredes)) {
     nuevos.paredes = Object.fromEntries(

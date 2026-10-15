@@ -1,6 +1,6 @@
 # Pollo Calculator · Calculadora de estructuras
 
-Calculadora paramétrica para herrería: lofts steel frame (paredes por panel, entrepiso, escaleras y techo a una agua),
+Calculadora paramétrica para herrería: lofts steel frame (paredes por panel, entrepiso completo o parcial, escaleras y techo a una agua),
 gradas para espectadores y montajes industriales (mesas, tanques). Modelo 3D, optimización de cortes y presupuesto de
 materiales.
 

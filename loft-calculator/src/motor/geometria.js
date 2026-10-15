@@ -61,6 +61,22 @@ export function nombreLado(lado, ladoFrente) {
   return nombres[posicion];
 }
 
+/**
+ * Tramo del lado donde se apoya el entrepiso: { inicio, largo }, con
+ * `inicio` medido desde la esquina izquierda del lado (vista desde afuera,
+ * igual que las aberturas).
+ *   largoEntrepiso = 0  => el entrepiso ocupa todo el lado (como antes de v1.14).
+ *   referenciaEntrepiso 'derecha' => la distancia se mide desde la otra esquina.
+ */
+export function tramoEntrepiso(params) {
+  const largoDelLado = largoLado(params.ladoEntrepiso, params);
+  const largo = params.largoEntrepiso > 0 ? params.largoEntrepiso : largoDelLado;
+  if (!(params.largoEntrepiso > 0)) return { inicio: 0, largo };
+  const distancia = params.distanciaEntrepiso ?? 0;
+  const inicio = params.referenciaEntrepiso === 'derecha' ? largoDelLado - distancia - largo : distancia;
+  return { inicio, largo };
+}
+
 /** Punto (x, z) a una distancia `d` de p1 sobre un lado. */
 export function puntoSobreLado(geoLado, d) {
   return [geoLado.p1[0] + geoLado.direccion[0] * d, geoLado.p1[1] + geoLado.direccion[1] * d];
