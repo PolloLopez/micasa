@@ -86,6 +86,9 @@ const capaDe = (p) => {
   return ESTILO_PIEZA[p.tipo]?.capa;
 };
 const ESPESOR_ESCALON = 0.05; // madera de 2"
+// Media sección de los perfiles de pared en el dibujo (marcos de 12 cm): un revestimiento
+// "sobre la estructura" se dibuja por fuera de esto para tapar los marcos (v1.15).
+const MEDIA_SECCION_PARED = 0.06;
 
 
 const COLOR_SELECCION = '#facc15';
@@ -282,17 +285,48 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
   }
 
   if (capas.paneles) {
-    // Cada panel con su color exterior e interior; si el tipo no existe, el material genérico.
-    const dibujar = (esquinas, idPanel, haciaAfuera) => {
+    // Cada revestimiento con su color exterior e interior; si el tipo no existe, el material genérico.
+    // `corrimiento`: cuánto se aleja del eje de la pared hacia `haciaAfuera` (v1.15, según su ubicación).
+    const dibujar = (esquinas, idPanel, haciaAfuera, corrimiento = 0) => {
       const mats = materialesPanel.get(idPanel);
-      grupo.add(mats ? panelDosCaras(esquinas, mats, haciaAfuera) : cuadrilatero(esquinas, materiales.paneles));
+      const n = Math.hypot(...haciaAfuera) || 1;
+      const d = haciaAfuera.map((c) => (c / n) * corrimiento);
+      const movidas = esquinas.map((p) => [p[0] + d[0], p[1] + d[1], p[2] + d[2]]);
+      grupo.add(mats ? panelDosCaras(movidas, mats, haciaAfuera) : cuadrilatero(movidas, materiales.paneles));
+    };
+    /** Distancia al eje: "sobre la estructura" = afuera de los perfiles (tapa los marcos); "embutido" = al eje. */
+    const corrimientoDe = (idPanel) => {
+      const tipo = materialesPanel.get(idPanel)?.tipo;
+      return tipo?.ubicacion === 'eje' ? 0 : MEDIA_SECCION_PARED + (tipo?.espesor ?? 50) / 2000;
+    };
+    /**
+     * Estira (o acorta, si `extra` < 0) el paño a lo largo de la pared en sus dos puntas:
+     * corrido hacia afuera tiene que crecer para que las esquinas cierren; hacia adentro, achicarse.
+     * Esquinas en orden [abajo p1, abajo p2, arriba p2, arriba p1] (ver generarParedes).
+     */
+    const estirar = (esquinas, extra) => {
+      const [a, b] = esquinas;
+      const largo = Math.hypot(b[0] - a[0], b[2] - a[2]) || 1;
+      const dx = ((b[0] - a[0]) / largo) * extra;
+      const dz = ((b[2] - a[2]) / largo) * extra;
+      return esquinas.map((p, i) => (i === 0 || i === 3 ? [p[0] - dx, p[1], p[2] - dz] : [p[0] + dx, p[1], p[2] + dz]));
     };
     e.paredes.filter((pared) => grupoVisible(pared.lado)).forEach((pared) => {
-      // Afuera = desde el centro de la planta hacia el centro de la pared.
+      // Afuera = desde el centro de la planta hacia el centro de la pared (horizontal).
       const centro = pared.esquinas.reduce((acc, p) => [acc[0] + p[0] / 4, 0, acc[2] + p[2] / 4], [0, 0, 0]);
-      dibujar(pared.esquinas, pared.panel, centro);
+      const afuera = corrimientoDe(pared.panel);
+      dibujar(estirar(pared.esquinas, afuera), pared.panel, centro, afuera);
+      // Revestimiento interior: su cara "exterior" (color principal) mira hacia adentro del ambiente.
+      if (pared.panelInterior) {
+        const adentro = corrimientoDe(pared.panelInterior) || 0.01;
+        dibujar(estirar(pared.esquinas, -adentro), pared.panelInterior, centro.map((c) => -c), adentro);
+      }
     });
-    if (grupoVisible('techo')) dibujar(e.techo.esquinas, e.techo.panel, [0, 1, 0]);
+    if (grupoVisible('techo')) {
+      const tipoTecho = materialesPanel.get(e.techo.panel)?.tipo;
+      // Las esquinas del techo ya están arriba de las correas; embutido baja entre las vigas.
+      dibujar(e.techo.esquinas, e.techo.panel, [0, 1, 0], tipoTecho?.ubicacion === 'eje' ? -0.13 : (tipoTecho?.espesor ?? 50) / 2000);
+    }
   }
 
   if (capas.aberturas) {
@@ -519,6 +553,7 @@ export default function LoftCanvas({
     paneles.forEach((p) => visor.materialesPanel.set(p.id, {
       exterior: materialPanel(p.color, opacidades.paneles, THREE.FrontSide),
       interior: materialPanel(p.colorInterior ?? p.color, opacidades.paneles, THREE.BackSide),
+      tipo: p, // ubicación y espesor (v1.15): dónde se dibuja respecto de la estructura
     }));
     dibujarModelo(visor.grupo, visor.materiales, visor.materialesPanel,
       { params, estructura, aberturas, capas, gruposVisibles, seleccionada, catalogo });

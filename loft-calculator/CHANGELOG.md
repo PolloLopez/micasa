@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.15.0] - 2026-10-16
+### Agregado
+- Tarjeta **Materiales**: qué es cada material (perfil, largo de barra, excedente de las barras) y los
+  **revestimientos** (paneles, chapas, placas), que reemplazan a "Tipos de panel".
+- Cada revestimiento dice **cómo se vende**:
+  - **A medida**: ancho útil, largo máximo y solape. Se cuentan tiras enteras del alto de cada pared (en una pared
+    inclinada, cada tira con su alto mayor) y, si pasan el largo máximo, en tramos. El presupuesto muestra la lista
+    para pedir ("8 × 4.95 m + …") y los m² que se pagan.
+  - **Placa fija** (OSB, fenólico, durlock, chapa de medida fija): ancho × largo; se cuentan placas enteras por
+    paño (parada o acostada, la que use menos).
+- **Ubicación** del revestimiento, que elige el herrero: sobre los perfiles (tapa la estructura, como se ve ahora en
+  el 3D) o embutido entre perfiles. Y su **espesor**.
+- **Revestimiento interior** en cada pared (ej. durlock en cocina y baño), con su propio renglón y dibujado por dentro.
+- **Duplicar** una abertura: la copia queda al lado si entra en la pared y no pisa otra.
+### Cambiado
+- El **Presupuesto** queda con cantidades y precios; el perfil y el largo de barra se cargan en Materiales.
+- Los paneles ya no se cuentan por m² netos sino por **tiras enteras** (más real para comprar: incluye el
+  recorte). Los proyectos guardados pasan a "a medida" con 1 m de ancho útil y 12 m de largo máximo: revisá esos
+  datos con tu proveedor.
+
 ## [1.14.1] - 2026-10-16
 ### Cambiado
 - **Marcos de aberturas** (dintel, jambas y alféizar) en su propio renglón del presupuesto; "Columnas y vanos" pasa a

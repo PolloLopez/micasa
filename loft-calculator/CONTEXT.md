@@ -78,6 +78,11 @@ valores inválidos.
 
 | 2026-10-16 | Dintel, jambas y alféizar con renglón propio (`marcoAbertura`), mismo perfil de arranque que las columnas | Pedido de Leandro: en obra suelen ser otro perfil. Mismo valor inicial para no cambiar presupuestos de golpe; el herrero lo ajusta. |
 
+| 2026-10-16 | Revestimientos con forma de venta: a medida (ancho útil, largo máximo, solape) o placa fija (ancho × largo), en `motor/revestimientos.js` | Pedido de Leandro: algunos vienen a medida y otros estandarizados (chapas, placas, durlock). Contar tiras/placas enteras es lo que se compra; m² netos subestimaba. Las aberturas todavía no se descuentan (conservador). |
+| 2026-10-16 | Ubicación del revestimiento ('cara' sobre los perfiles / 'eje' embutido) en el tipo, no en la pared | Depende del revestimiento y lo decide el herrero (Leandro). La cara (exterior/interior) la da la pared: el mismo tipo sirve afuera o adentro. Solo cambia el dibujo. |
+| 2026-10-16 | Tarjeta Materiales (qué es) separada del Presupuesto (cuánto y a qué precio) | Pedido de Leandro: el herrero carga los materiales una vez; el presupuesto se lee más fácil. El catálogo sigue siendo uno solo (misma fuente de verdad). |
+| 2026-10-16 | Revestimiento interior por pared (`paredes.<lado>.panelInterior`, '' = sin) | Primer paso para el durlock (cocina y baño). El tabique interior queda para después. |
+
 ## Supuestos de obra (en `src/motor/constantes.js`)
 Piso del entrepiso a 2,30 m · merma de corte 3 mm · excedente de barras 1 % (editable; depende del proveedor) · placa OSB 2,44 × 1,22 + 10 % de recortes ·
 techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 cm, comodidad 60-65 cm, paso libre 2 m · refuerzo de vano = dintel + 2 jambas (+ alféizar en ventanas).
@@ -129,4 +134,5 @@ techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 
 - 2026-10-14 v1.13.1: la app pasa a llamarse Pollo Calculator.
 - 2026-10-15 v1.14.0: entrepiso parcial (largo × profundidad) con viga de cierre y columnas del borde libre; 🐤 en el encabezado.
 - 2026-10-16 v1.14.1: marcos de aberturas aparte, paredes plegables, editor más claro.
+- 2026-10-16 v1.15.0: tarjeta Materiales, revestimientos a medida / en placa, ubicación, revestimiento interior, duplicar aberturas.
 - Nota: el elemento `id="flonnect-my-app"` que aparece en la página no es de la app: lo inyecta la extensión Flonnect (grabador de pantalla) de Chrome.

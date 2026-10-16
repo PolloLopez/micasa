@@ -14,6 +14,7 @@
 import { optimizarCortes } from './optimizadorCortes.js';
 import { listarPiezas } from './estructura.js';
 import { INSUMO, PLACA_OSB, DESPERDICIO_PLACAS } from './constantes.js';
+import { cuentaRevestimiento, REVESTIMIENTO_POR_DEFECTO } from './revestimientos.js';
 
 /** Insumos fijos. El perfil y el precio se editan desde la pantalla. */
 export const CATALOGO_FIJO = [
@@ -77,8 +78,9 @@ export const INSUMOS_MONTAJE = [
 /** Tipos de panel iniciales: uno para paredes y otro para el techo. */
 export const TIPOS_PANEL_INICIALES = [
   // color = cara exterior; colorInterior = cara de adentro (los paneles PUR suelen ser blancos por dentro).
-  { id: 'panelMuros', categoria: 'panel', nombre: 'Panel de pared', perfil: 'Panel PUR 50 mm', unidad: 'm²', largoBarra: null, precio: 35000, color: '#10b981', colorInterior: '#e5e7eb' },
-  { id: 'panelTecho', categoria: 'panel', nombre: 'Panel de techo', perfil: 'Panel PUR techo 50 mm', unidad: 'm²', largoBarra: null, precio: 38000, color: '#14b8a6', colorInterior: '#e5e7eb' },
+  // v1.15: cada tipo dice cómo se vende (a medida / estándar) y dónde va (ver motor/revestimientos.js).
+  { id: 'panelMuros', categoria: 'panel', nombre: 'Panel de pared', perfil: 'Panel PUR 50 mm', unidad: 'm²', largoBarra: null, precio: 35000, color: '#10b981', colorInterior: '#e5e7eb', ...REVESTIMIENTO_POR_DEFECTO },
+  { id: 'panelTecho', categoria: 'panel', nombre: 'Panel de techo', perfil: 'Panel PUR techo 50 mm', unidad: 'm²', largoBarra: null, precio: 38000, color: '#14b8a6', colorInterior: '#e5e7eb', ...REVESTIMIENTO_POR_DEFECTO },
 ];
 
 export const CATALOGO_INICIAL = [...CATALOGO_FIJO, ...TIPOS_PANEL_INICIALES];
@@ -109,17 +111,25 @@ function itemSimple(producto, cantidad, detalle) {
   return { ...producto, cantidad, detalle, cortes: null };
 }
 
-/** m² de cada tipo de panel: suma de paredes (netas) y techo que lo usan. */
-function metrosPorPanel(estructura) {
-  const metros = {};
-  const sumar = (id, m2, donde) => {
-    metros[id] ??= { m2: 0, donde: [] };
-    metros[id].m2 += m2;
-    metros[id].donde.push(donde);
+/**
+ * Paños que usa cada tipo de revestimiento: cada pared por fuera (y por
+ * dentro si lleva revestimiento interior) y el techo.
+ * @returns {Object<string, object[]>} id del tipo => paños (ver revestimientos.js)
+ */
+function panosPorRevestimiento(estructura) {
+  const panos = {};
+  const sumar = (id, pano) => {
+    if (!id) return;
+    (panos[id] ??= []).push(pano);
   };
-  estructura.paredes.forEach((p) => sumar(p.panel, p.superficieNeta, `lado ${p.lado}`));
-  sumar(estructura.techo.panel, estructura.techo.superficie, 'techo');
-  return metros;
+  estructura.paredes.forEach((p) => {
+    const pano = { largo: p.largo, h1: p.alturas[0], h2: p.alturas[1], neto: p.superficieNeta };
+    sumar(p.panel, { ...pano, donde: `lado ${p.lado}` });
+    sumar(p.panelInterior, { ...pano, donde: `lado ${p.lado} (interior)` });
+  });
+  const t = estructura.techo;
+  sumar(t.panel, { largo: t.largo, h1: t.largoFaldon, h2: t.largoFaldon, neto: t.superficie, donde: 'techo' });
+  return panos;
 }
 
 /**
@@ -175,14 +185,16 @@ export function calcularPresupuesto(estructura, catalogo, { excedenteBarras = 0 
   );
 
   // Paneles: un renglón por tipo, con los m² de las paredes y el techo que lo usan.
-  const metros = metrosPorPanel(e);
+  // Revestimientos: según cómo se vende cada tipo (a medida = m² de tiras; estándar = placas).
+  const panos = panosPorRevestimiento(e);
   tiposDePanel(catalogo).forEach((tipo) => {
-    const uso = metros[tipo.id];
-    items.push(
-      uso
-        ? itemSimple(tipo, Math.ceil(uso.m2), `${uso.m2.toFixed(2)} m² · ${uso.donde.join(', ')}`)
-        : itemSimple(tipo, 0, 'sin uso')
-    );
+    const uso = panos[tipo.id];
+    if (!uso) {
+      items.push({ ...itemSimple(tipo, 0, 'sin uso'), unidad: tipo.venta === 'estandar' ? 'placas' : 'm²' });
+      return;
+    }
+    const cuenta = cuentaRevestimiento(tipo, uso);
+    items.push({ ...itemSimple(tipo, cuenta.cantidad, cuenta.detalle), unidad: cuenta.unidad, piezasRevestimiento: cuenta.piezas });
   });
 
   items.push(itemSimple(insumo(INSUMO.PILOTIN), e.pilotines.length, 'grilla de fundación'));

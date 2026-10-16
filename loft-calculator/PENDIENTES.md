@@ -16,15 +16,14 @@
       (viene en 1 %; avisado en la pantalla y en el manual).
 
 ## Pruebas de Leandro (16/10) — a ordenar
-- 🔴 [ ] Paneles por medida: cargar ancho × largo del panel (y espesor) y contar PANELES enteros por pared/techo,
-      no solo m² (hoy "no calcula bien" para comprar).
-- 🟡 [ ] Tarjeta **Materiales**: el herrero carga cada material (tipo, medida, espesor, largo de barra, color).
-      La tarjeta **Presupuesto** queda solo con cantidades y precios.
+- 🟡 [ ] Tiras y placas: descontar las aberturas grandes (hoy se cuentan como pared llena: sobra material) y
+      placas estándar con aprovechamiento de recortes.
+- 🟡 [ ] Revestimiento interior también en el techo (cielorraso) y precio por metro lineal para chapas a medida.
 - 🟡 [ ] En cada pared: elegir el perfil de sus columnas y horizontales (no solo el panel / revestimiento).
 - 🟡 [ ] Patrón de perfiles en una pared: "cada N columnas, una de otro perfil" o dos capas de perfiles.
 - 🟡 [ ] Elegir color en todos los materiales (como en los tipos de panel).
 - 🟡 [ ] Medir distancias en el 3D (ej. entre dos columnas).
-- 🟡 [ ] Duplicar una pieza seleccionada; seleccionar y editar aberturas desde el 3D (y duplicarlas).
+- 🟡 [ ] Duplicar una pieza seleccionada; seleccionar, editar y copiar/pegar aberturas desde el 3D.
 - 🟡 [ ] Acortar piezas más intuitivo (ej. "arranca a X m / termina a Y m", o arrastrando en el 3D).
 - ✅ Hecho en v1.14.1: marcos de aberturas con renglón propio; paredes plegables (aria-expanded); "Eliminar
       pieza" menos llamativo que "Cerrar"; textos del editor ("Perfil de esta pieza", "Acortar la punta de…");
@@ -84,6 +83,13 @@
 - [ ] Piezas eliminadas/editadas se reconocen por su posición: si una medida las mueve, el cambio deja de
       aplicarse (se avisa en la lista). Evaluar si hace falta algo más robusto.
 - [ ] Migrar el motor a Django cuando arranque Construcción Modular (los tests sirven de especificación).
+
+## ✅ Resuelto en v1.15.0 (2026-10-16)
+- [x] Tarjeta Materiales; Presupuesto solo con cantidades y precios.
+- [x] Revestimientos a medida (ancho útil, largo máximo, solape) y en placa fija (ancho × largo): tiras y placas enteras.
+- [x] Ubicación del revestimiento (sobre los perfiles / embutido) y espesor, a elección del herrero.
+- [x] Revestimiento interior por pared (base para el durlock).
+- [x] Duplicar aberturas desde su tarjeta.
 
 ## ✅ Resuelto en v1.14.1 (2026-10-16)
 - [x] Dintel, jambas y alféizar en su propio renglón "Marcos de aberturas" (antes con las columnas).

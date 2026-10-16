@@ -354,14 +354,22 @@ describe('calcularPresupuesto', () => {
     expect(item(INSUMO.TRANSVERSAL_PISO_2).cortes.barras.flatMap((b) => b.piezas)).toHaveLength(e.piso2.transversales.length);
   });
 
-  it('paneles: m² de paredes y techo por tipo de panel', () => {
-    expect(item('panelMuros').cantidad).toBe(Math.ceil(e.superficies.murosNetos));
-    expect(item('panelTecho').cantidad).toBe(Math.ceil(e.superficies.techo));
-    // Si el frente (A) pasa a usar el panel de techo, sus m² se mueven a ese renglón.
+  it('paneles a medida (v1.15): tiras enteras de 1 m de ancho útil, del alto de cada pared', () => {
+    // Frente A (alto 4,95): 7,50 m => 8 tiras de 4,95 = 39,60 m²
+    // Fondo C (alto 4,50):  8 tiras de 4,50 = 36,00 m²
+    // Laterales (de 4,50 a 4,95; cada tira toma su alto mayor):
+    //   B: 4,95 + 4,85 + 4,75 + 4,65 + 4,55 = 23,75 m² · D: 4,60 + 4,70 + 4,80 + 4,90 + 4,95 = 23,95 m²
+    expect(item('panelMuros').cantidad).toBeCloseTo(39.6 + 36 + 23.75 + 23.95);
+    expect(item('panelMuros').unidad).toBe('m²');
+    // El detalle agrupa por largo todas las paredes: 8 del frente + 1 de cada lateral = 10 de 4,95.
+    expect(item('panelMuros').detalle).toMatch(/^10 × 4\.95 m .* \+ 8 × 4\.50 m/);
+    // Techo: 7,50 m a lo largo del lado bajo => 8 tiras del largo del faldón (4,50 m con 10 % de pendiente).
+    const faldon = 4.5 * Math.sqrt(1 + 0.1 * 0.1);
+    expect(item('panelTecho').cantidad).toBeCloseTo(8 * Math.ceil(faldon * 100) / 100);
+    // Si el frente (A) pasa a usar el panel de techo, sus tiras se mueven a ese renglón.
     const mixto = generarEstructura(conPared('A', { panel: 'panelTecho' }), ABERTURAS_INICIALES);
     const r = calcularPresupuesto(mixto, CATALOGO_INICIAL).items;
-    const netoA = mixto.paredes.find((x) => x.lado === 'A').superficieNeta;
-    expect(r.find((i) => i.id === 'panelTecho').cantidad).toBe(Math.ceil(mixto.superficies.techo + netoA));
+    expect(r.find((i) => i.id === 'panelTecho').cantidad).toBeCloseTo(8 * Math.ceil(faldon * 100) / 100 + 39.6);
     expect(r.find((i) => i.id === 'panelTecho').detalle).toMatch(/lado A, techo/);
   });
 

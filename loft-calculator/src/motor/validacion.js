@@ -38,6 +38,8 @@ export function validarPanelesUsados(params, catalogo) {
   const existe = (id) => catalogo.some((p) => p.categoria === 'panel' && p.id === id);
   const ladoSinPanel = LADOS.find((lado) => !existe(params.paredes[lado].panel));
   if (ladoSinPanel) return `La pared del lado ${ladoSinPanel} usa un tipo de panel que no existe`;
+  const ladoSinInterior = LADOS.find((lado) => params.paredes[lado].panelInterior && !existe(params.paredes[lado].panelInterior));
+  if (ladoSinInterior) return `El revestimiento interior del lado ${ladoSinInterior} no existe`;
   if (!existe(params.panelTecho)) return 'El techo usa un tipo de panel que no existe';
   return null;
 }
@@ -323,4 +325,28 @@ export function validarAbertura(abertura, params) {
     return `Supera la altura de la pared en ese tramo (${alturaLibre.toFixed(2)} m)`;
   }
   return null;
+}
+
+/**
+ * Copia de una abertura (v1.15, "Duplicar"): misma medida, al lado de la
+ * original si entra en la pared y no pisa otra abertura; si no, del otro
+ * lado; si tampoco, en el mismo lugar (para moverla a mano).
+ * @param aberturas todas las aberturas (para no superponer)
+ * @param id        id de la copia
+ */
+export function copiarAbertura(abertura, aberturas, params, id) {
+  const SEPARACION = 0.3; // 30 cm entre la original y la copia
+  const pisaOtra = (nueva) => {
+    const a = inicioAbertura(nueva, params);
+    return aberturas.some((op) => {
+      if (op.lado !== nueva.lado) return false;
+      const b = inicioAbertura(op, params);
+      return a < b + op.ancho - 1e-9 && b < a + nueva.ancho - 1e-9;
+    });
+  };
+  const paso = abertura.ancho + SEPARACION;
+  const candidatas = [abertura.offsetHorizontal + paso, abertura.offsetHorizontal - paso]
+    .filter((offset) => offset >= 0)
+    .map((offset) => ({ ...abertura, id, offsetHorizontal: Number(offset.toFixed(4)) }));
+  return candidatas.find((c) => !validarAbertura(c, params) && !pisaOtra(c)) ?? { ...abertura, id };
 }

@@ -22,7 +22,7 @@ npm run deploy   # tests + build + publica en GitHub Pages
 "Mis proyectos" guarda varios proyectos con nombre en el navegador (Guardar / Guardar como… / Abrir / Duplicar /
 Renombrar / Borrar). Para llevarlos a otra compu: "Exportar respaldo de todos" e "Importar respaldo…".
 
-"Guardar proyecto" descarga un `.json` con medidas, aberturas, perfiles, tipos de panel, precios y colores.
+"Guardar proyecto" descarga un `.json` con medidas, aberturas, perfiles, revestimientos, precios y colores.
 "Abrir…" lo vuelve a cargar (en esta compu o en la del herrero). No hace falta cuenta ni servidor.
 "Nuevo" arranca un proyecto sin datos; "Ejemplo" carga el loft de referencia.
 

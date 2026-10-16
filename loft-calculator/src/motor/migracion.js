@@ -26,6 +26,10 @@
 //   - tipos de panel: colorInterior (cara de adentro); los viejos toman el gris claro de fábrica.
 // v1.10 -> v1.11:
 //   - nuevo: montaje industrial (componentes); los proyectos viejos traen el de ejemplo, sin usarlo.
+// v1.14 -> v1.15:
+//   - tipos de panel = revestimientos: venta (a medida / estándar), ancho útil, largo máximo, solape,
+//     medida de placa, espesor y ubicación. Los viejos pasan a "a medida", 1 m de ancho útil.
+//   - cada pared: panelInterior ('' = sin revestimiento interior).
 // v1.13 -> v1.14:
 //   - entrepiso parcial: largoEntrepiso (0 = todo el lado, como antes), referencia y distancia.
 //   - separacionColumnasEntrepiso: los proyectos viejos toman la de las verticales de la pared
@@ -38,6 +42,7 @@ import { CATALOGO_FIJO, TIPOS_PANEL_INICIALES } from './presupuesto.js';
 import { ESCALERA_INICIAL } from './escalera.js';
 import { GRADA_INICIAL } from './grada.js';
 import { MONTAJE_INICIAL } from './montaje.js';
+import { REVESTIMIENTO_POR_DEFECTO, LIMITES_REVESTIMIENTO, VENTAS, UBICACIONES } from './revestimientos.js';
 
 const esObjeto = (x) => x !== null && typeof x === 'object' && !Array.isArray(x);
 const esColor = (c) => typeof c === 'string' && /^#[0-9a-fA-F]{6}$/.test(c);
@@ -86,6 +91,7 @@ export function migrarParams(params) {
         return [lado, esObjeto(pared) ? {
           ...pared,
           panel: pared.panel ?? PARAMS_INICIALES.paredes[lado].panel,
+          panelInterior: typeof pared.panelInterior === 'string' ? pared.panelInterior : '', // v1.15: '' = sin revestimiento interior
           etiqueta: pared.etiqueta ?? '', // v1.8: '' = nombre automático (Frente, Lateral…)
           mostrarEtiqueta: pared.mostrarEtiqueta ?? true,
         } : pared];
@@ -93,6 +99,27 @@ export function migrarParams(params) {
     );
   }
   return nuevos;
+}
+
+/** Datos de venta/ubicación de un tipo de revestimiento: los válidos se guardan, el resto de fábrica. */
+function datosDeRevestimiento(p) {
+  const d = REVESTIMIENTO_POR_DEFECTO;
+  const numero = (campo) => {
+    const { min, max } = LIMITES_REVESTIMIENTO[campo];
+    return Number.isFinite(p[campo]) && p[campo] >= min && p[campo] <= max ? p[campo] : d[campo];
+  };
+  const largoMaximo = numero('largoMaximo');
+  const solape = numero('solape');
+  return {
+    venta: VENTAS.includes(p.venta) ? p.venta : d.venta,
+    anchoUtil: numero('anchoUtil'),
+    largoMaximo,
+    solape: solape < largoMaximo ? solape : 0, // un solape igual al largo no avanzaría nunca
+    anchoPlaca: numero('anchoPlaca'),
+    largoPlaca: numero('largoPlaca'),
+    espesor: numero('espesor'),
+    ubicacion: UBICACIONES.includes(p.ubicacion) ? p.ubicacion : d.ubicacion,
+  };
 }
 
 /**
@@ -143,6 +170,8 @@ export function normalizarCatalogo(catalogo) {
         color: esColor(p.color) ? p.color : base.color,
         // v1.12: color de la cara interior (antes un solo color).
         colorInterior: esColor(p.colorInterior) ? p.colorInterior : base.colorInterior,
+        // v1.15: cómo se vende y dónde va. Los viejos pasan a "a medida" de 1 m de ancho útil.
+        ...datosDeRevestimiento(p),
       };
     });
 

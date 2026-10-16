@@ -15,7 +15,7 @@ import CampoNumero from './componentes/CampoNumero.jsx';
 import SelectorLado from './componentes/SelectorLado.jsx';
 import CampoSelect from './componentes/CampoSelect.jsx';
 import PanelAberturas from './componentes/PanelAberturas.jsx';
-import PanelTiposPanel from './componentes/PanelTiposPanel.jsx';
+import TarjetaMateriales from './componentes/TarjetaMateriales.jsx';
 import PanelEscalera from './componentes/PanelEscalera.jsx';
 import PanelGrada from './componentes/PanelGrada.jsx';
 import PanelMontaje from './componentes/PanelMontaje.jsx';
@@ -145,12 +145,13 @@ export default function App() {
   // --- Tipos de panel ---
   const agregarTipoPanel = () => {
     const base = paneles[paneles.length - 1];
-    const nuevo = { ...base, id: `panel-${Date.now()}`, nombre: `Panel ${paneles.length + 1}`, perfil: '', color: '#a3a3a3' };
+    const nuevo = { ...base, id: `panel-${Date.now()}`, nombre: `Revestimiento ${paneles.length + 1}`, perfil: '', color: '#a3a3a3' };
     setCatalogo((prev) => [...prev, nuevo]);
   };
   /** Dónde se usa un tipo de panel (para no borrar uno en uso). */
   const usosDePanel = (id) => [
     ...LADOS.filter((l) => params.paredes[l].panel === id).map((l) => nombreLado(l, params.ladoFrente)),
+    ...LADOS.filter((l) => params.paredes[l].panelInterior === id).map((l) => `${nombreLado(l, params.ladoFrente)} (interior)`),
     ...(params.panelTecho === id ? ['Techo'] : []),
   ];
   const quitarTipoPanel = (id) => setCatalogo((prev) => prev.filter((p) => p.id !== id));
@@ -368,10 +369,12 @@ export default function App() {
   };
 
   /** Select de tipo de panel (paredes y techo). */
-  const selectorPanel = (ruta, etiqueta, valor) => (
+  // `opcional` agrega "Sin revestimiento" (para el revestimiento interior: '' = no lleva).
+  const selectorPanel = (ruta, etiqueta, valor, opcional = false) => (
     <div className="group" key={ruta}>
       <label htmlFor={`panel-${ruta}`}>{etiqueta}</label>
       <select id={`panel-${ruta}`} value={valor} onChange={(e) => cambiar(ruta)(e.target.value)}>
+        {opcional && <option value="">Sin revestimiento</option>}
         {paneles.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
       </select>
     </div>
@@ -509,7 +512,8 @@ export default function App() {
                   <div className="grid-params">
                     {medida(`paredes.${lado}.separacionVerticales`, 'Sep. verticales')}
                     {medida(`paredes.${lado}.separacionHorizontales`, 'Sep. horizontales')}
-                    {selectorPanel(`paredes.${lado}.panel`, 'Panel', params.paredes[lado].panel)}
+                    {selectorPanel(`paredes.${lado}.panel`, 'Revestimiento exterior', params.paredes[lado].panel)}
+                    {selectorPanel(`paredes.${lado}.panelInterior`, 'Revestimiento interior', params.paredes[lado].panelInterior, true)}
                   </div>
                   </div>
                 </div>
@@ -562,7 +566,7 @@ export default function App() {
                 onCambio={cambiar('pendienteTecho')} decimales={1} />
               {medida('separacionVigasTecho', 'Sep. vigas de techo')}
               {medida('separacionCorreasTecho', 'Sep. correas (s/ pendiente)')}
-              {selectorPanel('panelTecho', 'Panel de techo', params.panelTecho)}
+              {selectorPanel('panelTecho', 'Revestimiento del techo', params.panelTecho)}
             </div>
             <p className="nota">
               Lado bajo: {params.altura.toFixed(2)} m ({nombreLado(params.caidaTecho, params.ladoFrente).toLowerCase()}) ·
@@ -639,13 +643,15 @@ export default function App() {
           {esConstruccion && (<>
             <PanelAberturas aberturas={aberturasValidas} params={params} unidad={unidad}
               onAgregar={agregarAbertura} onActualizar={actualizarAbertura} onQuitar={quitarAbertura} />
-
-            <PanelTiposPanel paneles={paneles} usosDePanel={usosDePanel} onCambiar={cambiarInsumo}
-              onAgregar={agregarTipoPanel} onQuitar={quitarTipoPanel} />
           </>)}
 
-          <TablaPresupuesto items={items} total={total} catalogo={catalogo} onCambiarInsumo={cambiarInsumo}
-            excedenteBarras={params.excedenteBarras} onCambiarExcedente={cambiar('excedenteBarras')} />
+          {/* Qué es cada material (v1.15); los revestimientos solo en una construcción. */}
+          <TarjetaMateriales items={items} catalogo={catalogo} revestimientos={esConstruccion ? paneles : null}
+            unidad={unidad} usosDeRevestimiento={usosDePanel} excedenteBarras={params.excedenteBarras}
+            onCambiarExcedente={cambiar('excedenteBarras')} onCambiarInsumo={cambiarInsumo}
+            onAgregarRevestimiento={agregarTipoPanel} onQuitarRevestimiento={quitarTipoPanel} />
+
+          <TablaPresupuesto items={items} total={total} onCambiarInsumo={cambiarInsumo} />
         </div>
       </main>
     </div>

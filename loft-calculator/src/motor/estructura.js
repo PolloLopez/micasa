@@ -414,6 +414,8 @@ function generarTecho(params, lados) {
     correas,
     esquinas,
     panel: params.panelTecho,
+    largo: bajo.largo, // a lo largo del lado bajo
+    largoFaldon: luz * factorPendiente, // del lado bajo al alto, sobre la pendiente
     superficie: bajo.largo * luz * factorPendiente,
     ladoAlto: ladoOpuesto(params.caidaTecho),
   };
@@ -447,7 +449,10 @@ function generarParedes(params, lados, aberturas) {
     const y = params.elevacion;
     return {
       lado,
-      panel: params.paredes[lado].panel,
+      panel: params.paredes[lado].panel, // revestimiento exterior
+      panelInterior: params.paredes[lado].panelInterior || null, // revestimiento interior (v1.15), null = sin
+      largo: geo.largo,
+      alturas: [h1, h2], // alto en cada punta (para contar tiras y placas)
       superficieBruta: bruta,
       superficieAberturas: huecos,
       superficieNeta: Math.max(0, bruta - huecos),

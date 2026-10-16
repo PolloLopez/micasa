@@ -8,7 +8,7 @@ import { useState } from 'react';
 import CampoNumero from './CampoNumero.jsx';
 import SelectorLado from './SelectorLado.jsx';
 import CampoSelect from './CampoSelect.jsx';
-import { validarAbertura } from '../motor/validacion.js';
+import { validarAbertura, copiarAbertura } from '../motor/validacion.js';
 import { nombreLado } from '../motor/geometria.js';
 import Tarjeta from './Tarjeta.jsx';
 
@@ -21,7 +21,7 @@ function aberturaNueva(ladoFrente) {
 }
 
 /** Una abertura con todos sus campos editables. */
-function FilaAbertura({ abertura, numero, params, unidad, onActualizar, onQuitar }) {
+function FilaAbertura({ abertura, numero, params, unidad, onActualizar, onQuitar, onDuplicar }) {
   const [errorSelect, setErrorSelect] = useState(null);
 
   // Prueba el cambio: si la abertura deja de entrar, devuelve el error y no guarda.
@@ -41,6 +41,9 @@ function FilaAbertura({ abertura, numero, params, unidad, onActualizar, onQuitar
       <div className="abertura-titulo">
         <strong>#{numero} {esPuerta ? 'Puerta' : 'Ventana'}</strong>
         <span>{nombreLado(abertura.lado, params.ladoFrente)}</span>
+        <button className="btn-sec btn-chico no-print" onClick={() => onDuplicar(abertura)} title="Crea una igual al lado (después la podés mover o pasar a otra pared)">
+          Duplicar
+        </button>
         <button className="btn-del no-print" onClick={() => onQuitar(abertura.id)} aria-label={`Quitar abertura ${numero}`}>✕</button>
       </div>
       <div className="grid-params">
@@ -75,6 +78,12 @@ export default function PanelAberturas({ aberturas, params, unidad, onAgregar, o
     onAgregar(nueva);
   };
 
+  /** Duplicar: la copia va al lado si entra (ver copiarAbertura). */
+  const duplicar = (abertura) => {
+    setError(null);
+    onAgregar(copiarAbertura(abertura, aberturas, params, Date.now()));
+  };
+
   return (
     <Tarjeta id="aberturas" titulo="Aberturas">
       <p className="nota">
@@ -85,7 +94,7 @@ export default function PanelAberturas({ aberturas, params, unidad, onAgregar, o
         {aberturas.length === 0 && <li className="vacio">Sin aberturas</li>}
         {aberturas.map((op, i) => (
           <FilaAbertura key={op.id} abertura={op} numero={i + 1} params={params} unidad={unidad}
-            onActualizar={onActualizar} onQuitar={onQuitar} />
+            onActualizar={onActualizar} onQuitar={onQuitar} onDuplicar={duplicar} />
         ))}
       </ul>
       {error && <p className="error" role="alert">{error}</p>}

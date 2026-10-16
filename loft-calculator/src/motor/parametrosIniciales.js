@@ -11,7 +11,8 @@ import { ESCALERA_INICIAL } from './escalera.js';
 export const PARED_INICIAL = {
   separacionVerticales: 2.5, // columnas a lo largo de la pared (eje X)
   separacionHorizontales: 0.8, // horizontales en altura (eje Y)
-  panel: 'panelMuros', // id del tipo de panel (ver TIPOS_PANEL_INICIALES en presupuesto.js)
+  panel: 'panelMuros', // revestimiento exterior: id del tipo (ver TIPOS_PANEL_INICIALES en presupuesto.js)
+  panelInterior: '', // revestimiento interior (v1.15): id del tipo, '' = sin
   etiqueta: '', // texto del cartel en el 3D; '' = nombre automático (Frente, Lateral…)
   mostrarEtiqueta: true,
 };

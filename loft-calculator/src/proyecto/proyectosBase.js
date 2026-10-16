@@ -12,6 +12,7 @@
 // Son funciones (no constantes) para devolver siempre copias nuevas.
 // ==========================================================
 
+import { REVESTIMIENTO_POR_DEFECTO } from '../motor/revestimientos.js';
 import { PARAMS_INICIALES, ABERTURAS_INICIALES } from '../motor/parametrosIniciales.js';
 import { CATALOGO_FIJO, CATALOGO_INICIAL } from '../motor/presupuesto.js';
 import { COLORES_INICIALES } from '../capas.js';
@@ -23,7 +24,7 @@ const ID_PANEL_GENERICO = 'panel';
 
 /** Proyecto sin datos (botón "Nuevo"). */
 export function proyectoVacio() {
-  const pared = { separacionVerticales: 3, separacionHorizontales: 0.8, panel: ID_PANEL_GENERICO, etiqueta: '', mostrarEtiqueta: true };
+  const pared = { separacionVerticales: 3, separacionHorizontales: 0.8, panel: ID_PANEL_GENERICO, panelInterior: '', etiqueta: '', mostrarEtiqueta: true };
   return {
     nombre: '',
     params: {
@@ -61,7 +62,7 @@ export function proyectoVacio() {
     aberturas: [],
     catalogo: [
       ...CATALOGO_FIJO.map((insumo) => ({ ...insumo, perfil: '', precio: 0 })),
-      { id: ID_PANEL_GENERICO, categoria: 'panel', nombre: 'Panel', perfil: '', unidad: 'm²', largoBarra: null, precio: 0, color: '#10b981', colorInterior: '#e5e7eb' },
+      { id: ID_PANEL_GENERICO, categoria: 'panel', nombre: 'Panel', perfil: '', unidad: 'm²', largoBarra: null, precio: 0, color: '#10b981', colorInterior: '#e5e7eb', ...REVESTIMIENTO_POR_DEFECTO },
     ],
     colores: { ...COLORES_INICIALES },
   };

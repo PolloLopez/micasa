@@ -1,6 +1,8 @@
 // ==========================================================
 // TablaPresupuesto: cantidades, precios editables, subtotales,
 // total y el diagrama de cortes de cada perfil.
+// Desde v1.15 el perfil, el largo de barra y el excedente se cargan
+// en la tarjeta Materiales: acá solo se cuenta y se pone precio.
 // ==========================================================
 
 import CampoNumero from './CampoNumero.jsx';
@@ -12,12 +14,6 @@ const pesos = (n) => n.toLocaleString('es-AR', { style: 'currency', currency: 'A
 const validarPrecio = (actualizar) => (v) => {
   if (v < 0) return 'No puede ser negativo';
   actualizar(Math.round(v));
-  return null;
-};
-const validarLargo = (actualizar) => (v) => {
-  if (v < 1) return 'Mínimo 1 m';
-  if (v > 12) return 'Máximo 12 m';
-  actualizar(v);
   return null;
 };
 
@@ -48,26 +44,18 @@ function DiagramaCortes({ item }) {
   );
 }
 
-export default function TablaPresupuesto({ items, total, catalogo, onCambiarInsumo, excedenteBarras, onCambiarExcedente }) {
-  const largoDe = (id) => catalogo.find((p) => p.id === id)?.largoBarra;
+export default function TablaPresupuesto({ items, total, onCambiarInsumo }) {
   const perfiles = items.filter((i) => i.cortes);
 
   return (
     <Tarjeta id="presupuesto" titulo="Presupuesto de materiales" className="presupuesto">
-      <div className="grid-params">
-        <CampoNumero etiqueta="Excedente de las barras" sufijo="%" decimales={1}
-          valor={excedenteBarras} onCambio={onCambiarExcedente} />
-      </div>
-      <p className="nota">
-        Las barras suelen venir entre 1 % y 2 % más largas que su medida nominal, <strong>según el proveedor</strong>: consultá el de tu proveedor y cargalo acá. El optimizador corta sobre ese largo real.
-      </p>
+      <p className="nota">Cantidades a comprar y precios. Qué es cada material se carga en la tarjeta <strong>Materiales</strong>.</p>
       <div className="table-wrap">
         <table>
           <thead>
             <tr>
               <th>Insumo</th>
               <th className="num">Cant.</th>
-              <th>Largo barra</th>
               <th>Precio unit.</th>
               <th className="num">Subtotal</th>
             </tr>
@@ -77,22 +65,10 @@ export default function TablaPresupuesto({ items, total, catalogo, onCambiarInsu
               <tr key={item.id}>
                 <td>
                   <div className="item-name">{item.nombre}</div>
-                  <input
-                    className="perfil"
-                    type="text"
-                    value={item.perfil}
-                    aria-label={`Perfil o material de ${item.nombre}`}
-                    onChange={(e) => onCambiarInsumo(item.id, 'perfil', e.target.value)}
-                  />
+                  {item.perfil && <div className="perfil-texto">{item.perfil}{item.cortes ? ` · barra de ${item.largoBarra} m` : ''}</div>}
                   <small className="detalle">{item.detalle}</small>
                 </td>
                 <td className="num">{item.cantidad} {item.unidad}</td>
-                <td>
-                  {item.cortes ? (
-                    <CampoNumero etiqueta="" sufijo="m" valor={largoDe(item.id)}
-                      onCambio={validarLargo((v) => onCambiarInsumo(item.id, 'largoBarra', v))} />
-                  ) : '—'}
-                </td>
                 <td>
                   <CampoNumero etiqueta="" sufijo="$" decimales={0} valor={item.precio}
                     onCambio={validarPrecio((v) => onCambiarInsumo(item.id, 'precio', v))} />

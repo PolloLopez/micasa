@@ -111,6 +111,8 @@ td .group { min-width: 70px; }
 td .group label { display: none; } /* la columna ya tiene título */
 .num { text-align: right; white-space: nowrap; }
 .item-name { font-weight: 600; }
+.btn-chico { padding: 2px 8px; font-size: 0.7rem; }
+.perfil-texto { color: var(--texto-suave); font-size: 0.72rem; }
 input.perfil {
   display: block; width: 100%; min-width: 120px; margin: 2px 0; padding: 2px 4px; font-size: 0.7rem;
   background: transparent; color: var(--texto-suave); border: 1px dashed var(--borde-input); border-radius: 3px;
