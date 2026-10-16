@@ -378,9 +378,9 @@ describe('calcularPresupuesto', () => {
   });
 
   it('las barras coinciden con las piezas de la estructura (3D = cálculo)', () => {
-    expect(item(INSUMO.COLUMNA).cortes.barras.flatMap((b) => b.piezas)).toHaveLength(
-      e.columnas.length + e.refuerzosAberturas.length
-    );
+    expect(item(INSUMO.COLUMNA).cortes.barras.flatMap((b) => b.piezas)).toHaveLength(e.columnas.length);
+    // v1.14.1: dintel, jambas y alféizar en su propio renglón.
+    expect(item(INSUMO.MARCO_ABERTURA).cortes.barras.flatMap((b) => b.piezas)).toHaveLength(e.refuerzosAberturas.length);
     expect(item(INSUMO.VIGA_TECHO).cantidad).toBe(7);
   });
 

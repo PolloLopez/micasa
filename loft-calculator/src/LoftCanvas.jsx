@@ -603,10 +603,11 @@ export default function LoftCanvas({
             {editandoId !== piezaSeleccionada.id && (
               <button className="btn-ctrl" onClick={() => setEditandoId(piezaSeleccionada.id)}>Editar (recortar, mover, perfil)</button>
             )}
-            <button className="btn-del-texto" onClick={() => { onEliminarPieza(piezaSeleccionada.id); setSeleccionada(null); }}>
+            <button className="btn-ctrl" onClick={() => { setSeleccionada(null); setEditandoId(null); }}>Cerrar</button>
+            {/* Eliminar va aparte, a la derecha, para no tocarlo sin querer en vez de "Cerrar". */}
+            <button className="btn-del-texto eliminar-aparte" onClick={() => { onEliminarPieza(piezaSeleccionada.id); setSeleccionada(null); }}>
               Eliminar pieza
             </button>
-            <button className="btn-ctrl" onClick={() => { setSeleccionada(null); setEditandoId(null); }}>Cerrar</button>
           </div>
         </div>
       )}

@@ -57,6 +57,11 @@ export default function EditorPieza({ pieza, edicion, catalogo, unidad, ladoFren
     cambiarCampo(campoArriba)(Number((yArriba - alturaPiso2).toFixed(4)));
   };
 
+  // Cómo queda, en palabras: para una vertical, de qué altura a qué altura.
+  const queda = esVertical(original)
+    ? `Hoy va de ${Math.min(pieza.desde[1], pieza.hasta[1]).toFixed(2)} m a ${Math.max(pieza.desde[1], pieza.hasta[1]).toFixed(2)} m de altura (desde el suelo).`
+    : '';
+
   // Solo los renglones que existen en este tipo de proyecto (construcción o grada).
   const asignables = pieza.grupos.includes('grada') ? PERFILES_GRADA
     : pieza.grupos.includes('montaje') ? PERFILES_MONTAJE : PERFILES_CONSTRUCCION;
@@ -69,10 +74,13 @@ export default function EditorPieza({ pieza, edicion, catalogo, unidad, ladoFren
         {pieza.recorteIgnorado && <strong className="error"> El recorte ya no entra (cambió una medida): revisalo.</strong>}
       </p>
 
-      <h3 className="subtitulo">Recortar</h3>
+      <h3 className="subtitulo">Acortar</h3>
+      <p className="nota">Cuánto se le saca a cada punta de la pieza. {queda}</p>
       <div className="grid-params">
-        <CampoNumero etiqueta={`Desde ${extremos.inicio}`} unidad={unidad} valor={actual.recorteInicio} onCambio={cambiarCampo('recorteInicio')} />
-        <CampoNumero etiqueta={`Desde ${extremos.fin}`} unidad={unidad} valor={actual.recorteFin} onCambio={cambiarCampo('recorteFin')} />
+        <CampoNumero etiqueta={`Acortar la punta ${extremos.inicio === 'abajo' || extremos.inicio === 'arriba' ? `de ${extremos.inicio}` : extremos.inicio}`}
+          unidad={unidad} valor={actual.recorteInicio} onCambio={cambiarCampo('recorteInicio')} />
+        <CampoNumero etiqueta={`Acortar la punta ${extremos.fin === 'abajo' || extremos.fin === 'arriba' ? `de ${extremos.fin}` : extremos.fin}`}
+          unidad={unidad} valor={actual.recorteFin} onCambio={cambiarCampo('recorteFin')} />
       </div>
       {puedeTerminarEnPiso2 && (
         <button type="button" className="btn-sec" onClick={terminarEnPiso2}>Que termine en el piso 2</button>
@@ -86,10 +94,11 @@ export default function EditorPieza({ pieza, edicion, catalogo, unidad, ladoFren
       </div>
 
       <h3 className="subtitulo">Perfil</h3>
+      <p className="nota">Con qué perfil se hace esta pieza. Se compra y se cotiza en ese renglón del presupuesto.</p>
       <div className="group">
-        <label htmlFor={idPerfil}>Se cotiza en el renglón</label>
+        <label htmlFor={idPerfil}>Perfil de esta pieza</label>
         <select id={idPerfil} value={actual.perfil ?? ''} onChange={(e) => cambiarCampo('perfil')(e.target.value || null)}>
-          <option value="">El de siempre (según el tipo de pieza)</option>
+          <option value="">El de su tipo de pieza (sin cambiar)</option>
           {perfiles.map((p) => <option key={p.id} value={p.id}>{p.nombre}{p.perfil ? ` · ${p.perfil}` : ''}</option>)}
         </select>
       </div>

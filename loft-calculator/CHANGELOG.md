@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.14.1] - 2026-10-16
+### Cambiado
+- **Marcos de aberturas** (dintel, jambas y alféizar) en su propio renglón del presupuesto; "Columnas y vanos" pasa a
+  llamarse "Columnas". Arranca con el mismo perfil para que el herrero ponga el suyo.
+- Cada **pared se pliega** desde su título (se recuerda por navegador).
+- Editor de piezas: "Acortar la punta de abajo / de arriba" (y para una vertical dice de qué altura a qué altura va),
+  "Perfil de esta pieza" en vez de "Se cotiza en el renglón". "Eliminar pieza" queda aparte, a la derecha y con
+  borde, para no tocarlo sin querer en vez de "Cerrar".
+### Arreglado
+- Un proyecto llamado "Pollo casa" se descargaba como `pollo-pollo-casa-….json`.
+
 ## [1.14.0] - 2026-10-15
 ### Agregado
 - **Entrepiso parcial**: el piso 2 puede ocupar solo una parte de la pared donde se apoya (ej. un altillo).

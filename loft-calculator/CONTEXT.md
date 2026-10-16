@@ -76,6 +76,8 @@ valores inválidos.
 | 2026-10-15 | Borde libre = el que no cae sobre una pared; lleva viga de cierre (tipo `viga-cierre`, renglón `vigaCierre`) con el mismo id `marco-piso2:<i>` | El perfil lo elige el herrero (decisión de Leandro), por eso renglón propio. Mismo id para no romper piezas eliminadas o editadas de proyectos guardados. |
 | 2026-10-15 | Columnas del borde libre cada `separacionColumnasEntrepiso` (0 = solo puntas); la migración copia la separación de verticales de la pared del entrepiso | Antes las columnas del borde seguían a las de la pared; copiar ese valor deja los proyectos guardados con las mismas columnas. Cuántas columnas necesita el borde es pregunta abierta para el herrero. |
 
+| 2026-10-16 | Dintel, jambas y alféizar con renglón propio (`marcoAbertura`), mismo perfil de arranque que las columnas | Pedido de Leandro: en obra suelen ser otro perfil. Mismo valor inicial para no cambiar presupuestos de golpe; el herrero lo ajusta. |
+
 ## Supuestos de obra (en `src/motor/constantes.js`)
 Piso del entrepiso a 2,30 m · merma de corte 3 mm · excedente de barras 1 % (editable; depende del proveedor) · placa OSB 2,44 × 1,22 + 10 % de recortes ·
 techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 cm, comodidad 60-65 cm, paso libre 2 m · refuerzo de vano = dintel + 2 jambas (+ alféizar en ventanas).
@@ -126,4 +128,5 @@ techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 
 - 2026-10-14 v1.13.0: grada con unión de parantes, respaldo, caños a elección y módulos desmontables.
 - 2026-10-14 v1.13.1: la app pasa a llamarse Pollo Calculator.
 - 2026-10-15 v1.14.0: entrepiso parcial (largo × profundidad) con viga de cierre y columnas del borde libre; 🐤 en el encabezado.
+- 2026-10-16 v1.14.1: marcos de aberturas aparte, paredes plegables, editor más claro.
 - Nota: el elemento `id="flonnect-my-app"` que aparece en la página no es de la app: lo inyecta la extensión Flonnect (grabador de pantalla) de Chrome.

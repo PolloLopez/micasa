@@ -378,6 +378,11 @@ export default function App() {
   );
 
   // Atajo para no repetir props en cada campo de medida.
+  // Paredes plegables: preferencia de pantalla de cada navegador (no viaja con el proyecto).
+  const [paredesAbiertas, setParedesAbiertas] = useEstadoGuardado('paredesAbiertas', { A: true, B: true, C: true, D: true },
+    (v) => v !== null && typeof v === 'object' && LADOS.every((l) => typeof v[l] === 'boolean'));
+  const alternarPared = (lado) => setParedesAbiertas((prev) => ({ ...prev, [lado]: !prev[lado] }));
+
   const medida = (ruta, etiqueta) => (
     <CampoNumero key={ruta} etiqueta={etiqueta} unidad={unidad}
       valor={ruta.split('.').reduce((o, k) => o[k], params)} onCambio={cambiar(ruta)} />
@@ -478,12 +483,16 @@ export default function App() {
             {LADOS.map((lado) => {
               const [h1, h2] = alturasPared(lados[lado], params);
               return (
-                <div key={lado} className="pared">
-                  <div className="pared-titulo">
+                <div key={lado} className={`pared ${paredesAbiertas[lado] ? 'abierta' : 'cerrada'}`}>
+                  {/* El título pliega / despliega la pared (aria-expanded para lectores de pantalla). */}
+                  <button type="button" className="pared-titulo plegable" aria-expanded={paredesAbiertas[lado]}
+                    aria-controls={`pared-${lado}`} onClick={() => alternarPared(lado)}>
+                    <span className="flecha" aria-hidden="true">▸</span>
                     <strong>{nombreLado(lado, params.ladoFrente)}</strong>
                     {params.paredes[lado].etiqueta.trim() && <em>“{params.paredes[lado].etiqueta.trim()}”</em>}
                     <span>lado {lado} · {lados[lado].largo.toFixed(2)} m · alto {h1.toFixed(2)}{Math.abs(h1 - h2) > 0.005 ? ` a ${h2.toFixed(2)}` : ''} m</span>
-                  </div>
+                  </button>
+                  <div className="pared-cuerpo" id={`pared-${lado}`}>
                   <div className="etiqueta-pared">
                     <label className="capa">
                       <input type="checkbox" checked={params.paredes[lado].mostrarEtiqueta}
@@ -501,6 +510,7 @@ export default function App() {
                     {medida(`paredes.${lado}.separacionVerticales`, 'Sep. verticales')}
                     {medida(`paredes.${lado}.separacionHorizontales`, 'Sep. horizontales')}
                     {selectorPanel(`paredes.${lado}.panel`, 'Panel', params.paredes[lado].panel)}
+                  </div>
                   </div>
                 </div>
               );

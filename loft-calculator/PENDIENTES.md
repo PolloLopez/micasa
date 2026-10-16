@@ -15,6 +15,21 @@
 - [ ] Excedente de las barras: depende del proveedor. El herrero tiene que cargar el % de SU proveedor
       (viene en 1 %; avisado en la pantalla y en el manual).
 
+## Pruebas de Leandro (16/10) — a ordenar
+- 🔴 [ ] Paneles por medida: cargar ancho × largo del panel (y espesor) y contar PANELES enteros por pared/techo,
+      no solo m² (hoy "no calcula bien" para comprar).
+- 🟡 [ ] Tarjeta **Materiales**: el herrero carga cada material (tipo, medida, espesor, largo de barra, color).
+      La tarjeta **Presupuesto** queda solo con cantidades y precios.
+- 🟡 [ ] En cada pared: elegir el perfil de sus columnas y horizontales (no solo el panel / revestimiento).
+- 🟡 [ ] Patrón de perfiles en una pared: "cada N columnas, una de otro perfil" o dos capas de perfiles.
+- 🟡 [ ] Elegir color en todos los materiales (como en los tipos de panel).
+- 🟡 [ ] Medir distancias en el 3D (ej. entre dos columnas).
+- 🟡 [ ] Duplicar una pieza seleccionada; seleccionar y editar aberturas desde el 3D (y duplicarlas).
+- 🟡 [ ] Acortar piezas más intuitivo (ej. "arranca a X m / termina a Y m", o arrastrando en el 3D).
+- ✅ Hecho en v1.14.1: marcos de aberturas con renglón propio; paredes plegables (aria-expanded); "Eliminar
+      pieza" menos llamativo que "Cerrar"; textos del editor ("Perfil de esta pieza", "Acortar la punta de…");
+      nombre de archivo sin "pollo-pollo".
+
 ## 🟡 Funcionalidad
 
 ### Estructura
@@ -69,6 +84,11 @@
 - [ ] Piezas eliminadas/editadas se reconocen por su posición: si una medida las mueve, el cambio deja de
       aplicarse (se avisa en la lista). Evaluar si hace falta algo más robusto.
 - [ ] Migrar el motor a Django cuando arranque Construcción Modular (los tests sirven de especificación).
+
+## ✅ Resuelto en v1.14.1 (2026-10-16)
+- [x] Dintel, jambas y alféizar en su propio renglón "Marcos de aberturas" (antes con las columnas).
+- [x] Cada pared se pliega desde su título; "Eliminar pieza" aparte y con borde; textos del editor más claros.
+- [x] Archivo "Pollo casa" => pollo-casa-fecha.json (antes pollo-pollo-casa-…).
 
 ## ✅ Resuelto en v1.14.0 (2026-10-15)
 - [x] Entrepiso parcial (largo × profundidad, desde una esquina) con viga de cierre en los bordes libres (renglón

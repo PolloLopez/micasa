@@ -25,6 +25,7 @@ export const LADOS = ['A', 'B', 'C', 'D'];
 // IDs fijos del catálogo: el cálculo sabe qué insumo usar para cada pieza.
 export const INSUMO = {
   COLUMNA: 'columna',
+  MARCO_ABERTURA: 'marcoAbertura', // dintel, jambas y alféizar de puertas y ventanas (v1.14.1)
   MARCO: 'marco',
   PISO: 'piso',
   PISO_2: 'piso2',

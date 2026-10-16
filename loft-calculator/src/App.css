@@ -196,6 +196,17 @@ input.perfil:focus { outline: 2px solid var(--acento); border-style: solid; }
   font-size: 0.8rem; display: flex; flex-direction: column; gap: 6px;
 }
 .seleccion-acciones { display: flex; flex-wrap: wrap; gap: 8px; }
+/* Eliminar: borde rojo y a la derecha, menos llamativo que "Cerrar" (v1.14.1). */
+.seleccion-acciones .eliminar-aparte { margin-left: auto; background: transparent; color: var(--peligro);
+  border: 1px solid var(--peligro); font-weight: normal; }
+/* Cada pared se pliega desde su título (como las tarjetas). */
+.pared-titulo.plegable { width: 100%; background: none; border: none; color: inherit; cursor: pointer;
+  padding: 0; text-align: left; font: inherit; font-size: 0.78rem; }
+.pared-titulo .flecha { color: var(--texto-tenue); flex: 0; transition: transform 0.15s; }
+.pared.abierta .pared-titulo .flecha { transform: rotate(90deg); }
+.pared.cerrada .pared-cuerpo { display: none; }
+.pared.cerrada .pared-titulo { margin-bottom: 0; }
+@media print { .pared.cerrada .pared-cuerpo { display: block; } }
 /* Con el editor abierto el cartel puede crecer: scrollea por dentro (sobre todo en el celular). */
 .seleccion { max-height: calc(100% - 120px); overflow-y: auto; }
 .editor-pieza .subtitulo { margin-top: 8px; }

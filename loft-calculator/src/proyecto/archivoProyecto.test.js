@@ -33,6 +33,8 @@ describe('archivo de proyecto', () => {
   it('nombre de archivo sin tildes ni espacios', () => {
     expect(nombreDeArchivo('Galpón de Juan / Lote 3', FECHA)).toBe('pollo-galpon-de-juan-lote-3-2026-10-01.json');
     expect(nombreDeArchivo('', FECHA)).toBe('pollo-proyecto-2026-10-01.json');
+    // v1.14.1: si el nombre ya empieza con "pollo" no se repite (antes: pollo-pollo-casa-…).
+    expect(nombreDeArchivo('Pollo casa', FECHA)).toBe('pollo-casa-2026-10-01.json');
   });
 
   it('rechaza archivos que no son proyectos', () => {

@@ -39,7 +39,8 @@ export function nombreDeArchivo(nombre, fecha = new Date()) {
   const limpio = (nombre || 'proyecto')
     .normalize('NFD').replace(/[̀-ͯ]/g, '') // saca tildes
     .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-    .slice(0, 40) || 'proyecto';
+    .slice(0, 40)
+    .replace(/^pollo-(?=.)/, '') || 'proyecto'; // "Pollo casa" => pollo-casa-…, no pollo-pollo-casa-…
   return `pollo-${limpio}-${fecha.toISOString().slice(0, 10)}.json`;
 }
 

@@ -17,7 +17,10 @@ import { INSUMO, PLACA_OSB, DESPERDICIO_PLACAS } from './constantes.js';
 
 /** Insumos fijos. El perfil y el precio se editan desde la pantalla. */
 export const CATALOGO_FIJO = [
-  { id: INSUMO.COLUMNA, categoria: 'perfil', nombre: 'Columnas y vanos', perfil: 'Caño estructural 100x100x1.6', unidad: 'barra', largoBarra: 6, precio: 38000 },
+  { id: INSUMO.COLUMNA, categoria: 'perfil', nombre: 'Columnas', perfil: 'Caño estructural 100x100x1.6', unidad: 'barra', largoBarra: 6, precio: 38000 },
+  // v1.14.1: dintel, jambas y alféizar de las aberturas en su propio renglón (antes iban con las columnas).
+  // Arranca con el mismo perfil que las columnas; el herrero pone el que use.
+  { id: INSUMO.MARCO_ABERTURA, categoria: 'perfil', nombre: 'Marcos de aberturas', perfil: 'Caño estructural 100x100x1.6', unidad: 'barra', largoBarra: 6, precio: 38000 },
   { id: INSUMO.MARCO, categoria: 'perfil', nombre: 'Marcos y soleras', perfil: 'Perfil C 120x50x2.0', unidad: 'barra', largoBarra: 6, precio: 35000 },
   // v1.14: borde libre del entrepiso. Arranca igual que los marcos; el perfil lo elige el herrero.
   { id: INSUMO.VIGA_CIERRE, categoria: 'perfil', nombre: 'Viga de cierre del entrepiso', perfil: 'Perfil C 120x50x2.0', unidad: 'barra', largoBarra: 6, precio: 35000 },
@@ -140,7 +143,7 @@ export function calcularPresupuesto(estructura, catalogo, { excedenteBarras = 0 
   if (e.montaje) return conSubtotales(presupuestoMontaje(e.montaje, insumo, perfil));
 
   const items = [
-    perfil(INSUMO.COLUMNA, [...e.columnas, ...e.refuerzosAberturas]),
+    perfil(INSUMO.COLUMNA, e.columnas),
     perfil(INSUMO.MARCO, e.marcos.filter((p) => p.tipo !== 'viga-cierre')),
     perfil(INSUMO.PISO, e.piso.tirantes),
     perfil(INSUMO.TRANSVERSAL_PISO, e.piso.transversales),
@@ -150,6 +153,11 @@ export function calcularPresupuesto(estructura, catalogo, { excedenteBarras = 0 
     perfil(INSUMO.VIGA_TECHO, e.techo.vigas),
     perfil(INSUMO.CORREA_TECHO, e.techo.correas),
   ];
+
+  // Marcos de aberturas (dintel, jambas, alféizar): renglón solo si hay aberturas.
+  if (e.refuerzosAberturas.length > 0 || reasignadas.some((p) => p.insumo === INSUMO.MARCO_ABERTURA)) {
+    items.splice(1, 0, perfil(INSUMO.MARCO_ABERTURA, e.refuerzosAberturas));
+  }
 
   // Viga de cierre del entrepiso: el renglón aparece solo si hay borde libre
   // (entrepiso que no llega a la pared de enfrente o que no ocupa todo el lado).
