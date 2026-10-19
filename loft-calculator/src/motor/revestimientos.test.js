@@ -2,7 +2,7 @@
 // Correr con: npm test
 import { describe, it, expect } from 'vitest';
 import {
-  cortarEnTramos, tirasDePano, placasDePano, cuentaRevestimiento, resumirLargos, REVESTIMIENTO_POR_DEFECTO,
+  cortarEnTramos, tirasDePano, placasDePano, cuentaRevestimiento, resumirLargos, REVESTIMIENTO_POR_DEFECTO, juntasDePano,
 } from './revestimientos.js';
 import { generarEstructura } from './estructura.js';
 import { calcularPresupuesto, CATALOGO_INICIAL } from './presupuesto.js';
@@ -127,5 +127,17 @@ describe('proyectos de antes de v1.15', () => {
     const m = migrarParams({ ...P, paredes: { A: paredVieja, B: paredVieja, C: paredVieja, D: paredVieja } });
     expect(m.paredes.A.panelInterior).toBe('');
     expect(validarParametros(m)).toEqual({});
+  });
+});
+
+describe('juntas para el 3D (v1.16)', () => {
+  it('a medida: una vertical cada ancho útil; horizontales solo si pasa el largo máximo', () => {
+    expect(juntasDePano(pared(3.5, 2.6), aMedida())).toEqual({ verticales: [1, 2, 3], horizontales: [] });
+    expect(juntasDePano(pared(2, 7), aMedida({ largoMaximo: 3 })).horizontales).toEqual([3, 6]);
+  });
+
+  it('placa fija: grilla de la placa (parada)', () => {
+    expect(juntasDePano(pared(3.6, 4.8), estandar({ anchoPlaca: 1.2, largoPlaca: 2.4 })))
+      .toEqual({ verticales: [1.2, 2.4], horizontales: [2.4] });
   });
 });

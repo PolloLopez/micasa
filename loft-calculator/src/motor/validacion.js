@@ -12,7 +12,8 @@ import {
   LIMITES, LIMITES_PARED, LIMITES_ESCALERA, LIMITES_GRADA, LIMITES_COMPONENTE, LIMITES_MESA, LIMITES_TANQUE, LADOS, ALTURA_PISO_2,
 } from './constantes.js';
 import { calcularEscalones, DESCANSOS_POR_FORMA } from './escalera.js';
-import { revisarEdicion } from './edicionPiezas.js';
+import { revisarEdicion, PERFILES_ASIGNABLES } from './edicionPiezas.js';
+import { revisarAgregadas } from './piezasAgregadas.js';
 
 /** Largo máximo del texto de la etiqueta de una pared en el 3D. */
 export const LARGO_MAXIMO_ETIQUETA = 30;
@@ -64,6 +65,7 @@ export function validarParametros(params) {
       anotar(`paredes.${lado}.${campo}`, revisarNumero(pared?.[campo], limites))
     );
     if (!esIdValido(pared?.panel)) anotar(`paredes.${lado}.panel`, 'Elegí un tipo de panel');
+    if (typeof pared?.panelInterior !== 'string') anotar(`paredes.${lado}.panelInterior`, 'Valor inválido');
     if (typeof pared?.etiqueta !== 'string' || pared.etiqueta.length > LARGO_MAXIMO_ETIQUETA) {
       anotar(`paredes.${lado}.etiqueta`, `La etiqueta puede tener hasta ${LARGO_MAXIMO_ETIQUETA} letras`);
     }
@@ -80,6 +82,9 @@ export function validarParametros(params) {
     const problema = Object.values(ediciones).map(revisarEdicion).find(Boolean);
     if (problema) anotar('piezasEditadas', problema);
   }
+
+  // v1.16: piezas duplicadas a mano.
+  anotar('piezasAgregadas', revisarAgregadas(params.piezasAgregadas, PERFILES_ASIGNABLES));
 
   validarEscalera(params, anotar);
   validarGrada(params, anotar);

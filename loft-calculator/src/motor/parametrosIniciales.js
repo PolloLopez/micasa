@@ -64,6 +64,7 @@ export const PARAMS_INICIALES = {
   grada: { ...GRADA_INICIAL }, // solo se usa si tipoProyecto = 'grada'
   montaje: structuredClone(MONTAJE_INICIAL), // solo se usa si tipoProyecto = 'montaje'
   piezasEliminadas: [],
+  piezasAgregadas: [], // v1.16: [{ id: 'agr:1', tipo, grupos, desde, hasta, insumo }] (duplicadas a mano)
   piezasEditadas: {}, // { idPieza: { recorteInicio, recorteFin, moverX, moverY, moverZ, perfil } }
 
   // Escalera al borde del entrepiso (ver motor/escalera.js)

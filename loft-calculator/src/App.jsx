@@ -21,8 +21,9 @@ import PanelGrada from './componentes/PanelGrada.jsx';
 import PanelMontaje from './componentes/PanelMontaje.jsx';
 import TablaPresupuesto from './componentes/TablaPresupuesto.jsx';
 import { useEstadoGuardado } from './hooks/useEstadoGuardado.js';
-import { validarParametros, validarAbertura, LARGO_MAXIMO_ETIQUETA } from './motor/validacion.js';
+import { validarParametros, validarAbertura, copiarAbertura, LARGO_MAXIMO_ETIQUETA } from './motor/validacion.js';
 import { esEdicionVacia } from './motor/edicionPiezas.js';
+import { duplicarPieza, PREFIJO_AGREGADA } from './motor/piezasAgregadas.js';
 import { generarEstructura, listarPiezas } from './motor/estructura.js';
 import { calcularPresupuesto, CATALOGO_INICIAL, tiposDePanel } from './motor/presupuesto.js';
 import { migrarParams, normalizarCatalogo } from './motor/migracion.js';
@@ -42,6 +43,10 @@ import {
 import MisProyectos from './componentes/MisProyectos.jsx';
 import { describirPieza } from './descripcionPiezas.js';
 import './App.css';
+
+// Versión de la app (la inyecta Vite desde package.json; ver vite.config.js).
+// eslint-disable-next-line no-undef
+const VERSION_APP = typeof __VERSION_APP__ === 'string' ? __VERSION_APP__ : '';
 import Tarjeta from './componentes/Tarjeta.jsx';
 
 // --- Validadores para descartar datos viejos de localStorage ---
@@ -162,7 +167,22 @@ export default function App() {
   const quitarAbertura = (id) => setAberturas((prev) => prev.filter((op) => op.id !== id));
 
   // --- Piezas eliminadas a mano (se guardan en params.piezasEliminadas) ---
-  const eliminarPieza = (id) => cambiar('piezasEliminadas')([...params.piezasEliminadas, id]);
+  // Una pieza agregada a mano (agr:…) se saca de su lista; las del motor van a "eliminadas".
+  const eliminarPieza = (id) => (id.startsWith(PREFIJO_AGREGADA)
+    ? cambiar('piezasAgregadas')(params.piezasAgregadas.filter((p) => p.id !== id))
+    : cambiar('piezasEliminadas')([...params.piezasEliminadas, id]));
+  /** Duplicar / pegar una pieza (v1.16). Devuelve el id de la copia (o null si no se pudo). */
+  const duplicarPiezaElegida = (pieza) => {
+    const copia = duplicarPieza(pieza, params.piezasAgregadas);
+    return cambiar('piezasAgregadas')([...params.piezasAgregadas, copia]) ? null : copia.id;
+  };
+  /** Pegar / duplicar una abertura (v1.16): al lado si entra. Devuelve la copia (o null). */
+  const pegarAbertura = (abertura) => {
+    const copia = copiarAbertura(abertura, aberturasValidas, params, Date.now());
+    if (validarAbertura(copia, params)) return null;
+    agregarAbertura(copia);
+    return copia;
+  };
   const restaurarPieza = (id) => cambiar('piezasEliminadas')(params.piezasEliminadas.filter((x) => x !== id));
   const restaurarTodas = () => cambiar('piezasEliminadas')([]);
   /** Guarda la edición de una pieza (recorte, movimiento, perfil). Sin cambios => se borra. */
@@ -395,7 +415,7 @@ export default function App() {
     <div className="app">
       <header>
         <div className="titulo">
-          <h1>🐤 Pollo Calculator</h1>
+          <h1>🐤 Pollo Calculator <small className="version" title="Versión de la app">v{VERSION_APP}</small></h1>
           <input className="nombre-proyecto" value={nombreProyecto} aria-label="Nombre del proyecto"
             onChange={(e) => setNombreProyecto(e.target.value)} placeholder="Nombre del proyecto…" />
           <span className={`estado-guardado${cambiosSinGuardar ? ' sin-guardar' : ''}`} role="status">
@@ -444,7 +464,9 @@ export default function App() {
           <LoftCanvas params={params} estructura={estructura} aberturas={aberturasValidas} paneles={paneles}
             colores={colores} catalogo={catalogo} unidad={unidad}
             opacidades={opacidades} onCambiarOpacidad={cambiarOpacidad} imagenImpresionRef={imagenImpresionRef}
-            onCambiarColor={cambiarColor} onEliminarPieza={eliminarPieza} onEditarPieza={editarPieza} />
+            onCambiarColor={cambiarColor} onEliminarPieza={eliminarPieza} onEditarPieza={editarPieza}
+            onActualizarAbertura={actualizarAbertura} onQuitarAbertura={quitarAbertura}
+            onPegarAbertura={pegarAbertura} onDuplicarPieza={duplicarPiezaElegida} />
         </div>
 
         <div className="columna-panel">
@@ -555,6 +577,7 @@ export default function App() {
 
           {/* ESCALERA */}
           <PanelEscalera params={params} resumen={estructura.escalera?.resumen} unidad={unidad}
+            escalera={estructura.escalera} entrepiso={estructura.entrepiso}
             cambiar={cambiar} cambiarEscalera={(cambios) => cambiar('escalera')({ ...params.escalera, ...cambios })} />
 
           {/* TECHO */}
@@ -586,13 +609,32 @@ export default function App() {
           </>)}
 
           {/* PIEZAS ELIMINADAS Y EDITADAS */}
-          <Tarjeta id="eliminadas" titulo={`Piezas eliminadas y editadas (${params.piezasEliminadas.length + Object.keys(params.piezasEditadas).length})`}>
+          <Tarjeta id="eliminadas" titulo={`Piezas agregadas, eliminadas y editadas (${params.piezasAgregadas.length + params.piezasEliminadas.length + Object.keys(params.piezasEditadas).length})`}>
             <p className="nota">
               Hacé clic en un hierro del 3D: podés <strong>eliminarlo</strong> o <strong>editarlo</strong> (recortar,
               mover o cotizarlo con otro perfil). Lo eliminado sale del dibujo y del presupuesto; lo editado se dibuja
               y se cotiza con el cambio. Cada pieza se reconoce por su posición: si cambiás una medida y la pieza se
               mueve, el cambio deja de aplicarse.
             </p>
+            {params.piezasAgregadas.length > 0 && (
+              <>
+                <h3 className="subtitulo">Agregadas (duplicadas)</h3>
+                <ul className="opening-list">
+                  {params.piezasAgregadas.map((agregada) => {
+                    const actual = listarPiezas(estructura).find((p) => p.id === agregada.id) ?? agregada;
+                    return (
+                      <li key={agregada.id} className="abertura pieza-eliminada">
+                        <span>
+                          {describirPieza(actual, params.ladoFrente)} · {catalogo.find((p) => p.id === agregada.insumo)?.nombre}
+                          <small className="detalle"> · {agregada.id}</small>
+                        </span>
+                        <button className="btn-sec no-print" onClick={() => eliminarPieza(agregada.id)}>Quitar</button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </>
+            )}
             {Object.keys(params.piezasEditadas).length > 0 && (
               <>
                 <h3 className="subtitulo">Editadas</h3>

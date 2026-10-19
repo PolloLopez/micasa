@@ -25,6 +25,9 @@ import { describirPieza } from './descripcionPiezas.js';
 import { seccionDesdePerfil } from './motor/canos.js';
 import { INSUMO } from './motor/constantes.js';
 import EditorPieza from './componentes/EditorPieza.jsx';
+import { FilaAbertura } from './componentes/PanelAberturas.jsx';
+import { juntasDePano } from './motor/revestimientos.js';
+import { medirEntre, puntoMasCercanoEnPieza } from './motor/medicion.js';
 
 // Capa y sección (grosor en el 3D) de cada tipo de pieza.
 const ESTILO_PIEZA = {
@@ -92,6 +95,8 @@ const MEDIA_SECCION_PARED = 0.06;
 
 
 const COLOR_SELECCION = '#facc15';
+const COLOR_JUNTAS = '#fde047'; // juntas de paneles: amarillo claro, se ve sobre paneles claros y oscuros
+const COLOR_MEDIDA = '#facc15';
 const MOVIMIENTO_MAXIMO_CLIC = 5; // px: si el mouse se movió más, fue un arrastre (orbitar)
 
 /**
@@ -183,6 +188,37 @@ function cuadrilatero(esquinas, material) {
   return new THREE.Mesh(geometria, material);
 }
 
+/** Cartel chico (número de abertura, medida): mismo estilo, a la medida del texto. */
+function cartelChico(texto, fondo = 'rgba(30,41,59,0.9)') {
+  const lienzo = document.createElement('canvas');
+  const ctx = lienzo.getContext('2d');
+  ctx.font = 'bold 44px system-ui, sans-serif';
+  lienzo.width = Math.ceil(ctx.measureText(texto).width) + 32;
+  lienzo.height = 64;
+  ctx.fillStyle = fondo;
+  ctx.fillRect(0, 0, lienzo.width, lienzo.height);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 44px system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(texto, lienzo.width / 2, 34);
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(lienzo), depthTest: false }));
+  const alto = 0.3;
+  sprite.scale.set((alto * lienzo.width) / lienzo.height, alto, 1);
+  sprite.renderOrder = 999;
+  return sprite;
+}
+
+/** Líneas sueltas (pares de puntos) en un solo objeto: juntas de paneles, línea de medida. */
+function lineas(pares, color, encima = false) {
+  const geometria = new THREE.BufferGeometry();
+  geometria.setAttribute('position', new THREE.Float32BufferAttribute(pares.flat(2), 3));
+  const material = new THREE.LineBasicMaterial({ color, depthTest: !encima });
+  const objeto = new THREE.LineSegments(geometria, material);
+  if (encima) objeto.renderOrder = 998;
+  return objeto;
+}
+
 /** Cartel de texto que siempre mira a la cámara (sprite). */
 function cartel(texto, esFrente) {
   const lienzo = document.createElement('canvas');
@@ -205,7 +241,7 @@ function cartel(texto, esFrente) {
 
 /** Arma todas las mallas del modelo dentro de `grupo`. */
 function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
-  const { params, estructura: e, aberturas, capas, gruposVisibles, seleccionada, catalogo } = opciones;
+  const { params, estructura: e, aberturas, capas, gruposVisibles, seleccionada, catalogo, aberturaSeleccionada, medida } = opciones;
   const { elevacion } = params;
   const grupoVisible = (g) => gruposVisibles[g] !== false; // 'interior' no tiene interruptor
 
@@ -218,6 +254,7 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
     const seccion = seccionDe(p, catalogo, estilo);
     const malla = barra(p, p.id === seleccionada ? seccion * 1.6 : seccion, material);
     malla.userData.idPieza = p.id;
+    malla.userData.pieza = p; // para medir de eje a eje (ver medicion.js)
     grupo.add(malla);
   });
 
@@ -329,14 +366,83 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
     }
   }
 
+  // Juntas de los paneles (v1.16): dónde termina cada tira o placa, para acomodar las aberturas.
+  if (capas.paneles && capas.juntas) {
+    const pares = [];
+    e.paredes.filter((pared) => grupoVisible(pared.lado)).forEach((pared) => {
+      const tipo = materialesPanel.get(pared.panel)?.tipo;
+      const [h1, h2] = pared.alturas;
+      const { verticales, horizontales } = juntasDePano({ largo: pared.largo, h1, h2 }, tipo);
+      const [a, b] = pared.esquinas; // abajo p1, abajo p2
+      const y0 = a[1];
+      const dir = [(b[0] - a[0]) / pared.largo, (b[2] - a[2]) / pared.largo];
+      const n = Math.hypot(a[0] + b[0], a[2] + b[2]) || 1; // afuera = del centro a la pared
+      const fuera = (tipo?.ubicacion === 'eje' ? 0 : MEDIA_SECCION_PARED + (tipo?.espesor ?? 50) / 2000) + 0.01;
+      const punto = (x, h) => [a[0] + dir[0] * x + ((a[0] + b[0]) / n) * fuera, y0 + h, a[2] + dir[1] * x + ((a[2] + b[2]) / n) * fuera];
+      const altoEn = (x) => h1 + ((h2 - h1) * x) / pared.largo;
+      verticales.forEach((x) => pares.push([punto(x, 0), punto(x, altoEn(x))]));
+      horizontales.forEach((h) => {
+        // En una pared inclinada la junta llega solo hasta donde la pared es más alta que h.
+        let desde = 0;
+        let hasta = pared.largo;
+        if (Math.abs(h2 - h1) > 1e-9) {
+          const cruce = ((h - h1) / (h2 - h1)) * pared.largo;
+          if (h2 > h1) desde = Math.max(0, cruce); else hasta = Math.min(pared.largo, cruce);
+        }
+        if (hasta - desde > 0.05) pares.push([punto(desde, h), punto(hasta, h)]);
+      });
+    });
+    if (grupoVisible('techo') && e.techo.esquinas.length === 4) {
+      const tipo = materialesPanel.get(e.techo.panel)?.tipo;
+      const { verticales, horizontales } = juntasDePano({ largo: e.techo.largo, h1: e.techo.largoFaldon, h2: e.techo.largoFaldon }, tipo);
+      const [t0, t1, , t3] = e.techo.esquinas;
+      const arriba = (tipo?.ubicacion === 'eje' ? -0.13 : (tipo?.espesor ?? 50) / 2000) + 0.01;
+      const punto = (x, h) => [0, 1, 2].map((i) => t0[i] + (t1[i] - t0[i]) * (x / e.techo.largo)
+        + (t3[i] - t0[i]) * (h / e.techo.largoFaldon) + (i === 1 ? arriba : 0));
+      verticales.forEach((x) => pares.push([punto(x, 0), punto(x, e.techo.largoFaldon)]));
+      horizontales.forEach((h) => pares.push([punto(0, h), punto(e.techo.largo, h)]));
+    }
+    if (pares.length > 0) grupo.add(lineas(pares, COLOR_JUNTAS));
+  }
+
   if (capas.aberturas) {
-    aberturas.filter((op) => grupoVisible(op.lado)).forEach((op) => {
+    const lados = geometriaLados(params);
+    aberturas.forEach((op, i) => {
+      if (!grupoVisible(op.lado)) return;
       const { x, y, z, rotacionY } = posicionAbertura(op, params);
-      const malla = new THREE.Mesh(new THREE.BoxGeometry(op.ancho, op.alto, 0.14), materiales.aberturas);
+      const elegida = op.id === aberturaSeleccionada;
+      const malla = new THREE.Mesh(new THREE.BoxGeometry(op.ancho, op.alto, elegida ? 0.2 : 0.14),
+        elegida ? materiales.seleccion : materiales.aberturas);
       malla.position.set(x, y, z);
       malla.rotation.y = rotacionY;
+      malla.userData.idAbertura = op.id; // se puede seleccionar con un clic (v1.16)
       grupo.add(malla);
+      // Número de la abertura (el mismo de la lista: #1, #2…), un poco afuera de la pared.
+      if (capas.etiquetasAberturas) {
+        const geo = lados[op.lado];
+        const cartelito = cartelChico(`#${i + 1}`, elegida ? 'rgba(202,138,4,0.95)' : 'rgba(2,132,199,0.9)');
+        cartelito.position.set(x - geo.direccion[1] * 0.35, y + op.alto / 2 + 0.2, z + geo.direccion[0] * 0.35);
+        grupo.add(cartelito);
+      }
     });
+  }
+
+  // Medición (v1.16): puntos elegidos y la línea con su medida.
+  if (medida?.a) {
+    const marca = (q) => {
+      const bolita = new THREE.Mesh(new THREE.SphereGeometry(0.07, 12, 8), materiales.seleccion);
+      bolita.position.set(...q);
+      bolita.renderOrder = 998;
+      grupo.add(bolita);
+    };
+    marca(medida.a);
+    if (medida.b) {
+      marca(medida.b);
+      grupo.add(lineas([[medida.a, medida.b]], COLOR_MEDIDA, true));
+      const texto = cartelChico(`${medida.resultado.principal.toFixed(2)} m`, 'rgba(202,138,4,0.95)');
+      texto.position.set(...medida.a.map((v, i) => (v + medida.b[i]) / 2 + (i === 1 ? 0.25 : 0)));
+      grupo.add(texto);
+    }
   }
 
   // Carteles con el nombre de cada lado, un poco afuera de la pared.
@@ -383,6 +489,7 @@ function cilindroDeChapa({ centro, eje, radio, largo, tapas }, material) {
 function vaciarGrupo(grupo) {
   grupo.traverse((obj) => {
     obj.geometry?.dispose();
+    if (obj.isLineSegments) obj.material.dispose();
     if (obj.isSprite) {
       obj.material.map?.dispose();
       obj.material.dispose();
@@ -419,6 +526,7 @@ function mirarAlFrente(camara, controles, params) {
 export default function LoftCanvas({
   params, estructura, aberturas, paneles, colores, catalogo, unidad, onCambiarColor, onEliminarPieza, onEditarPieza,
   opacidades, onCambiarOpacidad, imagenImpresionRef,
+  onActualizarAbertura, onQuitarAbertura, onPegarAbertura, onDuplicarPieza,
 }) {
   const lienzoRef = useRef(null);
   const visorRef = useRef(null); // { grupo, controles, camara, materiales, ... }
@@ -426,11 +534,20 @@ export default function LoftCanvas({
   const [autoRotar, setAutoRotar] = useState(false);
   const [seleccionada, setSeleccionada] = useState(null); // id de la pieza seleccionada
   const [editandoId, setEditandoId] = useState(null); // pieza con el formulario de edición abierto
+  const [aberturaSeleccionada, setAberturaSeleccionada] = useState(null); // id de la abertura tocada (v1.16)
+  // Medir (v1.16): modo activo y puntos tocados { a, piezaA, b, piezaB, resultado }.
+  const [midiendo, setMidiendo] = useState(false);
+  const [medida, setMedida] = useState(null);
+  const midiendoRef = useRef(false);
+  const portapapelesRef = useRef(null); // lo copiado con Ctrl+C: { clase: 'abertura' | 'pieza', dato }
+  const [avisoVisor, setAvisoVisor] = useState(null); // texto corto ("Copiado: …")
   // Partes visibles: cada pared, el techo y los pisos (con sus hierros).
   const [gruposVisibles, setGruposVisibles] = useState({ A: true, B: true, C: true, D: true, techo: true, piso: true, piso2: true, escalera: true, grada: true });
-  const [capas, setCapas] = useState(() =>
-    Object.fromEntries(Object.keys(CAPAS).map((clave) => [clave, true]))
-  );
+  const [capas, setCapas] = useState(() => ({
+    ...Object.fromEntries(Object.keys(CAPAS).map((clave) => [clave, true])),
+    juntas: true, // líneas de las tiras/placas de los paneles (v1.16)
+    etiquetasAberturas: true, // número de cada abertura (v1.16)
+  }));
 
   // 1) MONTAJE: una sola vez.
   useEffect(() => {
@@ -499,8 +616,24 @@ export default function LoftCanvas({
         -((ev.clientY - caja.top) / caja.height) * 2 + 1
       );
       rayo.setFromCamera(punto, camara);
-      const tocada = rayo.intersectObjects(grupo.children, false).find((i) => i.object.userData.idPieza);
-      setSeleccionada(tocada ? tocada.object.userData.idPieza : null);
+      // Recursivo: los paneles son grupos (dos caras). Solo mallas (no carteles ni líneas).
+      const tocados = rayo.intersectObjects(grupo.children, true).filter((i) => i.object.isMesh);
+
+      if (midiendoRef.current) {
+        // Medir: el primer objeto tocado; si es un hierro, el punto va a su eje.
+        const primero = tocados[0];
+        if (!primero) return;
+        const pieza = primero.object.userData.pieza ?? null;
+        const q = pieza ? puntoMasCercanoEnPieza(pieza, primero.point.toArray()) : primero.point.toArray();
+        setMedida((prev) => (!prev || prev.b
+          ? { a: q, piezaA: pieza }
+          : { ...prev, b: q, piezaB: pieza, resultado: medirEntre(prev.a, q, prev.piezaA, pieza) }));
+        return;
+      }
+
+      const tocado = tocados.find((i) => i.object.userData.idPieza || i.object.userData.idAbertura);
+      setSeleccionada(tocado?.object.userData.idPieza ?? null);
+      setAberturaSeleccionada(tocado?.object.userData.idAbertura ?? null);
     };
     renderer.domElement.addEventListener('pointerdown', alApretar);
     renderer.domElement.addEventListener('pointerup', alSoltar);
@@ -556,14 +689,67 @@ export default function LoftCanvas({
       tipo: p, // ubicación y espesor (v1.15): dónde se dibuja respecto de la estructura
     }));
     dibujarModelo(visor.grupo, visor.materiales, visor.materialesPanel,
-      { params, estructura, aberturas, capas, gruposVisibles, seleccionada, catalogo });
+      { params, estructura, aberturas, capas, gruposVisibles, seleccionada, catalogo, aberturaSeleccionada, medida });
     // Se reacomoda la cámara si cambia el frente o el tipo de proyecto (construcción / grada).
     const encuadre = `${params.tipoProyecto}:${params.ladoFrente}`;
     if (visor.frente !== encuadre) {
       mirarAlFrente(visor.camara, visor.controles, medidasVista(params, estructura));
       visor.frente = encuadre;
     }
-  }, [params, estructura, aberturas, capas, paneles, gruposVisibles, seleccionada, opacidades.paneles, catalogo]);
+  }, [params, estructura, aberturas, capas, paneles, gruposVisibles, seleccionada, opacidades.paneles, catalogo, aberturaSeleccionada, medida]);
+
+  // 5) MEDIR: el manejador del clic (creado una sola vez) lee el modo por un ref.
+  useEffect(() => {
+    midiendoRef.current = midiendo;
+    if (!midiendo) setMedida(null);
+  }, [midiendo]);
+
+  // 6) TECLADO (v1.16): Ctrl+C / Ctrl+V copia y pega la abertura o la pieza seleccionada; Esc suelta todo.
+  useEffect(() => {
+    const alTeclear = (ev) => {
+      const enCampo = ev.target.closest?.('input, textarea, select, [contenteditable="true"]');
+      if (enCampo) return; // no pisar el copiar/pegar de los campos de texto
+      if (ev.key === 'Escape') {
+        setMidiendo(false);
+        setSeleccionada(null);
+        setAberturaSeleccionada(null);
+        setEditandoId(null);
+        return;
+      }
+      if (!(ev.ctrlKey || ev.metaKey)) return;
+      const tecla = ev.key.toLowerCase();
+      if (tecla === 'c') {
+        const abertura = aberturas.find((op) => op.id === aberturaSeleccionada);
+        const pieza = seleccionada ? listarPiezas(estructura).find((p) => p.id === seleccionada) : null;
+        if (abertura) portapapelesRef.current = { clase: 'abertura', dato: abertura };
+        else if (pieza) portapapelesRef.current = { clase: 'pieza', dato: pieza };
+        else return;
+        setAvisoVisor(`Copiado: ${abertura ? `abertura #${aberturas.indexOf(abertura) + 1}` : describirPieza(pieza, params.ladoFrente)}. Ctrl+V para pegar.`);
+      } else if (tecla === 'v' && portapapelesRef.current) {
+        const { clase, dato } = portapapelesRef.current;
+        if (clase === 'abertura') {
+          const nueva = onPegarAbertura(dato);
+          if (nueva) { setAberturaSeleccionada(nueva.id); setSeleccionada(null); }
+        } else {
+          const id = onDuplicarPieza(dato);
+          if (id) { setSeleccionada(id); setEditandoId(id); setAberturaSeleccionada(null); }
+        }
+        setAvisoVisor('Pegado al lado del original: movelo a donde va.');
+      } else {
+        return;
+      }
+      ev.preventDefault();
+    };
+    window.addEventListener('keydown', alTeclear);
+    return () => window.removeEventListener('keydown', alTeclear);
+  }, [aberturas, aberturaSeleccionada, seleccionada, estructura, params.ladoFrente, onPegarAbertura, onDuplicarPieza]);
+
+  // El aviso corto se va solo a los 4 segundos.
+  useEffect(() => {
+    if (!avisoVisor) return undefined;
+    const t = setTimeout(() => setAvisoVisor(null), 4000);
+    return () => clearTimeout(t);
+  }, [avisoVisor]);
 
   // 3b) OPACIDAD de OSB, hierros y paneles genéricos: se cambia el material (no se redibuja).
   useEffect(() => {
@@ -609,6 +795,7 @@ export default function LoftCanvas({
 
   // La pieza seleccionada puede desaparecer (se eliminó o cambió una medida).
   const piezaSeleccionada = seleccionada ? listarPiezas(estructura).find((p) => p.id === seleccionada) : null;
+  const aberturaElegida = aberturaSeleccionada ? aberturas.find((op) => op.id === aberturaSeleccionada) : null;
 
   return (
     <div className="canvas-box">
@@ -620,8 +807,39 @@ export default function LoftCanvas({
         <button className="btn-ctrl" onClick={() => visorRef.current && mirarAlFrente(visorRef.current.camara, visorRef.current.controles, medidasVista(params, estructura))}>
           Ver frente
         </button>
-        <span className="ctrl-tip">Arrastrá para orbitar · rueda para zoom · clic en un hierro para seleccionarlo</span>
+        <button className={`btn-ctrl${midiendo ? ' activo' : ''}`} aria-pressed={midiendo}
+          onClick={() => { setMidiendo((v) => !v); setSeleccionada(null); setAberturaSeleccionada(null); }}>
+          📏 {midiendo ? 'Terminar de medir' : 'Medir'}
+        </button>
+        <span className="ctrl-tip">
+          {avisoVisor ?? (midiendo
+            ? 'Tocá dos hierros o dos puntos. Entre dos columnas mide de eje a eje. Esc para salir.'
+            : 'Arrastrá para orbitar · rueda para zoom · clic en un hierro o una abertura para seleccionarlo · Ctrl+C / Ctrl+V copia y pega')}
+        </span>
       </div>
+
+      {midiendo && medida?.resultado && (
+        <div className="medida-resultado no-print" role="status">
+          <strong>{medida.resultado.principal.toFixed(2)} m</strong>
+          {medida.resultado.entreEjes ? ' entre ejes' : ''}
+          {' · '}horizontal {medida.resultado.horizontal.toFixed(2)} m · vertical {medida.resultado.vertical.toFixed(2)} m
+          {!medida.resultado.entreEjes && ` · en línea recta ${medida.resultado.total.toFixed(2)} m`}
+        </div>
+      )}
+
+      {aberturaElegida && (
+        <div className="seleccion no-print" role="dialog" aria-label="Abertura seleccionada">
+          <ul className="opening-list">
+            <FilaAbertura abertura={aberturaElegida} numero={aberturas.indexOf(aberturaElegida) + 1} params={params}
+              unidad={unidad} onActualizar={onActualizarAbertura}
+              onQuitar={(id) => { onQuitarAbertura(id); setAberturaSeleccionada(null); }}
+              onDuplicar={(op) => { const nueva = onPegarAbertura(op); if (nueva) setAberturaSeleccionada(nueva.id); }} />
+          </ul>
+          <div className="seleccion-acciones">
+            <button className="btn-ctrl" onClick={() => setAberturaSeleccionada(null)}>Cerrar</button>
+          </div>
+        </div>
+      )}
 
       {piezaSeleccionada && (
         <div className="seleccion no-print" role="dialog" aria-label="Pieza seleccionada">
@@ -632,12 +850,16 @@ export default function LoftCanvas({
           {editandoId === piezaSeleccionada.id && (
             <EditorPieza pieza={piezaSeleccionada} edicion={params.piezasEditadas[piezaSeleccionada.id]}
               catalogo={catalogo} unidad={unidad} ladoFrente={params.ladoFrente}
-              alturaPiso2={estructura.entrepiso ? estructura.entrepiso.y : null} onEditar={onEditarPieza} />
+              alturaPiso2={estructura.entrepiso ? estructura.entrepiso.y : null} elevacion={params.elevacion ?? 0} onEditar={onEditarPieza} />
           )}
           <div className="seleccion-acciones">
             {editandoId !== piezaSeleccionada.id && (
               <button className="btn-ctrl" onClick={() => setEditandoId(piezaSeleccionada.id)}>Editar (recortar, mover, perfil)</button>
             )}
+            <button className="btn-ctrl" title="Crea una igual al lado (Ctrl+C y Ctrl+V hace lo mismo)" onClick={() => {
+              const id = onDuplicarPieza(piezaSeleccionada);
+              if (id) { setSeleccionada(id); setEditandoId(id); }
+            }}>Duplicar</button>
             <button className="btn-ctrl" onClick={() => { setSeleccionada(null); setEditandoId(null); }}>Cerrar</button>
             {/* Eliminar va aparte, a la derecha, para no tocarlo sin querer en vez de "Cerrar". */}
             <button className="btn-del-texto eliminar-aparte" onClick={() => { onEliminarPieza(piezaSeleccionada.id); setSeleccionada(null); }}>
@@ -674,6 +896,16 @@ export default function LoftCanvas({
             <span onClick={() => alternarCapa('paneles')} title="Superficies; el color es el de cada tipo de panel">Paneles</span>
           </span>
         )}
+        {!esGrada && !esMontaje && (<>
+          <span className="capa">
+            <input type="checkbox" checked={capas.juntas} onChange={() => alternarCapa('juntas')} aria-label="Mostrar juntas de paneles" />
+            <span onClick={() => alternarCapa('juntas')} title="Dónde termina cada tira o placa: para acomodar las aberturas">Juntas de paneles</span>
+          </span>
+          <span className="capa">
+            <input type="checkbox" checked={capas.etiquetasAberturas} onChange={() => alternarCapa('etiquetasAberturas')} aria-label="Mostrar números de aberturas" />
+            <span onClick={() => alternarCapa('etiquetasAberturas')}>Nº de aberturas</span>
+          </span>
+        </>)}
         {/* Opacidad: de "se ve a través" a sólido, para ver cómo queda cerrada. */}
         <span className="capas-paneles capas-opacidad">
           <span className="capa"><strong>Opacidad:</strong></span>

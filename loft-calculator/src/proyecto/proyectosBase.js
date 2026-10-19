@@ -54,6 +54,7 @@ export function proyectoVacio() {
       pilotinesPorFila: 2,
       piezasEliminadas: [],
       piezasEditadas: {},
+      piezasAgregadas: [], // v1.16
       escalera: { ...ESCALERA_INICIAL, activa: false }, // sin escalera (no hay entrepiso)
       tipoProyecto: 'construccion',
       grada: { ...GRADA_INICIAL },

@@ -21,7 +21,7 @@ function aberturaNueva(ladoFrente) {
 }
 
 /** Una abertura con todos sus campos editables. */
-function FilaAbertura({ abertura, numero, params, unidad, onActualizar, onQuitar, onDuplicar }) {
+export function FilaAbertura({ abertura, numero, params, unidad, onActualizar, onQuitar, onDuplicar }) {
   const [errorSelect, setErrorSelect] = useState(null);
 
   // Prueba el cambio: si la abertura deja de entrar, devuelve el error y no guarda.

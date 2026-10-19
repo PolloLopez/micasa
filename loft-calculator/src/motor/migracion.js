@@ -26,6 +26,8 @@
 //   - tipos de panel: colorInterior (cara de adentro); los viejos toman el gris claro de fábrica.
 // v1.10 -> v1.11:
 //   - nuevo: montaje industrial (componentes); los proyectos viejos traen el de ejemplo, sin usarlo.
+// v1.15 -> v1.16:
+//   - nuevo: piezasAgregadas (piezas duplicadas a mano, ver motor/piezasAgregadas.js).
 // v1.14 -> v1.15:
 //   - tipos de panel = revestimientos: venta (a medida / estándar), ancho útil, largo máximo, solape,
 //     medida de placa, espesor y ubicación. Los viejos pasan a "a medida", 1 m de ancho útil.
@@ -73,6 +75,7 @@ export function migrarParams(params) {
         : [...ESCALERA_INICIAL.descansos],
   };
   nuevos.piezasEditadas ??= {}; // v1.8
+  nuevos.piezasAgregadas ??= []; // v1.16: piezas duplicadas a mano
   nuevos.escalera.riostras ??= false; // v1.9
   nuevos.tipoProyecto ??= 'construccion'; // v1.9: todo lo anterior es una construcción
   nuevos.grada = esObjeto(nuevos.grada) ? { ...GRADA_INICIAL, ...nuevos.grada } : { ...GRADA_INICIAL };

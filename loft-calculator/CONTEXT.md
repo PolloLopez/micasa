@@ -83,6 +83,11 @@ valores inválidos.
 | 2026-10-16 | Tarjeta Materiales (qué es) separada del Presupuesto (cuánto y a qué precio) | Pedido de Leandro: el herrero carga los materiales una vez; el presupuesto se lee más fácil. El catálogo sigue siendo uno solo (misma fuente de verdad). |
 | 2026-10-16 | Revestimiento interior por pared (`paredes.<lado>.panelInterior`, '' = sin) | Primer paso para el durlock (cocina y baño). El tabique interior queda para después. |
 
+| 2026-10-18 | Piezas agregadas a mano en `params.piezasAgregadas` (`motor/piezasAgregadas.js`), con `insumo` explícito | Duplicar/pegar piezas sin tocar el motor: el presupuesto ya sumaba las piezas con `insumo` a su renglón, y piezasEditadas sirve para editarlas porque usan su id (`agr:<n>`). |
+| 2026-10-18 | Medición pura en `motor/medicion.js` (se pega al eje; entre dos verticales mide horizontal) | Testeable sin navegador. Los herreros miden de eje a eje, como en un plano. |
+| 2026-10-18 | Juntas de paneles calculadas en `revestimientos.js` (`juntasDePano`) con la misma regla que la cuenta | Lo que se dibuja es lo que se compra: las tiras arrancan en la esquina izquierda vista desde afuera, igual que en el presupuesto. |
+| 2026-10-18 | Versión inyectada por Vite (`define: __VERSION_APP__` desde package.json) | Una sola fuente (package.json, que ya sube con cada versión): nunca queda desactualizada en pantalla. |
+
 ## Supuestos de obra (en `src/motor/constantes.js`)
 Piso del entrepiso a 2,30 m · merma de corte 3 mm · excedente de barras 1 % (editable; depende del proveedor) · placa OSB 2,44 × 1,22 + 10 % de recortes ·
 techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 cm, comodidad 60-65 cm, paso libre 2 m · refuerzo de vano = dintel + 2 jambas (+ alféizar en ventanas).
@@ -135,4 +140,5 @@ techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 
 - 2026-10-15 v1.14.0: entrepiso parcial (largo × profundidad) con viga de cierre y columnas del borde libre; 🐤 en el encabezado.
 - 2026-10-16 v1.14.1: marcos de aberturas aparte, paredes plegables, editor más claro.
 - 2026-10-16 v1.15.0: tarjeta Materiales, revestimientos a medida / en placa, ubicación, revestimiento interior, duplicar aberturas.
+- 2026-10-18 v1.16.0: medir, aberturas desde el 3D, copiar/pegar, duplicar piezas, juntas de paneles, planta de la escalera, versión visible.
 - Nota: el elemento `id="flonnect-my-app"` que aparece en la página no es de la app: lo inyecta la extensión Flonnect (grabador de pantalla) de Chrome.

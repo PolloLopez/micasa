@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.16.0] - 2026-10-18
+### Agregado
+- **📏 Medir** en el 3D: tocás dos hierros o dos puntos y muestra la distancia (total, horizontal y vertical). Entre
+  dos columnas mide de eje a eje, aunque las toques a distinta altura. Esc para salir.
+- **Aberturas desde el 3D**: un clic en una puerta o ventana la selecciona y abre sus datos para editarla,
+  duplicarla o quitarla. Cada abertura muestra su **número** (#1, #2…, el mismo de la lista).
+- **Copiar y pegar** (Ctrl+C / Ctrl+V) la abertura o la pieza seleccionada; la copia aparece al lado.
+- **Duplicar una pieza** (botón o Ctrl+V): la copia se corre 50 cm (una columna, hacia el centro de su pared;
+  una horizontal, más arriba), se cotiza en el mismo renglón y se puede editar o quitar. Quedan listadas en la
+  tarjeta "Piezas agregadas, eliminadas y editadas".
+- **Juntas de paneles** en el 3D (capa nueva): dónde termina cada tira o placa, para acomodar las aberturas y
+  desperdiciar menos.
+- **Planta de la escalera** vista desde arriba en su tarjeta: escalón 1 (el más bajo) en verde, el último (llega
+  al entrepiso) en amarillo y una flecha que sube.
+- **Versión** de la app al lado del título (sale sola de package.json).
+### Cambiado
+- Editor de piezas verticales: "Arranca a / Termina a" (altura desde el piso del loft) en lugar de "acortar la punta".
+- "Baja hacia" de la escalera ahora dice "(lado del escalón 1)".
+
 ## [1.15.0] - 2026-10-16
 ### Agregado
 - Tarjeta **Materiales**: qué es cada material (perfil, largo de barra, excedente de las barras) y los

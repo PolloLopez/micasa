@@ -10,6 +10,7 @@ import SelectorLado from './SelectorLado.jsx';
 import { DESCANSOS_POR_FORMA, calcularEscalones, repartirDescansos } from '../motor/escalera.js';
 import { LADOS } from '../motor/constantes.js';
 import Tarjeta from './Tarjeta.jsx';
+import PlantaEscalera from './PlantaEscalera.jsx';
 
 /** Select simple con etiqueta y mensaje de error. */
 function CampoOpciones({ etiqueta, valor, opciones, onCambio }) {
@@ -40,7 +41,7 @@ function giroCompatible(bajaHacia, giroActual, ladoEntrepiso) {
   return costados.find((l) => l !== ladoEntrepiso) ?? costados[0];
 }
 
-export default function PanelEscalera({ params, resumen, unidad, cambiar, cambiarEscalera }) {
+export default function PanelEscalera({ params, resumen, unidad, cambiar, cambiarEscalera, escalera, entrepiso }) {
   const esc = params.escalera;
   const [errorActiva, setErrorActiva] = useState(null);
   const medida = (campo, etiqueta) => (
@@ -85,7 +86,7 @@ export default function PanelEscalera({ params, resumen, unidad, cambiar, cambia
           <div className="grid-params">
             <CampoOpciones etiqueta="Forma" valor={esc.forma} onCambio={cambiarForma}
               opciones={[['recta', 'Recta'], ['L', 'En L (1 descanso)'], ['U', 'En U (2 descansos)'], ['3/4', '3/4 de vuelta (3 descansos)']]} />
-            <SelectorLado etiqueta="Baja hacia" valor={esc.bajaHacia} params={params} onCambio={cambiarBajaHacia} />
+            <SelectorLado etiqueta="Baja hacia (lado del escalón 1)" valor={esc.bajaHacia} params={params} onCambio={cambiarBajaHacia} />
             {medida('posicion', 'Posición sobre el borde')}
             {cantidadDescansos > 0 && (
               <SelectorLado etiqueta="2º tramo baja hacia" valor={esc.giroHacia} params={params} onCambio={cambiar('escalera.giroHacia')} />
@@ -123,6 +124,9 @@ export default function PanelEscalera({ params, resumen, unidad, cambiar, cambia
                 opciones={[['1', '1 (central)'], ['2', '2 (lado de afuera)'], ['4', '4 (esquinas)']]} />
             )}
           </div>
+
+          {/* Planta vista desde arriba (v1.16): escalón 1 (arranque) y el último (llega al entrepiso). */}
+          <PlantaEscalera params={params} escalera={escalera} entrepiso={entrepiso} />
 
           {resumen && (
             <div className="resumen-escalera" role="status">

@@ -22,9 +22,19 @@
 - 🟡 [ ] En cada pared: elegir el perfil de sus columnas y horizontales (no solo el panel / revestimiento).
 - 🟡 [ ] Patrón de perfiles en una pared: "cada N columnas, una de otro perfil" o dos capas de perfiles.
 - 🟡 [ ] Elegir color en todos los materiales (como en los tipos de panel).
-- 🟡 [ ] Medir distancias en el 3D (ej. entre dos columnas).
-- 🟡 [ ] Duplicar una pieza seleccionada; seleccionar, editar y copiar/pegar aberturas desde el 3D.
-- 🟡 [ ] Acortar piezas más intuitivo (ej. "arranca a X m / termina a Y m", o arrastrando en el 3D).
+- 🟡 [ ] Acortar piezas horizontales con "desde X m / hasta Y m de la esquina" (las verticales ya lo tienen).
+- 🟡 [ ] Pegar una abertura en OTRA pared (hoy se pega al lado y después se cambia la pared en sus datos).
+
+## Pruebas de Leandro (18/10) — para la versión de materiales
+- 🔴 [ ] Perfiles con **medidas reales**: al agregar un perfil se cargan tipo (caño cuadrado/rectangular, redondo,
+      perfil C, ángulo, planchuela…), medidas (lados o diámetro) y espesor. Así se calcula el **peso del hierro**
+      (kg/m) y se estandariza (hoy es un texto libre).
+- 🟡 [ ] Paneles sándwich por **caras**: chapa/chapa, chapa/madera (interior), madera/madera (paneles SIP).
+      Cada cara con su material y color.
+- 🟡 [ ] Perfil por pared y **patrón alternado en la misma capa**: ej. caño 80x80 cada 2 m y 60x60 entre medio
+      (decisión de Leandro: mejor que dos capas).
+- 🟡 [ ] Columnas de esquina: perfil propio, **elegible en Materiales** (decisión de Leandro).
+- 🟡 [ ] Colores: **elegible** "por capa" o "por material" en el 3D (decisión de Leandro).
 - ✅ Hecho en v1.14.1: marcos de aberturas con renglón propio; paredes plegables (aria-expanded); "Eliminar
       pieza" menos llamativo que "Cerrar"; textos del editor ("Perfil de esta pieza", "Acortar la punta de…");
       nombre de archivo sin "pollo-pollo".
@@ -83,6 +93,14 @@
 - [ ] Piezas eliminadas/editadas se reconocen por su posición: si una medida las mueve, el cambio deja de
       aplicarse (se avisa en la lista). Evaluar si hace falta algo más robusto.
 - [ ] Migrar el motor a Django cuando arranque Construcción Modular (los tests sirven de especificación).
+
+## ✅ Resuelto en v1.16.0 (2026-10-18)
+- [x] Medir en el 3D (de eje a eje entre columnas).
+- [x] Aberturas seleccionables desde el 3D, con número (#1, #2…); copiar y pegar aberturas y piezas.
+- [x] Duplicar piezas (piezas agregadas a mano).
+- [x] Juntas de paneles en el 3D.
+- [x] Planta de la escalera (escalón más bajo y más alto, a la vista).
+- [x] "Arranca a / Termina a" en piezas verticales; versión visible en el encabezado.
 
 ## ✅ Resuelto en v1.15.0 (2026-10-16)
 - [x] Tarjeta Materiales; Presupuesto solo con cantidades y precios.

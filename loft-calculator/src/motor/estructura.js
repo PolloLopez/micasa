@@ -28,6 +28,7 @@ import { generarEscalera } from './escalera.js';
 import { generarGrada } from './grada.js';
 import { generarMontaje } from './montaje.js';
 import { aplicarEdicion } from './edicionPiezas.js';
+import { piezasDeAgregadas } from './piezasAgregadas.js';
 
 const EPSILON = 0.01; // 1 cm: margen para no duplicar piezas en bordes
 const LARGO_MINIMO = 0.05; // piezas más cortas que 5 cm no se fabrican
@@ -478,6 +479,7 @@ export function listarPiezas(e) {
     ...(e.escalera?.piezas ?? []),
     ...(e.grada?.piezas ?? []),
     ...(e.montaje?.piezas ?? []),
+    ...(e.agregadas ?? []), // v1.16: duplicadas a mano
   ];
 }
 
@@ -499,6 +501,7 @@ function transformarPiezas(e, cambiar) {
     escalera: e.escalera ? { ...e.escalera, piezas: t(e.escalera.piezas) } : null,
     grada: e.grada ? { ...e.grada, piezas: t(e.grada.piezas) } : null,
     montaje: e.montaje ? { ...e.montaje, piezas: t(e.montaje.piezas) } : null,
+    agregadas: t(e.agregadas ?? []),
   };
 }
 
@@ -536,6 +539,7 @@ function generarEstructuraSuelta(params, propia) {
     superficies: { piso: 0, piso2: 0, murosNetos: 0, aberturas: 0, techo: 0 },
     grada: null,
     montaje: null,
+    agregadas: piezasDeAgregadas(params.piezasAgregadas),
     ...propia,
   };
   return aplicarCambiosManuales(vacia, new Set(params.piezasEliminadas ?? []), params.piezasEditadas ?? {});
@@ -571,6 +575,7 @@ export function generarEstructura(params, aberturas) {
     escalera: params.escalera?.activa && entrepiso ? generarEscalera(params, lados, entrepiso) : null,
     paredes,
     entrepiso,
+    agregadas: piezasDeAgregadas(params.piezasAgregadas), // v1.16: duplicadas a mano
     superficies: {
       piso: planta.largoU * planta.largoV,
       piso2: entrepiso ? entrepiso.largoU * entrepiso.largoV : 0,

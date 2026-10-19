@@ -153,3 +153,29 @@ export function cuentaRevestimiento(tipo, panos) {
     detalle: `${resumirLargos(piezas)} (ancho útil ${t.anchoUtil.toFixed(2)} m) · ${neto.toFixed(2)} m² netos · ${donde}`,
   };
 }
+
+/**
+ * Juntas de un paño (v1.16), para dibujarlas en el 3D y acomodar las aberturas:
+ *   verticales   = distancias desde la punta 1 donde termina una tira o placa;
+ *   horizontales = alturas donde termina un tramo (a medida) o una fila de placas.
+ * Las tiras arrancan en la punta 1 (esquina izquierda vista desde afuera), igual que en la cuenta.
+ */
+export function juntasDePano(pano, tipo) {
+  const t = { ...REVESTIMIENTO_POR_DEFECTO, ...tipo };
+  const alto = Math.max(pano.h1, pano.h2);
+  const cada = (paso, hasta) => {
+    const lista = [];
+    for (let x = paso; x < hasta - 0.01; x += paso) lista.push(Number(x.toFixed(4)));
+    return lista;
+  };
+  if (t.venta === 'estandar') {
+    const { parada } = placasDePano(pano, t);
+    const ancho = parada ? t.anchoPlaca : t.largoPlaca;
+    const altoPlaca = parada ? t.largoPlaca : t.anchoPlaca;
+    return { verticales: cada(ancho, pano.largo), horizontales: cada(altoPlaca, alto) };
+  }
+  // A medida: una junta horizontal donde termina cada tramo (si la tira pasa el largo máximo).
+  const horizontales = [];
+  for (let h = t.largoMaximo; h < alto - 0.01; h += t.largoMaximo - t.solape) horizontales.push(Number(h.toFixed(4)));
+  return { verticales: cada(t.anchoUtil, pano.largo), horizontales };
+}

@@ -34,9 +34,10 @@ function nombresExtremos(original, ladoFrente) {
  * @param catalogo    para mostrar nombre y perfil de cada renglón
  * @param ladoFrente  para nombrar las paredes
  * @param alturaPiso2 altura de la estructura del piso 2 (null si no hay entrepiso)
+ * @param elevacion   altura del piso del loft sobre el suelo (las alturas se muestran desde ese piso)
  * @param onEditar    (id, edicion) => error | null
  */
-export default function EditorPieza({ pieza, edicion, catalogo, unidad, ladoFrente, alturaPiso2, onEditar }) {
+export default function EditorPieza({ pieza, edicion, catalogo, unidad, ladoFrente, alturaPiso2, elevacion = 0, onEditar }) {
   const idPerfil = useId();
   const original = pieza.original ?? pieza;
   const actual = { ...EDICION_VACIA, ...edicion };
@@ -57,10 +58,9 @@ export default function EditorPieza({ pieza, edicion, catalogo, unidad, ladoFren
     cambiarCampo(campoArriba)(Number((yArriba - alturaPiso2).toFixed(4)));
   };
 
-  // Cómo queda, en palabras: para una vertical, de qué altura a qué altura.
-  const queda = esVertical(original)
-    ? `Hoy va de ${Math.min(pieza.desde[1], pieza.hasta[1]).toFixed(2)} m a ${Math.max(pieza.desde[1], pieza.hasta[1]).toFixed(2)} m de altura (desde el suelo).`
-    : '';
+  // Vertical: qué punta es la de abajo (los recortes se guardan por punta "desde" / "hasta").
+  const campoAbajo = original.desde[1] <= original.hasta[1] ? 'recorteInicio' : 'recorteFin';
+  const campoArriba = campoAbajo === 'recorteInicio' ? 'recorteFin' : 'recorteInicio';
 
   // Solo los renglones que existen en este tipo de proyecto (construcción o grada).
   const asignables = pieza.grupos.includes('grada') ? PERFILES_GRADA
@@ -74,14 +74,33 @@ export default function EditorPieza({ pieza, edicion, catalogo, unidad, ladoFren
         {pieza.recorteIgnorado && <strong className="error"> El recorte ya no entra (cambió una medida): revisalo.</strong>}
       </p>
 
+      {esVertical(original) ? (<>
+        {/* Vertical (v1.16): se dice directo a qué altura arranca y termina, medida desde el piso del loft. */}
+        <h3 className="subtitulo">Altura</h3>
+        <p className="nota">
+          Medida desde el piso del loft. La pieza original va de {(yAbajo - elevacion).toFixed(2)} a {(yArriba - elevacion).toFixed(2)} m:
+          se puede acortar, no alargar (para alargarla, duplicala o movela).
+        </p>
+        <div className="grid-params">
+          <CampoNumero etiqueta="Arranca a" unidad={unidad} valor={yAbajo - elevacion + actual[campoAbajo]}
+            onCambio={(v) => (v < yAbajo - elevacion - 1e-9
+              ? `No puede arrancar más abajo que la original (${(yAbajo - elevacion).toFixed(2)} m)`
+              : cambiarCampo(campoAbajo)(Number((v - (yAbajo - elevacion)).toFixed(4))))} />
+          <CampoNumero etiqueta="Termina a" unidad={unidad} valor={yArriba - elevacion - actual[campoArriba]}
+            onCambio={(v) => (v > yArriba - elevacion + 1e-9
+              ? `No puede terminar más arriba que la original (${(yArriba - elevacion).toFixed(2)} m)`
+              : cambiarCampo(campoArriba)(Number((yArriba - elevacion - v).toFixed(4))))} />
+        </div>
+      </>) : (<>
       <h3 className="subtitulo">Acortar</h3>
-      <p className="nota">Cuánto se le saca a cada punta de la pieza. {queda}</p>
+      <p className="nota">Cuánto se le saca a cada punta de la pieza.</p>
       <div className="grid-params">
         <CampoNumero etiqueta={`Acortar la punta ${extremos.inicio === 'abajo' || extremos.inicio === 'arriba' ? `de ${extremos.inicio}` : extremos.inicio}`}
           unidad={unidad} valor={actual.recorteInicio} onCambio={cambiarCampo('recorteInicio')} />
         <CampoNumero etiqueta={`Acortar la punta ${extremos.fin === 'abajo' || extremos.fin === 'arriba' ? `de ${extremos.fin}` : extremos.fin}`}
           unidad={unidad} valor={actual.recorteFin} onCambio={cambiarCampo('recorteFin')} />
       </div>
+      </>)}
       {puedeTerminarEnPiso2 && (
         <button type="button" className="btn-sec" onClick={terminarEnPiso2}>Que termine en el piso 2</button>
       )}
