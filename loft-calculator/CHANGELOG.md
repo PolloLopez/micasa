@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.18.1] - 2026-10-19
+### Cambiado
+- **Valor inválido**: al salir del campo ya no vuelve solo al valor anterior. Queda lo escrito, marcado en rojo, con
+  el aviso "se sigue usando 7.50 (Esc para volver)". Esc descarta lo escrito.
+- **Aviso al cerrar**: si el proyecto abierto tiene cambios sin guardar, el navegador pregunta antes de cerrar o
+  recargar la pestaña.
+- **Celular**: el encabezado entra en un renglón (🐤, nombre, ● sin guardar, ↶ ↷, Guardar y ⋯). La versión pasa
+  al menú ⋯.
+
 ## [1.18.0] - 2026-10-19
 ### Agregado
 - **Pestañas** en el panel: Estructura · Paredes y aberturas · Materiales · Presupuesto (con el total a la vista).

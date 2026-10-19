@@ -286,6 +286,18 @@ export default function App() {
   const entradaActual = biblioteca.find((e) => e.id === idProyectoActual);
   const cambiosSinGuardar = hayCambiosSinGuardar(proyectoActual, entradaActual);
 
+  // Aviso del navegador al cerrar o recargar la pestaña con cambios sin guardar (v1.18.1).
+  // Solo si el proyecto ya está en Mis proyectos: uno "sin guardar" igual se recuerda en el navegador.
+  useEffect(() => {
+    if (!(entradaActual && cambiosSinGuardar)) return undefined;
+    const alCerrar = (ev) => {
+      ev.preventDefault();
+      ev.returnValue = ''; // algunos navegadores lo necesitan para mostrar el aviso
+    };
+    window.addEventListener('beforeunload', alCerrar);
+    return () => window.removeEventListener('beforeunload', alCerrar);
+  }, [entradaActual, cambiosSinGuardar]);
+
   /** Reemplaza todo el proyecto en pantalla (nuevo, ejemplo, de la lista o de un archivo). */
   const cargarProyecto = (proyecto, idEnBiblioteca = null) => {
     setNombreProyecto(proyecto.nombre);
@@ -499,7 +511,7 @@ export default function App() {
     <div className="app">
       <header>
         <div className="titulo">
-          <h1>🐤 Pollo Calculator <small className="version" title="Versión de la app">v{VERSION_APP}</small></h1>
+          <h1 title={`Pollo Calculator v${VERSION_APP}`}>🐤 <span className="nombre-app">Pollo Calculator</span> <small className="version" title="Versión de la app">v{VERSION_APP}</small></h1>
           <input className="nombre-proyecto" value={nombreProyecto} aria-label="Nombre del proyecto"
             onChange={(e) => setNombreProyecto(e.target.value)} placeholder="Nombre del proyecto…" />
           <span className={`estado-guardado${cambiosSinGuardar ? ' sin-guardar' : ''}`} role="status">
@@ -531,6 +543,7 @@ export default function App() {
             <option value="mm">Milímetros</option>
           </select>
           <button className="btn-print" onClick={() => window.print()}>Imprimir / PDF</button>
+          <small className="solo-movil version-menu">Pollo Calculator v{VERSION_APP}</small>
           </div>
         </div>
       </header>

@@ -350,3 +350,18 @@ button:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
   .pestana.oculta { display: flex; } /* al imprimir salen todas las secciones */
   .pestanas { display: none !important; }
 }
+
+/* v1.18.1 — Encabezado del celular en un renglón: 🐤 + nombre del proyecto + ↶ ↷ Guardar ⋯.
+   El nombre de la app y la versión pasan al menú ⋯; el estado de guardado queda como un punto. */
+@media (max-width: 1000px) {
+  header { flex-wrap: nowrap; }
+  .titulo { flex: 1; flex-wrap: nowrap; min-width: 0; gap: 6px; }
+  header h1 .nombre-app, header h1 .version { display: none; }
+  .nombre-proyecto { flex: 1; min-width: 0; width: auto; }
+  .estado-guardado { font-size: 0; }
+  .estado-guardado::before { content: '●'; font-size: 14px; color: var(--exito); }
+  .estado-guardado.sin-guardar::before { color: #facc15; }
+  .header-actions { flex-wrap: nowrap; gap: 4px; }
+  .btn-historial { padding: 2px 8px; }
+  .version-menu { color: var(--texto-tenue); font-size: 0.7rem; text-align: center; }
+}

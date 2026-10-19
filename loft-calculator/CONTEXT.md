@@ -159,4 +159,5 @@ techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 
 - 2026-10-18 v1.16.0: medir, aberturas desde el 3D, copiar/pegar, duplicar piezas, juntas de paneles, planta de la escalera, versión visible.
 - 2026-10-19 v1.17.0: aberturas dentro de cada pared con etiqueta, montantes, riostras de pared, jambas de piso a solera, glosario unificado.
 - 2026-10-19 v1.18.0: pestañas, deshacer/rehacer, celular con barra abajo y menú ⋯.
+- 2026-10-19 v1.18.1: valor inválido queda a la vista (Esc vuelve), aviso al cerrar con cambios, encabezado del celular en un renglón.
 - Nota: el elemento `id="flonnect-my-app"` que aparece en la página no es de la app: lo inyecta la extensión Flonnect (grabador de pantalla) de Chrome.

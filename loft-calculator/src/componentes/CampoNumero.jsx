@@ -7,7 +7,9 @@
 //   - acepta coma o punto decimal;
 //   - solo guarda valores válidos: `onCambio` devuelve un mensaje de
 //     error (y entonces no se guarda) o null si está todo bien;
-//   - al salir del campo, vuelve a mostrar el último valor válido.
+//   - si lo escrito no vale, al salir del campo NO se borra: queda lo
+//     escrito con el aviso (y el aviso dice qué valor se sigue usando)
+//     hasta que se corrija; Esc vuelve al último valor válido (v1.18.1).
 // ==========================================================
 
 import { useId, useState } from 'react';
@@ -35,11 +37,19 @@ export default function CampoNumero({ etiqueta, valor, unidad, onCambio, decimal
   const [editando, setEditando] = useState(false);
   const [error, setError] = useState(null);
 
-  const mostrado = editando ? texto : formatear(valor, unidad, decimales);
+  // Con un error a la vista se sigue mostrando lo escrito (antes volvía solo al valor anterior, sin avisar).
+  const mostrado = editando || error ? texto : formatear(valor, unidad, decimales);
 
   const alEnfocar = () => {
-    setTexto(formatear(valor, unidad, decimales));
+    if (!error) setTexto(formatear(valor, unidad, decimales)); // con error se sigue editando lo escrito
     setEditando(true);
+  };
+
+  /** Esc: descarta lo escrito y vuelve al último valor válido. */
+  const alTeclear = (e) => {
+    if (e.key !== 'Escape' || !error) return;
+    setError(null);
+    setTexto(formatear(valor, unidad, decimales));
   };
 
   const alEscribir = (e) => {
@@ -49,10 +59,7 @@ export default function CampoNumero({ etiqueta, valor, unidad, onCambio, decimal
     setError(Number.isFinite(numero) ? onCambio(numero) : 'Ingresá un número');
   };
 
-  const alSalir = () => {
-    setEditando(false);
-    setError(null);
-  };
+  const alSalir = () => setEditando(false); // el error (si hay) queda a la vista
 
   return (
     <div className={`group${error ? ' con-error' : ''}`}>
@@ -68,9 +75,14 @@ export default function CampoNumero({ etiqueta, valor, unidad, onCambio, decimal
         onFocus={alEnfocar}
         onChange={alEscribir}
         onBlur={alSalir}
+        onKeyDown={alTeclear}
         aria-invalid={Boolean(error)}
       />
-      {error && <small className="error" role="alert">{error}</small>}
+      {error && (
+        <small className="error" role="alert">
+          {error}{!editando && ` · se sigue usando ${formatear(valor, unidad, decimales)} (Esc para volver)`}
+        </small>
+      )}
     </div>
   );
 }

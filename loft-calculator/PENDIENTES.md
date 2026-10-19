@@ -44,12 +44,12 @@ abiertas a la vez, 15+ botones de menos de 40 px en el celular.
 ### 🟡 Mejoras importantes
 - [ ] **Total del presupuesto siempre a la vista** (hoy solo al final de la tabla): en el título de la tarjeta o
       fijo arriba.
-- [ ] **Valor inválido**: al salir del campo vuelve solo al valor anterior y el aviso desaparece. Mejor dejar lo
-      escrito con el error hasta corregirlo, o avisar "se volvió a 2.50".
+- [x] **Valor inválido** (v1.18.1): lo escrito queda con el aviso al salir del campo ("se sigue usando 7.50");
+      Esc vuelve al último valor válido.
 - [ ] **"0 = sin"** en muchos campos (montantes, transversales, largo de entrepiso…): reemplazar por una casilla
       "Lleva montantes" + el valor, más fácil de entender.
-- [ ] **Cambios sin guardar**: solo un "Sin guardar" chico en amarillo. Avisar al cerrar la pestaña si hay cambios
-      (y evaluar autoguardado en Mis proyectos).
+- [x] **Cambios sin guardar** (v1.18.1): el navegador avisa al cerrar o recargar si el proyecto abierto tiene
+      cambios sin guardar. Queda evaluar autoguardado en Mis proyectos.
 - [ ] **Seleccionar en el 3D**: los hierros finos cuestan, y más con el dedo. Margen de toque más grande y, como
       alternativa, una lista de piezas filtrable por pared.
 - [ ] **Leyenda de capas larga** (16 casillas): agrupar (Estructura · Superficies · Ayudas) con "todo / nada".
@@ -61,7 +61,7 @@ abiertas a la vez, 15+ botones de menos de 40 px en el celular.
 
 ### 🟢 Prolijidad
 - [x] **Foco de teclado visible** en todos los botones (v1.18.0).
-- [ ] **Encabezado en el celular**: todavía ocupa 3 renglones (título, nombre, botones); evaluar nombre del proyecto en el menú.
+- [x] **Encabezado en el celular** en un renglón (v1.18.1): 🐤, nombre, ●, ↶ ↷, Guardar y ⋯ (la versión va en el menú).
 - [ ] **Atajos a la vista**: un "?" que liste Ctrl+C / Ctrl+V / Esc / (futuro Ctrl+Z).
 - [ ] **Consistencia de botones**: "Duplicar" y "✕" de aberturas vs "+ Agregar revestimiento" grande y verde vs
       "+ Puerta" secundario; un mismo estilo para la misma acción.
@@ -129,7 +129,7 @@ abiertas a la vez, 15+ botones de menos de 40 px en el celular.
 - [ ] Catálogo compartido: el herrero carga sus precios una sola vez ("plantilla de catálogo").
 
 ## 🟢 Técnico
-- [ ] En el celular el encabezado ocupa ~3 renglones: evaluar un menú compacto.
+- [x] En el celular el encabezado ocupa ~3 renglones: resuelto en v1.18.1 (un renglón de 61 px).
 - [ ] Ayuda (tooltip) en campos poco obvios: "Dist. a esquina", "Sep. verticales" (glosario en CONTEXT.md).
 - [ ] Bundle de ~906 KB (Three.js completo; Vite avisa al deployar): evaluar carga diferida del visor.
 - [ ] Tests de componentes (testing-library) para CampoNumero, SelectorLado, PanelAberturas y EditorPieza.
