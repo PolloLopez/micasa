@@ -24,7 +24,10 @@ const ID_PANEL_GENERICO = 'panel';
 
 /** Proyecto sin datos (botón "Nuevo"). */
 export function proyectoVacio() {
-  const pared = { separacionVerticales: 3, separacionHorizontales: 0.8, panel: ID_PANEL_GENERICO, panelInterior: '', etiqueta: '', mostrarEtiqueta: true };
+  const pared = {
+    separacionVerticales: 3, separacionHorizontales: 0.8, separacionMontantes: 0, riostras: 'no',
+    panel: ID_PANEL_GENERICO, panelInterior: '', etiqueta: '', mostrarEtiqueta: true,
+  };
   return {
     nombre: '',
     params: {

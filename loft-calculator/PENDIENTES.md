@@ -94,6 +94,11 @@
       aplicarse (se avisa en la lista). Evaluar si hace falta algo más robusto.
 - [ ] Migrar el motor a Django cuando arranque Construcción Modular (los tests sirven de especificación).
 
+## ✅ Resuelto en v1.17.0 (2026-10-19)
+- [x] Aberturas dentro de cada pared, con etiqueta en el 3D.
+- [x] Montantes (y de dintel / de antepecho), riostras en cruz de pared, jambas de piso a solera.
+- [x] Glosario unificado (travesaño de antepecho, horizontales/fajas, montante).
+
 ## ✅ Resuelto en v1.16.0 (2026-10-18)
 - [x] Medir en el 3D (de eje a eje entre columnas).
 - [x] Aberturas seleccionables desde el 3D, con número (#1, #2…); copiar y pegar aberturas y piezas.

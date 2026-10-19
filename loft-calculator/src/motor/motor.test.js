@@ -273,7 +273,7 @@ describe('generarEstructura', () => {
     expect(tipos(2)).toEqual(['alfeizar', 'dintel', 'jamba', 'jamba']);
     const largo = (id) => e.refuerzosAberturas.find((r) => r.id === id).largo;
     expect(largo('ref:1:dintel')).toBeCloseTo(0.9);
-    expect(largo('ref:1:jamba-izq')).toBeCloseTo(2.05);
+    expect(largo('ref:1:jamba-izq')).toBeCloseTo(4.95); // v1.17: jamba de piso a solera (frente de 4,95 m)
     expect(largo('ref:2:alfeizar')).toBeCloseTo(1.5);
   });
 
@@ -343,9 +343,10 @@ describe('calcularPresupuesto', () => {
   const { items, total } = calcularPresupuesto(e, CATALOGO_INICIAL);
   const item = (id) => items.find((i) => i.id === id);
 
-  it('una construcción tiene un renglón por cada insumo, menos los de grada, montaje y las riostras sin usar', () => {
+  it('una construcción tiene un renglón por cada insumo, menos los de grada, montaje y los opcionales sin usar', () => {
+    // Opcionales: riostras y montantes (v1.17) aparecen solo si la obra los lleva.
     const esperados = CATALOGO_INICIAL.map((p) => p.id)
-      .filter((id) => !INSUMOS_GRADA.includes(id) && !INSUMOS_MONTAJE.includes(id) && id !== INSUMO.RIOSTRA);
+      .filter((id) => !INSUMOS_GRADA.includes(id) && !INSUMOS_MONTAJE.includes(id) && id !== INSUMO.RIOSTRA && id !== INSUMO.MONTANTE);
     expect(items.map((i) => i.id).sort()).toEqual(esperados.sort());
   });
 

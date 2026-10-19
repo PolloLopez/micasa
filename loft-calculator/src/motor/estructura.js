@@ -23,7 +23,7 @@ import {
   geometriaLados, alturaEn, alturasPared, puntoSobreLado, luzTecho, ladoOpuesto, tramoEntrepiso,
 } from './geometria.js';
 import { inicioAbertura } from './validacion.js';
-import { cm, pieza, haciaAdentro } from './segmentos.js';
+import { cm, pieza, haciaAdentro, cruz } from './segmentos.js';
 import { generarEscalera } from './escalera.js';
 import { generarGrada } from './grada.js';
 import { generarMontaje } from './montaje.js';
@@ -46,12 +46,15 @@ export const NOMBRE_TIPO_PIEZA = {
   piso2: 'Estructura de piso 2',
   'transv-piso': 'Transversal de piso',
   'transv-piso2': 'Transversal de piso 2',
-  horizontal: 'Horizontal de pared',
+  horizontal: 'Horizontal (faja)',
   'viga-techo': 'Viga de techo',
   'correa-techo': 'Correa de techo',
   dintel: 'Dintel',
   jamba: 'Jamba',
-  alfeizar: 'Alféizar',
+  alfeizar: 'Travesaño de antepecho',
+  montante: 'Montante',
+  'montante-dintel': 'Montante de dintel',
+  'montante-antepecho': 'Montante de antepecho',
   zanca: 'Zanca de escalera',
   'marco-descanso': 'Marco del descanso',
   'apoyo-escalon': 'Apoyo de escalón',
@@ -195,8 +198,8 @@ function generarColumnas(params, lados, posiciones, aberturas) {
 /**
  * Refuerzos del vano de cada abertura (van con el perfil de columnas):
  *   - dintel arriba y alféizar abajo (si no arranca del piso);
- *   - jambas a cada lado, SALVO que ya haya una columna ahí
- *     (a menos de 10 cm): la columna hace de jamba.
+ *   - jambas a cada lado, de piso a solera (v1.17), SALVO que ya haya
+ *     una columna ahí (a menos de 10 cm): la columna hace de jamba.
  */
 function generarRefuerzos(params, lados, posiciones, aberturas) {
   const y0 = params.elevacion;
@@ -216,12 +219,94 @@ function generarRefuerzos(params, lados, posiciones, aberturas) {
     if (v.abajo > 0) {
       piezas.push(pieza(`ref:${op.id}:alfeizar`, 'alfeizar', grupos, punto(v.inicio, v.abajo), punto(v.fin, v.abajo)));
     }
+    // Jambas de piso a solera (v1.17): como una columna liviana a cada lado del vano.
+    const altoPared = (d) => alturaEn(...puntoSobreLado(geo, d), params);
     if (!hayColumnaEn(v.inicio)) {
-      piezas.push(pieza(`ref:${op.id}:jamba-izq`, 'jamba', grupos, punto(v.inicio, v.abajo), punto(v.inicio, v.arriba)));
+      piezas.push(pieza(`ref:${op.id}:jamba-izq`, 'jamba', grupos, punto(v.inicio, 0), punto(v.inicio, altoPared(v.inicio))));
     }
     if (!hayColumnaEn(v.fin)) {
-      piezas.push(pieza(`ref:${op.id}:jamba-der`, 'jamba', grupos, punto(v.fin, v.abajo), punto(v.fin, v.arriba)));
+      piezas.push(pieza(`ref:${op.id}:jamba-der`, 'jamba', grupos, punto(v.fin, 0), punto(v.fin, altoPared(v.fin))));
     }
+  });
+  return piezas;
+}
+
+// ---------------- Montantes y riostras de pared (v1.17) ----------------
+
+/** Distancias (sobre la pared, desde su esquina izquierda) de las columnas de un lado, ordenadas. */
+function columnasDeLado(lado, lados, posiciones) {
+  return posiciones
+    .filter((c) => c.lados.includes(lado))
+    .map((c) => distanciaSobreLado(lados[lado], c.x, c.z))
+    .sort((a, b) => a - b);
+}
+
+/**
+ * Montantes: verticales livianos entre columnas, cada `separacionMontantes`
+ * de cada pared (0 = sin). Arrancan de cada columna. Si un montante cae
+ * dentro de un vano se parte en "montante de antepecho" (abajo de la
+ * ventana) y "montante de dintel" (arriba del vano, hasta la solera).
+ * Cerca de una columna o de una jamba (10 cm) no se pone.
+ */
+function generarMontantes(params, lados, posiciones, aberturas) {
+  const y0 = params.elevacion;
+  const piezas = [];
+  LADOS.forEach((lado) => {
+    const separacion = params.paredes[lado].separacionMontantes ?? 0;
+    if (!(separacion > 0)) return;
+    const geo = lados[lado];
+    const vanos = aberturas.filter((op) => op.lado === lado).map((op) => vano(op, params));
+    const columnas = columnasDeLado(lado, lados, posiciones);
+    const ocupado = (d) => columnas.some((c) => Math.abs(c - d) < MARGEN_JAMBA)
+      || vanos.some((v) => Math.abs(v.inicio - d) < MARGEN_JAMBA || Math.abs(v.fin - d) < MARGEN_JAMBA);
+    for (let i = 0; i < columnas.length - 1; i++) {
+      for (let d = columnas[i] + separacion; d < columnas[i + 1] - EPSILON; d += separacion) {
+        if (ocupado(d)) continue;
+        const [x, z] = puntoSobreLado(geo, d);
+        const alto = alturaEn(x, z, params);
+        const id = `mont:${lado}:${cm(d)}`;
+        const enVano = vanos.find((v) => d > v.inicio && d < v.fin);
+        if (!enVano) {
+          piezas.push(pieza(id, 'montante', [lado], [x, y0, z], [x, y0 + alto, z]));
+          continue;
+        }
+        if (enVano.abajo > LARGO_MINIMO) {
+          piezas.push(pieza(`${id}:abajo`, 'montante-antepecho', [lado], [x, y0, z], [x, y0 + enVano.abajo, z]));
+        }
+        if (alto - enVano.arriba > LARGO_MINIMO) {
+          piezas.push(pieza(`${id}:arriba`, 'montante-dintel', [lado], [x, y0 + enVano.arriba, z], [x, y0 + alto, z]));
+        }
+      }
+    }
+  });
+  return piezas;
+}
+
+/**
+ * Riostras en cruz (cruz de San Andrés) en las paredes: entre dos columnas
+ * seguidas, de piso a solera. `riostras` de cada pared: 'no', 'extremos'
+ * (el primer y el último vano entre columnas) o 'todos'. Un vano entre
+ * columnas que tiene una abertura no lleva cruz (la taparía).
+ */
+function generarRiostrasPared(params, lados, posiciones, aberturas) {
+  const y0 = params.elevacion;
+  const piezas = [];
+  LADOS.forEach((lado) => {
+    const modo = params.paredes[lado].riostras ?? 'no';
+    if (modo === 'no') return;
+    const geo = lados[lado];
+    const columnas = columnasDeLado(lado, lados, posiciones);
+    const vanos = aberturas.filter((op) => op.lado === lado).map((op) => vano(op, params));
+    const tramos = columnas.slice(0, -1).map((d0, i) => [d0, columnas[i + 1]]);
+    const elegidos = modo === 'todos' ? tramos : [...new Set([tramos[0], tramos[tramos.length - 1]])];
+    elegidos.filter(Boolean).forEach(([d0, d1]) => {
+      if (vanos.some((v) => v.inicio < d1 && v.fin > d0)) return;
+      const [xa, za] = puntoSobreLado(geo, d0);
+      const [xb, zb] = puntoSobreLado(geo, d1);
+      piezas.push(...cruz(`rio:${lado}:${cm(d0)}`, 'riostra', [lado],
+        [xa, y0, za], [xa, y0 + alturaEn(xa, za, params), za],
+        [xb, y0, zb], [xb, y0 + alturaEn(xb, zb, params), zb]));
+    });
   });
   return piezas;
 }
@@ -472,7 +557,7 @@ function generarParedes(params, lados, aberturas) {
 /** Todas las piezas lineales de la estructura en una sola lista. */
 export function listarPiezas(e) {
   return [
-    ...e.columnas, ...e.refuerzosAberturas, ...e.marcos,
+    ...e.columnas, ...e.refuerzosAberturas, ...(e.montantes ?? []), ...(e.riostrasParedes ?? []), ...e.marcos,
     ...e.piso.tirantes, ...e.piso.transversales,
     ...e.piso2.tirantes, ...e.piso2.transversales,
     ...e.correas, ...e.techo.vigas, ...e.techo.correas,
@@ -493,6 +578,8 @@ function transformarPiezas(e, cambiar) {
     ...e,
     columnas: t(e.columnas),
     refuerzosAberturas: t(e.refuerzosAberturas),
+    montantes: t(e.montantes ?? []),
+    riostrasParedes: t(e.riostrasParedes ?? []),
     marcos: t(e.marcos),
     piso: { tirantes: t(e.piso.tirantes), transversales: t(e.piso.transversales) },
     piso2: { tirantes: t(e.piso2.tirantes), transversales: t(e.piso2.transversales) },
@@ -532,7 +619,7 @@ function aplicarCambiosManuales(e, idsEliminados, ediciones) {
  */
 function generarEstructuraSuelta(params, propia) {
   const vacia = {
-    pilotines: [], columnas: [], refuerzosAberturas: [], marcos: [],
+    pilotines: [], columnas: [], refuerzosAberturas: [], montantes: [], riostrasParedes: [], marcos: [],
     piso: { tirantes: [], transversales: [] }, piso2: { tirantes: [], transversales: [] },
     correas: [], techo: { vigas: [], correas: [], esquinas: [], superficie: 0 },
     escalera: null, paredes: [], entrepiso: null,
@@ -565,6 +652,8 @@ export function generarEstructura(params, aberturas) {
     pilotines: generarPilotines(params),
     columnas: generarColumnas(params, lados, posiciones, aberturas),
     refuerzosAberturas: generarRefuerzos(params, lados, posiciones, aberturas),
+    montantes: generarMontantes(params, lados, posiciones, aberturas), // v1.17
+    riostrasParedes: generarRiostrasPared(params, lados, posiciones, aberturas), // v1.17
     marcos: generarMarcos(params, lados, entrepiso),
     piso: entramadoPiso(planta, params.separacionPiso, params.separacionTransversalesPiso, params.elevacion, 'piso'),
     piso2: entrepiso

@@ -19,6 +19,8 @@ import { cuentaRevestimiento, REVESTIMIENTO_POR_DEFECTO } from './revestimientos
 /** Insumos fijos. El perfil y el precio se editan desde la pantalla. */
 export const CATALOGO_FIJO = [
   { id: INSUMO.COLUMNA, categoria: 'perfil', nombre: 'Columnas', perfil: 'Caño estructural 100x100x1.6', unidad: 'barra', largoBarra: 6, precio: 38000 },
+  // v1.17: montantes (verticales livianos entre columnas) y montantes de dintel / de antepecho.
+  { id: INSUMO.MONTANTE, categoria: 'perfil', nombre: 'Montantes', perfil: 'Caño estructural 50x50x1.6', unidad: 'barra', largoBarra: 6, precio: 18000 },
   // v1.14.1: dintel, jambas y alféizar de las aberturas en su propio renglón (antes iban con las columnas).
   // Arranca con el mismo perfil que las columnas; el herrero pone el que use.
   { id: INSUMO.MARCO_ABERTURA, categoria: 'perfil', nombre: 'Marcos de aberturas', perfil: 'Caño estructural 100x100x1.6', unidad: 'barra', largoBarra: 6, precio: 38000 },
@@ -164,6 +166,12 @@ export function calcularPresupuesto(estructura, catalogo, { excedenteBarras = 0 
     perfil(INSUMO.CORREA_TECHO, e.techo.correas),
   ];
 
+  // Montantes (v1.17): renglón solo si la obra lleva.
+  const montantes = e.montantes ?? [];
+  if (montantes.length > 0 || reasignadas.some((p) => p.insumo === INSUMO.MONTANTE)) {
+    items.splice(1, 0, perfil(INSUMO.MONTANTE, montantes));
+  }
+
   // Marcos de aberturas (dintel, jambas, alféizar): renglón solo si hay aberturas.
   if (e.refuerzosAberturas.length > 0 || reasignadas.some((p) => p.insumo === INSUMO.MARCO_ABERTURA)) {
     items.splice(1, 0, perfil(INSUMO.MARCO_ABERTURA, e.refuerzosAberturas));
@@ -208,7 +216,8 @@ export function calcularPresupuesto(estructura, catalogo, { excedenteBarras = 0 
     perfil(INSUMO.COLUMNA_ESCALERA, piezasEsc('columna-escalera'))
   );
   // Riostras de la escalera: el renglón aparece solo si se usan (para no llenar la tabla).
-  const riostras = piezasEsc('riostra');
+  // Riostras de la escalera y de las paredes (v1.17) van al mismo renglón.
+  const riostras = [...piezasEsc('riostra'), ...(e.riostrasParedes ?? [])];
   if (riostras.length > 0 || reasignadas.some((p) => p.insumo === INSUMO.RIOSTRA)) items.push(perfil(INSUMO.RIOSTRA, riostras));
   const pisadas = escalera?.escalones.length ?? 0;
   items.push(itemSimple(insumo(INSUMO.ESCALON), pisadas,

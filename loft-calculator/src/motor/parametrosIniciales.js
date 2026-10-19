@@ -10,7 +10,9 @@ import { ESCALERA_INICIAL } from './escalera.js';
 /** Configuración de una pared (panel). */
 export const PARED_INICIAL = {
   separacionVerticales: 2.5, // columnas a lo largo de la pared (eje X)
-  separacionHorizontales: 0.8, // horizontales en altura (eje Y)
+  separacionHorizontales: 0.8, // horizontales (fajas) en altura (eje Y)
+  separacionMontantes: 0, // v1.17: montantes (verticales livianos) entre columnas; 0 = sin
+  riostras: 'no', // v1.17: riostras en cruz: 'no' | 'extremos' | 'todos'
   panel: 'panelMuros', // revestimiento exterior: id del tipo (ver TIPOS_PANEL_INICIALES en presupuesto.js)
   panelInterior: '', // revestimiento interior (v1.15): id del tipo, '' = sin
   etiqueta: '', // texto del cartel en el 3D; '' = nombre automático (Frente, Lateral…)

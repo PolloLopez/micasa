@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.17.0] - 2026-10-19
+### Agregado
+- **Aberturas dentro de cada pared**: cada pared muestra sus puertas y ventanas con "+ Puerta" / "+ Ventana" (van al
+  primer lugar libre). Ya no hay una tarjeta Aberturas aparte. Para pasar una abertura a otra pared se cambia "Pared".
+- **Etiqueta de cada abertura** (ej. "Ventana cocina") con mostrar/ocultar, igual que las paredes; en el 3D se ve
+  "#2 Ventana cocina".
+- **Montantes**: verticales livianos entre columnas, cada X m por pared (0 = sin), con renglón propio. En una abertura
+  se parten en **montante de dintel** (arriba) y **montante de antepecho** (abajo de la ventana).
+- **Riostras en cruz en las paredes**: sin, en las puntas o en todos los vanos entre columnas (los vanos con una
+  abertura no llevan). Van al renglón de riostras.
+### Cambiado
+- **Jambas de piso a solera** (antes solo del alto del vano). Cambia el largo de los marcos de aberturas.
+- Glosario unificado con Leandro: "Alféizar" pasa a **Travesaño de antepecho**; "Horizontal de pared" a
+  **Horizontal (faja)**; "Sep. verticales" a **Sep. columnas**.
+
 ## [1.16.0] - 2026-10-18
 ### Agregado
 - **📏 Medir** en el 3D: tocás dos hierros o dos puntos y muestra la distancia (total, horizontal y vertical). Entre

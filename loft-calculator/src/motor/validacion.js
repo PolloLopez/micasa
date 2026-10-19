@@ -70,6 +70,7 @@ export function validarParametros(params) {
       anotar(`paredes.${lado}.etiqueta`, `La etiqueta puede tener hasta ${LARGO_MAXIMO_ETIQUETA} letras`);
     }
     if (typeof pared?.mostrarEtiqueta !== 'boolean') anotar(`paredes.${lado}.mostrarEtiqueta`, 'Valor inválido');
+    if (!['no', 'extremos', 'todos'].includes(pared?.riostras)) anotar(`paredes.${lado}.riostras`, 'Elegí sin, en las puntas o en todos');
   });
   if (!esIdValido(params.panelTecho)) anotar('panelTecho', 'Elegí un tipo de panel');
   if (!Array.isArray(params.piezasEliminadas) || !params.piezasEliminadas.every(esIdValido) || params.piezasEliminadas.length > 5000) {
@@ -317,6 +318,10 @@ export function inicioAbertura(abertura, params) {
 export function validarAbertura(abertura, params) {
   const { ancho, alto, offsetHorizontal, alturaAntepecho, lado } = abertura;
   if (!LADOS.includes(lado)) return 'Elegí una pared';
+  // v1.17: etiqueta propia (opcional; si falta se muestra solo el número).
+  if (abertura.etiqueta !== undefined && (typeof abertura.etiqueta !== 'string' || abertura.etiqueta.length > LARGO_MAXIMO_ETIQUETA)) {
+    return `La etiqueta puede tener hasta ${LARGO_MAXIMO_ETIQUETA} letras`;
+  }
   if (!(ancho > 0) || !(alto > 0)) return 'Ancho y alto deben ser mayores a 0';
   if (offsetHorizontal < 0 || alturaAntepecho < 0) return 'Las distancias no pueden ser negativas';
 
@@ -341,17 +346,44 @@ export function validarAbertura(abertura, params) {
  */
 export function copiarAbertura(abertura, aberturas, params, id) {
   const SEPARACION = 0.3; // 30 cm entre la original y la copia
-  const pisaOtra = (nueva) => {
-    const a = inicioAbertura(nueva, params);
-    return aberturas.some((op) => {
-      if (op.lado !== nueva.lado) return false;
-      const b = inicioAbertura(op, params);
-      return a < b + op.ancho - 1e-9 && b < a + nueva.ancho - 1e-9;
-    });
-  };
+  const pisaOtra = (nueva) => pisaOtraAbertura(nueva, aberturas, params);
   const paso = abertura.ancho + SEPARACION;
   const candidatas = [abertura.offsetHorizontal + paso, abertura.offsetHorizontal - paso]
     .filter((offset) => offset >= 0)
     .map((offset) => ({ ...abertura, id, offsetHorizontal: Number(offset.toFixed(4)) }));
   return candidatas.find((c) => !validarAbertura(c, params) && !pisaOtra(c)) ?? { ...abertura, id };
+}
+
+/** true si `nueva` se superpone (a lo largo de la pared) con otra abertura de la misma pared. */
+export function pisaOtraAbertura(nueva, aberturas, params) {
+  const a = inicioAbertura(nueva, params);
+  return aberturas.some((op) => {
+    if (op.id === nueva.id || op.lado !== nueva.lado) return false;
+    const b = inicioAbertura(op, params);
+    return a < b + op.ancho - 1e-9 && b < a + nueva.ancho - 1e-9;
+  });
+}
+
+/** Medidas de arranque de una puerta y de una ventana nuevas. */
+const ABERTURA_NUEVA = {
+  puerta: { ancho: 0.9, alto: 2.05, alturaAntepecho: 0 },
+  ventana: { ancho: 1, alto: 1, alturaAntepecho: 1 },
+};
+
+/**
+ * Puerta o ventana nueva en una pared (v1.17: "+ Puerta" / "+ Ventana" dentro de cada pared).
+ * Se busca el primer lugar libre desde la esquina izquierda (cada 10 cm, dejando 30 cm de la esquina).
+ * @returns {{ abertura } | { error }}
+ */
+export function aberturaNueva(tipo, lado, aberturas, params, id) {
+  const base = {
+    id, tipo, lado, ladoReferencia: 'izquierda', offsetHorizontal: 0.3, etiqueta: '', mostrarEtiqueta: true,
+    ...ABERTURA_NUEVA[tipo],
+  };
+  const largo = largoLado(lado, params);
+  for (let offset = 0.3; offset + base.ancho <= largo + 1e-9; offset += 0.1) {
+    const prueba = { ...base, offsetHorizontal: Number(offset.toFixed(2)) };
+    if (!validarAbertura(prueba, params) && !pisaOtraAbertura(prueba, aberturas, params)) return { abertura: prueba };
+  }
+  return { error: `No hay lugar libre para una ${tipo} de ${base.ancho.toFixed(2)} m en esta pared` };
 }

@@ -88,6 +88,11 @@ valores inválidos.
 | 2026-10-18 | Juntas de paneles calculadas en `revestimientos.js` (`juntasDePano`) con la misma regla que la cuenta | Lo que se dibuja es lo que se compra: las tiras arrancan en la esquina izquierda vista desde afuera, igual que en el presupuesto. |
 | 2026-10-18 | Versión inyectada por Vite (`define: __VERSION_APP__` desde package.json) | Una sola fuente (package.json, que ya sube con cada versión): nunca queda desactualizada en pantalla. |
 
+| 2026-10-19 | Aberturas dentro de cada pared (sin tarjeta aparte); `etiqueta`/`mostrarEtiqueta` opcionales en cada abertura | Pedido de Leandro: "unificar pared y aberturas". Las aberturas siguen en su lista propia (no dentro de params.paredes) para no migrar datos ni romper ids; la pantalla las agrupa por pared. |
+| 2026-10-19 | Montantes por pared (cada X m entre columnas) y en los vanos partidos en montante de dintel / de antepecho; jambas de piso a solera | Es como se arma una pared liviana: verticales completos al costado del vano y cortos arriba y abajo. Mismo renglón "Montantes" para los cortos. |
+| 2026-10-19 | Riostras en cruz de pared en el renglón de riostras compartido; un vano entre columnas con abertura no lleva | La cruz taparía la abertura. Un solo renglón de riostras para escalera, grada y paredes. |
+| 2026-10-19 | Glosario unificado con Leandro (travesaño de antepecho, horizontales/fajas, montante) | Que la app hable como el herrero. Los ids internos (`alfeizar`, `horizontal`) no cambian para no romper proyectos guardados. |
+
 ## Supuestos de obra (en `src/motor/constantes.js`)
 Piso del entrepiso a 2,30 m · merma de corte 3 mm · excedente de barras 1 % (editable; depende del proveedor) · placa OSB 2,44 × 1,22 + 10 % de recortes ·
 techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 cm, comodidad 60-65 cm, paso libre 2 m · refuerzo de vano = dintel + 2 jambas (+ alféizar en ventanas).
@@ -100,8 +105,15 @@ techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 
 - **Paso**: distancia entre ejes de dos piezas iguales consecutivas (ej. paso de tirantes 0,40 m).
 - **Lados A, B, C, D**: nombre fijo de cada pared (A = z+, se recorren en orden). El **frente** es el lado elegido;
   enfrente está el **fondo** y, mirando el frente desde afuera, a la derecha el **lateral derecho**.
-- **Verticales** (eje X de la pared): columnas, con su separación a lo largo de cada pared.
-- **Horizontales** (eje Y de la pared): perfiles en altura donde se fijan los paneles (antes "correas" o "fajas").
+- **Columnas** (antes "verticales"): verticales principales de la pared, con su separación a lo largo de cada pared.
+- **Montante**: vertical liviano entre columnas, para fijar el revestimiento. En una abertura se parte en
+  **montante de dintel** (arriba del vano) y **montante de antepecho** (abajo de la ventana).
+- **Horizontales (fajas)**: perfiles en altura donde se fijan los paneles.
+- **Vano**: el hueco de una abertura. **Dintel**: horizontal arriba del vano. **Travesaño de antepecho** (antes
+  "alféizar", que es la repisa del albañil): horizontal debajo de la ventana. **Jamba**: vertical a cada lado del
+  vano, de piso a solera (si hay una columna a menos de 10 cm, la columna hace de jamba).
+- **Solera superior**: perfil de arriba de la pared (sigue la pendiente). **Marco de piso**: perfil perimetral del piso.
+- **Riostra en cruz** (cruz de San Andrés): dos diagonales entre dos verticales para rigidizar.
 - **Estructura de piso / de piso 2**: perfiles que forman el piso de planta baja y del entrepiso (antes "tirantes").
 - **Transversales**: tramos cortos entre los perfiles de un piso para que no arqueen. Cada piso tiene su separación.
 - **Tipo de panel**: revestimiento (ej. panel PUR, chapa) con precio por m² y color; lo elige cada pared y el techo.
@@ -141,4 +153,5 @@ techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 
 - 2026-10-16 v1.14.1: marcos de aberturas aparte, paredes plegables, editor más claro.
 - 2026-10-16 v1.15.0: tarjeta Materiales, revestimientos a medida / en placa, ubicación, revestimiento interior, duplicar aberturas.
 - 2026-10-18 v1.16.0: medir, aberturas desde el 3D, copiar/pegar, duplicar piezas, juntas de paneles, planta de la escalera, versión visible.
+- 2026-10-19 v1.17.0: aberturas dentro de cada pared con etiqueta, montantes, riostras de pared, jambas de piso a solera, glosario unificado.
 - Nota: el elemento `id="flonnect-my-app"` que aparece en la página no es de la app: lo inyecta la extensión Flonnect (grabador de pantalla) de Chrome.

@@ -14,7 +14,7 @@ import LoftCanvas from './LoftCanvas.jsx';
 import CampoNumero from './componentes/CampoNumero.jsx';
 import SelectorLado from './componentes/SelectorLado.jsx';
 import CampoSelect from './componentes/CampoSelect.jsx';
-import PanelAberturas from './componentes/PanelAberturas.jsx';
+import AberturasDePared from './componentes/AberturasDePared.jsx';
 import TarjetaMateriales from './componentes/TarjetaMateriales.jsx';
 import PanelEscalera from './componentes/PanelEscalera.jsx';
 import PanelGrada from './componentes/PanelGrada.jsx';
@@ -502,8 +502,11 @@ export default function App() {
           {/* PAREDES (PANELES) */}
           <Tarjeta id="paredes" titulo="Paredes">
             <p className="nota">
-              <strong>Verticales</strong>: separación de columnas a lo largo de la pared (eje X).{' '}
-              <strong>Horizontales</strong>: separación en altura (eje Y).
+              <strong>Columnas</strong>: verticales principales a lo largo de la pared.{' '}
+              <strong>Horizontales (fajas)</strong>: separación en altura.{' '}
+              <strong>Montantes</strong>: verticales livianos entre columnas (en una abertura quedan arriba del dintel
+              y abajo del antepecho). Cada pared tiene sus <strong>aberturas</strong>; las medidas se toman mirando la
+              pared desde afuera y el <strong>antepecho</strong> es la altura del piso a la ventana.
             </p>
             {LADOS.map((lado) => {
               const [h1, h2] = alturasPared(lados[lado], params);
@@ -532,11 +535,18 @@ export default function App() {
                       onChange={(e) => cambiar(`paredes.${lado}.etiqueta`)(e.target.value)} />
                   </div>
                   <div className="grid-params">
-                    {medida(`paredes.${lado}.separacionVerticales`, 'Sep. verticales')}
-                    {medida(`paredes.${lado}.separacionHorizontales`, 'Sep. horizontales')}
+                    {medida(`paredes.${lado}.separacionVerticales`, 'Sep. columnas')}
+                    {medida(`paredes.${lado}.separacionHorizontales`, 'Sep. horizontales (fajas)')}
+                    {medida(`paredes.${lado}.separacionMontantes`, 'Montantes cada (0 = sin)')}
+                    <CampoSelect etiqueta="Riostras en cruz" valor={params.paredes[lado].riostras}
+                      opciones={[['no', 'Sin riostras'], ['extremos', 'En las puntas'], ['todos', 'En todos los vanos']]}
+                      onCambio={cambiar(`paredes.${lado}.riostras`)} />
                     {selectorPanel(`paredes.${lado}.panel`, 'Revestimiento exterior', params.paredes[lado].panel)}
                     {selectorPanel(`paredes.${lado}.panelInterior`, 'Revestimiento interior', params.paredes[lado].panelInterior, true)}
                   </div>
+                  {/* Aberturas de esta pared (v1.17): antes estaban en una tarjeta aparte. */}
+                  <AberturasDePared lado={lado} aberturas={aberturasValidas} params={params} unidad={unidad}
+                    onAgregar={agregarAbertura} onActualizar={actualizarAbertura} onQuitar={quitarAbertura} />
                   </div>
                 </div>
               );
@@ -681,11 +691,6 @@ export default function App() {
               </>
             )}
           </Tarjeta>
-
-          {esConstruccion && (<>
-            <PanelAberturas aberturas={aberturasValidas} params={params} unidad={unidad}
-              onAgregar={agregarAbertura} onActualizar={actualizarAbertura} onQuitar={quitarAbertura} />
-          </>)}
 
           {/* Qué es cada material (v1.15); los revestimientos solo en una construcción. */}
           <TarjetaMateriales items={items} catalogo={catalogo} revestimientos={esConstruccion ? paneles : null}

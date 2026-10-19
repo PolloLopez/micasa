@@ -23,6 +23,7 @@ const CORRIMIENTO_COPIA = 0.5; // la copia aparece a 50 cm de la original
 /** Renglón del presupuesto de cada tipo de pieza (el que usa el motor). */
 export const INSUMO_DE_TIPO = {
   columna: INSUMO.COLUMNA,
+  montante: INSUMO.MONTANTE, 'montante-dintel': INSUMO.MONTANTE, 'montante-antepecho': INSUMO.MONTANTE,
   dintel: INSUMO.MARCO_ABERTURA, jamba: INSUMO.MARCO_ABERTURA, alfeizar: INSUMO.MARCO_ABERTURA,
   'marco-piso': INSUMO.MARCO, solera: INSUMO.MARCO, 'marco-piso2': INSUMO.MARCO,
   'viga-cierre': INSUMO.VIGA_CIERRE,

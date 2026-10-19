@@ -26,6 +26,9 @@
 //   - tipos de panel: colorInterior (cara de adentro); los viejos toman el gris claro de fábrica.
 // v1.10 -> v1.11:
 //   - nuevo: montaje industrial (componentes); los proyectos viejos traen el de ejemplo, sin usarlo.
+// v1.16 -> v1.17:
+//   - cada pared: separacionMontantes (0 = sin) y riostras ('no' | 'extremos' | 'todos').
+//   - las aberturas pueden traer etiqueta y mostrarEtiqueta (si faltan: sin texto, se muestra el número).
 // v1.15 -> v1.16:
 //   - nuevo: piezasAgregadas (piezas duplicadas a mano, ver motor/piezasAgregadas.js).
 // v1.14 -> v1.15:
@@ -95,6 +98,8 @@ export function migrarParams(params) {
           ...pared,
           panel: pared.panel ?? PARAMS_INICIALES.paredes[lado].panel,
           panelInterior: typeof pared.panelInterior === 'string' ? pared.panelInterior : '', // v1.15: '' = sin revestimiento interior
+          separacionMontantes: pared.separacionMontantes ?? 0, // v1.17: sin montantes (como antes)
+          riostras: pared.riostras ?? 'no', // v1.17: sin riostras en cruz (como antes)
           etiqueta: pared.etiqueta ?? '', // v1.8: '' = nombre automático (Frente, Lateral…)
           mostrarEtiqueta: pared.mostrarEtiqueta ?? true,
         } : pared];

@@ -25,6 +25,7 @@ export const LADOS = ['A', 'B', 'C', 'D'];
 // IDs fijos del catálogo: el cálculo sabe qué insumo usar para cada pieza.
 export const INSUMO = {
   COLUMNA: 'columna',
+  MONTANTE: 'montante', // vertical liviano entre columnas (v1.17)
   MARCO_ABERTURA: 'marcoAbertura', // dintel, jambas y alféizar de puertas y ventanas (v1.14.1)
   MARCO: 'marco',
   PISO: 'piso',
@@ -132,6 +133,7 @@ export const LIMITES = {
 export const LIMITES_PARED = {
   separacionVerticales: { min: 0.3, max: 10 },
   separacionHorizontales: { min: 0.2, max: 2 },
+  separacionMontantes: { min: 0.2, max: 5, opcional: true }, // v1.17: 0 = sin montantes
 };
 
 // Límites de la escalera (ver motor/escalera.js).

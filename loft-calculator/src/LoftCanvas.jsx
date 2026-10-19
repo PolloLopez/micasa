@@ -25,7 +25,7 @@ import { describirPieza } from './descripcionPiezas.js';
 import { seccionDesdePerfil } from './motor/canos.js';
 import { INSUMO } from './motor/constantes.js';
 import EditorPieza from './componentes/EditorPieza.jsx';
-import { FilaAbertura } from './componentes/PanelAberturas.jsx';
+import { FilaAbertura } from './componentes/AberturasDePared.jsx';
 import { juntasDePano } from './motor/revestimientos.js';
 import { medirEntre, puntoMasCercanoEnPieza } from './motor/medicion.js';
 
@@ -35,6 +35,9 @@ const ESTILO_PIEZA = {
   dintel: { capa: 'columnas', seccion: 0.08 },
   jamba: { capa: 'columnas', seccion: 0.08 },
   alfeizar: { capa: 'columnas', seccion: 0.08 },
+  montante: { capa: 'columnas', seccion: 0.05 },
+  'montante-dintel': { capa: 'columnas', seccion: 0.05 },
+  'montante-antepecho': { capa: 'columnas', seccion: 0.05 },
   'marco-piso': { capa: 'marcos', seccion: 0.12 },
   solera: { capa: 'marcos', seccion: 0.12 },
   'marco-piso2': { capa: 'marcos', seccion: 0.12 },
@@ -86,6 +89,7 @@ function seccionDe(p, catalogo, estilo) {
 const capaDe = (p) => {
   if (p.tipo === 'riostra' && p.grupos.includes('grada')) return 'grada';
   if (p.tipo === 'riostra' && p.grupos.includes('montaje')) return 'montaje';
+  if (p.tipo === 'riostra' && LADOS.some((l) => p.grupos.includes(l))) return 'columnas'; // riostras de pared (v1.17)
   return ESTILO_PIEZA[p.tipo]?.capa;
 };
 const ESPESOR_ESCALON = 0.05; // madera de 2"
@@ -417,10 +421,11 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
       malla.rotation.y = rotacionY;
       malla.userData.idAbertura = op.id; // se puede seleccionar con un clic (v1.16)
       grupo.add(malla);
-      // Número de la abertura (el mismo de la lista: #1, #2…), un poco afuera de la pared.
-      if (capas.etiquetasAberturas) {
+      // Número de la abertura (el mismo de la lista: #1, #2…) y su etiqueta, un poco afuera de la pared.
+      if (capas.etiquetasAberturas && op.mostrarEtiqueta !== false) {
         const geo = lados[op.lado];
-        const cartelito = cartelChico(`#${i + 1}`, elegida ? 'rgba(202,138,4,0.95)' : 'rgba(2,132,199,0.9)');
+        const texto = op.etiqueta?.trim() ? `#${i + 1} ${op.etiqueta.trim()}` : `#${i + 1}`;
+        const cartelito = cartelChico(texto, elegida ? 'rgba(202,138,4,0.95)' : 'rgba(2,132,199,0.9)');
         cartelito.position.set(x - geo.direccion[1] * 0.35, y + op.alto / 2 + 0.2, z + geo.direccion[0] * 0.35);
         grupo.add(cartelito);
       }
@@ -902,8 +907,8 @@ export default function LoftCanvas({
             <span onClick={() => alternarCapa('juntas')} title="Dónde termina cada tira o placa: para acomodar las aberturas">Juntas de paneles</span>
           </span>
           <span className="capa">
-            <input type="checkbox" checked={capas.etiquetasAberturas} onChange={() => alternarCapa('etiquetasAberturas')} aria-label="Mostrar números de aberturas" />
-            <span onClick={() => alternarCapa('etiquetasAberturas')}>Nº de aberturas</span>
+            <input type="checkbox" checked={capas.etiquetasAberturas} onChange={() => alternarCapa('etiquetasAberturas')} aria-label="Mostrar etiquetas de aberturas" />
+            <span onClick={() => alternarCapa('etiquetasAberturas')}>Etiquetas de aberturas</span>
           </span>
         </>)}
         {/* Opacidad: de "se ve a través" a sólido, para ver cómo queda cerrada. */}
