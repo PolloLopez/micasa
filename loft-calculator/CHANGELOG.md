@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.18.0] - 2026-10-19
+### Agregado
+- **Pestañas** en el panel: Estructura · Paredes y aberturas · Materiales · Presupuesto (con el total a la vista).
+  Se ve una sección a la vez (el panel pasó de ~7.400 px de alto a ~2.200). Se recuerda la última por navegador.
+  Al imprimir salen todas.
+- **Deshacer / rehacer** todo el proyecto (medidas, paredes, aberturas, piezas, materiales y precios): botones ↶ ↷
+  en el encabezado y Ctrl+Z / Ctrl+Y (o Ctrl+Shift+Z), hasta 50 pasos. Lo que se escribe seguido en un campo se
+  deshace junto. Abrir otro proyecto arranca el historial de cero.
+- **Celular**: barra de pestañas fija abajo con una pestaña más, **3D**: o se ve el modelo o se ven los datos.
+  Encabezado más corto con un menú **⋯** para lo secundario. Botones y campos de 44 px para tocar con el dedo.
+- Foco de teclado visible en todos los botones; ← y → pasan de una pestaña a otra.
+
 ## [1.17.0] - 2026-10-19
 ### Agregado
 - **Aberturas dentro de cada pared**: cada pared muestra sus puertas y ventanas con "+ Puerta" / "+ Ventana" (van al

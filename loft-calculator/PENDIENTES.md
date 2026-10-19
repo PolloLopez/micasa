@@ -30,14 +30,14 @@ Quién la usa: el herrero (y Leandro) cargando una obra, en la compu del taller 
 Medido: panel derecho de ~7.400 px de alto en escritorio y ~10.000 px en el celular, 155 campos, 9 tarjetas
 abiertas a la vez, 15+ botones de menos de 40 px en el celular.
 
-### 🔴 Lo que más fricción genera
-- [ ] **Panel demasiado largo**: 9 tarjetas abiertas y 155 campos, sin índice. Propuesta: 3 pestañas o un índice
+### 🔴 Lo que más fricción genera (✅ resuelto en v1.18.0)
+- [x] **Panel demasiado largo**: 9 tarjetas abiertas y 155 campos, sin índice. Propuesta: 3 pestañas o un índice
       fijo (Estructura · Paredes y aberturas · Materiales y presupuesto); tarjetas plegadas salvo la que se usa;
       un resumen en el título de cada tarjeta plegada (ej. "Paredes · 4 · 3 aberturas", "Presupuesto · $ 7,8 M").
-- [ ] **No hay deshacer**: la ✕ de una abertura, de un revestimiento o "Eliminar pieza" no se pueden deshacer con
+- [x] **No hay deshacer**: la ✕ de una abertura, de un revestimiento o "Eliminar pieza" no se pueden deshacer con
       Ctrl+Z. Propuesta: historial deshacer/rehacer (Ctrl+Z / Ctrl+Y) de las medidas, aberturas y piezas, y un
       aviso "Abertura #2 quitada · Deshacer" por unos segundos.
-- [ ] **Celular**: el 3D ocupa toda la primera pantalla y los datos quedan abajo; el encabezado ocupa 3 renglones;
+- [x] **Celular**: el 3D ocupa toda la primera pantalla y los datos quedan abajo; el encabezado ocupa 3 renglones;
       botones de menos de 40 px (difíciles de tocar con el dedo en obra). Propuesta: barra inferior fija con
       "3D · Datos · Presupuesto", botones de 44 px, encabezado en un renglón con menú "⋯".
 
@@ -60,7 +60,8 @@ abiertas a la vez, 15+ botones de menos de 40 px en el celular.
 - [ ] **Medir**: poder dejar varias medidas fijas en el 3D (hoy se ve una por vez).
 
 ### 🟢 Prolijidad
-- [ ] **Foco de teclado visible** en todos los botones (hoy solo campos y títulos de tarjetas).
+- [x] **Foco de teclado visible** en todos los botones (v1.18.0).
+- [ ] **Encabezado en el celular**: todavía ocupa 3 renglones (título, nombre, botones); evaluar nombre del proyecto en el menú.
 - [ ] **Atajos a la vista**: un "?" que liste Ctrl+C / Ctrl+V / Esc / (futuro Ctrl+Z).
 - [ ] **Consistencia de botones**: "Duplicar" y "✕" de aberturas vs "+ Agregar revestimiento" grande y verde vs
       "+ Puerta" secundario; un mismo estilo para la misma acción.
@@ -135,6 +136,11 @@ abiertas a la vez, 15+ botones de menos de 40 px en el celular.
 - [ ] Piezas eliminadas/editadas se reconocen por su posición: si una medida las mueve, el cambio deja de
       aplicarse (se avisa en la lista). Evaluar si hace falta algo más robusto.
 - [ ] Migrar el motor a Django cuando arranque Construcción Modular (los tests sirven de especificación).
+
+## ✅ Resuelto en v1.18.0 (2026-10-19)
+- [x] Pestañas (Estructura · Paredes y aberturas · Materiales · Presupuesto con total).
+- [x] Deshacer / rehacer del proyecto (↶ ↷, Ctrl+Z / Ctrl+Y, 50 pasos).
+- [x] Celular: barra de pestañas abajo con "3D", menú ⋯, botones de 44 px. Foco visible en botones.
 
 ## ✅ Resuelto en v1.17.0 (2026-10-19)
 - [x] Aberturas dentro de cada pared, con etiqueta en el 3D.

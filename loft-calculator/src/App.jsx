@@ -16,6 +16,7 @@ import SelectorLado from './componentes/SelectorLado.jsx';
 import CampoSelect from './componentes/CampoSelect.jsx';
 import AberturasDePared from './componentes/AberturasDePared.jsx';
 import TarjetaMateriales from './componentes/TarjetaMateriales.jsx';
+import BarraPestanas from './componentes/BarraPestanas.jsx';
 import PanelEscalera from './componentes/PanelEscalera.jsx';
 import PanelGrada from './componentes/PanelGrada.jsx';
 import PanelMontaje from './componentes/PanelMontaje.jsx';
@@ -41,6 +42,7 @@ import {
   hayCambiosSinGuardar, esBibliotecaValida, crearRespaldo, importarRespaldo, nuevoId,
 } from './proyecto/biblioteca.js';
 import MisProyectos from './componentes/MisProyectos.jsx';
+import { historialVacio, registrarCambio, deshacer, rehacer } from './proyecto/historial.js';
 import { describirPieza } from './descripcionPiezas.js';
 import './App.css';
 
@@ -88,6 +90,13 @@ function conValor(obj, ruta, valor) {
   return { ...obj, [clave]: nuevo };
 }
 
+/** Total cortito para la pestaña: "$ 7,8 M", "$ 950 mil". */
+function pesosCortos(n) {
+  if (n >= 1e6) return `$ ${(n / 1e6).toLocaleString('es-AR', { maximumFractionDigits: 1 })} M`;
+  if (n >= 1e3) return `$ ${Math.round(n / 1e3).toLocaleString('es-AR')} mil`;
+  return `$ ${Math.round(n)}`;
+}
+
 export default function App() {
   const [unidad, setUnidad] = useState('m');
   const [paramsGuardados, setParams] = useEstadoGuardado('params', PARAMS_INICIALES, paramsGuardadosValidos, migrarParams);
@@ -107,6 +116,58 @@ export default function App() {
   // Ver u ocultar el 3D: oculto, el panel de datos usa todo el ancho (cómodo para cargar en el celular).
   const [ver3D, setVer3D] = useEstadoGuardado('ver3D', true, (v) => typeof v === 'boolean');
   const [mostrarProyectos, setMostrarProyectos] = useState(false);
+  const [menuAbierto, setMenuAbierto] = useState(false); // menú "⋯" del encabezado en el celular
+
+  // --- Deshacer / rehacer (v1.18) ---
+  // "Foto" del proyecto: lo que Ctrl+Z puede volver atrás (medidas, aberturas, materiales y precios).
+  const fotoActual = useMemo(() => ({ params: paramsGuardados, aberturas, catalogo }), [paramsGuardados, aberturas, catalogo]);
+  const [historial, setHistorial] = useState(historialVacio);
+  const fotoAnteriorRef = useRef(fotoActual);
+  const aplicandoFotoRef = useRef(false); // true mientras se aplica un deshacer/rehacer o se abre un proyecto
+  useEffect(() => {
+    if (fotoAnteriorRef.current === fotoActual) return;
+    // La foto de ANTES se lee acá, no adentro de setHistorial: esa función React la corre más tarde,
+    // cuando la línea de abajo ya guardó la foto nueva (y se anotaría la nueva como si fuera la vieja).
+    const anterior = fotoAnteriorRef.current;
+    const ahora = Date.now();
+    if (aplicandoFotoRef.current) aplicandoFotoRef.current = false; // no es un cambio del usuario
+    else setHistorial((h) => registrarCambio(h, anterior, ahora));
+    fotoAnteriorRef.current = fotoActual;
+  }, [fotoActual]);
+  /** Pone en pantalla una foto del historial (sin anotarla como cambio nuevo). */
+  const aplicarFoto = (foto) => {
+    aplicandoFotoRef.current = true;
+    setParams(foto.params);
+    setAberturas(foto.aberturas);
+    setCatalogo(foto.catalogo);
+  };
+  const deshacerCambio = () => {
+    const r = deshacer(historial, fotoActual);
+    if (!r) return;
+    setHistorial(r.historial);
+    aplicarFoto(r.foto);
+  };
+  const rehacerCambio = () => {
+    const r = rehacer(historial, fotoActual);
+    if (!r) return;
+    setHistorial(r.historial);
+    aplicarFoto(r.foto);
+  };
+  // Ctrl+Z / Ctrl+Y (o Ctrl+Shift+Z). Dentro de un campo de texto se deja el deshacer propio del campo.
+  const deshacerRef = useRef(deshacerCambio);
+  const rehacerRef = useRef(rehacerCambio);
+  deshacerRef.current = deshacerCambio;
+  rehacerRef.current = rehacerCambio;
+  useEffect(() => {
+    const alTeclear = (ev) => {
+      if (!(ev.ctrlKey || ev.metaKey) || ev.target.closest?.('input, textarea, select, [contenteditable="true"]')) return;
+      const tecla = ev.key.toLowerCase();
+      if (tecla === 'z' && !ev.shiftKey) { ev.preventDefault(); deshacerRef.current(); }
+      else if (tecla === 'y' || (tecla === 'z' && ev.shiftKey)) { ev.preventDefault(); rehacerRef.current(); }
+    };
+    window.addEventListener('keydown', alTeclear);
+    return () => window.removeEventListener('keydown', alTeclear);
+  }, []);
 
   // --- Cálculos (solo se rehacen si cambian sus datos) ---
   // Por seguridad se ignoran aberturas que no entren (ej. datos viejos guardados).
@@ -123,6 +184,29 @@ export default function App() {
     [estructura, catalogo, params.excedenteBarras]
   );
   const paneles = useMemo(() => tiposDePanel(catalogo), [catalogo]);
+
+  // --- Pestañas del panel (v1.18) ---
+  // La elegida se recuerda por navegador. En el celular hay una más, "3D" (vistaMovil):
+  // ahí se ve solo el modelo; en las demás, solo los datos (el 3D tapaba toda la pantalla).
+  const [pestanaGuardada, setPestanaGuardada] = useEstadoGuardado('pestana', 'estructura', (v) => typeof v === 'string');
+  const [vistaMovil, setVistaMovil] = useState('datos');
+  const pestanas = [
+    { clave: '3d', nombre: '3D', soloMovil: true },
+    { clave: 'estructura', nombre: esGrada ? 'Grada' : esMontaje ? 'Montaje' : 'Estructura' },
+    ...(esConstruccion ? [{ clave: 'paredes', nombre: 'Paredes y aberturas', corto: 'Paredes' }] : []),
+    { clave: 'materiales', nombre: 'Materiales' },
+    { clave: 'presupuesto', nombre: 'Presupuesto', detalle: pesosCortos(total) },
+  ];
+  // Si la guardada no existe en este tipo de proyecto (ej. "Paredes" en una grada), se usa la primera.
+  const pestanaActiva = pestanas.some((p) => p.clave === pestanaGuardada && !p.soloMovil) ? pestanaGuardada : 'estructura';
+  const elegirPestana = (clave) => {
+    if (clave === '3d') {
+      setVistaMovil('3d');
+      return;
+    }
+    setVistaMovil('datos');
+    setPestanaGuardada(clave);
+  };
   const lados = useMemo(() => geometriaLados(params), [params]);
 
   // --- Handlers (manejadores de eventos) ---
@@ -205,9 +289,9 @@ export default function App() {
   /** Reemplaza todo el proyecto en pantalla (nuevo, ejemplo, de la lista o de un archivo). */
   const cargarProyecto = (proyecto, idEnBiblioteca = null) => {
     setNombreProyecto(proyecto.nombre);
-    setParams(proyecto.params);
-    setAberturas(proyecto.aberturas);
-    setCatalogo(proyecto.catalogo);
+    // Otro proyecto: el historial arranca de cero (Ctrl+Z no vuelve al proyecto anterior).
+    setHistorial(historialVacio());
+    aplicarFoto(proyecto);
     setColores(proyecto.colores);
     setIdProyectoActual(idEnBiblioteca);
   };
@@ -423,8 +507,18 @@ export default function App() {
           </span>
         </div>
         <div className="header-actions no-print">
-          <button className="btn-sec" onClick={() => setMostrarProyectos(true)}>Mis proyectos ({biblioteca.length})</button>
+          {/* Deshacer / rehacer (v1.18): también Ctrl+Z y Ctrl+Y. */}
+          <button className="btn-sec btn-historial" onClick={deshacerCambio} disabled={historial.pasado.length === 0}
+            title="Deshacer (Ctrl+Z)" aria-label="Deshacer">↶</button>
+          <button className="btn-sec btn-historial" onClick={rehacerCambio} disabled={historial.futuro.length === 0}
+            title="Rehacer (Ctrl+Y)" aria-label="Rehacer">↷</button>
           <button className="btn-print" onClick={guardar} disabled={entradaActual && !cambiosSinGuardar}>Guardar</button>
+          {/* En el celular el resto va en un menú "⋯" (el encabezado ocupaba 3 renglones). */}
+          <button className="btn-sec solo-movil" onClick={() => setMenuAbierto((v) => !v)} aria-expanded={menuAbierto}
+            aria-controls="acciones-secundarias" aria-label="Más acciones">⋯</button>
+          <div id="acciones-secundarias" className={`acciones-secundarias${menuAbierto ? ' abierto' : ''}`}
+            onClick={(ev) => { if (ev.target.closest('button')) setMenuAbierto(false); }}>
+          <button className="btn-sec" onClick={() => setMostrarProyectos(true)}>Mis proyectos ({biblioteca.length})</button>
           <button className="btn-sec" onClick={guardarComo}>Guardar como…</button>
           <button className="btn-sec" onClick={compartirLink} title="Copia un link que abre este proyecto con tus medidas">Compartir</button>
           <button className="btn-sec" onClick={() => setVer3D((v) => !v)} aria-pressed={!ver3D}>
@@ -437,6 +531,7 @@ export default function App() {
             <option value="mm">Milímetros</option>
           </select>
           <button className="btn-print" onClick={() => window.print()}>Imprimir / PDF</button>
+          </div>
         </div>
       </header>
 
@@ -459,7 +554,7 @@ export default function App() {
         </div>
       )}
 
-      <main className={`layout${ver3D ? '' : ' sin-visor'}`}>
+      <main className={`layout${ver3D ? '' : ' sin-visor'} movil-${vistaMovil}`}>
         <div className="columna-visor">
           <LoftCanvas params={params} estructura={estructura} aberturas={aberturasValidas} paneles={paneles}
             colores={colores} catalogo={catalogo} unidad={unidad}
@@ -475,6 +570,11 @@ export default function App() {
             <img ref={imagenImpresionRef} alt="Vista 3D de la estructura" />
             <figcaption>{nombreProyecto || 'Proyecto sin nombre'} · vista 3D al {new Date().toLocaleDateString('es-AR')}</figcaption>
           </figure>
+          {/* Pestañas (v1.18): una sección a la vez. En el celular la barra va fija abajo, con "3D". */}
+          <BarraPestanas pestanas={pestanas} activa={vistaMovil === '3d' ? '3d' : pestanaActiva} onElegir={elegirPestana} />
+
+          <section id="pestana-estructura" role="tabpanel" aria-labelledby="boton-estructura"
+            className={`pestana${pestanaActiva === 'estructura' ? '' : ' oculta'}`}>
           {/* GRADA (proyecto propio): solo su tarjeta, las piezas y el presupuesto. */}
           {esGrada && (
             <PanelGrada params={params} resumen={estructura.grada.resumen} unidad={unidad} cambiar={cambiar}
@@ -497,60 +597,6 @@ export default function App() {
               <SelectorLado etiqueta="¿Qué lado es el frente?" valor={params.ladoFrente} params={params}
                 onCambio={cambiar('ladoFrente')} ocultarFrente />
             </div>
-          </Tarjeta>
-
-          {/* PAREDES (PANELES) */}
-          <Tarjeta id="paredes" titulo="Paredes">
-            <p className="nota">
-              <strong>Columnas</strong>: verticales principales a lo largo de la pared.{' '}
-              <strong>Horizontales (fajas)</strong>: separación en altura.{' '}
-              <strong>Montantes</strong>: verticales livianos entre columnas (en una abertura quedan arriba del dintel
-              y abajo del antepecho). Cada pared tiene sus <strong>aberturas</strong>; las medidas se toman mirando la
-              pared desde afuera y el <strong>antepecho</strong> es la altura del piso a la ventana.
-            </p>
-            {LADOS.map((lado) => {
-              const [h1, h2] = alturasPared(lados[lado], params);
-              return (
-                <div key={lado} className={`pared ${paredesAbiertas[lado] ? 'abierta' : 'cerrada'}`}>
-                  {/* El título pliega / despliega la pared (aria-expanded para lectores de pantalla). */}
-                  <button type="button" className="pared-titulo plegable" aria-expanded={paredesAbiertas[lado]}
-                    aria-controls={`pared-${lado}`} onClick={() => alternarPared(lado)}>
-                    <span className="flecha" aria-hidden="true">▸</span>
-                    <strong>{nombreLado(lado, params.ladoFrente)}</strong>
-                    {params.paredes[lado].etiqueta.trim() && <em>“{params.paredes[lado].etiqueta.trim()}”</em>}
-                    <span>lado {lado} · {lados[lado].largo.toFixed(2)} m · alto {h1.toFixed(2)}{Math.abs(h1 - h2) > 0.005 ? ` a ${h2.toFixed(2)}` : ''} m</span>
-                  </button>
-                  <div className="pared-cuerpo" id={`pared-${lado}`}>
-                  <div className="etiqueta-pared">
-                    <label className="capa">
-                      <input type="checkbox" checked={params.paredes[lado].mostrarEtiqueta}
-                        aria-label={`Mostrar la etiqueta de ${nombreLado(lado, params.ladoFrente)} en el 3D`}
-                        onChange={(e) => cambiar(`paredes.${lado}.mostrarEtiqueta`)(e.target.checked)} />
-                      Etiqueta en el 3D
-                    </label>
-                    <input type="text" className="perfil" maxLength={LARGO_MAXIMO_ETIQUETA}
-                      value={params.paredes[lado].etiqueta} disabled={!params.paredes[lado].mostrarEtiqueta}
-                      placeholder={`${nombreLado(lado, params.ladoFrente)} (${lado})`}
-                      aria-label={`Texto de la etiqueta de ${nombreLado(lado, params.ladoFrente)}`}
-                      onChange={(e) => cambiar(`paredes.${lado}.etiqueta`)(e.target.value)} />
-                  </div>
-                  <div className="grid-params">
-                    {medida(`paredes.${lado}.separacionVerticales`, 'Sep. columnas')}
-                    {medida(`paredes.${lado}.separacionHorizontales`, 'Sep. horizontales (fajas)')}
-                    {medida(`paredes.${lado}.separacionMontantes`, 'Montantes cada (0 = sin)')}
-                    <CampoSelect etiqueta="Riostras en cruz" valor={params.paredes[lado].riostras}
-                      opciones={[['no', 'Sin riostras'], ['extremos', 'En las puntas'], ['todos', 'En todos los vanos']]}
-                      onCambio={cambiar(`paredes.${lado}.riostras`)} />
-                    {selectorPanel(`paredes.${lado}.panel`, 'Revestimiento exterior', params.paredes[lado].panel)}
-                    {selectorPanel(`paredes.${lado}.panelInterior`, 'Revestimiento interior', params.paredes[lado].panelInterior, true)}
-                  </div>
-                  {/* Aberturas de esta pared (v1.17): antes estaban en una tarjeta aparte. */}
-                  <AberturasDePared lado={lado} aberturas={aberturasValidas} params={params} unidad={unidad}
-                    onAgregar={agregarAbertura} onActualizar={actualizarAbertura} onQuitar={quitarAbertura} />
-                  </div>
-                </div>
-              );
-            })}
           </Tarjeta>
 
           {/* PISOS */}
@@ -692,13 +738,79 @@ export default function App() {
             )}
           </Tarjeta>
 
+          </section>
+          {esConstruccion && (
+          <section id="pestana-paredes" role="tabpanel" aria-labelledby="boton-paredes"
+            className={`pestana${pestanaActiva === 'paredes' ? '' : ' oculta'}`}>
+          {/* PAREDES (PANELES) */}
+          <Tarjeta id="paredes" titulo="Paredes">
+            <p className="nota">
+              <strong>Columnas</strong>: verticales principales a lo largo de la pared.{' '}
+              <strong>Horizontales (fajas)</strong>: separación en altura.{' '}
+              <strong>Montantes</strong>: verticales livianos entre columnas (en una abertura quedan arriba del dintel
+              y abajo del antepecho). Cada pared tiene sus <strong>aberturas</strong>; las medidas se toman mirando la
+              pared desde afuera y el <strong>antepecho</strong> es la altura del piso a la ventana.
+            </p>
+            {LADOS.map((lado) => {
+              const [h1, h2] = alturasPared(lados[lado], params);
+              return (
+                <div key={lado} className={`pared ${paredesAbiertas[lado] ? 'abierta' : 'cerrada'}`}>
+                  {/* El título pliega / despliega la pared (aria-expanded para lectores de pantalla). */}
+                  <button type="button" className="pared-titulo plegable" aria-expanded={paredesAbiertas[lado]}
+                    aria-controls={`pared-${lado}`} onClick={() => alternarPared(lado)}>
+                    <span className="flecha" aria-hidden="true">▸</span>
+                    <strong>{nombreLado(lado, params.ladoFrente)}</strong>
+                    {params.paredes[lado].etiqueta.trim() && <em>“{params.paredes[lado].etiqueta.trim()}”</em>}
+                    <span>lado {lado} · {lados[lado].largo.toFixed(2)} m · alto {h1.toFixed(2)}{Math.abs(h1 - h2) > 0.005 ? ` a ${h2.toFixed(2)}` : ''} m</span>
+                  </button>
+                  <div className="pared-cuerpo" id={`pared-${lado}`}>
+                  <div className="etiqueta-pared">
+                    <label className="capa">
+                      <input type="checkbox" checked={params.paredes[lado].mostrarEtiqueta}
+                        aria-label={`Mostrar la etiqueta de ${nombreLado(lado, params.ladoFrente)} en el 3D`}
+                        onChange={(e) => cambiar(`paredes.${lado}.mostrarEtiqueta`)(e.target.checked)} />
+                      Etiqueta en el 3D
+                    </label>
+                    <input type="text" className="perfil" maxLength={LARGO_MAXIMO_ETIQUETA}
+                      value={params.paredes[lado].etiqueta} disabled={!params.paredes[lado].mostrarEtiqueta}
+                      placeholder={`${nombreLado(lado, params.ladoFrente)} (${lado})`}
+                      aria-label={`Texto de la etiqueta de ${nombreLado(lado, params.ladoFrente)}`}
+                      onChange={(e) => cambiar(`paredes.${lado}.etiqueta`)(e.target.value)} />
+                  </div>
+                  <div className="grid-params">
+                    {medida(`paredes.${lado}.separacionVerticales`, 'Sep. columnas')}
+                    {medida(`paredes.${lado}.separacionHorizontales`, 'Sep. horizontales (fajas)')}
+                    {medida(`paredes.${lado}.separacionMontantes`, 'Montantes cada (0 = sin)')}
+                    <CampoSelect etiqueta="Riostras en cruz" valor={params.paredes[lado].riostras}
+                      opciones={[['no', 'Sin riostras'], ['extremos', 'En las puntas'], ['todos', 'En todos los vanos']]}
+                      onCambio={cambiar(`paredes.${lado}.riostras`)} />
+                    {selectorPanel(`paredes.${lado}.panel`, 'Revestimiento exterior', params.paredes[lado].panel)}
+                    {selectorPanel(`paredes.${lado}.panelInterior`, 'Revestimiento interior', params.paredes[lado].panelInterior, true)}
+                  </div>
+                  {/* Aberturas de esta pared (v1.17): antes estaban en una tarjeta aparte. */}
+                  <AberturasDePared lado={lado} aberturas={aberturasValidas} params={params} unidad={unidad}
+                    onAgregar={agregarAbertura} onActualizar={actualizarAbertura} onQuitar={quitarAbertura} />
+                  </div>
+                </div>
+              );
+            })}
+          </Tarjeta>
+
+          </section>
+          )}
+          <section id="pestana-materiales" role="tabpanel" aria-labelledby="boton-materiales"
+            className={`pestana${pestanaActiva === 'materiales' ? '' : ' oculta'}`}>
           {/* Qué es cada material (v1.15); los revestimientos solo en una construcción. */}
           <TarjetaMateriales items={items} catalogo={catalogo} revestimientos={esConstruccion ? paneles : null}
             unidad={unidad} usosDeRevestimiento={usosDePanel} excedenteBarras={params.excedenteBarras}
             onCambiarExcedente={cambiar('excedenteBarras')} onCambiarInsumo={cambiarInsumo}
             onAgregarRevestimiento={agregarTipoPanel} onQuitarRevestimiento={quitarTipoPanel} />
 
+          </section>
+          <section id="pestana-presupuesto" role="tabpanel" aria-labelledby="boton-presupuesto"
+            className={`pestana${pestanaActiva === 'presupuesto' ? '' : ' oculta'}`}>
           <TablaPresupuesto items={items} total={total} onCambiarInsumo={cambiarInsumo} />
+          </section>
         </div>
       </main>
     </div>
