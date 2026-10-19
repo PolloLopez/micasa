@@ -25,6 +25,48 @@
 - 🟡 [ ] Acortar piezas horizontales con "desde X m / hasta Y m de la esquina" (las verticales ya lo tienen).
 - 🟡 [ ] Pegar una abertura en OTRA pared (hoy se pega al lado y después se cambia la pared en sus datos).
 
+## Revisión UX/UI (19/10, v1.17.0) — skill experiencia-ux-ui, sin cambios aplicados
+Quién la usa: el herrero (y Leandro) cargando una obra, en la compu del taller o en el celular en la obra.
+Medido: panel derecho de ~7.400 px de alto en escritorio y ~10.000 px en el celular, 155 campos, 9 tarjetas
+abiertas a la vez, 15+ botones de menos de 40 px en el celular.
+
+### 🔴 Lo que más fricción genera
+- [ ] **Panel demasiado largo**: 9 tarjetas abiertas y 155 campos, sin índice. Propuesta: 3 pestañas o un índice
+      fijo (Estructura · Paredes y aberturas · Materiales y presupuesto); tarjetas plegadas salvo la que se usa;
+      un resumen en el título de cada tarjeta plegada (ej. "Paredes · 4 · 3 aberturas", "Presupuesto · $ 7,8 M").
+- [ ] **No hay deshacer**: la ✕ de una abertura, de un revestimiento o "Eliminar pieza" no se pueden deshacer con
+      Ctrl+Z. Propuesta: historial deshacer/rehacer (Ctrl+Z / Ctrl+Y) de las medidas, aberturas y piezas, y un
+      aviso "Abertura #2 quitada · Deshacer" por unos segundos.
+- [ ] **Celular**: el 3D ocupa toda la primera pantalla y los datos quedan abajo; el encabezado ocupa 3 renglones;
+      botones de menos de 40 px (difíciles de tocar con el dedo en obra). Propuesta: barra inferior fija con
+      "3D · Datos · Presupuesto", botones de 44 px, encabezado en un renglón con menú "⋯".
+
+### 🟡 Mejoras importantes
+- [ ] **Total del presupuesto siempre a la vista** (hoy solo al final de la tabla): en el título de la tarjeta o
+      fijo arriba.
+- [ ] **Valor inválido**: al salir del campo vuelve solo al valor anterior y el aviso desaparece. Mejor dejar lo
+      escrito con el error hasta corregirlo, o avisar "se volvió a 2.50".
+- [ ] **"0 = sin"** en muchos campos (montantes, transversales, largo de entrepiso…): reemplazar por una casilla
+      "Lleva montantes" + el valor, más fácil de entender.
+- [ ] **Cambios sin guardar**: solo un "Sin guardar" chico en amarillo. Avisar al cerrar la pestaña si hay cambios
+      (y evaluar autoguardado en Mis proyectos).
+- [ ] **Seleccionar en el 3D**: los hierros finos cuestan, y más con el dedo. Margen de toque más grande y, como
+      alternativa, una lista de piezas filtrable por pared.
+- [ ] **Leyenda de capas larga** (16 casillas): agrupar (Estructura · Superficies · Ayudas) con "todo / nada".
+- [ ] **Confirmaciones nativas** (`window.confirm`): feas y bloquean el 3D. Diálogo propio que diga qué se borra.
+- [ ] **Texto chico y tenue** (detalles de 0,68 rem en gris sobre fondo oscuro): subir a 0,75 rem mínimo y más
+      contraste; pensar un **modo claro** para usar a pleno sol en la obra.
+- [ ] **Unidades**: largo de barra y precios siempre en m y $ aunque la unidad global sea cm/mm (ya anotado en Uso).
+- [ ] **Medir**: poder dejar varias medidas fijas en el 3D (hoy se ve una por vez).
+
+### 🟢 Prolijidad
+- [ ] **Foco de teclado visible** en todos los botones (hoy solo campos y títulos de tarjetas).
+- [ ] **Atajos a la vista**: un "?" que liste Ctrl+C / Ctrl+V / Esc / (futuro Ctrl+Z).
+- [ ] **Consistencia de botones**: "Duplicar" y "✕" de aberturas vs "+ Agregar revestimiento" grande y verde vs
+      "+ Puerta" secundario; un mismo estilo para la misma acción.
+- [ ] **Primer uso**: elegir "Proyecto vacío" o "Ejemplo" con una explicación de 3 pasos.
+- [ ] **Textos de ayuda largos** en la barra del 3D: dejar uno corto y el resto en un "?".
+
 ## Pruebas de Leandro (18/10) — para la versión de materiales
 - 🔴 [ ] Perfiles con **medidas reales**: al agregar un perfil se cargan tipo (caño cuadrado/rectangular, redondo,
       perfil C, ángulo, planchuela…), medidas (lados o diámetro) y espesor. Así se calcula el **peso del hierro**
