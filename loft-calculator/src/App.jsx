@@ -189,9 +189,9 @@ export default function App() {
   const esGrada = params.tipoProyecto === 'grada'; // proyecto de grada: otra pantalla de datos
   const esMontaje = params.tipoProyecto === 'montaje'; // montaje industrial: mesas, tanques...
   const esConstruccion = !esGrada && !esMontaje;
-  const { items, total } = useMemo(
-    () => calcularPresupuesto(estructura, catalogo, { excedenteBarras: params.excedenteBarras }),
-    [estructura, catalogo, params.excedenteBarras]
+  const { items, total, gruposCortes } = useMemo(
+    () => calcularPresupuesto(estructura, catalogo, { excedenteBarras: params.excedenteBarras, compartir: params.compartirCortes }),
+    [estructura, catalogo, params.excedenteBarras, params.compartirCortes]
   );
   const paneles = useMemo(() => tiposDePanel(catalogo), [catalogo]);
 
@@ -854,12 +854,13 @@ export default function App() {
           <TarjetaMateriales items={items} catalogo={catalogo} revestimientos={esConstruccion ? paneles : null}
             unidad={unidad} usosDeRevestimiento={usosDePanel} excedenteBarras={params.excedenteBarras}
             onCambiarExcedente={cambiar('excedenteBarras')} onCambiarInsumo={cambiarInsumo}
+            compartirCortes={params.compartirCortes !== false} onCambiarCompartir={cambiar('compartirCortes')}
             onAgregarRevestimiento={agregarTipoPanel} onQuitarRevestimiento={quitarTipoPanel} />
 
           </section>
           <section id="pestana-presupuesto" role="tabpanel" aria-labelledby="boton-presupuesto"
             className={`pestana${pestanaActiva === 'presupuesto' ? '' : ' oculta'}`}>
-          <TablaPresupuesto items={items} total={total} onCambiarInsumo={cambiarInsumo} />
+          <TablaPresupuesto items={items} total={total} gruposCortes={gruposCortes} onCambiarInsumo={cambiarInsumo} />
           </section>
         </div>
       </main>

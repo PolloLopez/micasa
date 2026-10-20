@@ -351,8 +351,9 @@ describe('calcularPresupuesto', () => {
   });
 
   it('transversales de piso y de piso 2 en renglones separados', () => {
-    expect(item(INSUMO.TRANSVERSAL_PISO).cortes.barras.flatMap((b) => b.piezas)).toHaveLength(e.piso.transversales.length);
-    expect(item(INSUMO.TRANSVERSAL_PISO_2).cortes.barras.flatMap((b) => b.piezas)).toHaveLength(e.piso2.transversales.length);
+    // largosPiezas = piezas propias del renglón (las barras pueden ser compartidas desde v1.19.1).
+    expect(item(INSUMO.TRANSVERSAL_PISO).largosPiezas).toHaveLength(e.piso.transversales.length);
+    expect(item(INSUMO.TRANSVERSAL_PISO_2).largosPiezas).toHaveLength(e.piso2.transversales.length);
   });
 
   it('paneles a medida (v1.15): tiras enteras de 1 m de ancho útil, del alto de cada pared', () => {

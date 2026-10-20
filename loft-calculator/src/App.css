@@ -414,3 +414,16 @@ kbd {
 @media (max-width: 600px) { .atajos > div { grid-template-columns: 1fr; gap: 2px; } }
 /* Atajos de teclado: no en pantallas táctiles ni en el celular (no hay teclado físico). */
 @media (hover: none), (max-width: 600px) { .solo-escritorio { display: none; } }
+
+/* ---------- Cortes compartidos (v1.19.1) ---------- */
+.ahorro { color: var(--dinero); font-weight: 600; }
+.leyenda-cortes { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 4px 0; color: var(--texto-suave); }
+.leyenda-cortes > span { display: inline-flex; align-items: center; gap: 4px; }
+.muestra-origen { width: 12px; height: 12px; border-radius: 2px; display: inline-block; }
+/* Un color por renglón dentro del grupo (hasta 4; después se repiten). */
+.origen-0 { background: var(--primario); }
+.origen-1 { background: #b45309; }
+.origen-2 { background: #7c3aed; }
+.origen-3 { background: #047857; }
+.comparte { display: block; color: var(--dinero); font-size: 0.75rem; margin-top: 2px; }
+.aviso-precio { display: block; color: #fbbf24; font-size: 0.75rem; margin-top: 2px; }

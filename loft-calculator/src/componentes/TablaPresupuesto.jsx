@@ -17,13 +17,28 @@ const validarPrecio = (actualizar) => (v) => {
   return null;
 };
 
-/** Dibujo de cómo cortar cada barra. */
-function DiagramaCortes({ item }) {
-  const { cortes } = item;
-  const largo = item.largoReal; // largo nominal + excedente
+/**
+ * Dibujo de cómo cortar cada barra, por grupo de cortes (v1.19.1).
+ * Un grupo es un renglón solo o varios renglones del mismo perfil que comparten barras;
+ * en ese caso cada pieza se pinta del color de su renglón.
+ */
+function DiagramaCortes({ grupo }) {
+  const { cortes, largoReal: largo, renglones } = grupo;
+  const indice = (origen) => Math.max(0, renglones.findIndex((r) => r.id === origen)); // color por renglón
+  const nombreDe = (origen) => renglones.find((r) => r.id === origen)?.nombre ?? renglones[0].nombre;
+  const ahorro = grupo.barrasSeparadas - cortes.totalBarras;
+  const titulo = renglones.map((r) => r.nombre).join(' + ');
   return (
     <details className="bar-details">
-      <summary>{item.nombre} ({item.perfil}): {cortes.totalBarras} barras de {item.largoBarra} m (reales {largo.toFixed(2)} m)</summary>
+      <summary>
+        {titulo} ({grupo.perfil}): {cortes.totalBarras} barras de {grupo.largoBarra} m (reales {largo.toFixed(2)} m)
+        {grupo.compartido && ahorro > 0 && <strong className="ahorro"> · comparten barras: {ahorro} menos</strong>}
+      </summary>
+      {grupo.compartido && (
+        <div className="leyenda-cortes">
+          {renglones.map((r, i) => <span key={r.id}><span className={`muestra-origen origen-${i % 4}`} />{r.nombre}</span>)}
+        </div>
+      )}
       <div className="bar-cuts-container">
         {cortes.barras.map((b) => (
           <div key={b.numero} className="bar-item">
@@ -32,7 +47,9 @@ function DiagramaCortes({ item }) {
             </div>
             <div className="bar-graphic">
               {b.piezas.map((p, i) => (
-                <div key={i} className="piece-block" style={{ width: `${(p / largo) * 100}%` }} title={`${p} m`}>
+                <div key={i} className={`piece-block${grupo.compartido ? ` origen-${indice(b.origenes?.[i]) % 4}` : ''}`}
+                  style={{ width: `${(p / largo) * 100}%` }}
+                  title={grupo.compartido ? `${p} m · ${nombreDe(b.origenes?.[i])}` : `${p} m`}>
                   {p.toFixed(2)}
                 </div>
               ))}
@@ -44,8 +61,7 @@ function DiagramaCortes({ item }) {
   );
 }
 
-export default function TablaPresupuesto({ items, total, onCambiarInsumo }) {
-  const perfiles = items.filter((i) => i.cortes);
+export default function TablaPresupuesto({ items, total, gruposCortes = [], onCambiarInsumo }) {
 
   return (
     <Tarjeta id="presupuesto" titulo="Presupuesto de materiales" className="presupuesto">
@@ -82,10 +98,11 @@ export default function TablaPresupuesto({ items, total, onCambiarInsumo }) {
       <div className="total"><span>TOTAL</span><span>{pesos(total)}</span></div>
       <p className="nota">
         Las barras salen del optimizador de cortes (merma de 3 mm por corte). Las piezas más largas que la barra se empalman.
+        Los renglones con el mismo perfil, largo de barra y precio comparten barras (se puede apagar en Materiales).
       </p>
 
       <h3 className="subtitulo">Diagrama de cortes</h3>
-      {perfiles.filter((i) => i.cantidad > 0).map((item) => <DiagramaCortes key={item.id} item={item} />)}
+      {gruposCortes.filter((g) => g.cortes.totalBarras > 0).map((g) => <DiagramaCortes key={g.id} grupo={g} />)}
     </Tarjeta>
   );
 }

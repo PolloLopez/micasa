@@ -53,6 +53,7 @@ export function proyectoVacio() {
       separacionCorreasTecho: 0.8,
       panelTecho: ID_PANEL_GENERICO,
       excedenteBarras: PARAMS_INICIALES.excedenteBarras, // dato del proveedor, no del proyecto
+      compartirCortes: true,
       filasPilotines: 2,
       pilotinesPorFila: 2,
       piezasEliminadas: [],

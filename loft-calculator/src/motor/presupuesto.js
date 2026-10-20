@@ -11,6 +11,7 @@
 //     techo eligen uno. Se pueden agregar o quitar.
 // ==========================================================
 
+import { compartirCortes } from './cortesCompartidos.js';
 import { optimizarCortes } from './optimizadorCortes.js';
 import { listarPiezas } from './estructura.js';
 import { INSUMO, PLACA_OSB, DESPERDICIO_PLACAS } from './constantes.js';
@@ -105,7 +106,8 @@ function itemPerfil(producto, piezas, excedente) {
     ? 'no lleva'
     : `${piezas.length} piezas · desperdicio ${cortes.porcentajeDesperdicio.toFixed(1)} %` +
       (cortes.piezasEmpalmadas > 0 ? ` · ${cortes.piezasEmpalmadas} empalmadas` : '');
-  return { ...producto, cantidad: cortes.totalBarras, detalle, cortes, largoReal };
+  // largosPiezas: para volver a optimizar junto con otros renglones del mismo perfil (cortesCompartidos.js).
+  return { ...producto, cantidad: cortes.totalBarras, detalle, cortes, largoReal, largosPiezas: piezas };
 }
 
 /** Ítem simple: cantidad ya calculada. */
@@ -137,10 +139,34 @@ function panosPorRevestimiento(estructura) {
 /**
  * @param {object} estructura - resultado de generarEstructura()
  * @param {object[]} catalogo - insumos fijos + tipos de panel
- * @param {{ excedenteBarras?: number }} opciones - % extra de largo de las barras
- * @returns {{items: object[], total: number}}
+ * @param {{ excedenteBarras?: number, compartir?: boolean }} opciones
+ *   excedenteBarras: % extra de largo de las barras;
+ *   compartir (v1.19.1): renglones del mismo perfil comparten barras (por defecto sí).
+ * @returns {{items: object[], total: number, gruposCortes: object[]}}
  */
-export function calcularPresupuesto(estructura, catalogo, { excedenteBarras = 0 } = {}) {
+export function calcularPresupuesto(estructura, catalogo, { excedenteBarras = 0, compartir = true } = {}) {
+  const r = calcularRenglones(estructura, catalogo, excedenteBarras);
+  return conCortesCompartidos(r, compartir);
+}
+
+/**
+ * Cortes compartidos entre renglones del mismo perfil y subtotales.
+ * Sin compartir, cada renglón es su propio grupo en el diagrama.
+ */
+function conCortesCompartidos(items, compartir) {
+  if (compartir) {
+    const r = compartirCortes(items);
+    return { ...conSubtotales(r.items), gruposCortes: r.grupos };
+  }
+  const gruposCortes = items.filter((i) => i.cortes && i.cortes.totalBarras > 0).map((i) => ({
+    id: i.id, perfil: i.perfil, largoBarra: i.largoBarra, largoReal: i.largoReal,
+    renglones: [{ id: i.id, nombre: i.nombre }], cortes: i.cortes, barrasSeparadas: i.cortes.totalBarras, compartido: false,
+  }));
+  return { ...conSubtotales(items), gruposCortes };
+}
+
+/** Renglones del presupuesto, cada perfil con sus barras calculadas por separado. */
+function calcularRenglones(estructura, catalogo, excedenteBarras) {
   const e = estructura;
   const s = e.superficies;
   const insumo = (id) => buscar(catalogo, id);
@@ -151,8 +177,8 @@ export function calcularPresupuesto(estructura, catalogo, { excedenteBarras = 0 
   const perfil = (id, piezas) =>
     itemPerfil(insumo(id), largos([...propias(piezas), ...reasignadas.filter((p) => p.insumo === id)]), excedenteBarras);
 
-  if (e.grada) return conSubtotales(presupuestoGrada(e.grada, insumo, perfil));
-  if (e.montaje) return conSubtotales(presupuestoMontaje(e.montaje, insumo, perfil));
+  if (e.grada) return presupuestoGrada(e.grada, insumo, perfil);
+  if (e.montaje) return presupuestoMontaje(e.montaje, insumo, perfil);
 
   const items = [
     perfil(INSUMO.COLUMNA, e.columnas),
@@ -227,7 +253,7 @@ export function calcularPresupuesto(estructura, catalogo, { excedenteBarras = 0 
   items.push(itemSimple(insumo(INSUMO.PISO_DESCANSO), m2Descanso > 0 ? Math.ceil(m2Descanso * 100 - 1e-9) / 100 : 0,
     m2Descanso ? `${m2Descanso.toFixed(2)} m²` : 'no lleva'));
 
-  return conSubtotales(items);
+  return items;
 }
 
 /** Subtotal por renglón y total. */

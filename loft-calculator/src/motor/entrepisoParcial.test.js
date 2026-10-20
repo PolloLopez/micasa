@@ -131,7 +131,7 @@ describe('presupuesto con viga de cierre', () => {
   it('una viga de cierre se puede pasar a otro perfil desde el editor', () => {
     const editada = { ...ALTILLO, piezasEditadas: { 'marco-piso2:1': { perfil: INSUMO.COLUMNA } } };
     const viga = item(editada, INSUMO.VIGA_CIERRE);
-    expect(viga.cortes.barras.flatMap((b) => b.piezas)).toHaveLength(1);
+    expect(viga.largosPiezas).toHaveLength(1); // piezas propias (las barras pueden ser compartidas)
   });
 });
 

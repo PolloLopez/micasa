@@ -56,6 +56,7 @@ export const PARAMS_INICIALES = {
 
   // Compras
   excedenteBarras: 1, // % que las barras traen de más (vienen entre 1 % y 2 % más largas)
+  compartirCortes: true, // v1.19.1: renglones del mismo perfil cortan de las mismas barras
 
   // Fundación
   filasPilotines: 4,

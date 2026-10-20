@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.20.0] - 2026-10-20
+### Agregado
+- **Cortes compartidos**: los renglones que usan el mismo hierro (mismo perfil, largo de barra y precio) cortan de
+  las mismas barras, como en el taller: las piezas chicas de uno entran en los sobrantes del otro. Las barras se
+  reparten entre los renglones según los metros que usa cada uno, así el total da justo.
+- El perfil se reconoce aunque esté escrito distinto: "80x80x2" = "80 x 80 x 2.0" = "80×80×2,0".
+- Diagrama de cortes por grupo: cada pieza con el color de su renglón y cuántas barras se ahorran.
+- En Materiales, debajo de cada perfil: "Comparte barras con…", o un aviso si el mismo perfil tiene otro precio.
+- Casilla en Materiales para apagarlo y comparar (viene prendida).
+### Cambiado
+- Los presupuestos guardados pueden bajar algunas barras al abrirlos (en el loft de ejemplo, 2 barras).
+
 ## [1.19.0] - 2026-10-20
 ### Cambiado
 - **Casillas en vez de "0 = sin"**: "☑ Lleva transversales" + "cada 1.50 m", y lo mismo en entrepiso (y entrepiso

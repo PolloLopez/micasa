@@ -64,6 +64,7 @@ export function migrarParams(params) {
     delete nuevos.separacionTransversales;
   }
   nuevos.excedenteBarras ??= PARAMS_INICIALES.excedenteBarras;
+  nuevos.compartirCortes = nuevos.compartirCortes !== false; // v1.19.1: por defecto sí (solo un false explícito lo apaga)
   nuevos.panelTecho ??= PARAMS_INICIALES.panelTecho;
   nuevos.piezasEliminadas ??= []; // v1.5
   // v1.7: los proyectos viejos se abren SIN escalera (no se agrega nada que no tenían).

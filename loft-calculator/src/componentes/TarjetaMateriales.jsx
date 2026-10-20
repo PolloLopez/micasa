@@ -88,6 +88,7 @@ function Revestimiento({ tipo, unidad, usos, unicoQueda, onCambiar, onQuitar }) 
 export default function TarjetaMateriales({
   items, catalogo, revestimientos, unidad, usosDeRevestimiento, excedenteBarras,
   onCambiarExcedente, onCambiarInsumo, onAgregarRevestimiento, onQuitarRevestimiento,
+  compartirCortes, onCambiarCompartir,
 }) {
   const largoDe = (id) => catalogo.find((p) => p.id === id)?.largoBarra;
   const otros = items.filter((i) => i.categoria !== 'panel');
@@ -108,6 +109,15 @@ export default function TarjetaMateriales({
         Las barras suelen venir entre 1 % y 2 % más largas que su medida nominal, <strong>según el proveedor</strong>:
         cargá el de tu proveedor. El optimizador corta sobre ese largo real.
       </p>
+      {/* v1.19.1: renglones del mismo hierro cortan de las mismas barras (como en el taller). */}
+      <label className="casilla-opcional">
+        <input type="checkbox" checked={compartirCortes} onChange={(e) => onCambiarCompartir(e.target.checked)} />
+        Compartir barras entre renglones del mismo perfil
+      </label>
+      <p className="nota">
+        Si dos renglones tienen el mismo perfil (aunque esté escrito distinto: 80x80x2 = 80 x 80 x 2.0), el mismo
+        largo de barra y el mismo precio, sus piezas se cortan de las mismas barras: lo que sobra de uno se usa en el otro.
+      </p>
       <div className="table-wrap">
         <table>
           <thead>
@@ -121,6 +131,9 @@ export default function TarjetaMateriales({
                   <input className="perfil" type="text" value={item.perfil}
                     aria-label={`Perfil o material de ${item.nombre}`}
                     onChange={(e) => onCambiarInsumo(item.id, 'perfil', e.target.value)} />
+                  {/* Para ver si la app reconoce el mismo hierro en otro renglón. */}
+                  {item.compartenCon && <small className="comparte">Comparte barras con {item.compartenCon.join(', ')}</small>}
+                  {item.avisoPrecio && <small className="aviso-precio">⚠ {item.avisoPrecio}</small>}
                 </td>
                 <td>
                   {item.cortes ? (

@@ -69,6 +69,10 @@ abiertas a la vez, 15+ botones de menos de 40 px en el celular.
 - [ ] **Textos de ayuda largos** en la barra del 3D: dejar uno corto y el resto en un "?".
 
 ## Pruebas de Leandro (18/10) — para la versión de materiales
+- ✅ **Cortes compartidos** (v1.20.0, pedido del 20/10): renglones con el mismo perfil (80x80x2 = 80x80x2.0),
+      largo de barra y precio cortan de las mismas barras; aviso si el mismo perfil tiene otro precio.
+      Siguiente paso natural: la lista de perfiles de abajo (elegir en vez de escribir).
+- 🟡 [ ] Cortes compartidos: aprovechar también recortes de **otras obras** o del stock del taller (sobrantes guardados).
 - 🔴 [ ] Perfiles con **medidas reales**: al agregar un perfil se cargan tipo (caño cuadrado/rectangular, redondo,
       perfil C, ángulo, planchuela…), medidas (lados o diámetro) y espesor. Así se calcula el **peso del hierro**
       (kg/m) y se estandariza (hoy es un texto libre).
