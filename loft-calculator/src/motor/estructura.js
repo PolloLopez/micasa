@@ -535,6 +535,13 @@ function generarParedes(params, lados, aberturas) {
     const y = params.elevacion;
     return {
       lado,
+      // v1.24: huecos de las aberturas en coordenadas de la pared: desde/hasta = distancia desde la
+      // punta 1 (p1) a lo largo de la pared; abajo/arriba = altura desde el piso. Para descontar
+      // tiras y placas y para recortar el panel en el 3D.
+      huecos: aberturas.filter((op) => op.lado === lado).map((op) => {
+        const v = vano(op, params);
+        return { desde: v.inicio, hasta: v.fin, abajo: v.abajo, arriba: v.arriba };
+      }),
       panel: params.paredes[lado].panel, // revestimiento exterior
       panelInterior: params.paredes[lado].panelInterior || null, // revestimiento interior (v1.15), null = sin
       largo: geo.largo,

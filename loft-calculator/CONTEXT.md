@@ -106,6 +106,8 @@ valores inválidos.
 | 2026-10-20 | Perfil por pared: `params.paredes.<lado>.perfilColumnas/Horizontales/Montantes/Marcos` ('' = general); las piezas se marcan `perfilPared` en `marcarPerfilesDePared` (después de las ediciones a mano) y el presupuesto las saca a un renglón `<uso>@<perfil>` | Decisión de Leandro (columnas, fajas, montantes y marcos). Marcar después de editar porque `aplicarEdicion` rearma la pieza; la pared sale de los grupos (o del id en el marco de piso). Renglón aparte = precio y barras propios sin tocar el catálogo. |
 | 2026-10-20 | Columnas de esquina (`esquina: true`, renglón `columnaEsquina`) | Son de dos paredes: no les puede tocar el perfil de una sola. Migración: copian el perfil y precio de Columnas. |
 | 2026-10-20 | Patrón alternado = columnas + montantes con perfil por pared | Decisión de Leandro: ya resuelve "80x80 cada 2 m y 60x60 entre medio" sin campos nuevos. |
+| 2026-10-20 | Descontar aberturas solo en tiras/placas tapadas ENTERAS por el hueco (`pedazosDeTira`, `placasDePano`); `pared.huecos` en coordenadas de la pared | Así se compra en obra: lo que el hueco corta en parte se pide entero y se recorta. Conservador: nunca falta material. |
+| 2026-10-20 | Panel 3D con huecos armado por franjas (`pedazosDePared`) en vez de una forma con agujeros | Sin triangular agujeros: una puerta que toca el piso o dos ventanas una sobre otra no dan problemas. El área dibujada = pared − huecos (test). |
 | 2026-10-20 | Ayuda con "?" y bienvenida la primera vez (`micasa.v2.bienvenidaVista`), salvo si se entra con un link compartido | Los atajos no se descubrían solos. Con link compartido ya se pregunta "¿abrir?": dos ventanas juntas confunden. |
 
 ## Supuestos de obra (en `src/motor/constantes.js`)
@@ -178,4 +180,5 @@ techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 
 - 2026-10-20 v1.22.0: perfiles por pared (columnas, fajas, montantes, marcos), columnas de esquina con renglón propio, patrón alternado con montantes.
 - 2026-10-20 v1.22.1: la copia de Columnas en "Columnas de esquina" no vota el precio al migrar; aviso de precio visible aunque esté plegado.
 - 2026-10-20 v1.23.0: precio de los revestimientos también en Materiales (por m² o por placa).
+- 2026-10-20 v1.24.0: paneles con huecos de las aberturas en el 3D, descontar aberturas en tiras y placas, opacidad de las juntas.
 - Nota: el elemento `id="flonnect-my-app"` que aparece en la página no es de la app: lo inyecta la extensión Flonnect (grabador de pantalla) de Chrome.

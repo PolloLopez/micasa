@@ -362,17 +362,19 @@ describe('calcularPresupuesto', () => {
     // Fondo C (alto 4,50):  8 tiras de 4,50 = 36,00 m²
     // Laterales (de 4,50 a 4,95; cada tira toma su alto mayor):
     //   B: 4,95 + 4,85 + 4,75 + 4,65 + 4,55 = 23,75 m² · D: 4,60 + 4,70 + 4,80 + 4,90 + 4,95 = 23,95 m²
-    expect(item('panelMuros').cantidad).toBeCloseTo(39.6 + 36 + 23.75 + 23.95);
+    // v1.24: la ventana del frente (1,50 de ancho, de 4,80 a 6,30 desde la punta 1) tapa entera la tira de
+    // 5 a 6 m: se pide en dos pedazos, abajo (antepecho 1,10) y arriba (4,95 − 1,70 = 3,25) => 0,60 m² menos.
+    expect(item('panelMuros').cantidad).toBeCloseTo(39.6 - 0.6 + 36 + 23.75 + 23.95);
     expect(item('panelMuros').unidad).toBe('m²');
     // El detalle agrupa por largo todas las paredes: 8 del frente + 1 de cada lateral = 10 de 4,95.
-    expect(item('panelMuros').detalle).toMatch(/^10 × 4\.95 m .* \+ 8 × 4\.50 m/);
+    expect(item('panelMuros').detalle).toMatch(/^9 × 4\.95 m .* \+ 8 × 4\.50 m .*3\.25 m.*1\.10 m/);
     // Techo: 7,50 m a lo largo del lado bajo => 8 tiras del largo del faldón (4,50 m con 10 % de pendiente).
     const faldon = 4.5 * Math.sqrt(1 + 0.1 * 0.1);
     expect(item('panelTecho').cantidad).toBeCloseTo(8 * Math.ceil(faldon * 100) / 100);
     // Si el frente (A) pasa a usar el panel de techo, sus tiras se mueven a ese renglón.
     const mixto = generarEstructura(conPared('A', { panel: 'panelTecho' }), ABERTURAS_INICIALES);
     const r = calcularPresupuesto(mixto, CATALOGO_INICIAL).items;
-    expect(r.find((i) => i.id === 'panelTecho').cantidad).toBeCloseTo(8 * Math.ceil(faldon * 100) / 100 + 39.6);
+    expect(r.find((i) => i.id === 'panelTecho').cantidad).toBeCloseTo(8 * Math.ceil(faldon * 100) / 100 + 39.6 - 0.6); // el frente, con su ventana descontada
     expect(r.find((i) => i.id === 'panelTecho').detalle).toMatch(/lado A, techo/);
   });
 

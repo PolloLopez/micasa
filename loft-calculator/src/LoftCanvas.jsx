@@ -27,7 +27,7 @@ import { seccionDesdePerfil } from './motor/canos.js';
 import { INSUMO } from './motor/constantes.js';
 import EditorPieza from './componentes/EditorPieza.jsx';
 import { FilaAbertura } from './componentes/AberturasDePared.jsx';
-import { juntasDePano } from './motor/revestimientos.js';
+import { juntasDePano, pedazosDePared } from './motor/revestimientos.js';
 import { medirEntre, puntoMasCercanoEnPieza } from './motor/medicion.js';
 
 // Capa y sección (grosor en el 3D) de cada tipo de pieza.
@@ -123,6 +123,8 @@ function crearMateriales(colores) {
   transparente(materiales.paneles, 0.16);
   transparente(materiales.aberturas, 0.7);
   transparente(materiales.chapa, 0.55); // se ve la estructura a través de los tanques
+  // Juntas de los paneles (v1.24: con opacidad regulable desde la leyenda).
+  materiales.juntas = new THREE.LineBasicMaterial({ color: COLOR_JUNTAS, transparent: true, opacity: 1 });
   // Pieza seleccionada: amarillo que brilla.
   materiales.seleccion = new THREE.MeshStandardMaterial({ color: COLOR_SELECCION, emissive: COLOR_SELECCION, emissiveIntensity: 0.6 });
   return materiales;
@@ -133,6 +135,7 @@ const OPACIDADES = [
   { clave: 'paneles', nombre: 'Paneles' },
   { clave: 'osb', nombre: 'OSB' },
   { clave: 'hierros', nombre: 'Hierros' },
+  { clave: 'juntas', nombre: 'Juntas' }, // v1.24: líneas de unión de los paneles
 ];
 
 /** Capas de hierro (todas menos superficies y madera): comparten la opacidad "Hierros". */
@@ -170,6 +173,46 @@ function panelDosCaras(esquinas, materiales, haciaAfuera) {
   const panel = new THREE.Group();
   panel.add(cuadrilatero(ordenadas, materiales.exterior), cuadrilatero(ordenadas, materiales.interior));
   return panel;
+}
+
+/**
+ * Panel de pared con los huecos de las aberturas recortados (v1.24).
+ * `esquinas` = [abajo p1, abajo p2, arriba p2, arriba p1] ya corridas y estiradas;
+ * `corrimientoP1` = cuánto se estiró la punta 1 (los huecos se miden desde la punta 1 original).
+ */
+function panelConHuecos(esquinas, huecos, corrimientoP1, materiales, haciaAfuera) {
+  const [o, p2, a2, a1] = esquinas;
+  const largo = Math.hypot(p2[0] - o[0], p2[2] - o[2]) || 1;
+  const u = [(p2[0] - o[0]) / largo, 0, (p2[2] - o[2]) / largo];
+  const hA = a1[1] - o[1];
+  const hB = a2[1] - p2[1];
+  const altoEn = (x) => hA + ((hB - hA) * x) / largo;
+  const locales = huecos.map((h) => ({ ...h, desde: h.desde + corrimientoP1, hasta: h.hasta + corrimientoP1 }));
+  const a3d = ([x, y]) => [o[0] + u[0] * x, o[1] + y, o[2] + u[2] * x];
+  // Normal de (u, arriba) = u × (0,1,0) = (-u.z, 0, u.x): si no mira hacia afuera, se dan vuelta los triángulos.
+  const alReves = -u[2] * haciaAfuera[0] + u[0] * haciaAfuera[2] < 0;
+  const vertices = [];
+  pedazosDePared(largo, altoEn, locales).forEach(([q0, q1, q2, q3]) => {
+    const [v0, v1, v2, v3] = [q0, q1, q2, q3].map(a3d);
+    const tri = alReves ? [v0, v2, v1, v0, v3, v2] : [v0, v1, v2, v0, v2, v3];
+    vertices.push(...tri.flat());
+  });
+  const geometria = new THREE.BufferGeometry();
+  geometria.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+  geometria.computeVertexNormals();
+  if (!materiales.exterior) return new THREE.Mesh(geometria, materiales); // material genérico (dos caras)
+  const panel = new THREE.Group();
+  panel.add(new THREE.Mesh(geometria, materiales.exterior), new THREE.Mesh(geometria, materiales.interior));
+  return panel;
+}
+
+/** Un tramo [a, b] menos los cortes [[c0, c1], …]: lo que queda (para las juntas que cruzan un hueco). */
+function restarTramos([a, b], cortes) {
+  let quedan = [[a, b]];
+  cortes.forEach(([c0, c1]) => {
+    quedan = quedan.flatMap(([x0, x1]) => [[x0, Math.min(x1, c0)], [Math.max(x0, c1), x1]].filter(([p, q]) => q - p > 1e-3));
+  });
+  return quedan;
 }
 
 /** Barra entre dos puntos 3D (vertical, horizontal o inclinada). */
@@ -215,11 +258,14 @@ function cartelChico(texto, fondo = 'rgba(30,41,59,0.9)') {
 }
 
 /** Líneas sueltas (pares de puntos) en un solo objeto: juntas de paneles, línea de medida. */
-function lineas(pares, color, encima = false) {
+function lineas(pares, colorOMaterial, encima = false) {
   const geometria = new THREE.BufferGeometry();
   geometria.setAttribute('position', new THREE.Float32BufferAttribute(pares.flat(2), 3));
-  const material = new THREE.LineBasicMaterial({ color, depthTest: !encima });
+  // v1.24: se puede pasar un material compartido (el de las juntas, con su opacidad regulable).
+  const compartido = colorOMaterial instanceof THREE.Material;
+  const material = compartido ? colorOMaterial : new THREE.LineBasicMaterial({ color: colorOMaterial, depthTest: !encima });
   const objeto = new THREE.LineSegments(geometria, material);
+  objeto.userData.materialCompartido = compartido; // no se libera al redibujar
   if (encima) objeto.renderOrder = 998;
   return objeto;
 }
@@ -329,12 +375,14 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
   if (capas.paneles) {
     // Cada revestimiento con su color exterior e interior; si el tipo no existe, el material genérico.
     // `corrimiento`: cuánto se aleja del eje de la pared hacia `haciaAfuera` (v1.15, según su ubicación).
-    const dibujar = (esquinas, idPanel, haciaAfuera, corrimiento = 0) => {
+    const dibujar = (esquinas, idPanel, haciaAfuera, corrimiento = 0, huecos = null, estirado = 0) => {
       const mats = materialesPanel.get(idPanel);
       const n = Math.hypot(...haciaAfuera) || 1;
       const d = haciaAfuera.map((c) => (c / n) * corrimiento);
       const movidas = esquinas.map((p) => [p[0] + d[0], p[1] + d[1], p[2] + d[2]]);
-      grupo.add(mats ? panelDosCaras(movidas, mats, haciaAfuera) : cuadrilatero(movidas, materiales.paneles));
+      // v1.24: las paredes con aberturas se dibujan con los huecos recortados (se ven las ventanas).
+      if (huecos?.length) grupo.add(panelConHuecos(movidas, huecos, estirado, mats ?? materiales.paneles, haciaAfuera));
+      else grupo.add(mats ? panelDosCaras(movidas, mats, haciaAfuera) : cuadrilatero(movidas, materiales.paneles));
     };
     /** Distancia al eje: "sobre la estructura" = afuera de los perfiles (tapa los marcos); "embutido" = al eje. */
     const corrimientoDe = (idPanel) => {
@@ -357,11 +405,11 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
       // Afuera = desde el centro de la planta hacia el centro de la pared (horizontal).
       const centro = pared.esquinas.reduce((acc, p) => [acc[0] + p[0] / 4, 0, acc[2] + p[2] / 4], [0, 0, 0]);
       const afuera = corrimientoDe(pared.panel);
-      dibujar(estirar(pared.esquinas, afuera), pared.panel, centro, afuera);
+      dibujar(estirar(pared.esquinas, afuera), pared.panel, centro, afuera, pared.huecos, afuera);
       // Revestimiento interior: su cara "exterior" (color principal) mira hacia adentro del ambiente.
       if (pared.panelInterior) {
         const adentro = corrimientoDe(pared.panelInterior) || 0.01;
-        dibujar(estirar(pared.esquinas, -adentro), pared.panelInterior, centro.map((c) => -c), adentro);
+        dibujar(estirar(pared.esquinas, -adentro), pared.panelInterior, centro.map((c) => -c), adentro, pared.huecos, -adentro);
       }
     });
     if (grupoVisible('techo')) {
@@ -385,7 +433,12 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
       const fuera = (tipo?.ubicacion === 'eje' ? 0 : MEDIA_SECCION_PARED + (tipo?.espesor ?? 50) / 2000) + 0.01;
       const punto = (x, h) => [a[0] + dir[0] * x + ((a[0] + b[0]) / n) * fuera, y0 + h, a[2] + dir[1] * x + ((a[2] + b[2]) / n) * fuera];
       const altoEn = (x) => h1 + ((h2 - h1) * x) / pared.largo;
-      verticales.forEach((x) => pares.push([punto(x, 0), punto(x, altoEn(x))]));
+      const huecos = pared.huecos ?? [];
+      // v1.24: las juntas no cruzan los huecos de las aberturas.
+      verticales.forEach((x) => {
+        const cortes = huecos.filter((hh) => hh.desde < x && hh.hasta > x).map((hh) => [hh.abajo, hh.arriba]);
+        restarTramos([0, altoEn(x)], cortes).forEach(([y0, y1]) => pares.push([punto(x, y0), punto(x, y1)]));
+      });
       horizontales.forEach((h) => {
         // En una pared inclinada la junta llega solo hasta donde la pared es más alta que h.
         let desde = 0;
@@ -394,7 +447,10 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
           const cruce = ((h - h1) / (h2 - h1)) * pared.largo;
           if (h2 > h1) desde = Math.max(0, cruce); else hasta = Math.min(pared.largo, cruce);
         }
-        if (hasta - desde > 0.05) pares.push([punto(desde, h), punto(hasta, h)]);
+        const cortes = huecos.filter((hh) => hh.abajo < h && hh.arriba > h).map((hh) => [hh.desde, hh.hasta]);
+        restarTramos([desde, hasta], cortes)
+          .filter(([x0, x1]) => x1 - x0 > 0.05)
+          .forEach(([x0, x1]) => pares.push([punto(x0, h), punto(x1, h)]));
       });
     });
     if (grupoVisible('techo') && e.techo.esquinas.length === 4) {
@@ -407,7 +463,7 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
       verticales.forEach((x) => pares.push([punto(x, 0), punto(x, e.techo.largoFaldon)]));
       horizontales.forEach((h) => pares.push([punto(0, h), punto(e.techo.largo, h)]));
     }
-    if (pares.length > 0) grupo.add(lineas(pares, COLOR_JUNTAS));
+    if (pares.length > 0) grupo.add(lineas(pares, materiales.juntas));
   }
 
   if (capas.aberturas) {
@@ -495,7 +551,7 @@ function cilindroDeChapa({ centro, eje, radio, largo, tapas }, material) {
 function vaciarGrupo(grupo) {
   grupo.traverse((obj) => {
     obj.geometry?.dispose();
-    if (obj.isLineSegments) obj.material.dispose();
+    if (obj.isLineSegments && !obj.userData.materialCompartido) obj.material.dispose();
     if (obj.isSprite) {
       obj.material.map?.dispose();
       obj.material.dispose();
@@ -764,6 +820,7 @@ export default function LoftCanvas({
     aplicarOpacidad(visor.materiales.osb, opacidades.osb);
     aplicarOpacidad(visor.materiales.paneles, opacidades.paneles);
     CAPAS_HIERRO.forEach((capa) => aplicarOpacidad(visor.materiales[capa], opacidades.hierros));
+    aplicarOpacidad(visor.materiales.juntas, opacidades.juntas ?? 1);
   }, [opacidades]);
 
   // 3) COLORES: solo se cambia el color de cada material (no se redibuja).

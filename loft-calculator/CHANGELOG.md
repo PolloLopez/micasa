@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.24.0] - 2026-10-20
+### Agregado
+- **Paneles con los huecos de las aberturas** en el 3D: las puertas y ventanas se ven (antes quedaban tapadas por el
+  panel) y se pueden tocar. Las juntas de los paneles ya no cruzan los huecos.
+- **Descontar aberturas** de los revestimientos, como en obra:
+  - a medida: la tira que cae ENTERA dentro del ancho de una abertura se pide en pedazos (abajo del antepecho y
+    arriba del dintel); las que la abertura corta solo en parte se piden enteras y se recortan;
+  - placa fija: la placa que cae entera dentro de un hueco no se compra.
+- **Opacidad de las juntas** en la leyenda (Opacidad → Juntas). Para apagarlas del todo sigue la casilla
+  Ayudas → "Juntas de paneles".
+
 ## [1.23.0] - 2026-10-20
 ### Agregado
 - **Precio de cada revestimiento en Materiales**, al lado de "Cómo se vende": "Precio por m²" (a medida) o "Precio por

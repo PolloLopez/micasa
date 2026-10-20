@@ -16,8 +16,8 @@
       (viene en 1 %; avisado en la pantalla y en el manual).
 
 ## Pruebas de Leandro (16/10) — a ordenar
-- 🟡 [ ] Tiras y placas: descontar las aberturas grandes (hoy se cuentan como pared llena: sobra material) y
-      placas estándar con aprovechamiento de recortes.
+- ✅ Tiras y placas: descontar aberturas (v1.24.0; solo lo tapado entero por el hueco).
+- 🟡 [ ] Placas estándar: aprovechar recortes (hoy cada recorte se tira).
 - 🟡 [ ] Revestimiento interior también en el techo (cielorraso) y precio por metro lineal para chapas a medida.
 - 🟡 [ ] En cada pared: elegir el perfil de sus columnas y horizontales (no solo el panel / revestimiento).
 - 🟡 [ ] Patrón de perfiles en una pared: "cada N columnas, una de otro perfil" o dos capas de perfiles.

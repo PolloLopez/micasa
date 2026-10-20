@@ -140,7 +140,7 @@ function panosPorRevestimiento(estructura) {
     (panos[id] ??= []).push(pano);
   };
   estructura.paredes.forEach((p) => {
-    const pano = { largo: p.largo, h1: p.alturas[0], h2: p.alturas[1], neto: p.superficieNeta };
+    const pano = { largo: p.largo, h1: p.alturas[0], h2: p.alturas[1], neto: p.superficieNeta, huecos: p.huecos ?? [] };
     sumar(p.panel, { ...pano, donde: `lado ${p.lado}` });
     sumar(p.panelInterior, { ...pano, donde: `lado ${p.lado} (interior)` });
   });

@@ -86,7 +86,7 @@ function conPanelesExistentes(params, catalogo) {
 }
 
 /** Opacidad de fábrica del 3D: paneles y OSB se ven a través; los hierros, sólidos. */
-const OPACIDADES_INICIALES = { paneles: 0.35, osb: 0.45, hierros: 1 };
+const OPACIDADES_INICIALES = { paneles: 0.35, osb: 0.45, hierros: 1, juntas: 1 }; // juntas: v1.24
 const opacidadesValidas = (o) => o && typeof o === 'object'
   && Object.keys(OPACIDADES_INICIALES).every((k) => Number.isFinite(o[k]) && o[k] >= 0.05 && o[k] <= 1);
 
@@ -118,7 +118,9 @@ export default function App() {
   const params = useMemo(() => conPanelesExistentes(paramsGuardados, catalogo), [paramsGuardados, catalogo]);
   const [colores, setColores] = useEstadoGuardado('colores', COLORES_INICIALES, coloresValidos, completarColores);
   // Opacidad del 3D (por navegador, como ver u ocultar el 3D): paneles, OSB y hierros.
-  const [opacidades, setOpacidades] = useEstadoGuardado('opacidades', OPACIDADES_INICIALES, opacidadesValidas);
+  // Las guardadas antes de v1.24 no tienen "juntas": se completan con las de fábrica (no se pierden las demás).
+  const [opacidades, setOpacidades] = useEstadoGuardado('opacidades', OPACIDADES_INICIALES, opacidadesValidas,
+    (o) => ({ ...OPACIDADES_INICIALES, ...o }));
   const imagenImpresionRef = useRef(null); // foto del 3D que sale en el PDF
   const [nombreProyecto, setNombreProyecto] = useEstadoGuardado('nombre', 'Loft', (n) => typeof n === 'string');
   const [aviso, setAviso] = useState(null); // { tipo: 'ok' | 'error', texto }

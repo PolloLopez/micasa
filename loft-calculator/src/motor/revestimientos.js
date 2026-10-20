@@ -21,12 +21,18 @@
 //   'eje'  = embutido entre los perfiles, al eje de la pared.
 // Eso solo cambia el dibujo 3D; las cantidades son las mismas.
 //
-// Un "paño" es una superficie a revestir: { donde, largo, h1, h2, neto }
+// Un "paño" es una superficie a revestir: { donde, largo, h1, h2, neto, huecos }
 //   largo  = a lo largo de la pared (o del techo, paralelo al lado bajo)
 //   h1, h2 = alto en cada punta (una pared bajo un techo inclinado es un trapecio)
 //   neto   = m² descontando aberturas (solo informativo)
-// Para no complicar, las tiras y placas NO se descuentan por las
-// aberturas (cálculo conservador: sobra material). Queda en PENDIENTES.
+//   huecos = aberturas: [{ desde, hasta, abajo, arriba }] (v1.24)
+//
+// DESCONTAR ABERTURAS (v1.24), como se hace en obra:
+//   - a medida: una tira que cae ENTERA dentro del ancho de una abertura
+//     se pide en dos pedazos (abajo del antepecho y arriba del dintel);
+//     las que el hueco corta solo en parte se piden enteras y se recortan.
+//   - placa fija: una placa que cae ENTERA dentro de un hueco no se compra;
+//     las que el hueco corta en parte, sí (se recortan).
 // ==========================================================
 
 export const VENTAS = ['medida', 'estandar'];
@@ -77,9 +83,31 @@ export function cortarEnTramos(largo, largoMaximo, solape = 0) {
 /** Alto del paño a una distancia `x` desde la punta 1 (interpola h1 -> h2). */
 const altoEn = (pano, x) => pano.h1 + ((pano.h2 - pano.h1) * x) / pano.largo;
 
+const PEDAZO_MINIMO = 0.05; // m: un pedazo más chico que esto no se pide
+
+/**
+ * Partes de una tira (de x0 a x1, alto `alto`) que hay que pedir: la tira entera,
+ * o, si una o más aberturas la tapan de lado a lado, los pedazos entre los huecos.
+ * @returns {number[]} alturas de cada pedazo
+ */
+export function pedazosDeTira(x0, x1, alto, huecos = []) {
+  const queLaTapan = huecos
+    .filter((h) => h.desde <= x0 + EPSILON && h.hasta >= x1 - EPSILON)
+    .sort((a, b) => a.abajo - b.abajo);
+  const pedazos = [];
+  let desde = 0;
+  queLaTapan.forEach((h) => {
+    if (h.abajo - desde > PEDAZO_MINIMO) pedazos.push(h.abajo - desde);
+    desde = Math.max(desde, h.arriba);
+  });
+  if (alto - desde > PEDAZO_MINIMO) pedazos.push(alto - desde);
+  return pedazos.map((p) => Number(p.toFixed(4)));
+}
+
 /**
  * Tiras de un revestimiento a medida en un paño: cada tira toma el alto
  * MAYOR de su tramo (en una pared inclinada se corta en obra).
+ * Las que caen enteras sobre una abertura se piden en pedazos (v1.24).
  * @returns {number[]} largos a pedir (ya partidos en tramos si hace falta)
  */
 export function tirasDePano(pano, tipo) {
@@ -89,7 +117,9 @@ export function tirasDePano(pano, tipo) {
     const x0 = i * tipo.anchoUtil;
     const x1 = Math.min(pano.largo, (i + 1) * tipo.anchoUtil);
     const alto = Math.max(altoEn(pano, x0), altoEn(pano, x1));
-    largos.push(...cortarEnTramos(alto, tipo.largoMaximo, tipo.solape));
+    pedazosDeTira(x0, x1, alto, pano.huecos).forEach((pedazo) => {
+      largos.push(...cortarEnTramos(pedazo, tipo.largoMaximo, tipo.solape));
+    });
   }
   return largos;
 }
@@ -101,10 +131,22 @@ export function tirasDePano(pano, tipo) {
  */
 export function placasDePano(pano, tipo) {
   const alto = Math.max(pano.h1, pano.h2);
+  const huecos = pano.huecos ?? [];
+  // v1.24: una placa que cae entera dentro de un hueco no se compra.
+  const dentroDeUnHueco = (x0, x1, y0, y1) => huecos.some((h) =>
+    h.desde <= x0 + EPSILON && h.hasta >= x1 - EPSILON && h.abajo <= y0 + EPSILON && h.arriba >= y1 - EPSILON);
   const grilla = (anchoPlaca, altoPlaca) => {
     const columnas = Math.max(1, Math.ceil(pano.largo / anchoPlaca - EPSILON));
     const filas = Math.max(1, Math.ceil(alto / altoPlaca - EPSILON));
-    return { placas: columnas * filas, columnas, filas };
+    let placas = 0;
+    for (let c = 0; c < columnas; c++) {
+      for (let f = 0; f < filas; f++) {
+        const x0 = c * anchoPlaca;
+        const y0 = f * altoPlaca;
+        if (!dentroDeUnHueco(x0, Math.min(pano.largo, x0 + anchoPlaca), y0, Math.min(alto, y0 + altoPlaca))) placas++;
+      }
+    }
+    return { placas, columnas, filas };
   };
   const parada = grilla(tipo.anchoPlaca, tipo.largoPlaca);
   const acostada = grilla(tipo.largoPlaca, tipo.anchoPlaca);
@@ -179,3 +221,36 @@ export function juntasDePano(pano, tipo) {
   for (let h = t.largoMaximo; h < alto - 0.01; h += t.largoMaximo - t.solape) horizontales.push(Number(h.toFixed(4)));
   return { verticales: cada(t.anchoUtil, pano.largo), horizontales };
 }
+
+/**
+ * Pedazos de una pared SIN los huecos de las aberturas (v1.24), en coordenadas de la pared:
+ * x a lo largo (0 = punta 1), y = altura desde abajo. La pared se corta en franjas verticales en
+ * los bordes de cada hueco; en cada franja quedan los tramos de alto que no son hueco. Así no
+ * hace falta triangular formas con agujeros (y una puerta que toca el piso no da problemas).
+ * @param largo   largo de la pared
+ * @param altoEn  (x) => alto de la pared en x (puede ser inclinada)
+ * @param huecos  [{ desde, hasta, abajo, arriba }]
+ * @returns {Array<[[x,y],[x,y],[x,y],[x,y]]>} cuadriláteros (abajo-izq, abajo-der, arriba-der, arriba-izq)
+ */
+export function pedazosDePared(largo, altoEn, huecos) {
+  const dentro = huecos
+    .map((h) => ({ ...h, desde: Math.max(0, h.desde), hasta: Math.min(largo, h.hasta) }))
+    .filter((h) => h.hasta - h.desde > 1e-6);
+  const xs = [...new Set([0, largo, ...dentro.flatMap((h) => [h.desde, h.hasta])].map((x) => Number(x.toFixed(5))))]
+    .sort((a, b) => a - b);
+  const pedazos = [];
+  for (let i = 0; i < xs.length - 1; i++) {
+    const [a, b] = [xs[i], xs[i + 1]];
+    if (b - a < 1e-6) continue;
+    const queTapan = dentro.filter((h) => h.desde <= a + 1e-6 && h.hasta >= b - 1e-6).sort((p, q) => p.abajo - q.abajo);
+    let y = 0;
+    queTapan.forEach((h) => {
+      if (h.abajo - y > 1e-3) pedazos.push([[a, y], [b, y], [b, h.abajo], [a, h.abajo]]);
+      y = Math.max(y, h.arriba);
+    });
+    const [ta, tb] = [altoEn(a), altoEn(b)];
+    if (Math.max(ta, tb) - y > 1e-3) pedazos.push([[a, y], [b, y], [b, Math.max(y, tb)], [a, Math.max(y, ta)]]);
+  }
+  return pedazos;
+}
+
