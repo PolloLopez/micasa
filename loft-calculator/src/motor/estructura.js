@@ -673,5 +673,32 @@ export function generarEstructura(params, aberturas) {
       techo: techo.superficie,
     },
   };
-  return aplicarCambiosManuales(completa, new Set(params.piezasEliminadas ?? []), params.piezasEditadas ?? {});
+  const conCambios = aplicarCambiosManuales(completa, new Set(params.piezasEliminadas ?? []), params.piezasEditadas ?? {});
+  return marcarPerfilesDePared(conCambios, params);
+}
+
+/**
+ * v1.22: cada pieza de una pared sabe qué perfil le eligió esa pared.
+ *   - columna de dos paredes (esquina)  -> `esquina: true` (va al renglón "Columnas de esquina");
+ *   - columna, horizontal, montante, solera y marco de piso de UNA pared con perfil propio
+ *     -> `perfilPared: <id del perfil>` (el presupuesto la cotiza con ese perfil).
+ * Se marca DESPUÉS de las ediciones a mano (que rearman la pieza); las editadas conservan id y grupos.
+ */
+const CAMPO_DE_TIPO = {
+  columna: 'perfilColumnas',
+  horizontal: 'perfilHorizontales',
+  montante: 'perfilMontantes', 'montante-dintel': 'perfilMontantes', 'montante-antepecho': 'perfilMontantes',
+  solera: 'perfilMarcos', 'marco-piso': 'perfilMarcos',
+};
+function marcarPerfilesDePared(e, params) {
+  return transformarPiezas(e, (p) => {
+    const campo = CAMPO_DE_TIPO[p.tipo];
+    if (!campo) return p;
+    // El marco de piso está en el grupo 'piso'; su pared sale del id (marco-piso:A).
+    const ladosDeLaPieza = p.tipo === 'marco-piso' ? [p.id.split(':')[1]] : p.grupos.filter((g) => LADOS.includes(g));
+    if (p.tipo === 'columna' && ladosDeLaPieza.length >= 2) return { ...p, esquina: true };
+    if (ladosDeLaPieza.length !== 1) return p;
+    const perfil = params.paredes?.[ladosDeLaPieza[0]]?.[campo];
+    return perfil ? { ...p, perfilPared: perfil, ladoPared: ladosDeLaPieza[0] } : p;
+  });
 }

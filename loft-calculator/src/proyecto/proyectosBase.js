@@ -27,6 +27,7 @@ export function proyectoVacio() {
   const pared = {
     separacionVerticales: 3, separacionHorizontales: 0.8, separacionMontantes: 0, riostras: 'no',
     panel: ID_PANEL_GENERICO, panelInterior: '', etiqueta: '', mostrarEtiqueta: true,
+    perfilColumnas: '', perfilHorizontales: '', perfilMontantes: '', perfilMarcos: '', // v1.22: el general
   };
   return {
     nombre: '',

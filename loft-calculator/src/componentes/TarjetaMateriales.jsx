@@ -96,11 +96,12 @@ export default function TarjetaMateriales({
   compartirCortes, onCambiarCompartir, onActualizarPerfil, onAgregarPerfil, onQuitarPerfil,
 }) {
   const perfiles = perfilesDeLista(catalogo);
-  const usosPerfil = items.filter((i) => i.categoria === 'perfil'); // Columnas, Zanca… (los de este proyecto)
+  // Columnas, Zanca… (los de este proyecto). Los renglones "por pared" (v1.22) se eligen en cada pared.
+  const usosPerfil = items.filter((i) => i.categoria === 'perfil' && !i.derivadoDe);
   const otros = items.filter((i) => i.categoria !== 'panel' && i.categoria !== 'perfil'); // OSB, pilotines, madera…
   // Qué renglones de ESTE proyecto usa cada perfil (para "Usado en" y para no borrar uno en uso).
   const usadoEn = {};
-  usosPerfil.forEach((i) => i.perfilId && (usadoEn[i.perfilId] ??= []).push(i.nombre));
+  items.filter((i) => i.categoria === 'perfil').forEach((i) => i.perfilId && (usadoEn[i.perfilId] ??= []).push(i.nombre));
   // Perfiles que solo usan los renglones de OTRO tipo de proyecto (ej. los caños de la grada en un loft):
   // no se muestran en la lista para no llenarla, pero se pueden elegir en el desplegable.
   const deOtroProyecto = new Set(catalogo
@@ -121,7 +122,7 @@ export default function TarjetaMateriales({
         Cargá cada hierro una sola vez: tipo, medidas en mm, largo de barra y precio. El peso sale de las medidas
         (aproximado). Las partes que usan el mismo perfil comparten barras y precio.
       </p>
-      <ListaPerfiles perfiles={visibles} usadoEn={usadoEn}
+      <ListaPerfiles perfiles={visibles} todos={perfiles} usadoEn={usadoEn}
         onActualizar={onActualizarPerfil} onAgregar={onAgregarPerfil} onQuitar={onQuitarPerfil} />
 
       <h3 className="subtitulo">Qué perfil va en cada parte</h3>

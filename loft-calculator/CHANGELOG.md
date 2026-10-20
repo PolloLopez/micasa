@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.22.0] - 2026-10-20
+### Agregado
+- **Perfiles de cada pared**: en cada pared, "Perfiles de esta pared" con Columnas, Horizontales (fajas), Montantes y
+  Marco de piso y solera. Por defecto dicen "General (…)"; se cambia solo en la pared que es distinta.
+- **Patrón alternado** (ej. 80x80 cada 2 m y 60x60 entre medio): columnas cada 2 m con un perfil + montantes cada
+  1 m con otro, eligiéndolos en la pared (decisión de Leandro: con montantes, sin campos nuevos).
+- **Columnas de esquina** con renglón propio en Materiales (son de dos paredes). En proyectos guardados arranca con el
+  mismo perfil que sus Columnas.
+- En el presupuesto, las piezas de una pared con perfil propio salen en su renglón, justo debajo del general:
+  "Columnas (lado B)", "Montantes (lados B, D)"… Comparten barras con las demás partes de ese perfil.
+- Aviso en la lista cuando hay dos perfiles iguales (ej. uno agregado a mano y el mismo que usa la grada).
+- Editor de pieza: dice si la pieza usa el perfil de su pared o es columna de esquina.
+### Cambiado
+- Desplegables de perfil más cortos ("Caño 80x80x2.0 · 6 m · $ 30.000").
+
 ## [1.21.0] - 2026-10-20
 ### Agregado
 - **Lista de perfiles** en Materiales: cada hierro se carga una vez con su **tipo** (caño cuadrado, rectangular,

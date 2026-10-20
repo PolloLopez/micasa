@@ -8,6 +8,7 @@
 // motor con los parámetros), no sobre la ya recortada.
 // ==========================================================
 
+import { nombrePerfil } from '../motor/perfiles.js';
 import { useId } from 'react';
 import CampoNumero from './CampoNumero.jsx';
 import { nombreLado } from '../motor/geometria.js';
@@ -121,6 +122,13 @@ export default function EditorPieza({ pieza, edicion, catalogo, unidad, ladoFren
           {perfiles.map((p) => <option key={p.id} value={p.id}>{p.nombre}{p.perfil ? ` · ${p.perfil}` : ''}</option>)}
         </select>
       </div>
+      {/* v1.22: de dónde sale el perfil cuando no se cambió a mano. */}
+      {!actual.perfil && pieza.esquina && <small className="detalle">Columna de esquina: va en el renglón "Columnas de esquina".</small>}
+      {!actual.perfil && pieza.perfilPared && (
+        <small className="detalle">
+          Usa el perfil elegido para su pared: {nombrePerfil(catalogo.find((i) => i.id === pieza.perfilPared)) || 'el general'}.
+        </small>
+      )}
 
       {!esEdicionVacia(actual) && (
         <button type="button" className="btn-sec" onClick={() => onEditar(pieza.id, EDICION_VACIA)}>Deshacer cambios</button>

@@ -79,7 +79,7 @@ abiertas a la vez, 15+ botones de menos de 40 px en el celular.
       largo de barra (ej. 12 m si el proveedor lo vende) o listar los sobrantes reutilizables.
 - 🟡 [ ] Cortes compartidos: aprovechar también recortes de **otras obras** o del stock del taller (sobrantes guardados).
 - ✅ **Lista de perfiles** (v1.21.0): tipo, medidas, barra, precio y peso; cada parte elige su perfil.
-- 🟡 [ ] Perfil por **pared** (columnas, fajas, montantes) y **patrón alternado** — siguiente paso, sobre la lista.
+- ✅ Perfil por **pared** (columnas, fajas, montantes, marco de piso y solera) y **patrón alternado** con montantes (v1.22.0).
 - 🟢 [ ] El 3D dibuja todo con el grosor de la lista (hoy solo grada/montaje leen la medida del nombre).
 - 🟢 [ ] Peso con tablas del fabricante (esquinas redondeadas) en vez del cálculo aproximado.
 - ✅ Perfiles con **medidas reales** (v1.21.0): tipo, medidas y espesor → peso (kg/m); ya no es texto libre.
@@ -87,7 +87,7 @@ abiertas a la vez, 15+ botones de menos de 40 px en el celular.
       Cada cara con su material y color.
 - 🟡 [ ] Perfil por pared y **patrón alternado en la misma capa**: ej. caño 80x80 cada 2 m y 60x60 entre medio
       (decisión de Leandro: mejor que dos capas).
-- 🟡 [ ] Columnas de esquina: perfil propio, **elegible en Materiales** (decisión de Leandro).
+- ✅ Columnas de esquina: perfil propio, elegible en Materiales (v1.22.0).
 - 🟡 [ ] Colores: **elegible** "por capa" o "por material" en el 3D (decisión de Leandro).
 - ✅ Hecho en v1.14.1: marcos de aberturas con renglón propio; paredes plegables (aria-expanded); "Eliminar
       pieza" menos llamativo que "Cerrar"; textos del editor ("Perfil de esta pieza", "Acortar la punta de…");

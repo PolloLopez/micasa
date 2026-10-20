@@ -389,9 +389,12 @@ describe('calcularPresupuesto', () => {
   });
 
   it('las barras coinciden con las piezas de la estructura (3D = cálculo)', () => {
-    expect(item(INSUMO.COLUMNA).cortes.barras.flatMap((b) => b.piezas)).toHaveLength(e.columnas.length);
+    // v1.22: las de esquina en su renglón; entre los dos, todas las columnas.
+    // (largosPiezas = piezas propias del renglón; las barras pueden ser compartidas.)
+    expect(item(INSUMO.COLUMNA).largosPiezas.length + item(INSUMO.COLUMNA_ESQUINA).largosPiezas.length).toBe(e.columnas.length);
+    expect(item(INSUMO.COLUMNA_ESQUINA).largosPiezas).toHaveLength(4);
     // v1.14.1: dintel, jambas y alféizar en su propio renglón.
-    expect(item(INSUMO.MARCO_ABERTURA).cortes.barras.flatMap((b) => b.piezas)).toHaveLength(e.refuerzosAberturas.length);
+    expect(item(INSUMO.MARCO_ABERTURA).largosPiezas).toHaveLength(e.refuerzosAberturas.length);
     expect(item(INSUMO.VIGA_TECHO).cantidad).toBe(7);
   });
 

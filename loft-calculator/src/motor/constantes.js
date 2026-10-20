@@ -25,6 +25,7 @@ export const LADOS = ['A', 'B', 'C', 'D'];
 // IDs fijos del catálogo: el cálculo sabe qué insumo usar para cada pieza.
 export const INSUMO = {
   COLUMNA: 'columna',
+  COLUMNA_ESQUINA: 'columnaEsquina', // v1.22: las de esquina son de dos paredes: perfil propio
   MONTANTE: 'montante', // vertical liviano entre columnas (v1.17)
   MARCO_ABERTURA: 'marcoAbertura', // dintel, jambas y alféizar de puertas y ventanas (v1.14.1)
   MARCO: 'marco',
@@ -147,3 +148,15 @@ export const LIMITES_ESCALERA = {
   largoApoyo: { min: 0.1, max: 1.5 },
   apoyosIntermedios: { min: 0, max: 12, entero: true },
 };
+
+/**
+ * v1.22: perfiles que puede cambiar cada pared (campo en params.paredes.<lado>)
+ * y el renglón del catálogo que reemplaza cada uno.
+ */
+export const PERFILES_DE_PARED = {
+  perfilColumnas: INSUMO.COLUMNA,
+  perfilHorizontales: INSUMO.CORREA,
+  perfilMontantes: INSUMO.MONTANTE,
+  perfilMarcos: INSUMO.MARCO,
+};
+export const CAMPOS_PERFIL_PARED = Object.keys(PERFILES_DE_PARED);

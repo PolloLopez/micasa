@@ -11,7 +11,7 @@
 //     techo eligen uno. Se pueden agregar o quitar.
 // ==========================================================
 
-import { armarListaDePerfiles, resolverCatalogo } from './perfiles.js';
+import { armarListaDePerfiles, resolverCatalogo, nombrePerfil, kgPorMetro } from './perfiles.js';
 import { compartirCortes } from './cortesCompartidos.js';
 import { optimizarCortes } from './optimizadorCortes.js';
 import { listarPiezas } from './estructura.js';
@@ -21,6 +21,8 @@ import { cuentaRevestimiento, REVESTIMIENTO_POR_DEFECTO } from './revestimientos
 /** Insumos fijos. El perfil y el precio se editan desde la pantalla. */
 export const CATALOGO_FIJO = [
   { id: INSUMO.COLUMNA, categoria: 'perfil', nombre: 'Columnas', perfil: 'Caño estructural 100x100x1.6', unidad: 'barra', largoBarra: 6, precio: 38000 },
+  // v1.22: las columnas de esquina son de dos paredes: renglón propio (arranca igual que Columnas).
+  { id: INSUMO.COLUMNA_ESQUINA, categoria: 'perfil', nombre: 'Columnas de esquina', perfil: 'Caño estructural 100x100x1.6', unidad: 'barra', largoBarra: 6, precio: 38000 },
   // v1.17: montantes (verticales livianos entre columnas) y montantes de dintel / de antepecho.
   { id: INSUMO.MONTANTE, categoria: 'perfil', nombre: 'Montantes', perfil: 'Caño estructural 50x50x1.6', unidad: 'barra', largoBarra: 6, precio: 18000 },
   // v1.14.1: dintel, jambas y alféizar de las aberturas en su propio renglón (antes iban con las columnas).
@@ -186,14 +188,35 @@ function calcularRenglones(estructura, catalogo, excedenteBarras) {
   // y se suman al renglón elegido.
   const reasignadas = listarPiezas(e).filter((p) => p.insumo);
   const propias = (piezas) => piezas.filter((p) => !p.insumo);
-  const perfil = (id, piezas) =>
-    itemPerfil(insumo(id), largos([...propias(piezas), ...reasignadas.filter((p) => p.insumo === id)]), excedenteBarras);
+
+  // v1.22: piezas de una pared con perfil propio (`perfilPared`) salen de su renglón y van a un
+  // renglón aparte con ese perfil, ej. "Columnas (lado B)" con Caño 60x60. Se guardan acá y se
+  // insertan justo debajo de su renglón al final.
+  const derivados = new Map();
+  const perfilDeLista = (id) => catalogo.find((i) => i.categoria === 'hierro' && i.id === id);
+  const perfil = (id, piezas) => {
+    const producto = insumo(id);
+    const deEsteRenglon = propias(piezas);
+    const otroPerfil = (p) => p.perfilPared && p.perfilPared !== producto.perfilId && perfilDeLista(p.perfilPared);
+    const porPerfil = new Map();
+    deEsteRenglon.filter(otroPerfil).forEach((p) => {
+      if (!porPerfil.has(p.perfilPared)) porPerfil.set(p.perfilPared, []);
+      porPerfil.get(p.perfilPared).push(p);
+    });
+    derivados.set(id, [...porPerfil.entries()].map(([perfilId, ps]) => itemPerfil(
+      renglonDePared(producto, perfilDeLista(perfilId), ps), largos(ps), excedenteBarras)));
+    const resto = deEsteRenglon.filter((p) => !otroPerfil(p));
+    return itemPerfil(producto, largos([...resto, ...reasignadas.filter((p) => p.insumo === id)]), excedenteBarras);
+  };
+  // Cada renglón seguido de sus renglones por pared (si hay).
+  const conDerivados = (lista) => lista.flatMap((i) => [i, ...(derivados.get(i.id) ?? [])]);
 
   if (e.grada) return presupuestoGrada(e.grada, insumo, perfil);
   if (e.montaje) return presupuestoMontaje(e.montaje, insumo, perfil);
 
   const items = [
-    perfil(INSUMO.COLUMNA, e.columnas),
+    perfil(INSUMO.COLUMNA, e.columnas.filter((p) => !p.esquina)),
+    perfil(INSUMO.COLUMNA_ESQUINA, e.columnas.filter((p) => p.esquina)), // v1.22
     perfil(INSUMO.MARCO, e.marcos.filter((p) => p.tipo !== 'viga-cierre')),
     perfil(INSUMO.PISO, e.piso.tirantes),
     perfil(INSUMO.TRANSVERSAL_PISO, e.piso.transversales),
@@ -265,7 +288,27 @@ function calcularRenglones(estructura, catalogo, excedenteBarras) {
   items.push(itemSimple(insumo(INSUMO.PISO_DESCANSO), m2Descanso > 0 ? Math.ceil(m2Descanso * 100 - 1e-9) / 100 : 0,
     m2Descanso ? `${m2Descanso.toFixed(2)} m²` : 'no lleva'));
 
-  return items;
+  return conDerivados(items);
+}
+
+/**
+ * Renglón para las piezas de una o más paredes con perfil propio (v1.22):
+ * mismo renglón de origen, pero con el nombre de las paredes y el perfil elegido.
+ * `perfilId` apunta al perfil: cambiar su precio en el presupuesto cambia el del perfil.
+ */
+function renglonDePared(producto, perfilElegido, piezas) {
+  const lados = [...new Set(piezas.map((p) => p.ladoPared).filter(Boolean))].sort();
+  return {
+    ...producto,
+    id: `${producto.id}@${perfilElegido.id}`,
+    nombre: `${producto.nombre} (${lados.length > 1 ? 'lados' : 'lado'} ${lados.join(', ')})`,
+    perfilId: perfilElegido.id,
+    perfil: nombrePerfil(perfilElegido),
+    largoBarra: perfilElegido.largoBarra,
+    precio: perfilElegido.precio,
+    kgm: kgPorMetro(perfilElegido),
+    derivadoDe: producto.id,
+  };
 }
 
 /** Subtotal por renglón y total. */

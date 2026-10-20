@@ -9,8 +9,7 @@
 // ==========================================================
 
 import {
-  LIMITES, LIMITES_PARED, LIMITES_ESCALERA, LIMITES_GRADA, LIMITES_COMPONENTE, LIMITES_MESA, LIMITES_TANQUE, LADOS, ALTURA_PISO_2,
-} from './constantes.js';
+  LIMITES, LIMITES_PARED, LIMITES_ESCALERA, LIMITES_GRADA, LIMITES_COMPONENTE, LIMITES_MESA, LIMITES_TANQUE, LADOS, ALTURA_PISO_2, CAMPOS_PERFIL_PARED } from './constantes.js';
 import { calcularEscalones, DESCANSOS_POR_FORMA } from './escalera.js';
 import { revisarEdicion, PERFILES_ASIGNABLES } from './edicionPiezas.js';
 import { revisarAgregadas } from './piezasAgregadas.js';
@@ -71,6 +70,10 @@ export function validarParametros(params) {
     }
     if (typeof pared?.mostrarEtiqueta !== 'boolean') anotar(`paredes.${lado}.mostrarEtiqueta`, 'Valor inválido');
     if (!['no', 'extremos', 'todos'].includes(pared?.riostras)) anotar(`paredes.${lado}.riostras`, 'Elegí sin, en las puntas o en todos');
+    // v1.22: id de un perfil de la lista ('' = el general). Si el perfil ya no existe, se usa el general.
+    CAMPOS_PERFIL_PARED.forEach((campo) => {
+      if (typeof pared?.[campo] !== 'string' || pared[campo].length > 40) anotar(`paredes.${lado}.${campo}`, 'Perfil inválido');
+    });
   });
   if (!esIdValido(params.panelTecho)) anotar('panelTecho', 'Elegí un tipo de panel');
   if (!Array.isArray(params.piezasEliminadas) || !params.piezasEliminadas.every(esIdValido) || params.piezasEliminadas.length > 5000) {

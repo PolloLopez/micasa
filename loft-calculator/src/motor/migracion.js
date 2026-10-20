@@ -41,7 +41,7 @@
 //     donde se apoya el entrepiso, que era la regla de antes => mismas columnas.
 // ==========================================================
 
-import { LADOS, INSUMO } from './constantes.js';
+import { LADOS, INSUMO, CAMPOS_PERFIL_PARED } from './constantes.js';
 import { PARAMS_INICIALES } from './parametrosIniciales.js';
 import { CATALOGO_FIJO, TIPOS_PANEL_INICIALES } from './presupuesto.js';
 import { ESCALERA_INICIAL } from './escalera.js';
@@ -104,6 +104,8 @@ export function migrarParams(params) {
           riostras: pared.riostras ?? 'no', // v1.17: sin riostras en cruz (como antes)
           etiqueta: pared.etiqueta ?? '', // v1.8: '' = nombre automático (Frente, Lateral…)
           mostrarEtiqueta: pared.mostrarEtiqueta ?? true,
+          // v1.22: perfiles por pared; '' = el general (como antes).
+          ...Object.fromEntries(CAMPOS_PERFIL_PARED.map((c) => [c, typeof pared[c] === 'string' ? pared[c] : ''])),
         } : pared];
       })
     );
@@ -143,6 +145,11 @@ export function normalizarCatalogo(catalogo) {
   const guardado = Array.isArray(catalogo) ? catalogo.filter(esObjeto) : [];
   const delGuardado = (id) => {
     const item = guardado.find((p) => p.id === id);
+    // v1.22: antes las esquinas eran columnas comunes: arrancan con el mismo perfil y precio que Columnas.
+    if (!item && id === INSUMO.COLUMNA_ESQUINA) {
+      const columna = guardado.find((p) => p.id === INSUMO.COLUMNA);
+      return columna && { ...columna, id: INSUMO.COLUMNA_ESQUINA };
+    }
     // v1.2 tenía un solo renglón de transversales: sirve para los dos pisos.
     if (!item && (id === INSUMO.TRANSVERSAL_PISO || id === INSUMO.TRANSVERSAL_PISO_2)) {
       return guardado.find((p) => p.id === 'transversal');

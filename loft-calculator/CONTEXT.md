@@ -103,6 +103,9 @@ valores inválidos.
 | 2026-10-20 | Lista de perfiles (`motor/perfiles.js`): perfiles como entradas `categoria: 'hierro'` del catálogo; los usos (renglones 'perfil') guardan `perfilId`; `resolverCatalogo` les copia nombre, barra, precio y kg/m | Pedido de Leandro: elegir el hierro en vez de escribirlo. Guardarlos en el catálogo reusa sin cambios el guardado, el archivo, el link, Mis proyectos y deshacer. Resolver al calcular deja al presupuesto, los cortes y el 3D leyendo `perfil/largoBarra/precio` como siempre. |
 | 2026-10-20 | Migración: se arma la lista desde los textos viejos (`perfilDesdeTexto`); mismo nombre + largo = un perfil; precios distintos → el más usado (empate: el más alto) + `revisarPrecio` | Decisión de Leandro ("el más usado + aviso"). Lo no reconocido queda como tipo "otro" con su texto: nada se pierde. |
 | 2026-10-20 | Peso aproximado con esquinas en canto vivo (densidad 7850 kg/m³); ángulos se nombran en pulgadas si son fracciones de 1/16" | Alcanza para el peso de compra; los herreros piden los ángulos en pulgadas. |
+| 2026-10-20 | Perfil por pared: `params.paredes.<lado>.perfilColumnas/Horizontales/Montantes/Marcos` ('' = general); las piezas se marcan `perfilPared` en `marcarPerfilesDePared` (después de las ediciones a mano) y el presupuesto las saca a un renglón `<uso>@<perfil>` | Decisión de Leandro (columnas, fajas, montantes y marcos). Marcar después de editar porque `aplicarEdicion` rearma la pieza; la pared sale de los grupos (o del id en el marco de piso). Renglón aparte = precio y barras propios sin tocar el catálogo. |
+| 2026-10-20 | Columnas de esquina (`esquina: true`, renglón `columnaEsquina`) | Son de dos paredes: no les puede tocar el perfil de una sola. Migración: copian el perfil y precio de Columnas. |
+| 2026-10-20 | Patrón alternado = columnas + montantes con perfil por pared | Decisión de Leandro: ya resuelve "80x80 cada 2 m y 60x60 entre medio" sin campos nuevos. |
 | 2026-10-20 | Ayuda con "?" y bienvenida la primera vez (`micasa.v2.bienvenidaVista`), salvo si se entra con un link compartido | Los atajos no se descubrían solos. Con link compartido ya se pregunta "¿abrir?": dos ventanas juntas confunden. |
 
 ## Supuestos de obra (en `src/motor/constantes.js`)
@@ -172,4 +175,5 @@ techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 
 - 2026-10-20 v1.20.0: cortes compartidos entre renglones del mismo perfil (en el ejemplo, 2 barras menos; en la casa de Leandro, 13 → 12 en el 80x80).
 - 2026-10-20 v1.20.1: aviso único por perfil con precios distintos y botón "Usar $X en todos" (casa de Leandro: C 80x40x1.6 de 43 a 39 barras, desperdicio 10,8 % → 1,6 %).
 - 2026-10-20 v1.21.0: lista de perfiles (tipo, medidas, barra, precio, peso) y cada parte elige su perfil; peso total del hierro.
+- 2026-10-20 v1.22.0: perfiles por pared (columnas, fajas, montantes, marcos), columnas de esquina con renglón propio, patrón alternado con montantes.
 - Nota: el elemento `id="flonnect-my-app"` que aparece en la página no es de la app: lo inyecta la extensión Flonnect (grabador de pantalla) de Chrome.

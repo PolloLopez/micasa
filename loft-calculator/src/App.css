@@ -448,3 +448,6 @@ kbd {
 .fila-perfil .aviso-precios { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .peso-total { margin: 6px 0 0; font-size: 0.85rem; color: var(--texto-suave); text-align: right; }
 .peso-total small { display: block; color: var(--texto-tenue); }
+.subtitulo-pared { margin: 10px 0 2px; font-size: 0.78rem; color: var(--texto-suave); text-transform: uppercase; letter-spacing: 0.04em; }
+.grid-perfiles-pared { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 600px) { .grid-perfiles-pared { grid-template-columns: minmax(0, 1fr); } }

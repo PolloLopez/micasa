@@ -30,10 +30,11 @@ import { esEdicionVacia } from './motor/edicionPiezas.js';
 import { duplicarPieza, PREFIJO_AGREGADA } from './motor/piezasAgregadas.js';
 import { generarEstructura, listarPiezas } from './motor/estructura.js';
 import { calcularPresupuesto, CATALOGO_INICIAL, tiposDePanel } from './motor/presupuesto.js';
-import { resolverCatalogo, PERFIL_NUEVO } from './motor/perfiles.js';
+import { resolverCatalogo, PERFIL_NUEVO, perfilesDeLista } from './motor/perfiles.js';
+import SelectorPerfil from './componentes/SelectorPerfil.jsx';
 import { migrarParams, normalizarCatalogo } from './motor/migracion.js';
 import { PARAMS_INICIALES, ABERTURAS_INICIALES } from './motor/parametrosIniciales.js';
-import { LADOS } from './motor/constantes.js';
+import { LADOS, INSUMO } from './motor/constantes.js';
 import { nombreLado, alturasPared, geometriaLados, alturaMaxima } from './motor/geometria.js';
 import { COLORES_INICIALES, coloresValidos, completarColores } from './capas.js';
 import { crearArchivoProyecto, leerArchivoProyecto, nombreDeArchivo } from './proyecto/archivoProyecto.js';
@@ -59,6 +60,14 @@ import Tarjeta from './componentes/Tarjeta.jsx';
 const paramsGuardadosValidos = (p) =>
   p && typeof p === 'object' && Object.keys(validarParametros(p)).length === 0;
 // El catálogo se normaliza al leerlo (normalizarCatalogo), así que siempre queda completo.
+/** v1.22: perfiles que se pueden cambiar en cada pared: [campo, etiqueta, renglón general]. */
+const PERFILES_PARED_UI = [
+  ['perfilColumnas', 'Columnas', INSUMO.COLUMNA],
+  ['perfilHorizontales', 'Horizontales (fajas)', INSUMO.CORREA],
+  ['perfilMontantes', 'Montantes', INSUMO.MONTANTE],
+  ['perfilMarcos', 'Marco de piso y solera', INSUMO.MARCO],
+];
+
 const catalogoGuardadoValido = (c) => Array.isArray(c) && c.some((p) => p.categoria === 'panel');
 const aberturasGuardadasValidas = (a) => Array.isArray(a) && a.every((op) => LADOS.includes(op.lado));
 
@@ -854,6 +863,16 @@ export default function App() {
                       onCambio={cambiar(`paredes.${lado}.riostras`)} />
                     {selectorPanel(`paredes.${lado}.panel`, 'Revestimiento exterior', params.paredes[lado].panel)}
                     {selectorPanel(`paredes.${lado}.panelInterior`, 'Revestimiento interior', params.paredes[lado].panelInterior, true)}
+                  </div>
+                  {/* v1.22: perfiles propios de esta pared ('' = el general de Materiales). Las esquinas van aparte. */}
+                  <h4 className="subtitulo-pared">Perfiles de esta pared</h4>
+                  <div className="grid-params grid-perfiles-pared">
+                    {PERFILES_PARED_UI.map(([campo, etiqueta, idGeneral]) => (
+                      <SelectorPerfil key={campo} etiqueta={etiqueta} valor={params.paredes[lado][campo]}
+                        perfiles={perfilesDeLista(catalogo)}
+                        opcionGeneral={`General (${(catalogoResuelto.find((i) => i.id === idGeneral)?.perfil || 'sin elegir').replace('Caño estructural ', 'Caño ')})`}
+                        onElegir={(id) => cambiar(`paredes.${lado}.${campo}`)(id ?? '')} />
+                    ))}
                   </div>
                   {/* Aberturas de esta pared (v1.17): antes estaban en una tarjeta aparte. */}
                   <AberturasDePared lado={lado} aberturas={aberturasValidas} params={params} unidad={unidad}

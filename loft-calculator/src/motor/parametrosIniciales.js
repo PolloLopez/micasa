@@ -17,6 +17,11 @@ export const PARED_INICIAL = {
   panelInterior: '', // revestimiento interior (v1.15): id del tipo, '' = sin
   etiqueta: '', // texto del cartel en el 3D; '' = nombre automático (Frente, Lateral…)
   mostrarEtiqueta: true,
+  // v1.22: perfiles propios de esta pared (id de la lista de perfiles); '' = el general de Materiales.
+  perfilColumnas: '',
+  perfilHorizontales: '',
+  perfilMontantes: '',
+  perfilMarcos: '', // marco de piso y solera de esta pared
 };
 
 export const PARAMS_INICIALES = {

@@ -20,7 +20,7 @@ const OPCIONES_TIPO = Object.entries(TIPOS_PERFIL).map(([valor, { nombre }]) => 
  * Un perfil de la lista, editable.
  * Cada cambio se revisa antes de guardarse: si las medidas no tienen sentido, queda el error en el campo.
  */
-function FilaPerfil({ perfil, usadoEn, onActualizar, onQuitar }) {
+function FilaPerfil({ perfil, usadoEn, repetido, onActualizar, onQuitar }) {
   const tipo = TIPOS_PERFIL[perfil.tipo];
 
   /** Cambia un campo si el perfil sigue siendo válido. @returns error o null (para CampoNumero). */
@@ -59,6 +59,9 @@ function FilaPerfil({ perfil, usadoEn, onActualizar, onQuitar }) {
         </span>
       </button>
       <small className="usos-perfil">{enUso ? `Usado en: ${usadoEn.join(', ')}` : 'Sin usar'}</small>
+      {repetido && (
+        <small className="aviso-precio">⚠ Hay otro perfil igual en la lista{repetido === 'oculto' ? ' (lo usa la grada o el montaje)' : ''}: en los desplegables aparecen los dos.</small>
+      )}
       {abierto && (<>
 
       {perfil.revisarPrecio && (
@@ -108,13 +111,24 @@ function FilaPerfil({ perfil, usadoEn, onActualizar, onQuitar }) {
  * @param perfiles  los perfiles de la lista
  * @param usadoEn   { idPerfil: ['Columnas', …] } (renglones de este proyecto que lo usan)
  */
-export default function ListaPerfiles({ perfiles, usadoEn, onActualizar, onAgregar, onQuitar }) {
+/**
+ * @param todos  todos los perfiles del catálogo (también los que no se muestran), para avisar repetidos
+ */
+export default function ListaPerfiles({ perfiles, todos = perfiles, usadoEn, onActualizar, onAgregar, onQuitar }) {
+  // Mismo nombre y largo de barra que otro perfil: 'visible' (está en esta lista) u 'oculto' (grada/montaje).
+  const clave = (p) => `${nombrePerfil(p).toLowerCase()}|${p.largoBarra}`;
+  const repetido = (p) => {
+    const iguales = todos.filter((q) => q.id !== p.id && clave(q) === clave(p));
+    if (iguales.length === 0) return null;
+    return iguales.some((q) => perfiles.includes(q)) ? 'visible' : 'oculto';
+  };
   return (
     <>
       {perfiles.length === 0 && <p className="nota">Todavía no hay perfiles: agregá los hierros que usás.</p>}
       <ul className="lista-perfiles">
         {perfiles.map((p) => (
-          <FilaPerfil key={p.id} perfil={p} usadoEn={usadoEn[p.id] ?? []} onActualizar={onActualizar} onQuitar={onQuitar} />
+          <FilaPerfil key={p.id} perfil={p} usadoEn={usadoEn[p.id] ?? []} repetido={repetido(p)}
+            onActualizar={onActualizar} onQuitar={onQuitar} />
         ))}
       </ul>
       <button type="button" className="btn-sec" onClick={onAgregar}>+ Agregar perfil</button>
