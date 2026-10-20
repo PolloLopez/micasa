@@ -78,9 +78,11 @@ abiertas a la vez, 15+ botones de menos de 40 px en el celular.
       Ideas: usar esos sobrantes en piezas de otro renglón del mismo perfil (ya lo hace si lo hay), sugerir
       largo de barra (ej. 12 m si el proveedor lo vende) o listar los sobrantes reutilizables.
 - 🟡 [ ] Cortes compartidos: aprovechar también recortes de **otras obras** o del stock del taller (sobrantes guardados).
-- 🔴 [ ] Perfiles con **medidas reales**: al agregar un perfil se cargan tipo (caño cuadrado/rectangular, redondo,
-      perfil C, ángulo, planchuela…), medidas (lados o diámetro) y espesor. Así se calcula el **peso del hierro**
-      (kg/m) y se estandariza (hoy es un texto libre).
+- ✅ **Lista de perfiles** (v1.21.0): tipo, medidas, barra, precio y peso; cada parte elige su perfil.
+- 🟡 [ ] Perfil por **pared** (columnas, fajas, montantes) y **patrón alternado** — siguiente paso, sobre la lista.
+- 🟢 [ ] El 3D dibuja todo con el grosor de la lista (hoy solo grada/montaje leen la medida del nombre).
+- 🟢 [ ] Peso con tablas del fabricante (esquinas redondeadas) en vez del cálculo aproximado.
+- ✅ Perfiles con **medidas reales** (v1.21.0): tipo, medidas y espesor → peso (kg/m); ya no es texto libre.
 - 🟡 [ ] Paneles sándwich por **caras**: chapa/chapa, chapa/madera (interior), madera/madera (paneles SIP).
       Cada cara con su material y color.
 - 🟡 [ ] Perfil por pared y **patrón alternado en la misma capa**: ej. caño 80x80 cada 2 m y 60x60 entre medio

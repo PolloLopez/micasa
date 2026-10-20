@@ -93,7 +93,9 @@ describe('archivo de proyecto', () => {
     }, FECHA);
     const r = leerArchivoProyecto(comoTexto(parcial));
     expect(r.ok).toBe(true);
-    expect(r.proyecto.catalogo).toHaveLength(CATALOGO_INICIAL.length);
+    // Mismos renglones que el de fábrica (la lista de perfiles suma 'Caño 80x80', que no estaba).
+    const sinLista = (c) => c.filter((p) => p.categoria !== 'hierro');
+    expect(sinLista(r.proyecto.catalogo)).toHaveLength(sinLista(CATALOGO_INICIAL).length);
     const columna = r.proyecto.catalogo.find((p) => p.id === 'columna');
     expect(columna.perfil).toBe('Caño 80x80');
     expect(columna.precio).toBe(38000); // el -5 se descarta

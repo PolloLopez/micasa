@@ -9,8 +9,9 @@
 // Acá se juntan los renglones que tienen:
 //   - el mismo perfil (comparado "normalizado": 80x80x2 = 80 x 80 x 2.0),
 //   - el mismo largo de barra y
-//   - el mismo precio (si el precio es otro, puede ser otro proveedor
-//     o un error: no se juntan y se avisa).
+//   - el mismo precio (desde v1.21 el precio es del perfil de la lista, así
+//     que dos usos del mismo perfil siempre coinciden; dos perfiles con el
+//     mismo nombre y distinto precio, ej. dos proveedores, no se juntan).
 // Se optimizan todas las piezas juntas y las barras se reparten entre
 // los renglones según los metros que usa cada uno. Si juntarlas no
 // ahorra ninguna barra, cada renglón queda como estaba.
@@ -69,8 +70,7 @@ const conQuien = (otros) => (otros.length > 2 ? `otros ${otros.length} renglones
  *
  * @param {object[]} items - renglones del presupuesto; los de perfil traen
  *   { id, nombre, perfil, largoBarra, largoReal, precio, cortes, largosPiezas }
- * @returns {{ items: object[], grupos: object[], preciosDistintos: object[] }}
- *   preciosDistintos = [{ perfil, largoBarra, precios: [{ precio, renglones: [{id, nombre}] }] }]
+ * @returns {{ items: object[], grupos: object[] }}
  *   grupo = { id, perfil, largoBarra, largoReal, renglones: [{id, nombre}], cortes, barrasSeparadas, compartido }
  */
 export function compartirCortes(items) {
@@ -125,36 +125,8 @@ export function compartirCortes(items) {
     });
   });
 
-  // 3) Aviso: mismo perfil y largo, pero otro precio (no se juntan). Uno por perfil (v1.20.1),
-  //    con cada precio y quién lo usa, para que la pantalla ofrezca "usar este precio en todos".
-  const preciosDistintos = [];
-  const porPerfil = new Map();
-  deCorte.forEach((item) => {
-    const clave = `${clavePerfil(item.perfil)}|${item.largoBarra}`;
-    if (!porPerfil.has(clave)) porPerfil.set(clave, []);
-    porPerfil.get(clave).push(item);
-  });
-  porPerfil.forEach((renglones) => {
-    const precios = [...new Set(renglones.map((r) => r.precio))];
-    if (precios.length < 2) return;
-    preciosDistintos.push({
-      perfil: renglones[0].perfil,
-      largoBarra: renglones[0].largoBarra,
-      precios: precios.sort((a, b) => a - b).map((precio) => ({
-        precio,
-        renglones: renglones.filter((r) => r.precio === precio).map((r) => ({ id: r.id, nombre: r.nombre })),
-      })),
-    });
-    renglones.forEach((r) => {
-      const previo = cambios.get(r.id) ?? {};
-      const aviso = 'el mismo perfil tiene otro precio en otro renglón';
-      cambios.set(r.id, { ...previo, avisoPrecio: aviso, detalle: `${previo.detalle ?? r.detalle} · ⚠ ${aviso}` });
-    });
-  });
-
   return {
     items: items.map((i) => (cambios.has(i.id) ? { ...i, ...cambios.get(i.id) } : i)),
     grupos,
-    preciosDistintos,
   };
 }

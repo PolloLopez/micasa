@@ -62,6 +62,8 @@ function DiagramaCortes({ grupo }) {
 }
 
 export default function TablaPresupuesto({ items, total, gruposCortes = [], onCambiarInsumo }) {
+  // Peso de lo que se compra: barras x largo nominal x kg/m de su perfil (v1.21).
+  const kilos = items.reduce((acc, i) => acc + (i.cortes && i.kgm ? i.cantidad * i.largoBarra * i.kgm : 0), 0);
 
   return (
     <Tarjeta id="presupuesto" titulo="Presupuesto de materiales" className="presupuesto">
@@ -86,8 +88,9 @@ export default function TablaPresupuesto({ items, total, gruposCortes = [], onCa
                 </td>
                 <td className="num">{item.cantidad} {item.unidad}</td>
                 <td>
+                  {/* v1.21: el precio de una barra es del perfil de la lista: cambiarlo acá lo cambia en todas sus partes. */}
                   <CampoNumero etiqueta="" sufijo="$" decimales={0} valor={item.precio}
-                    onCambio={validarPrecio((v) => onCambiarInsumo(item.id, 'precio', v))} />
+                    onCambio={validarPrecio((v) => onCambiarInsumo(item.perfilId ?? item.id, 'precio', v))} />
                 </td>
                 <td className="num sub">{pesos(item.subtotal)}</td>
               </tr>
@@ -96,9 +99,16 @@ export default function TablaPresupuesto({ items, total, gruposCortes = [], onCa
         </table>
       </div>
       <div className="total"><span>TOTAL</span><span>{pesos(total)}</span></div>
+      {kilos > 0 && (
+        <p className="peso-total">
+          Peso del hierro a comprar: <strong>≈ {Math.round(kilos).toLocaleString('es-AR')} kg</strong>
+          <small> (barras enteras; medidas de la lista de perfiles, sin redondeo de esquinas)</small>
+        </p>
+      )}
       <p className="nota">
         Las barras salen del optimizador de cortes (merma de 3 mm por corte). Las piezas más largas que la barra se empalman.
-        Los renglones con el mismo perfil, largo de barra y precio comparten barras (se puede apagar en Materiales).
+        Las partes con el mismo perfil comparten barras (se puede apagar en Materiales). El precio de una barra es el
+        de su perfil: cambiarlo acá lo cambia en todas las partes que lo usan.
       </p>
 
       <h3 className="subtitulo">Diagrama de cortes</h3>

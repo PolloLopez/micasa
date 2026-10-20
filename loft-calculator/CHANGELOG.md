@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.21.0] - 2026-10-20
+### Agregado
+- **Lista de perfiles** en Materiales: cada hierro se carga una vez con su **tipo** (caño cuadrado, rectangular,
+  redondo, perfil C, perfil U, ángulo, planchuela u otro), sus **medidas en mm**, el **largo de barra** y el
+  **precio**. El nombre se arma solo ("Caño estructural 80x80x2.0", 'Ángulo 1 1/2" x 3/16"') y el **peso** (kg/m)
+  sale de las medidas. Cada perfil se pliega en una línea y muestra en qué partes se usa.
+- **Qué perfil va en cada parte**: Columnas, Zanca, Horizontales… (y los caños de la grada) eligen un perfil de la
+  lista en vez de escribirlo. Las partes con el mismo perfil comparten barras y precio siempre.
+- **Peso del hierro a comprar** (kg) debajo del total del presupuesto.
+### Cambiado
+- El precio de una barra es del perfil: cambiarlo (en Materiales o en el Presupuesto) lo cambia en todas sus partes.
+  Desaparece el aviso de "precios distintos" de la v1.20.1.
+- **Proyectos guardados**: al abrirlos se arma la lista sola con los perfiles que tenían escritos ("80x80x2" y
+  "80x80x2.0" quedan como uno). Si el mismo perfil tenía precios distintos, toma el más usado (si empatan, el más
+  alto) y avisa una vez para que lo revises.
+
 ## [1.20.1] - 2026-10-20
 ### Cambiado
 - **Precios distintos del mismo perfil**: en vez de un aviso largo en cada renglón, ahora hay uno solo por perfil

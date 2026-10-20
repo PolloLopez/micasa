@@ -11,6 +11,7 @@
 //     techo eligen uno. Se pueden agregar o quitar.
 // ==========================================================
 
+import { armarListaDePerfiles, resolverCatalogo } from './perfiles.js';
 import { compartirCortes } from './cortesCompartidos.js';
 import { optimizarCortes } from './optimizadorCortes.js';
 import { listarPiezas } from './estructura.js';
@@ -86,7 +87,17 @@ export const TIPOS_PANEL_INICIALES = [
   { id: 'panelTecho', categoria: 'panel', nombre: 'Panel de techo', perfil: 'Panel PUR techo 50 mm', unidad: 'm²', largoBarra: null, precio: 38000, color: '#14b8a6', colorInterior: '#e5e7eb', ...REVESTIMIENTO_POR_DEFECTO },
 ];
 
-export const CATALOGO_INICIAL = [...CATALOGO_FIJO, ...TIPOS_PANEL_INICIALES];
+/**
+ * Catálogo de fábrica (v1.21): los usos apuntan a una lista de perfiles armada con
+ * los perfiles de arriba (los que se repiten, como el C 80x40x1.6, quedan como UNO).
+ */
+const fabrica = armarListaDePerfiles(CATALOGO_FIJO.filter((i) => i.categoria === 'perfil'));
+export const PERFILES_INICIALES = fabrica.perfiles;
+export const CATALOGO_INICIAL = [
+  ...CATALOGO_FIJO.map((i) => fabrica.usos.find((u) => u.id === i.id) ?? i),
+  ...TIPOS_PANEL_INICIALES,
+  ...PERFILES_INICIALES,
+];
 
 /** Tipos de panel del catálogo. */
 export const tiposDePanel = (catalogo) => catalogo.filter((p) => p.categoria === 'panel');
@@ -145,7 +156,8 @@ function panosPorRevestimiento(estructura) {
  * @returns {{items: object[], total: number, gruposCortes: object[]}}
  */
 export function calcularPresupuesto(estructura, catalogo, { excedenteBarras = 0, compartir = true } = {}) {
-  const r = calcularRenglones(estructura, catalogo, excedenteBarras);
+  // v1.21: cada uso toma nombre, largo de barra y precio de su perfil de la lista.
+  const r = calcularRenglones(estructura, resolverCatalogo(catalogo), excedenteBarras);
   return conCortesCompartidos(r, compartir);
 }
 
@@ -156,13 +168,13 @@ export function calcularPresupuesto(estructura, catalogo, { excedenteBarras = 0,
 function conCortesCompartidos(items, compartir) {
   if (compartir) {
     const r = compartirCortes(items);
-    return { ...conSubtotales(r.items), gruposCortes: r.grupos, preciosDistintos: r.preciosDistintos };
+    return { ...conSubtotales(r.items), gruposCortes: r.grupos };
   }
   const gruposCortes = items.filter((i) => i.cortes && i.cortes.totalBarras > 0).map((i) => ({
     id: i.id, perfil: i.perfil, largoBarra: i.largoBarra, largoReal: i.largoReal,
     renglones: [{ id: i.id, nombre: i.nombre }], cortes: i.cortes, barrasSeparadas: i.cortes.totalBarras, compartido: false,
   }));
-  return { ...conSubtotales(items), gruposCortes, preciosDistintos: [] };
+  return { ...conSubtotales(items), gruposCortes };
 }
 
 /** Renglones del presupuesto, cada perfil con sus barras calculadas por separado. */

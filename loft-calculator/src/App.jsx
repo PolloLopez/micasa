@@ -30,6 +30,7 @@ import { esEdicionVacia } from './motor/edicionPiezas.js';
 import { duplicarPieza, PREFIJO_AGREGADA } from './motor/piezasAgregadas.js';
 import { generarEstructura, listarPiezas } from './motor/estructura.js';
 import { calcularPresupuesto, CATALOGO_INICIAL, tiposDePanel } from './motor/presupuesto.js';
+import { resolverCatalogo, PERFIL_NUEVO } from './motor/perfiles.js';
 import { migrarParams, normalizarCatalogo } from './motor/migracion.js';
 import { PARAMS_INICIALES, ABERTURAS_INICIALES } from './motor/parametrosIniciales.js';
 import { LADOS } from './motor/constantes.js';
@@ -189,11 +190,13 @@ export default function App() {
   const esGrada = params.tipoProyecto === 'grada'; // proyecto de grada: otra pantalla de datos
   const esMontaje = params.tipoProyecto === 'montaje'; // montaje industrial: mesas, tanques...
   const esConstruccion = !esGrada && !esMontaje;
-  const { items, total, gruposCortes, preciosDistintos } = useMemo(
+  const { items, total, gruposCortes } = useMemo(
     () => calcularPresupuesto(estructura, catalogo, { excedenteBarras: params.excedenteBarras, compartir: params.compartirCortes }),
     [estructura, catalogo, params.excedenteBarras, params.compartirCortes]
   );
   const paneles = useMemo(() => tiposDePanel(catalogo), [catalogo]);
+  // v1.21: cada uso con el nombre, la barra y el precio de su perfil (para el 3D y el editor de piezas).
+  const catalogoResuelto = useMemo(() => resolverCatalogo(catalogo), [catalogo]);
 
   // --- Pestañas del panel (v1.18) ---
   // La elegida se recuerda por navegador. En el celular hay una más, "3D" (vistaMovil):
@@ -240,6 +243,21 @@ export default function App() {
 
   const cambiarInsumo = (id, campo, valor) =>
     setCatalogo((prev) => prev.map((p) => (p.id === id ? { ...p, [campo]: valor } : p)));
+  /** Varios campos juntos (ej. el tipo de un perfil y sus medidas). */
+  const actualizarInsumo = (id, cambios) =>
+    setCatalogo((prev) => prev.map((p) => (p.id === id ? { ...p, ...cambios } : p)));
+
+  // --- Lista de perfiles (v1.21) ---
+  /** "+ Agregar perfil": uno nuevo al final de la lista (caño 50x50x2.0, sin precio). */
+  const agregarPerfil = () => setCatalogo((prev) => {
+    const usados = new Set(prev.map((p) => p.id));
+    let n = 1;
+    while (usados.has(`perfil-${n}`)) n++;
+    return [...prev, { ...PERFIL_NUEVO, id: `perfil-${n}` }];
+  });
+  /** Quitar un perfil: solo si ningún renglón lo usa (la pantalla ya deshabilita el botón). */
+  const quitarPerfil = (id) => setCatalogo((prev) =>
+    (prev.some((p) => p.categoria === 'perfil' && p.perfilId === id) ? prev : prev.filter((p) => p.id !== id)));
 
   // --- Tipos de panel ---
   const agregarTipoPanel = () => {
@@ -604,7 +622,7 @@ export default function App() {
       <main className={`layout${ver3D ? '' : ' sin-visor'} movil-${vistaMovil}`}>
         <div className="columna-visor">
           <LoftCanvas params={params} estructura={estructura} aberturas={aberturasValidas} paneles={paneles}
-            colores={colores} catalogo={catalogo} unidad={unidad}
+            colores={colores} catalogo={catalogoResuelto} unidad={unidad}
             opacidades={opacidades} onCambiarOpacidad={cambiarOpacidad} imagenImpresionRef={imagenImpresionRef}
             onCambiarColor={cambiarColor} onEliminarPieza={eliminarPieza} onEditarPieza={editarPieza}
             onActualizarAbertura={actualizarAbertura} onQuitarAbertura={quitarAbertura}
@@ -855,7 +873,7 @@ export default function App() {
             unidad={unidad} usosDeRevestimiento={usosDePanel} excedenteBarras={params.excedenteBarras}
             onCambiarExcedente={cambiar('excedenteBarras')} onCambiarInsumo={cambiarInsumo}
             compartirCortes={params.compartirCortes !== false} onCambiarCompartir={cambiar('compartirCortes')}
-            preciosDistintos={preciosDistintos}
+            onActualizarPerfil={actualizarInsumo} onAgregarPerfil={agregarPerfil} onQuitarPerfil={quitarPerfil}
             onAgregarRevestimiento={agregarTipoPanel} onQuitarRevestimiento={quitarTipoPanel} />
 
           </section>

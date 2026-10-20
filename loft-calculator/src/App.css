@@ -432,3 +432,19 @@ kbd {
 .aviso-precios ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .aviso-precios li { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .aviso-precios li span { color: var(--texto-suave); font-size: 0.8rem; }
+
+/* ---------- Lista de perfiles (v1.21) ---------- */
+.lista-perfiles { list-style: none; margin: 0 0 8px; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.fila-perfil { background: var(--fondo); border: 1px solid var(--borde); border-radius: 8px; padding: 8px 10px; }
+.cabecera-perfil {
+  display: flex; align-items: center; gap: 8px; width: 100%; background: none; border: none; padding: 2px 0;
+  color: var(--texto); text-align: left; flex-wrap: wrap;
+}
+.cabecera-perfil strong { flex: 1; min-width: 160px; font-size: 0.92rem; }
+.cabecera-perfil .flecha { color: var(--acento); width: 12px; }
+.btn-quitar-perfil { margin-top: 6px; }
+.peso-perfil { color: var(--texto-suave); font-size: 0.78rem; white-space: nowrap; }
+.usos-perfil { display: block; color: var(--texto-tenue); font-size: 0.75rem; margin: 2px 0 6px; }
+.fila-perfil .aviso-precios { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.peso-total { margin: 6px 0 0; font-size: 0.85rem; color: var(--texto-suave); text-align: right; }
+.peso-total small { display: block; color: var(--texto-tenue); }

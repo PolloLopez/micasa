@@ -48,6 +48,7 @@ import { ESCALERA_INICIAL } from './escalera.js';
 import { GRADA_INICIAL } from './grada.js';
 import { MONTAJE_INICIAL } from './montaje.js';
 import { REVESTIMIENTO_POR_DEFECTO, LIMITES_REVESTIMIENTO, VENTAS, UBICACIONES } from './revestimientos.js';
+import { TIPOS_PERFIL, LIMITES_PERFIL, revisarPerfil, armarListaDePerfiles } from './perfiles.js';
 
 const esObjeto = (x) => x !== null && typeof x === 'object' && !Array.isArray(x);
 const esColor = (c) => typeof c === 'string' && /^#[0-9a-fA-F]{6}$/.test(c);
@@ -154,6 +155,8 @@ export function normalizarCatalogo(catalogo) {
     if (!item) return base;
     return {
       ...base,
+      // v1.21: el perfil de la lista que usa (si no hay, se arma desde el texto de abajo).
+      ...(typeof item.perfilId === 'string' || item.perfilId === null ? { perfilId: item.perfilId } : {}),
       perfil: typeof item.perfil === 'string' ? item.perfil : base.perfil,
       precio: esPrecio(item.precio) ? item.precio : base.precio,
       largoBarra: base.largoBarra === null ? null
@@ -184,5 +187,30 @@ export function normalizarCatalogo(catalogo) {
       };
     });
 
-  return [...fijos, ...(paneles.length > 0 ? paneles : TIPOS_PANEL_INICIALES)];
+  // v1.21: lista de perfiles. Los guardados válidos se conservan; los usos sin perfil
+  // de la lista (proyectos viejos) arman la suya desde el texto que tenían.
+  const perfilesGuardados = guardado.filter((p) => p.categoria === 'hierro').map(normalizarPerfil).filter(Boolean)
+    .filter((p, i, lista) => lista.findIndex((q) => q.id === p.id) === i);
+  const { usos, perfiles } = armarListaDePerfiles(fijos.filter((i) => i.categoria === 'perfil'), perfilesGuardados);
+  const conPerfil = fijos.map((i) => usos.find((u) => u.id === i.id) ?? i);
+
+  return [...conPerfil, ...(paneles.length > 0 ? paneles : TIPOS_PANEL_INICIALES), ...perfiles];
+}
+
+/** Un perfil de la lista guardado: se conserva si es válido; si no, se descarta (null). */
+function normalizarPerfil(p) {
+  if (typeof p.id !== 'string' || !p.id || !TIPOS_PERFIL[p.tipo]) return null;
+  const num = (v) => (Number.isFinite(v) ? v : 0);
+  const perfil = {
+    id: p.id,
+    categoria: 'hierro',
+    tipo: p.tipo,
+    a: num(p.a), b: num(p.b), c: num(p.c), espesor: num(p.espesor),
+    texto: typeof p.texto === 'string' ? p.texto.slice(0, 120) : '',
+    kgm: Number.isFinite(p.kgm) && p.kgm >= LIMITES_PERFIL.kgm.min && p.kgm <= LIMITES_PERFIL.kgm.max ? p.kgm : 0,
+    largoBarra: Number.isFinite(p.largoBarra) && p.largoBarra >= LIMITES_PERFIL.largoBarra.min && p.largoBarra <= LIMITES_PERFIL.largoBarra.max ? p.largoBarra : 6,
+    precio: esPrecio(p.precio) ? p.precio : 0,
+    ...(p.revisarPrecio === true ? { revisarPrecio: true } : {}),
+  };
+  return revisarPerfil(perfil) ? null : perfil;
 }

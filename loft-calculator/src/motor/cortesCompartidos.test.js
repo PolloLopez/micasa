@@ -54,22 +54,11 @@ describe('el caso de Leandro: columnas y zanca de 80x80x2', () => {
     expect(items[1].detalle).toMatch(/comparte barras con Columnas/);
   });
 
-  it('con otro precio no se juntan y se avisa', () => {
+  it('con otro precio no se juntan (dos proveedores)', () => {
     const cara = { ...zanca, precio: 99999 };
     const { items, grupos } = compartirCortes([columnas, cara]);
     expect(grupos.every((g) => !g.compartido)).toBe(true);
     expect(items[1].cantidad).toBe(zanca.cortes.totalBarras);
-    expect(items[1].avisoPrecio).toMatch(/otro precio/);
-  });
-
-  it('precios distintos: un aviso por perfil con cada precio y quién lo usa (para igualarlos)', () => {
-    const otra = renglon('Columnas de escalera', 'Caño estructural 80X80X2', [2.5]);
-    const { preciosDistintos } = compartirCortes([columnas, { ...zanca, precio: 42000 }, otra]);
-    expect(preciosDistintos).toHaveLength(1);
-    expect(preciosDistintos[0].precios).toEqual([
-      { precio: 30000, renglones: [{ id: 'Columnas', nombre: 'Columnas' }, { id: 'Columnas de escalera', nombre: 'Columnas de escalera' }] },
-      { precio: 42000, renglones: [{ id: 'Zanca', nombre: 'Zanca' }] },
-    ]);
   });
 
   it('si juntar no ahorra, cada renglón queda como estaba', () => {
