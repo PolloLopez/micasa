@@ -24,7 +24,7 @@ function revisarNumero(valor, { min, max, entero, opcional }) {
   if (typeof valor !== 'number' || !Number.isFinite(valor)) return 'Ingresá un número';
   if (opcional && valor === 0) return null;
   if (entero && !Number.isInteger(valor)) return 'Debe ser un número entero';
-  if (valor < min) return opcional ? `Mínimo ${min} (o 0 = sin)` : `Mínimo ${min}`;
+  if (valor < min) return `Mínimo ${min}`; // los opcionales se apagan con su casilla (v1.19)
   if (valor > max) return `Máximo ${max}`;
   return null;
 }
@@ -238,7 +238,7 @@ function validarEscalera(params, anotar) {
 
   // Reglas que solo importan si la escalera está puesta.
   if (!(params.anchoEntrepiso > 0)) {
-    anotar('escalera.activa', 'La escalera necesita un entrepiso (ancho mayor a 0)');
+    anotar('escalera.activa', 'La escalera necesita un entrepiso: destildá "Lleva escalera" o tildá "Lleva entrepiso"');
     return;
   }
   if (esc.bajaHacia === params.ladoEntrepiso) {

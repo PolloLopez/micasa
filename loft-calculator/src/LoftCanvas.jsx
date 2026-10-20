@@ -16,9 +16,10 @@
 
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
+import { hayDialogoAbierto } from './componentes/useDialogo.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { LADOS } from './motor/constantes.js';
-import { CAPAS, CAPAS_GRADA, CAPAS_MONTAJE, CAPAS_SOLO_PROYECTOS_SUELTOS } from './capas.js';
+import { CAPAS, AYUDAS, GRUPOS_LEYENDA, capaDelProyecto } from './capas.js';
 import { posicionAbertura, listarPiezas } from './motor/estructura.js';
 import { geometriaLados, nombreLado } from './motor/geometria.js';
 import { describirPieza } from './descripcionPiezas.js';
@@ -713,7 +714,7 @@ export default function LoftCanvas({
   useEffect(() => {
     const alTeclear = (ev) => {
       const enCampo = ev.target.closest?.('input, textarea, select, [contenteditable="true"]');
-      if (enCampo) return; // no pisar el copiar/pegar de los campos de texto
+      if (enCampo || hayDialogoAbierto()) return; // no pisar el copiar/pegar de los campos ni actuar debajo de un diálogo
       if (ev.key === 'Escape') {
         setMidiendo(false);
         setSeleccionada(null);
@@ -781,6 +782,8 @@ export default function LoftCanvas({
   const [capasAbiertas, setCapasAbiertas] = useState(() => !window.matchMedia?.('(max-width: 1000px)').matches);
 
   const alternarCapa = (clave) => setCapas((prev) => ({ ...prev, [clave]: !prev[clave] }));
+  /** "todo / nada" de un grupo de la leyenda. */
+  const ponerCapas = (claves, valor) => setCapas((prev) => ({ ...prev, ...Object.fromEntries(claves.map((c) => [c, valor])) }));
   // Un grupo que nunca se tocó está visible (undefined): el primer clic lo oculta.
   const alternarGrupo = (clave) => setGruposVisibles((prev) => ({ ...prev, [clave]: prev[clave] === false }));
 
@@ -788,6 +791,26 @@ export default function LoftCanvas({
   const ordenDesdeFrente = [0, 1, 2, 3].map((i) => LADOS[(LADOS.indexOf(params.ladoFrente) + i) % 4]);
   const esGrada = Boolean(estructura?.grada);
   const esMontaje = Boolean(estructura?.montaje);
+  const tipoProyecto = esGrada ? 'grada' : esMontaje ? 'montaje' : 'construccion';
+
+  /** Una casilla de la leyenda: capa con color (hierros, OSB…), paneles (color por tipo) o ayuda (sin color). */
+  const casillaCapa = (clave) => {
+    const capa = CAPAS[clave];
+    const nombre = capa?.nombre ?? AYUDAS[clave].nombre;
+    const conColor = capa && !capa.colorPorTipo;
+    const titulo = capa?.colorPorTipo ? 'Superficies; el color es el de cada tipo de panel' : AYUDAS[clave]?.titulo;
+    return (
+      <span key={clave} className={`capa${capas[clave] ? '' : ' apagada'}`}>
+        <input type="checkbox" checked={capas[clave]} onChange={() => alternarCapa(clave)} aria-label={`Mostrar ${nombre}`} />
+        {conColor && (
+          <input type="color" className="muestra" value={colores[clave]}
+            onChange={(e) => onCambiarColor(clave, e.target.value)} aria-label={`Color de ${nombre}`}
+            title={`Cambiar color de ${nombre}`} />
+        )}
+        <span onClick={() => alternarCapa(clave)} title={titulo}>{nombre}</span>
+      </span>
+    );
+  };
   const partes = esGrada ? [{ clave: 'grada', nombre: 'Grada' }]
     : esMontaje ? params.montaje.componentes.map((c) => ({ clave: `comp:${c.id}`, nombre: c.nombre || 'Componente' }))
     : [
@@ -797,6 +820,8 @@ export default function LoftCanvas({
     { clave: 'piso2', nombre: 'Piso 2' },
     ...(estructura?.escalera ? [{ clave: 'escalera', nombre: 'Escalera' }] : []),
   ];
+  /** "todo / nada" de las partes (paredes, techo, pisos…). */
+  const ponerPartes = (valor) => setGruposVisibles((prev) => ({ ...prev, ...Object.fromEntries(partes.map((p) => [p.clave, valor])) }));
 
   // La pieza seleccionada puede desaparecer (se eliminó o cambió una medida).
   const piezaSeleccionada = seleccionada ? listarPiezas(estructura).find((p) => p.id === seleccionada) : null;
@@ -880,40 +905,24 @@ export default function LoftCanvas({
           {capasAbiertas ? '▾ Capas' : '▸ Capas y colores'}
         </button>
         {capasAbiertas && (<>
-        {Object.entries(CAPAS)
-          // Cada tipo de proyecto muestra solo las capas que tienen piezas.
-          .filter(([clave, { colorPorTipo }]) => !colorPorTipo && (esGrada ? CAPAS_GRADA.includes(clave)
-            : esMontaje ? CAPAS_MONTAJE.includes(clave) : !CAPAS_SOLO_PROYECTOS_SUELTOS.includes(clave)))
-          .map(([clave, { nombre }]) => (
-            <span key={clave} className="capa">
-              <input type="checkbox" checked={capas[clave]} onChange={() => alternarCapa(clave)}
-                aria-label={`Mostrar ${nombre}`} />
-              <input type="color" className="muestra" value={colores[clave]}
-                onChange={(e) => onCambiarColor(clave, e.target.value)} aria-label={`Color de ${nombre}`}
-                title={`Cambiar color de ${nombre}`} />
-              <span onClick={() => alternarCapa(clave)}>{nombre}</span>
+        {/* v1.19: capas agrupadas (Estructura · Superficies · Ayudas), cada grupo con "todo / nada". */}
+        {GRUPOS_LEYENDA.map(({ titulo, capas: clavesGrupo }) => {
+          const visibles = clavesGrupo.filter((clave) => capaDelProyecto(clave, tipoProyecto));
+          if (visibles.length === 0) return null;
+          return (
+            <span key={titulo} className="capas-paneles grupo-capas" role="group" aria-label={titulo}>
+              <strong className="titulo-grupo">{titulo}</strong>
+              <button type="button" className="btn-mini" onClick={() => ponerCapas(visibles, true)}
+                aria-label={`Mostrar todo ${titulo}`}>todo</button>
+              <button type="button" className="btn-mini" onClick={() => ponerCapas(visibles, false)}
+                aria-label={`Ocultar todo ${titulo}`}>nada</button>
+              {visibles.map((clave) => casillaCapa(clave))}
             </span>
-          ))}
-        {!esGrada && !esMontaje && (
-          <span className="capa">
-            <input type="checkbox" checked={capas.paneles} onChange={() => alternarCapa('paneles')}
-              aria-label="Mostrar paneles" />
-            <span onClick={() => alternarCapa('paneles')} title="Superficies; el color es el de cada tipo de panel">Paneles</span>
-          </span>
-        )}
-        {!esGrada && !esMontaje && (<>
-          <span className="capa">
-            <input type="checkbox" checked={capas.juntas} onChange={() => alternarCapa('juntas')} aria-label="Mostrar juntas de paneles" />
-            <span onClick={() => alternarCapa('juntas')} title="Dónde termina cada tira o placa: para acomodar las aberturas">Juntas de paneles</span>
-          </span>
-          <span className="capa">
-            <input type="checkbox" checked={capas.etiquetasAberturas} onChange={() => alternarCapa('etiquetasAberturas')} aria-label="Mostrar etiquetas de aberturas" />
-            <span onClick={() => alternarCapa('etiquetasAberturas')}>Etiquetas de aberturas</span>
-          </span>
-        </>)}
+          );
+        })}
         {/* Opacidad: de "se ve a través" a sólido, para ver cómo queda cerrada. */}
         <span className="capas-paneles capas-opacidad">
-          <span className="capa"><strong>Opacidad:</strong></span>
+          <strong className="titulo-grupo">Opacidad</strong>
           {/* Grada y montaje no tienen paneles ni OSB: solo la opacidad de los hierros. */}
           {OPACIDADES.filter(({ clave }) => clave === 'hierros' || (!esGrada && !esMontaje))
             .map(({ clave, nombre }) => (
@@ -927,7 +936,9 @@ export default function LoftCanvas({
         </span>
         {/* Partes completas: ocultar una oculta su panel Y sus hierros. */}
         <span className="capas-paneles">
-          <span className="capa"><strong>Mostrar:</strong></span>
+          <strong className="titulo-grupo">Partes</strong>
+          <button type="button" className="btn-mini" onClick={() => ponerPartes(true)} aria-label="Mostrar todas las partes">todo</button>
+          <button type="button" className="btn-mini" onClick={() => ponerPartes(false)} aria-label="Ocultar todas las partes">nada</button>
           {partes.map(({ clave, nombre }) => (
             <span key={clave} className="capa">
               <input type="checkbox" checked={gruposVisibles[clave] !== false} onChange={() => alternarGrupo(clave)}

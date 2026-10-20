@@ -12,6 +12,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import LoftCanvas from './LoftCanvas.jsx';
 import CampoNumero from './componentes/CampoNumero.jsx';
+import CampoOpcional from './componentes/CampoOpcional.jsx';
+import Ayuda from './componentes/Ayuda.jsx';
+import { useDialogo, hayDialogoAbierto } from './componentes/useDialogo.js';
 import SelectorLado from './componentes/SelectorLado.jsx';
 import CampoSelect from './componentes/CampoSelect.jsx';
 import AberturasDePared from './componentes/AberturasDePared.jsx';
@@ -117,6 +120,11 @@ export default function App() {
   const [ver3D, setVer3D] = useEstadoGuardado('ver3D', true, (v) => typeof v === 'boolean');
   const [mostrarProyectos, setMostrarProyectos] = useState(false);
   const [menuAbierto, setMenuAbierto] = useState(false); // menú "⋯" del encabezado en el celular
+  const { dialogo, confirmar, pedirTexto, mostrarTexto } = useDialogo(); // ventanas propias (v1.19)
+  // Ayuda (v1.19): se abre sola la primera vez (salvo que se entre con un link compartido, que ya pregunta algo).
+  const [bienvenidaVista, setBienvenidaVista] = useEstadoGuardado('bienvenidaVista', false, (v) => typeof v === 'boolean');
+  const [ayudaAbierta, setAyudaAbierta] = useState(() => !bienvenidaVista && !tieneProyectoEnLink(window.location.hash));
+  const cerrarAyuda = () => { setAyudaAbierta(false); setBienvenidaVista(true); };
 
   // --- Deshacer / rehacer (v1.18) ---
   // "Foto" del proyecto: lo que Ctrl+Z puede volver atrás (medidas, aberturas, materiales y precios).
@@ -160,7 +168,9 @@ export default function App() {
   rehacerRef.current = rehacerCambio;
   useEffect(() => {
     const alTeclear = (ev) => {
-      if (!(ev.ctrlKey || ev.metaKey) || ev.target.closest?.('input, textarea, select, [contenteditable="true"]')) return;
+      if (hayDialogoAbierto() || ev.target.closest?.('input, textarea, select, [contenteditable="true"]')) return;
+      if (ev.key === '?') { ev.preventDefault(); setAyudaAbierta(true); return; } // v1.19: ayuda y atajos
+      if (!(ev.ctrlKey || ev.metaKey)) return;
       const tecla = ev.key.toLowerCase();
       if (tecla === 'z' && !ev.shiftKey) { ev.preventDefault(); deshacerRef.current(); }
       else if (tecla === 'y' || (tecla === 'z' && ev.shiftKey)) { ev.preventDefault(); rehacerRef.current(); }
@@ -308,10 +318,14 @@ export default function App() {
     setIdProyectoActual(idEnBiblioteca);
   };
 
-  /** Antes de reemplazar el proyecto en pantalla: avisa si hay cambios sin guardar. */
-  const puedoReemplazar = () =>
+  /** Antes de reemplazar el proyecto en pantalla: avisa si hay cambios sin guardar. @returns Promise<boolean> */
+  const puedoReemplazar = async () =>
     !cambiosSinGuardar ||
-    window.confirm(`"${nombreProyecto || 'Proyecto sin nombre'}" tiene cambios sin guardar. ¿Seguir igual y perderlos?`);
+    confirmar({
+      titulo: 'Cambios sin guardar',
+      mensaje: `"${nombreProyecto || 'Proyecto sin nombre'}" tiene cambios sin guardar. Si seguís, se pierden.`,
+      aceptar: 'Seguir sin guardar', cancelar: 'Volver', peligro: true,
+    });
 
   /** Guarda en Mis proyectos con un id (nuevo o el actual). Si el navegador no tiene lugar, avisa el hook. */
   const guardarEnBiblioteca = (id, nombre) => {
@@ -323,8 +337,11 @@ export default function App() {
   };
 
   /** "Guardar como…": pide un nombre y crea un proyecto nuevo en la lista. */
-  const guardarComo = () => {
-    const nombre = window.prompt('¿Con qué nombre guardás el proyecto?', nombreProyecto || '');
+  const guardarComo = async () => {
+    const nombre = await pedirTexto({
+      titulo: 'Guardar como…', mensaje: 'Se guarda en Mis proyectos de este navegador.',
+      etiqueta: 'Nombre del proyecto', valorInicial: nombreProyecto || '', aceptar: 'Guardar',
+    });
     if (nombre === null) return; // canceló
     if (!nombre.trim()) {
       setAviso({ tipo: 'error', texto: 'Poné un nombre para guardar el proyecto.' });
@@ -336,8 +353,8 @@ export default function App() {
   /** "Guardar": pisa el proyecto abierto; si nunca se guardó, funciona como "Guardar como…". */
   const guardar = () => (entradaActual ? guardarEnBiblioteca(entradaActual.id, nombreProyecto) : guardarComo());
 
-  const abrirDeBiblioteca = (entrada) => {
-    if (entrada.id !== idProyectoActual && !puedoReemplazar()) return;
+  const abrirDeBiblioteca = async (entrada) => {
+    if (entrada.id !== idProyectoActual && !(await puedoReemplazar())) return;
     const r = abrirEntrada(entrada);
     if (!r.ok) {
       setAviso({ tipo: 'error', texto: `No se pudo abrir "${entrada.nombre}": ${r.error}` });
@@ -359,44 +376,44 @@ export default function App() {
   };
 
   /** "Nuevo": arranca un proyecto sin datos (sin guardar todavía). */
-  const nuevoProyecto = () => {
-    if (!puedoReemplazar()) return;
+  const nuevoProyecto = async () => {
+    if (!(await puedoReemplazar())) return;
     cargarProyecto(proyectoVacio());
     setMostrarProyectos(false);
     setAviso({ tipo: 'ok', texto: 'Proyecto nuevo: cargá las medidas, los perfiles y los precios. Después "Guardar como…".' });
   };
 
   /** "+ Grada nueva" y "Ejemplo: grada": proyectos de tipo grada. */
-  const nuevaGrada = () => {
-    if (!puedoReemplazar()) return;
+  const nuevaGrada = async () => {
+    if (!(await puedoReemplazar())) return;
     cargarProyecto(gradaNueva());
     setMostrarProyectos(false);
     setAviso({ tipo: 'ok', texto: 'Grada nueva: cargá las filas, los perfiles y los precios. Después "Guardar como…".' });
   };
-  const cargarEjemploGrada = () => {
-    if (!puedoReemplazar()) return;
+  const cargarEjemploGrada = async () => {
+    if (!(await puedoReemplazar())) return;
     cargarProyecto(gradaEjemplo());
     setMostrarProyectos(false);
     setAviso({ tipo: 'ok', texto: 'Ejemplo cargado: grada de 6 filas x 6 m.' });
   };
 
   /** "+ Montaje nuevo" y "Ejemplo: montaje": proyectos de montaje industrial. */
-  const nuevoMontaje = () => {
-    if (!puedoReemplazar()) return;
+  const nuevoMontaje = async () => {
+    if (!(await puedoReemplazar())) return;
     cargarProyecto(montajeNuevo());
     setMostrarProyectos(false);
     setAviso({ tipo: 'ok', texto: 'Montaje nuevo: agregá mesas y tanques, cargá sus medidas, perfiles y precios. Después "Guardar como…".' });
   };
-  const cargarEjemploMontaje = () => {
-    if (!puedoReemplazar()) return;
+  const cargarEjemploMontaje = async () => {
+    if (!(await puedoReemplazar())) return;
     cargarProyecto(montajeEjemplo());
     setMostrarProyectos(false);
     setAviso({ tipo: 'ok', texto: 'Ejemplo cargado: mesa de trabajo + tanque de agua.' });
   };
 
   /** "Ejemplo": carga el loft de referencia (sin guardar). */
-  const cargarEjemplo = () => {
-    if (!puedoReemplazar()) return;
+  const cargarEjemplo = async () => {
+    if (!(await puedoReemplazar())) return;
     cargarProyecto(proyectoEjemplo());
     setMostrarProyectos(false);
     setAviso({ tipo: 'ok', texto: 'Ejemplo cargado: loft 7,50 x 4,50 con entrepiso.' });
@@ -431,7 +448,7 @@ export default function App() {
       setAviso({ tipo: 'ok', texto: 'Link copiado: pegalo en WhatsApp o en un mail. Quien lo abra ve este proyecto (con tus medidas y precios).' });
     } catch {
       // Sin permiso para el portapapeles: se muestra para copiarlo a mano.
-      window.prompt('Copiá este link para compartir el proyecto:', link);
+      mostrarTexto({ titulo: 'Link para compartir', mensaje: 'No se pudo copiar solo: copialo de acá (ya está seleccionado).', etiqueta: 'Link del proyecto', valorInicial: link });
     }
   };
 
@@ -440,13 +457,18 @@ export default function App() {
     const hash = window.location.hash;
     if (!tieneProyectoEnLink(hash)) return;
     const limpiarLink = () => window.history.replaceState(null, '', window.location.pathname + window.location.search);
-    leerLinkProyecto(hash).then((r) => {
+    leerLinkProyecto(hash).then(async (r) => {
       limpiarLink(); // si se recarga la página no vuelve a preguntar
       if (!r.ok) {
         setAviso({ tipo: 'error', texto: r.error });
         return;
       }
-      if (!window.confirm(`¿Abrir el proyecto compartido "${r.proyecto.nombre}"? Reemplaza lo que tenés en pantalla.`)) return;
+      const abrir = await confirmar({
+        titulo: 'Proyecto compartido',
+        mensaje: `¿Abrir "${r.proyecto.nombre}"? Reemplaza lo que tenés en pantalla.`,
+        aceptar: 'Abrir', cancelar: 'No, seguir con el mío',
+      });
+      if (!abrir) return;
       cargarProyecto(r.proyecto);
       setAviso({ tipo: 'ok', texto: `Proyecto compartido "${r.proyecto.nombre}" abierto. Usá "Guardar como…" para quedártelo.` });
     });
@@ -455,13 +477,13 @@ export default function App() {
   }, []);
 
   /** Abre un .json: queda en pantalla como proyecto sin guardar (después "Guardar como…"). */
-  const abrirArchivo = (texto) => {
+  const abrirArchivo = async (texto) => {
     const r = leerArchivoProyecto(texto);
     if (!r.ok) {
       setAviso({ tipo: 'error', texto: r.error });
       return;
     }
-    if (!puedoReemplazar()) return;
+    if (!(await puedoReemplazar())) return;
     cargarProyecto(r.proyecto);
     setMostrarProyectos(false);
     setAviso({ tipo: 'ok', texto: `Archivo "${r.proyecto.nombre}" abierto. Usá "Guardar como…" para sumarlo a Mis proyectos.` });
@@ -506,6 +528,11 @@ export default function App() {
     <CampoNumero key={ruta} etiqueta={etiqueta} unidad={unidad}
       valor={ruta.split('.').reduce((o, k) => o[k], params)} onCambio={cambiar(ruta)} />
   );
+  /** Casilla + medida (v1.19): reemplaza los campos "(0 = sin)". 0 guardado = destildada. */
+  const opcional = (ruta, casilla, etiqueta, valorPorDefecto) => (
+    <CampoOpcional key={ruta} casilla={casilla} etiqueta={etiqueta} unidad={unidad} valorPorDefecto={valorPorDefecto}
+      valor={ruta.split('.').reduce((o, k) => o[k], params)} onCambio={cambiar(ruta)} />
+  );
 
   return (
     <div className="app">
@@ -543,6 +570,8 @@ export default function App() {
             <option value="mm">Milímetros</option>
           </select>
           <button className="btn-print" onClick={() => window.print()}>Imprimir / PDF</button>
+          <button className="btn-sec btn-ayuda" onClick={() => setAyudaAbierta(true)} title="Ayuda y atajos de teclado (?)"
+            aria-label="Ayuda y atajos de teclado">?<span className="solo-movil"> Ayuda y atajos</span></button>
           <small className="solo-movil version-menu">Pollo Calculator v{VERSION_APP}</small>
           </div>
         </div>
@@ -557,8 +586,13 @@ export default function App() {
           onNuevoMontaje={nuevoMontaje} onEjemploMontaje={cargarEjemploMontaje}
           onAbrirArchivo={abrirArchivo} onDescargarArchivo={descargarProyecto}
           onExportarRespaldo={exportarRespaldo} onImportarRespaldo={importarRespaldoDeArchivo}
+          confirmar={confirmar} pedirTexto={pedirTexto}
         />
       )}
+
+      {/* Diálogos propios (v1.19): ¿Borrar?, Guardar como…, cambios sin guardar */}
+      {dialogo}
+      {ayudaAbierta && <Ayuda primeraVez={!bienvenidaVista} onCerrar={cerrarAyuda} />}
 
       {aviso && (
         <div className={`aviso aviso-${aviso.tipo} no-print`} role={aviso.tipo === 'error' ? 'alert' : 'status'}>
@@ -617,23 +651,26 @@ export default function App() {
             <h3 className="subtitulo">Planta baja</h3>
             <div className="grid-params">
               {medida('separacionPiso', 'Sep. estructura de piso')}
-              {medida('separacionTransversalesPiso', 'Sep. transversales (0 = sin)')}
+              {opcional('separacionTransversalesPiso', 'Lleva transversales', 'Transversales cada', 1.5)}
             </div>
             <h3 className="subtitulo">Piso 2 (entrepiso)</h3>
             <div className="grid-params">
-              <SelectorLado etiqueta="Apoyado en" valor={params.ladoEntrepiso} params={params}
-                onCambio={cambiar('ladoEntrepiso')} />
-              {medida('anchoEntrepiso', 'Profundidad (0 = sin entrepiso)')}
-              {params.anchoEntrepiso > 0 && medida('largoEntrepiso', 'Largo (0 = toda la pared)')}
+              {opcional('anchoEntrepiso', 'Lleva entrepiso', 'Profundidad', 3)}
+              {params.anchoEntrepiso > 0 && (
+                <SelectorLado etiqueta="Apoyado en" valor={params.ladoEntrepiso} params={params}
+                  onCambio={cambiar('ladoEntrepiso')} />
+              )}
+              {params.anchoEntrepiso > 0 && opcional('largoEntrepiso', 'Parcial (no toda la pared)', 'Largo',
+                Math.max(1, Math.round(lados[params.ladoEntrepiso].largo / 2)))}
               {params.anchoEntrepiso > 0 && params.largoEntrepiso > 0 && (
                 <CampoSelect etiqueta="Medir desde" valor={params.referenciaEntrepiso}
                   opciones={[['izquierda', 'Esquina izquierda'], ['derecha', 'Esquina derecha']]}
                   onCambio={cambiar('referenciaEntrepiso')} />
               )}
               {params.anchoEntrepiso > 0 && params.largoEntrepiso > 0 && medida('distanciaEntrepiso', 'Dist. a esquina')}
-              {params.anchoEntrepiso > 0 && medida('separacionColumnasEntrepiso', 'Columnas del borde libre cada (0 = solo puntas)')}
-              {medida('separacionPiso2', 'Sep. estructura de piso 2')}
-              {medida('separacionTransversalesPiso2', 'Sep. transversales (0 = sin)')}
+              {params.anchoEntrepiso > 0 && opcional('separacionColumnasEntrepiso', 'Columnas intermedias en el borde libre', 'Columnas cada', 2.5)}
+              {params.anchoEntrepiso > 0 && medida('separacionPiso2', 'Sep. estructura de piso 2')}
+              {params.anchoEntrepiso > 0 && opcional('separacionTransversalesPiso2', 'Lleva transversales', 'Transversales cada', 1.5)}
             </div>
             <p className="nota">
               Entrepiso parcial: poné el largo y desde qué esquina arranca (vista desde afuera, como las
@@ -793,7 +830,7 @@ export default function App() {
                   <div className="grid-params">
                     {medida(`paredes.${lado}.separacionVerticales`, 'Sep. columnas')}
                     {medida(`paredes.${lado}.separacionHorizontales`, 'Sep. horizontales (fajas)')}
-                    {medida(`paredes.${lado}.separacionMontantes`, 'Montantes cada (0 = sin)')}
+                    {opcional(`paredes.${lado}.separacionMontantes`, 'Lleva montantes', 'Montantes cada', 0.6)}
                     <CampoSelect etiqueta="Riostras en cruz" valor={params.paredes[lado].riostras}
                       opciones={[['no', 'Sin riostras'], ['extremos', 'En las puntas'], ['todos', 'En todos los vanos']]}
                       onCambio={cambiar(`paredes.${lado}.riostras`)} />

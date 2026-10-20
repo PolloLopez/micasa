@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.19.0] - 2026-10-20
+### Cambiado
+- **Casillas en vez de "0 = sin"**: "☑ Lleva transversales" + "cada 1.50 m", y lo mismo en entrepiso (y entrepiso
+  parcial), columnas del borde libre, montantes, altura de la escalera, solape de revestimientos, patas y travesaños
+  de montaje y parantes de grada. Al volver a tildar recupera el último valor. Los proyectos guardados se abren igual.
+- **Diálogos propios** en lugar de los cuadros grises del navegador: Guardar como, Renombrar, ¿Borrar?, cambios sin
+  guardar ("Volver" / "Seguir sin guardar") y abrir un proyecto compartido.
+- **Leyenda del 3D agrupada**: Estructura · Superficies · Ayudas · Opacidad · Partes, cada grupo con "todo / nada".
+- **Texto más legible**: los textos chicos pasan a 0,75 rem como mínimo y el gris es más claro.
+- Sin entrepiso se ocultan sus campos (apoyado en, piso 2, transversales del piso 2).
+### Agregado
+- **Ayuda "?"** en el encabezado (o la tecla ?): primeros pasos y atajos de teclado.
+- **Bienvenida** la primera vez que se abre la app, con los 3 pasos para armar un presupuesto.
+
 ## [1.18.1] - 2026-10-19
 ### Cambiado
 - **Valor inválido**: al salir del campo ya no vuelve solo al valor anterior. Queda lo escrito, marcado en rojo, con

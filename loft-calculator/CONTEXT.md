@@ -96,6 +96,10 @@ valores inválidos.
 | 2026-10-19 | Pestañas en el panel (BarraPestanas.jsx); las secciones ocultas siguen montadas (CSS) | Decisión de Leandro tras la revisión UX. Ocultar con CSS (no desmontar) no pierde lo que se está escribiendo y deja imprimir todo. |
 | 2026-10-19 | Deshacer con "fotos" del proyecto (`proyecto/historial.js`, funciones puras) de params + aberturas + catálogo; cambios seguidos (< 800 ms) en un solo paso; 50 pasos | Decisión de Leandro: deshacer todo el proyecto. Fotos completas es lo más simple y seguro (los datos son chicos); agrupar evita deshacer letra por letra. Colores, opacidad y nombre no entran (son de pantalla). |
 | 2026-10-19 | Celular: una cosa a la vez (pestaña "3D" o datos) con barra fija abajo | El 3D tapaba la primera pantalla; la barra abajo queda al alcance del pulgar en la obra. |
+| 2026-10-20 | Casilla + medida (`CampoOpcional.jsx`) en vez de "0 = sin"; en el proyecto se sigue guardando 0 | Más claro para el herrero sin migrar proyectos guardados. Con la casilla tildada no se acepta 0 (si no, escribir "0.6" apagaba la casilla en el primer "0"). |
+| 2026-10-20 | Diálogos propios con `<dialog>` + promesas (`Dialogo.jsx`, `useDialogo.js`) en vez de window.confirm/prompt | El elemento nativo da modal, Esc y foco sin librerías; la promesa deja el código igual de lineal que con confirm. Los atajos globales no actúan con un diálogo abierto. |
+| 2026-10-20 | Leyenda del 3D en grupos (`GRUPOS_LEYENDA` en `capas.js`) con todo/nada; un test asegura que ninguna capa quede afuera | 16 casillas sueltas costaban leer; agrupar por qué son (hierros, superficies, ayudas). |
+| 2026-10-20 | Ayuda con "?" y bienvenida la primera vez (`micasa.v2.bienvenidaVista`), salvo si se entra con un link compartido | Los atajos no se descubrían solos. Con link compartido ya se pregunta "¿abrir?": dos ventanas juntas confunden. |
 
 ## Supuestos de obra (en `src/motor/constantes.js`)
 Piso del entrepiso a 2,30 m · merma de corte 3 mm · excedente de barras 1 % (editable; depende del proveedor) · placa OSB 2,44 × 1,22 + 10 % de recortes ·
@@ -160,4 +164,5 @@ techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 
 - 2026-10-19 v1.17.0: aberturas dentro de cada pared con etiqueta, montantes, riostras de pared, jambas de piso a solera, glosario unificado.
 - 2026-10-19 v1.18.0: pestañas, deshacer/rehacer, celular con barra abajo y menú ⋯.
 - 2026-10-19 v1.18.1: valor inválido queda a la vista (Esc vuelve), aviso al cerrar con cambios, encabezado del celular en un renglón.
+- 2026-10-20 v1.19.0: casillas en vez de "0 = sin", diálogos propios, leyenda agrupada, texto más legible, ayuda "?" y bienvenida.
 - Nota: el elemento `id="flonnect-my-app"` que aparece en la página no es de la app: lo inyecta la extensión Flonnect (grabador de pantalla) de Chrome.

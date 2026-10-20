@@ -5,6 +5,7 @@
 // Toda la lógica está en proyecto/biblioteca.js; acá solo se muestra.
 // ==========================================================
 
+import { hayDialogoAbierto } from './useDialogo.js';
 import { useEffect, useRef } from 'react';
 import { ordenarPorFecha } from '../proyecto/biblioteca.js';
 
@@ -28,6 +29,7 @@ function resumen(entrada) {
 export default function MisProyectos({
   biblioteca, idActual, onCerrar, onAbrir, onDuplicar, onRenombrar, onBorrar,
   onNuevo, onEjemplo, onNuevaGrada, onEjemploGrada, onNuevoMontaje, onEjemploMontaje, onAbrirArchivo, onDescargarArchivo, onExportarRespaldo, onImportarRespaldo,
+  confirmar, pedirTexto,
 }) {
   const ventanaRef = useRef(null);
   const archivoRef = useRef(null);
@@ -36,17 +38,23 @@ export default function MisProyectos({
   // Escape cierra; el foco arranca dentro de la ventana (accesibilidad).
   useEffect(() => {
     ventanaRef.current?.focus();
-    const alTeclear = (e) => e.key === 'Escape' && onCerrar();
+    // Si hay un diálogo abierto encima (ej. "¿Borrar?"), Esc cierra solo ese diálogo.
+    const alTeclear = (e) => e.key === 'Escape' && !hayDialogoAbierto() && onCerrar();
     window.addEventListener('keydown', alTeclear);
     return () => window.removeEventListener('keydown', alTeclear);
   }, [onCerrar]);
 
-  const renombrar = (entrada) => {
-    const nombre = window.prompt('Nuevo nombre del proyecto:', entrada.nombre);
+  const renombrar = async (entrada) => {
+    const nombre = await pedirTexto({ titulo: 'Renombrar proyecto', etiqueta: 'Nuevo nombre', valorInicial: entrada.nombre, aceptar: 'Renombrar' });
     if (nombre !== null) onRenombrar(entrada.id, nombre);
   };
-  const borrar = (entrada) => {
-    if (window.confirm(`¿Borrar "${entrada.nombre}" de Mis proyectos? No se puede deshacer.`)) onBorrar(entrada.id);
+  const borrar = async (entrada) => {
+    const si = await confirmar({
+      titulo: `¿Borrar "${entrada.nombre}"?`,
+      mensaje: 'Se borra de Mis proyectos de este navegador. No se puede deshacer (salvo que tengas el .json o un respaldo).',
+      aceptar: 'Borrar', peligro: true,
+    });
+    if (si) onBorrar(entrada.id);
   };
 
   // Lee el archivo elegido y se lo pasa al manejador como texto.

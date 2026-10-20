@@ -6,6 +6,7 @@
 
 import { useId, useState } from 'react';
 import CampoNumero from './CampoNumero.jsx';
+import CampoOpcional from './CampoOpcional.jsx';
 import SelectorLado from './SelectorLado.jsx';
 import { DESCANSOS_POR_FORMA, calcularEscalones, repartirDescansos } from '../motor/escalera.js';
 import { LADOS } from '../motor/constantes.js';
@@ -103,7 +104,10 @@ export default function PanelEscalera({ params, resumen, unidad, cambiar, cambia
             {medida('ancho', 'Ancho')}
             {medida('huella', 'Huella (profundidad)')}
             {medida('contrahuellaObjetivo', 'Contrahuella objetivo')}
-            {medida('alturaTotal', 'Altura total (0 = automática)')}
+            {/* Destildada = automática (piso 2 + espesor del piso); al tildar arranca de ese valor. */}
+            <CampoOpcional casilla="Altura total a mano (si no, automática)" etiqueta="Altura total" unidad={unidad}
+              valorPorDefecto={Number(calcularEscalones({ ...esc, alturaTotal: 0 }).alturaTotal.toFixed(2))}
+              valor={esc.alturaTotal} onCambio={cambiar('escalera.alturaTotal')} />
           </div>
 
           <h3 className="subtitulo">Estructura</h3>

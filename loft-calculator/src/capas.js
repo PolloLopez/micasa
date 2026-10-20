@@ -33,6 +33,34 @@ export const CAPAS_MONTAJE = ['montaje', 'chapa', 'escalones'];
 /** Capas que solo existen en grada o montaje (no se muestran en una construcción). */
 export const CAPAS_SOLO_PROYECTOS_SUELTOS = ['grada', 'montaje', 'chapa'];
 
+/**
+ * Grupos de la leyenda (v1.19): antes eran 16 casillas sueltas.
+ *   Estructura  = hierros; Superficies = lo que cierra (paneles, OSB, aberturas, madera, chapa);
+ *   Ayudas      = dibujos que no son piezas (juntas, etiquetas).
+ * Cada grupo tiene "todo / nada". Las capas que no existen en el tipo de proyecto no se muestran.
+ */
+export const GRUPOS_LEYENDA = [
+  { titulo: 'Estructura', capas: ['pilotines', 'columnas', 'marcos', 'piso', 'piso2', 'transversales', 'correas', 'techo', 'escalera', 'grada', 'montaje'] },
+  { titulo: 'Superficies', capas: ['paneles', 'osb', 'aberturas', 'escalones', 'chapa'] },
+  { titulo: 'Ayudas', capas: ['juntas', 'etiquetasAberturas'] },
+];
+
+/** Ayudas del visor: se prenden y apagan como capas, pero no tienen color. */
+export const AYUDAS = {
+  juntas: { nombre: 'Juntas de paneles', titulo: 'Dónde termina cada tira o placa: para acomodar las aberturas' },
+  etiquetasAberturas: { nombre: 'Etiquetas de aberturas' },
+};
+
+/**
+ * ¿Se muestra esta capa en la leyenda de este tipo de proyecto?
+ * @param tipo 'construccion' | 'grada' | 'montaje'
+ */
+export function capaDelProyecto(clave, tipo) {
+  if (tipo === 'grada') return CAPAS_GRADA.includes(clave);
+  if (tipo === 'montaje') return CAPAS_MONTAJE.includes(clave);
+  return !CAPAS_SOLO_PROYECTOS_SUELTOS.includes(clave); // construcción: también paneles y ayudas
+}
+
 /** Colores por defecto: { capa: '#rrggbb' }. */
 export const COLORES_INICIALES = Object.fromEntries(
   Object.entries(CAPAS).map(([clave, { color }]) => [clave, color])

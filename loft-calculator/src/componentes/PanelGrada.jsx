@@ -7,6 +7,7 @@
 
 import { useId, useState } from 'react';
 import CampoNumero from './CampoNumero.jsx';
+import CampoOpcional from './CampoOpcional.jsx';
 import Tarjeta from './Tarjeta.jsx';
 import { TIPOS_TABLONES } from '../motor/grada.js';
 import { CANOS_COMUNES } from '../motor/canos.js';
@@ -107,7 +108,8 @@ export default function PanelGrada({ params, resumen, unidad, cambiar, catalogo,
       <h3 className="subtitulo">Estructura</h3>
       <div className="grid-params">
         {medida('separacionPorticos', 'Separación de pórticos')}
-        {entero('parantesCadaFilas', 'Parantes cada (filas, 0 = sin)', 'filas')}
+        <CampoOpcional casilla="Lleva parantes" etiqueta="Parantes cada" sufijo="filas" decimales={0} valorPorDefecto={1}
+          valor={grada.parantesCadaFilas} onCambio={cambiar('grada.parantesCadaFilas')} />
         {entero('vigasPorFila', 'Vigas longitudinales por fila')}
         <div className={`group${errorRiostras ? ' con-error' : ''}`}>
           <label htmlFor={idRiostras}>Riostras en cruz (atrás)</label>

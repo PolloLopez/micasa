@@ -11,6 +11,7 @@
 // ==========================================================
 
 import CampoNumero from './CampoNumero.jsx';
+import CampoOpcional from './CampoOpcional.jsx';
 import CampoSelect from './CampoSelect.jsx';
 import Tarjeta from './Tarjeta.jsx';
 import { LIMITES_REVESTIMIENTO } from '../motor/revestimientos.js';
@@ -64,7 +65,7 @@ function Revestimiento({ tipo, unidad, usos, unicoQueda, onCambiar, onQuitar }) 
         {tipo.venta === 'medida' ? (<>
           {medida('anchoUtil', 'Ancho útil')}
           {medida('largoMaximo', 'Largo máximo')}
-          <CampoNumero etiqueta="Solape (0 = a tope)" unidad={unidad} valor={tipo.solape}
+          <CampoOpcional casilla="Con solape (si no, a tope)" etiqueta="Solape" unidad={unidad} valor={tipo.solape} valorPorDefecto={0.15}
             onCambio={conLimites({ ...LIMITES_REVESTIMIENTO.solape, max: Math.min(LIMITES_REVESTIMIENTO.solape.max, tipo.largoMaximo - 0.01) }, cambiar('solape'))} />
         </>) : (<>
           {medida('anchoPlaca', 'Ancho de placa')}

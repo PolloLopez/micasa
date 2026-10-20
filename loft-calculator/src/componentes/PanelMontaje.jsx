@@ -9,6 +9,7 @@
 
 import { useId, useState } from 'react';
 import CampoNumero from './CampoNumero.jsx';
+import CampoOpcional from './CampoOpcional.jsx';
 import Tarjeta from './Tarjeta.jsx';
 import { MESA_INICIAL, TANQUE_INICIAL, idNuevoComponente } from '../motor/montaje.js';
 import { LARGO_MAXIMO_NOMBRE_COMPONENTE } from '../motor/validacion.js';
@@ -30,15 +31,15 @@ function Opciones({ etiqueta, valor, opciones, onCambio }) {
 }
 
 /** Datos de una mesa / bastidor. */
-function CamposMesa({ medida, opciones, c, cambiar, ruta }) {
+function CamposMesa({ medida, opcional, opciones, c, cambiar, ruta }) {
   return (
     <>
       <div className="grid-params">
         {medida('largo', 'Largo')}
         {medida('ancho', 'Ancho')}
         {medida('alto', 'Alto')}
-        {medida('separacionPatas', 'Patas intermedias cada (0 = solo esquinas)')}
-        {medida('separacionTravesanos', 'Travesaños bajo la tapa cada (0 = sin)')}
+        {opcional('separacionPatas', 'Patas intermedias (si no, solo en las esquinas)', 'Patas cada', 1.5)}
+        {opcional('separacionTravesanos', 'Travesaños bajo la tapa', 'Travesaños cada', 0.6)}
         {c.marcoInferior && medida('alturaMarcoInferior', 'Altura del marco inferior')}
         {opciones('riostras', 'Riostras en cruz', [['no', 'Sin riostras'], ['cabeceras', 'En las cabeceras'], ['todas', 'En todos los lados']])}
         {opciones('tapa', 'Tapa', [['chapa', 'Chapa'], ['madera', 'Madera'], ['ninguna', 'Sin tapa']])}
@@ -74,6 +75,10 @@ function Componente({ c, i, resumen, unidad, cambiar, onQuitar, ladoFrente }) {
   const medida = (nombre, etiqueta) => (
     <CampoNumero key={nombre} etiqueta={etiqueta} unidad={unidad} valor={c[nombre]} onCambio={cambiarCampo(nombre)} />
   );
+  const opcional = (nombre, casilla, etiqueta, valorPorDefecto) => (
+    <CampoOpcional key={nombre} casilla={casilla} etiqueta={etiqueta} unidad={unidad} valorPorDefecto={valorPorDefecto}
+      valor={c[nombre]} onCambio={cambiarCampo(nombre)} />
+  );
   const entero = (nombre, etiqueta) => (
     <CampoNumero key={nombre} etiqueta={etiqueta} sufijo="u" decimales={0} valor={c[nombre]} onCambio={cambiarCampo(nombre)} />
   );
@@ -96,7 +101,7 @@ function Componente({ c, i, resumen, unidad, cambiar, onQuitar, ladoFrente }) {
           onCambio={(v) => cambiarCampo('rotacion')(Number(v))} />
       </div>
       {c.tipo === 'mesa'
-        ? <CamposMesa c={c} medida={medida} opciones={opciones} cambiar={cambiar} ruta={ruta} />
+        ? <CamposMesa c={c} medida={medida} opcional={opcional} opciones={opciones} cambiar={cambiar} ruta={ruta} />
         : <CamposTanque c={c} medida={medida} entero={entero} opciones={opciones} cambiarCampo={cambiarCampo} />}
       {resumen && (
         <p className="nota resumen-componente">

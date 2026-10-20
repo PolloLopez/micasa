@@ -46,26 +46,26 @@ abiertas a la vez, 15+ botones de menos de 40 px en el celular.
       fijo arriba.
 - [x] **Valor inválido** (v1.18.1): lo escrito queda con el aviso al salir del campo ("se sigue usando 7.50");
       Esc vuelve al último valor válido.
-- [ ] **"0 = sin"** en muchos campos (montantes, transversales, largo de entrepiso…): reemplazar por una casilla
-      "Lleva montantes" + el valor, más fácil de entender.
+- [x] **"0 = sin"** → casilla + valor (v1.19.0): transversales, entrepiso, entrepiso parcial, columnas del borde
+      libre, montantes, altura de escalera, solape, patas y travesaños de montaje, parantes de grada.
 - [x] **Cambios sin guardar** (v1.18.1): el navegador avisa al cerrar o recargar si el proyecto abierto tiene
       cambios sin guardar. Queda evaluar autoguardado en Mis proyectos.
 - [ ] **Seleccionar en el 3D**: los hierros finos cuestan, y más con el dedo. Margen de toque más grande y, como
       alternativa, una lista de piezas filtrable por pared.
-- [ ] **Leyenda de capas larga** (16 casillas): agrupar (Estructura · Superficies · Ayudas) con "todo / nada".
-- [ ] **Confirmaciones nativas** (`window.confirm`): feas y bloquean el 3D. Diálogo propio que diga qué se borra.
-- [ ] **Texto chico y tenue** (detalles de 0,68 rem en gris sobre fondo oscuro): subir a 0,75 rem mínimo y más
-      contraste; pensar un **modo claro** para usar a pleno sol en la obra.
+- [x] **Leyenda de capas** agrupada (v1.19.0): Estructura · Superficies · Ayudas · Opacidad · Partes, con "todo / nada".
+- [x] **Diálogos propios** (v1.19.0) en vez de `window.confirm` / `prompt`: dicen qué se borra o qué se pierde.
+- [x] **Texto chico y tenue** (v1.19.0): mínimo 0,75 rem en textos de lectura y gris más claro.
+- [ ] **Modo claro** para usar a pleno sol en la obra.
 - [ ] **Unidades**: largo de barra y precios siempre en m y $ aunque la unidad global sea cm/mm (ya anotado en Uso).
 - [ ] **Medir**: poder dejar varias medidas fijas en el 3D (hoy se ve una por vez).
 
 ### 🟢 Prolijidad
 - [x] **Foco de teclado visible** en todos los botones (v1.18.0).
 - [x] **Encabezado en el celular** en un renglón (v1.18.1): 🐤, nombre, ●, ↶ ↷, Guardar y ⋯ (la versión va en el menú).
-- [ ] **Atajos a la vista**: un "?" que liste Ctrl+C / Ctrl+V / Esc / (futuro Ctrl+Z).
+- [x] **Atajos a la vista** (v1.19.0): botón "?" (o la tecla ?) con primeros pasos y atajos.
 - [ ] **Consistencia de botones**: "Duplicar" y "✕" de aberturas vs "+ Agregar revestimiento" grande y verde vs
       "+ Puerta" secundario; un mismo estilo para la misma acción.
-- [ ] **Primer uso**: elegir "Proyecto vacío" o "Ejemplo" con una explicación de 3 pasos.
+- [x] **Primer uso** (v1.19.0): bienvenida con 3 pasos la primera vez (el ejemplo ya viene cargado).
 - [ ] **Textos de ayuda largos** en la barra del 3D: dejar uno corto y el resto en un "?".
 
 ## Pruebas de Leandro (18/10) — para la versión de materiales
