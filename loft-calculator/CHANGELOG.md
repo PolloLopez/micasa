@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.23.0] - 2026-10-20
+### Agregado
+- **Precio de cada revestimiento en Materiales**, al lado de "Cómo se vende": "Precio por m²" (a medida) o "Precio por
+  placa" (placa fija). Es el mismo precio del Presupuesto: se cambia en cualquiera de los dos lados.
+
 ## [1.22.1] - 2026-10-20
 ### Corregido
 - Proyectos de antes de v1.21: el renglón nuevo "Columnas de esquina" (copia de Columnas) contaba como un precio más

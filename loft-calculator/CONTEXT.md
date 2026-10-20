@@ -177,4 +177,5 @@ techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 
 - 2026-10-20 v1.21.0: lista de perfiles (tipo, medidas, barra, precio, peso) y cada parte elige su perfil; peso total del hierro.
 - 2026-10-20 v1.22.0: perfiles por pared (columnas, fajas, montantes, marcos), columnas de esquina con renglón propio, patrón alternado con montantes.
 - 2026-10-20 v1.22.1: la copia de Columnas en "Columnas de esquina" no vota el precio al migrar; aviso de precio visible aunque esté plegado.
+- 2026-10-20 v1.23.0: precio de los revestimientos también en Materiales (por m² o por placa).
 - Nota: el elemento `id="flonnect-my-app"` que aparece en la página no es de la app: lo inyecta la extensión Flonnect (grabador de pantalla) de Chrome.

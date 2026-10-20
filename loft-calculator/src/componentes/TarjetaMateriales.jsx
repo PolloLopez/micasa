@@ -36,6 +36,12 @@ function Revestimiento({ tipo, unidad, usos, unicoQueda, onCambiar, onQuitar }) 
     <CampoNumero key={campo} etiqueta={etiqueta} unidad={unidad} valor={tipo[campo]}
       onCambio={conLimites(LIMITES_REVESTIMIENTO[campo], cambiar(campo))} />
   );
+  /** Precio del revestimiento: entero y no negativo. Devuelve el error (o null) para CampoNumero. */
+  const cambiarPrecio = (v) => {
+    if (v < 0) return 'No puede ser negativo';
+    cambiar('precio')(Math.round(v));
+    return null;
+  };
   const motivoNoBorrar = usos.length > 0 ? `En uso: ${usos.join(', ')}` : unicoQueda ? 'Tiene que quedar al menos uno' : null;
 
   return (
@@ -66,6 +72,10 @@ function Revestimiento({ tipo, unidad, usos, unicoQueda, onCambiar, onQuitar }) 
         </div>
         <CampoSelect etiqueta="Cómo se vende" valor={tipo.venta} onCambio={cambiar('venta')}
           opciones={[['medida', 'A medida'], ['estandar', 'Placa fija']]} />
+        {/* v1.23: el precio también se carga acá (es el mismo que el del Presupuesto).
+            A medida se cobra por m²; placa fija, por placa. */}
+        <CampoNumero etiqueta={tipo.venta === 'estandar' ? 'Precio por placa' : 'Precio por m²'} sufijo="$" decimales={0}
+          valor={tipo.precio} onCambio={cambiarPrecio} />
         {tipo.venta === 'medida' ? (<>
           {medida('anchoUtil', 'Ancho útil')}
           {medida('largoMaximo', 'Largo máximo')}
