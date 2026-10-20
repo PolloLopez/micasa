@@ -62,17 +62,18 @@ function FilaPerfil({ perfil, usadoEn, repetido, onActualizar, onQuitar }) {
       {repetido && (
         <small className="aviso-precio">⚠ Hay otro perfil igual en la lista{repetido === 'oculto' ? ' (lo usa la grada o el montaje)' : ''}: en los desplegables aparecen los dos.</small>
       )}
-      {abierto && (<>
-
+      {/* El aviso de precio se ve aunque el perfil esté plegado (al abrir otro proyecto la lista recuerda lo plegado). */}
       {perfil.revisarPrecio && (
         <div className="aviso-precios">
-          ⚠ Este perfil tenía precios distintos en distintos renglones: se tomó el más usado ({pesos(perfil.precio)}).
+          ⚠ Este perfil tenía precios distintos en distintos renglones: se tomó el más usado, o el más alto si empataban ({pesos(perfil.precio)}).
           Revisá que sea el de tu proveedor.
           <button type="button" className="btn-sec" onClick={() => onActualizar(perfil.id, { revisarPrecio: false })}>
             El precio está bien
           </button>
         </div>
       )}
+      {abierto && (<>
+
 
       <div className="grid-params">
         <CampoSelect etiqueta="Tipo" valor={perfil.tipo} opciones={OPCIONES_TIPO} onCambio={cambiarTipo} />

@@ -145,11 +145,6 @@ export function normalizarCatalogo(catalogo) {
   const guardado = Array.isArray(catalogo) ? catalogo.filter(esObjeto) : [];
   const delGuardado = (id) => {
     const item = guardado.find((p) => p.id === id);
-    // v1.22: antes las esquinas eran columnas comunes: arrancan con el mismo perfil y precio que Columnas.
-    if (!item && id === INSUMO.COLUMNA_ESQUINA) {
-      const columna = guardado.find((p) => p.id === INSUMO.COLUMNA);
-      return columna && { ...columna, id: INSUMO.COLUMNA_ESQUINA };
-    }
     // v1.2 tenía un solo renglón de transversales: sirve para los dos pisos.
     if (!item && (id === INSUMO.TRANSVERSAL_PISO || id === INSUMO.TRANSVERSAL_PISO_2)) {
       return guardado.find((p) => p.id === 'transversal');
@@ -198,8 +193,18 @@ export function normalizarCatalogo(catalogo) {
   // de la lista (proyectos viejos) arman la suya desde el texto que tenían.
   const perfilesGuardados = guardado.filter((p) => p.categoria === 'hierro').map(normalizarPerfil).filter(Boolean)
     .filter((p, i, lista) => lista.findIndex((q) => q.id === p.id) === i);
-  const { usos, perfiles } = armarListaDePerfiles(fijos.filter((i) => i.categoria === 'perfil'), perfilesGuardados);
-  const conPerfil = fijos.map((i) => usos.find((u) => u.id === i.id) ?? i);
+  // v1.22: si el catálogo es de antes de las columnas de esquina, ese renglón NO arma la lista (no es un
+  // dato del herrero: si votara, el precio de Columnas contaría doble) y después copia el perfil de Columnas.
+  const esquinaNueva = !guardado.some((p) => p.id === INSUMO.COLUMNA_ESQUINA);
+  const paraLista = fijos.filter((i) => i.categoria === 'perfil' && !(esquinaNueva && i.id === INSUMO.COLUMNA_ESQUINA));
+  const { usos, perfiles } = armarListaDePerfiles(paraLista, perfilesGuardados);
+  const columna = usos.find((u) => u.id === INSUMO.COLUMNA);
+  const conPerfil = fijos.map((i) => {
+    if (esquinaNueva && i.id === INSUMO.COLUMNA_ESQUINA) {
+      return { ...i, perfil: columna?.perfil ?? i.perfil, precio: columna?.precio ?? i.precio, largoBarra: columna?.largoBarra ?? i.largoBarra, perfilId: columna?.perfilId ?? null };
+    }
+    return usos.find((u) => u.id === i.id) ?? i;
+  });
 
   return [...conPerfil, ...(paneles.length > 0 ? paneles : TIPOS_PANEL_INICIALES), ...perfiles];
 }

@@ -28,6 +28,19 @@ describe('columnas de esquina', () => {
     const esq = c.find((i) => i.id === INSUMO.COLUMNA_ESQUINA);
     expect(esq.perfilId).toBe(col.perfilId);
   });
+
+  it('la copia de Columnas no cuenta como un precio más al armar la lista (caso de Leandro, 20/10)', () => {
+    const t = (id, perfil, precio) => ({ id, categoria: 'perfil', perfil, precio, largoBarra: 6 });
+    const c = normalizarCatalogo([
+      t('columna', 'Caño estructural 80x80x2.0', 38000), t('zanca', 'Caño estructural 80x80x2.0', 42000),
+      t('columnaEscalera', 'Caño estructural 80x80x2.0', 30000),
+    ]);
+    const cano = c.find((i) => i.categoria === 'hierro' && i.id === c.find((x) => x.id === 'columna').perfilId);
+    // Tres precios, uno cada uno: empate => el más alto, y aviso para revisarlo.
+    expect(cano).toMatchObject({ precio: 42000, revisarPrecio: true });
+    // La esquina usa el mismo perfil que Columnas (no se arma uno propio con el texto de fábrica).
+    expect(c.find((x) => x.id === 'columnaEsquina').perfilId).toBe(cano.id);
+  });
 });
 
 describe('perfil propio de una pared', () => {

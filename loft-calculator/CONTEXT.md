@@ -176,4 +176,5 @@ techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 
 - 2026-10-20 v1.20.1: aviso único por perfil con precios distintos y botón "Usar $X en todos" (casa de Leandro: C 80x40x1.6 de 43 a 39 barras, desperdicio 10,8 % → 1,6 %).
 - 2026-10-20 v1.21.0: lista de perfiles (tipo, medidas, barra, precio, peso) y cada parte elige su perfil; peso total del hierro.
 - 2026-10-20 v1.22.0: perfiles por pared (columnas, fajas, montantes, marcos), columnas de esquina con renglón propio, patrón alternado con montantes.
+- 2026-10-20 v1.22.1: la copia de Columnas en "Columnas de esquina" no vota el precio al migrar; aviso de precio visible aunque esté plegado.
 - Nota: el elemento `id="flonnect-my-app"` que aparece en la página no es de la app: lo inyecta la extensión Flonnect (grabador de pantalla) de Chrome.

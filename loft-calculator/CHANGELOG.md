@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.22.1] - 2026-10-20
+### Corregido
+- Proyectos de antes de v1.21: el renglón nuevo "Columnas de esquina" (copia de Columnas) contaba como un precio más
+  al armar la lista de perfiles y le daba ventaja al precio de Columnas. Ahora no vota; la esquina toma el perfil de
+  Columnas después. (Probado con "pollo casa c/ aberturas".)
+- El aviso "revisá el precio" se ve aunque el perfil esté plegado (al abrir otro proyecto la lista recordaba lo
+  plegado y el aviso quedaba escondido). Dice también "o el más alto si empataban".
+
 ## [1.22.0] - 2026-10-20
 ### Agregado
 - **Perfiles de cada pared**: en cada pared, "Perfiles de esta pared" con Columnas, Horizontales (fajas), Montantes y
