@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.20.1] - 2026-10-20
+### Cambiado
+- **Precios distintos del mismo perfil**: en vez de un aviso largo en cada renglón, ahora hay uno solo por perfil
+  en Materiales, con cada precio, quién lo usa y un botón **"Usar $X en todos"** para igualarlos y que compartan
+  barras. (Al cambiar el perfil de un renglón, su precio no cambia solo: por eso quedaban distintos.)
+- "Comparte barras con otros N renglones del mismo perfil" cuando son más de dos (antes, una lista eterna).
+
 ## [1.20.0] - 2026-10-20
 ### Agregado
 - **Cortes compartidos**: los renglones que usan el mismo hierro (mismo perfil, largo de barra y precio) cortan de

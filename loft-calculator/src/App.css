@@ -427,3 +427,8 @@ kbd {
 .origen-3 { background: #047857; }
 .comparte { display: block; color: var(--dinero); font-size: 0.75rem; margin-top: 2px; }
 .aviso-precio { display: block; color: #fbbf24; font-size: 0.75rem; margin-top: 2px; }
+.aviso-precios { border: 1px solid #a16207; background: rgba(161, 98, 7, 0.12); border-radius: 8px; padding: 8px 12px; margin: 8px 0; font-size: 0.85rem; }
+.aviso-precios p { margin: 0 0 6px; }
+.aviso-precios ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.aviso-precios li { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.aviso-precios li span { color: var(--texto-suave); font-size: 0.8rem; }

@@ -72,6 +72,11 @@ abiertas a la vez, 15+ botones de menos de 40 px en el celular.
 - ✅ **Cortes compartidos** (v1.20.0, pedido del 20/10): renglones con el mismo perfil (80x80x2 = 80x80x2.0),
       largo de barra y precio cortan de las mismas barras; aviso si el mismo perfil tiene otro precio.
       Siguiente paso natural: la lista de perfiles de abajo (elegir en vez de escribir).
+      v1.20.1: botón "Usar $X en todos" cuando el mismo perfil tiene precios distintos (el precio es por renglón y
+      no sigue al perfil: con la lista de perfiles el precio pasa a ser del perfil y esto desaparece).
+- 🟡 [ ] Desperdicio que no se arregla compartiendo: columnas de ~4,70 m en barras de 6 m dejan ~1,30 m cada una.
+      Ideas: usar esos sobrantes en piezas de otro renglón del mismo perfil (ya lo hace si lo hay), sugerir
+      largo de barra (ej. 12 m si el proveedor lo vende) o listar los sobrantes reutilizables.
 - 🟡 [ ] Cortes compartidos: aprovechar también recortes de **otras obras** o del stock del taller (sobrantes guardados).
 - 🔴 [ ] Perfiles con **medidas reales**: al agregar un perfil se cargan tipo (caño cuadrado/rectangular, redondo,
       perfil C, ángulo, planchuela…), medidas (lados o diámetro) y espesor. Así se calcula el **peso del hierro**

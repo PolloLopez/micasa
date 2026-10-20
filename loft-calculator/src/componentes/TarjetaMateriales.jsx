@@ -17,6 +17,8 @@ import Tarjeta from './Tarjeta.jsx';
 import { LIMITES_REVESTIMIENTO } from '../motor/revestimientos.js';
 
 /** Valida un número contra sus límites y, si está bien, lo guarda. */
+const pesos = (n) => n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
+
 const conLimites = ({ min, max }, actualizar, enTexto = (n) => `${n} m`) => (v) => {
   if (!Number.isFinite(v) || v < min) return `Mínimo ${enTexto(min)}`;
   if (v > max) return `Máximo ${enTexto(max)}`;
@@ -88,7 +90,7 @@ function Revestimiento({ tipo, unidad, usos, unicoQueda, onCambiar, onQuitar }) 
 export default function TarjetaMateriales({
   items, catalogo, revestimientos, unidad, usosDeRevestimiento, excedenteBarras,
   onCambiarExcedente, onCambiarInsumo, onAgregarRevestimiento, onQuitarRevestimiento,
-  compartirCortes, onCambiarCompartir,
+  compartirCortes, onCambiarCompartir, preciosDistintos = [],
 }) {
   const largoDe = (id) => catalogo.find((p) => p.id === id)?.largoBarra;
   const otros = items.filter((i) => i.categoria !== 'panel');
@@ -118,6 +120,27 @@ export default function TarjetaMateriales({
         Si dos renglones tienen el mismo perfil (aunque esté escrito distinto: 80x80x2 = 80 x 80 x 2.0), el mismo
         largo de barra y el mismo precio, sus piezas se cortan de las mismas barras: lo que sobra de uno se usa en el otro.
       </p>
+      {/* v1.20.1: el precio es por renglón; al cambiar el perfil de un renglón, su precio no cambia solo.
+          Un aviso por perfil con sus precios y un botón para usar uno en todos. */}
+      {compartirCortes && preciosDistintos.map((g) => (
+        <div key={`${g.perfil}|${g.largoBarra}`} className="aviso-precios" role="group" aria-label={`Precios distintos de ${g.perfil}`}>
+          <p>
+            ⚠ <strong>{g.perfil}</strong> tiene {g.precios.length} precios distintos, por eso esos renglones no comparten
+            barras. Elegí el precio de la barra:
+          </p>
+          <ul>
+            {g.precios.map(({ precio, renglones }) => (
+              <li key={precio}>
+                <button type="button" className="btn-sec"
+                  onClick={() => g.precios.flatMap((x) => x.renglones).forEach((r) => onCambiarInsumo(r.id, 'precio', precio))}>
+                  Usar {pesos(precio)} en todos
+                </button>
+                <span>{renglones.map((r) => r.nombre).join(', ')}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
       <div className="table-wrap">
         <table>
           <thead>
@@ -132,8 +155,12 @@ export default function TarjetaMateriales({
                     aria-label={`Perfil o material de ${item.nombre}`}
                     onChange={(e) => onCambiarInsumo(item.id, 'perfil', e.target.value)} />
                   {/* Para ver si la app reconoce el mismo hierro en otro renglón. */}
-                  {item.compartenCon && <small className="comparte">Comparte barras con {item.compartenCon.join(', ')}</small>}
-                  {item.avisoPrecio && <small className="aviso-precio">⚠ {item.avisoPrecio}</small>}
+                  {item.compartenCon && (
+                    <small className="comparte" title={item.compartenCon.join(', ')}>
+                      Comparte barras con {item.compartenCon.length > 2 ? `otros ${item.compartenCon.length} renglones del mismo perfil` : item.compartenCon.join(', ')}
+                    </small>
+                  )}
+                  {compartirCortes && item.avisoPrecio && <small className="aviso-precio">⚠ precio distinto al de los otros renglones con este perfil (ver arriba)</small>}
                 </td>
                 <td>
                   {item.cortes ? (

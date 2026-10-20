@@ -189,7 +189,7 @@ export default function App() {
   const esGrada = params.tipoProyecto === 'grada'; // proyecto de grada: otra pantalla de datos
   const esMontaje = params.tipoProyecto === 'montaje'; // montaje industrial: mesas, tanques...
   const esConstruccion = !esGrada && !esMontaje;
-  const { items, total, gruposCortes } = useMemo(
+  const { items, total, gruposCortes, preciosDistintos } = useMemo(
     () => calcularPresupuesto(estructura, catalogo, { excedenteBarras: params.excedenteBarras, compartir: params.compartirCortes }),
     [estructura, catalogo, params.excedenteBarras, params.compartirCortes]
   );
@@ -855,6 +855,7 @@ export default function App() {
             unidad={unidad} usosDeRevestimiento={usosDePanel} excedenteBarras={params.excedenteBarras}
             onCambiarExcedente={cambiar('excedenteBarras')} onCambiarInsumo={cambiarInsumo}
             compartirCortes={params.compartirCortes !== false} onCambiarCompartir={cambiar('compartirCortes')}
+            preciosDistintos={preciosDistintos}
             onAgregarRevestimiento={agregarTipoPanel} onQuitarRevestimiento={quitarTipoPanel} />
 
           </section>

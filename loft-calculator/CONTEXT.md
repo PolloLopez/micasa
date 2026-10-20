@@ -167,4 +167,5 @@ techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 
 - 2026-10-19 v1.18.1: valor inválido queda a la vista (Esc vuelve), aviso al cerrar con cambios, encabezado del celular en un renglón.
 - 2026-10-20 v1.19.0: casillas en vez de "0 = sin", diálogos propios, leyenda agrupada, texto más legible, ayuda "?" y bienvenida.
 - 2026-10-20 v1.20.0: cortes compartidos entre renglones del mismo perfil (en el ejemplo, 2 barras menos; en la casa de Leandro, 13 → 12 en el 80x80).
+- 2026-10-20 v1.20.1: aviso único por perfil con precios distintos y botón "Usar $X en todos" (casa de Leandro: C 80x40x1.6 de 43 a 39 barras, desperdicio 10,8 % → 1,6 %).
 - Nota: el elemento `id="flonnect-my-app"` que aparece en la página no es de la app: lo inyecta la extensión Flonnect (grabador de pantalla) de Chrome.

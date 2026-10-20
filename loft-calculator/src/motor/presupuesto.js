@@ -156,13 +156,13 @@ export function calcularPresupuesto(estructura, catalogo, { excedenteBarras = 0,
 function conCortesCompartidos(items, compartir) {
   if (compartir) {
     const r = compartirCortes(items);
-    return { ...conSubtotales(r.items), gruposCortes: r.grupos };
+    return { ...conSubtotales(r.items), gruposCortes: r.grupos, preciosDistintos: r.preciosDistintos };
   }
   const gruposCortes = items.filter((i) => i.cortes && i.cortes.totalBarras > 0).map((i) => ({
     id: i.id, perfil: i.perfil, largoBarra: i.largoBarra, largoReal: i.largoReal,
     renglones: [{ id: i.id, nombre: i.nombre }], cortes: i.cortes, barrasSeparadas: i.cortes.totalBarras, compartido: false,
   }));
-  return { ...conSubtotales(items), gruposCortes };
+  return { ...conSubtotales(items), gruposCortes, preciosDistintos: [] };
 }
 
 /** Renglones del presupuesto, cada perfil con sus barras calculadas por separado. */

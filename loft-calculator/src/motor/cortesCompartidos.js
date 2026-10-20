@@ -60,6 +60,8 @@ export function repartirBarras(total, metros) {
 const metrosDe = (item) => item.largosPiezas.reduce((a, l) => a + l, 0);
 /** "Columnas, Zanca y marco de descanso": con coma, porque hay nombres que ya llevan "y". */
 const nombres = (lista) => lista.map((i) => i.nombre).join(', ');
+/** Con muchos renglones la lista se hace eterna: "otros 6 renglones del mismo perfil". */
+const conQuien = (otros) => (otros.length > 2 ? `otros ${otros.length} renglones del mismo perfil` : nombres(otros));
 
 /**
  * Junta los renglones de perfil que usan el mismo hierro.
@@ -67,7 +69,8 @@ const nombres = (lista) => lista.map((i) => i.nombre).join(', ');
  *
  * @param {object[]} items - renglones del presupuesto; los de perfil traen
  *   { id, nombre, perfil, largoBarra, largoReal, precio, cortes, largosPiezas }
- * @returns {{ items: object[], grupos: object[] }}
+ * @returns {{ items: object[], grupos: object[], preciosDistintos: object[] }}
+ *   preciosDistintos = [{ perfil, largoBarra, precios: [{ precio, renglones: [{id, nombre}] }] }]
  *   grupo = { id, perfil, largoBarra, largoReal, renglones: [{id, nombre}], cortes, barrasSeparadas, compartido }
  */
 export function compartirCortes(items) {
@@ -112,8 +115,8 @@ export function compartirCortes(items) {
         compartenCon: otros.map((o) => o.nombre),
         // Con 0 barras propias: todas sus piezas entran en lo que sobra de los otros renglones.
         detalle: barras[i] === 0
-          ? `${r.largosPiezas.length} piezas · salen de los sobrantes de ${nombres(otros)}`
-          : `${r.largosPiezas.length} piezas · comparte barras con ${nombres(otros)}`,
+          ? `${r.largosPiezas.length} piezas · salen de los sobrantes de ${conQuien(otros)}`
+          : `${r.largosPiezas.length} piezas · comparte barras con ${conQuien(otros)}`,
       });
     });
     grupos.push({
@@ -122,18 +125,36 @@ export function compartirCortes(items) {
     });
   });
 
-  // 3) Aviso: mismo perfil y largo, pero otro precio (no se juntan).
+  // 3) Aviso: mismo perfil y largo, pero otro precio (no se juntan). Uno por perfil (v1.20.1),
+  //    con cada precio y quién lo usa, para que la pantalla ofrezca "usar este precio en todos".
+  const preciosDistintos = [];
+  const porPerfil = new Map();
   deCorte.forEach((item) => {
-    const mismos = deCorte.filter((o) => o !== item && o.largoBarra === item.largoBarra
-      && clavePerfil(o.perfil) === clavePerfil(item.perfil) && o.precio !== item.precio);
-    if (mismos.length === 0) return;
-    const aviso = `mismo perfil que ${nombres(mismos)} con otro precio: no comparten barras`;
-    const previo = cambios.get(item.id) ?? {};
-    cambios.set(item.id, { ...previo, avisoPrecio: aviso, detalle: `${previo.detalle ?? item.detalle} · ${aviso}` });
+    const clave = `${clavePerfil(item.perfil)}|${item.largoBarra}`;
+    if (!porPerfil.has(clave)) porPerfil.set(clave, []);
+    porPerfil.get(clave).push(item);
+  });
+  porPerfil.forEach((renglones) => {
+    const precios = [...new Set(renglones.map((r) => r.precio))];
+    if (precios.length < 2) return;
+    preciosDistintos.push({
+      perfil: renglones[0].perfil,
+      largoBarra: renglones[0].largoBarra,
+      precios: precios.sort((a, b) => a - b).map((precio) => ({
+        precio,
+        renglones: renglones.filter((r) => r.precio === precio).map((r) => ({ id: r.id, nombre: r.nombre })),
+      })),
+    });
+    renglones.forEach((r) => {
+      const previo = cambios.get(r.id) ?? {};
+      const aviso = 'el mismo perfil tiene otro precio en otro renglón';
+      cambios.set(r.id, { ...previo, avisoPrecio: aviso, detalle: `${previo.detalle ?? r.detalle} · ⚠ ${aviso}` });
+    });
   });
 
   return {
     items: items.map((i) => (cambios.has(i.id) ? { ...i, ...cambios.get(i.id) } : i)),
     grupos,
+    preciosDistintos,
   };
 }
