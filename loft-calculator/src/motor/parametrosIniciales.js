@@ -62,6 +62,8 @@ export const PARAMS_INICIALES = {
   // Compras
   excedenteBarras: 1, // % que las barras traen de más (vienen entre 1 % y 2 % más largas)
   compartirCortes: true, // v1.19.1: renglones del mismo perfil cortan de las mismas barras
+  proveedorElegido: '', // v1.25: id del proveedor con el que se calcula ('' = el primero); 'mas-barato' = cada material al menor precio
+  formaPago: 'efectivo', // v1.25: 'efectivo' | 'tarjeta'
 
   // Fundación
   filasPilotines: 4,

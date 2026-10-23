@@ -451,3 +451,22 @@ kbd {
 .subtitulo-pared { margin: 10px 0 2px; font-size: 0.78rem; color: var(--texto-suave); text-transform: uppercase; letter-spacing: 0.04em; }
 .grid-perfiles-pared { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 @media (max-width: 600px) { .grid-perfiles-pared { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---------- Proveedores y precios (v1.25) ---------- */
+.lista-proveedores { list-style: none; margin: 0 0 8px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.fila-proveedor { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.7fr) minmax(0, 1.5fr) auto; gap: 8px; align-items: end;
+  background: var(--fondo); border: 1px solid var(--borde); border-radius: 8px; padding: 8px 10px; }
+@media (max-width: 600px) { .fila-proveedor { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+.tabla-precios { width: 100%; margin-top: 8px; font-size: 0.8rem; border-collapse: collapse; }
+.tabla-precios th { text-align: left; color: var(--texto-suave); font-weight: 600; padding: 2px 4px; }
+.tabla-precios td { padding: 2px 4px; }
+.tabla-precios .nombre-proveedor { color: var(--texto-suave); }
+.campo-precio input { width: 100%; box-sizing: border-box; padding: 4px 6px; background: var(--fondo); color: var(--texto);
+  border: 1px solid var(--borde-input); border-radius: 4px; font: inherit; }
+.campo-precio input::placeholder { color: var(--texto-tenue); font-style: italic; }
+.campo-precio.con-error input { border-color: var(--peligro); }
+.comparacion { margin-bottom: 10px; }
+.tabla-comparacion tr { cursor: pointer; }
+.tabla-comparacion tr.elegido td { background: rgba(2, 132, 199, 0.18); font-weight: 600; }
+.tabla-comparacion tr.mas-barato td:first-child small { color: var(--dinero); }
+.falta { color: #fbbf24; font-size: 0.75rem; display: block; }

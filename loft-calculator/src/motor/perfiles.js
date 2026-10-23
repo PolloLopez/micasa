@@ -285,7 +285,7 @@ export function resolverCatalogo(catalogo) {
     if (item.categoria !== 'perfil') return item;
     const p = porId.get(item.perfilId);
     if (!p) return { ...item, perfil: '', precio: 0, largoBarra: item.largoBarra ?? PERFIL_NUEVO.largoBarra, kgm: 0 };
-    return { ...item, perfil: nombrePerfil(p), largoBarra: p.largoBarra, precio: p.precio, kgm: kgPorMetro(p) };
+    return { ...item, perfil: nombrePerfil(p), largoBarra: p.largoBarra, precio: p.precio, sinPrecio: p.sinPrecio, proveedorDelPrecio: p.proveedorDelPrecio, kgm: kgPorMetro(p) };
   });
 }
 

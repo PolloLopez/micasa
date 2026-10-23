@@ -31,6 +31,7 @@ import { duplicarPieza, PREFIJO_AGREGADA } from './motor/piezasAgregadas.js';
 import { generarEstructura, listarPiezas } from './motor/estructura.js';
 import { calcularPresupuesto, CATALOGO_INICIAL, tiposDePanel } from './motor/presupuesto.js';
 import { resolverCatalogo, PERFIL_NUEVO, perfilesDeLista } from './motor/perfiles.js';
+import { proveedoresDe, aplicarProveedor, faltanPrecios, MAS_BARATO } from './motor/proveedores.js';
 import SelectorPerfil from './componentes/SelectorPerfil.jsx';
 import { migrarParams, normalizarCatalogo } from './motor/migracion.js';
 import { PARAMS_INICIALES, ABERTURAS_INICIALES } from './motor/parametrosIniciales.js';
@@ -201,13 +202,33 @@ export default function App() {
   const esGrada = params.tipoProyecto === 'grada'; // proyecto de grada: otra pantalla de datos
   const esMontaje = params.tipoProyecto === 'montaje'; // montaje industrial: mesas, tanques...
   const esConstruccion = !esGrada && !esMontaje;
+  // v1.25: con qué proveedor y forma de pago se calcula ('' o uno que ya no existe = el primero).
+  const proveedores = useMemo(() => proveedoresDe(catalogo), [catalogo]);
+  const proveedorElegido = params.proveedorElegido === MAS_BARATO || proveedores.some((p) => p.id === params.proveedorElegido)
+    ? params.proveedorElegido : proveedores[0]?.id;
+  const formaPago = params.formaPago ?? 'efectivo';
+  const opcionesPresupuesto = { excedenteBarras: params.excedenteBarras, compartir: params.compartirCortes };
   const { items, total, gruposCortes } = useMemo(
-    () => calcularPresupuesto(estructura, catalogo, { excedenteBarras: params.excedenteBarras, compartir: params.compartirCortes }),
-    [estructura, catalogo, params.excedenteBarras, params.compartirCortes]
+    () => calcularPresupuesto(estructura, catalogo, { ...opcionesPresupuesto, proveedor: proveedorElegido, pago: formaPago }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [estructura, catalogo, params.excedenteBarras, params.compartirCortes, proveedorElegido, formaPago]
   );
+  // v1.25: el total con cada proveedor (y con lo más barato de cada material), en efectivo y con tarjeta.
+  const comparacion = useMemo(() => [...proveedores.map((p) => ({ id: p.id, nombre: p.nombre })),
+    { id: MAS_BARATO, nombre: 'Lo más barato de cada material' }].map(({ id, nombre }) => ({
+    id,
+    nombre,
+    ...Object.fromEntries(['efectivo', 'tarjeta'].map((pago) => {
+      const r = calcularPresupuesto(estructura, catalogo, { ...opcionesPresupuesto, proveedor: id, pago });
+      return [pago, { total: r.total, faltan: faltanPrecios(r.items) }];
+    })),
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  })), [estructura, catalogo, proveedores, params.excedenteBarras, params.compartirCortes]);
+  // Catálogo con los precios elegidos (para los desplegables de perfiles y el 3D).
+  const catalogoConPrecios = useMemo(() => aplicarProveedor(catalogo, proveedorElegido, formaPago), [catalogo, proveedorElegido, formaPago]);
   const paneles = useMemo(() => tiposDePanel(catalogo), [catalogo]);
   // v1.21: cada uso con el nombre, la barra y el precio de su perfil (para el 3D y el editor de piezas).
-  const catalogoResuelto = useMemo(() => resolverCatalogo(catalogo), [catalogo]);
+  const catalogoResuelto = useMemo(() => resolverCatalogo(catalogoConPrecios), [catalogoConPrecios]);
 
   // --- Pestañas del panel (v1.18) ---
   // La elegida se recuerda por navegador. En el celular hay una más, "3D" (vistaMovil):
@@ -264,11 +285,35 @@ export default function App() {
     const usados = new Set(prev.map((p) => p.id));
     let n = 1;
     while (usados.has(`perfil-${n}`)) n++;
-    return [...prev, { ...PERFIL_NUEVO, id: `perfil-${n}` }];
+    return [...prev, { ...PERFIL_NUEVO, id: `perfil-${n}`, precios: {} }]; // sin precios hasta que se carguen
   });
   /** Quitar un perfil: solo si ningún renglón lo usa (la pantalla ya deshabilita el botón). */
   const quitarPerfil = (id) => setCatalogo((prev) =>
     (prev.some((p) => p.categoria === 'perfil' && p.perfilId === id) ? prev : prev.filter((p) => p.id !== id)));
+
+  // --- Proveedores y precios (v1.25) ---
+  /** Precio de un material en un proveedor: campo 'efectivo' o 'tarjeta'; null = sin precio. */
+  const cambiarPrecio = (idMaterial, idProveedor, campo, valor) => setCatalogo((prev) => prev.map((p) => {
+    if (p.id !== idMaterial) return p;
+    const anterior = p.precios?.[idProveedor] ?? { efectivo: null, tarjeta: null };
+    return { ...p, precios: { ...p.precios, [idProveedor]: { ...anterior, [campo]: valor } } };
+  }));
+  const agregarProveedor = () => setCatalogo((prev) => {
+    const usados = new Set(prev.map((p) => p.id));
+    let n = 1;
+    while (usados.has(`prov-${n}`)) n++;
+    const cuantos = prev.filter((p) => p.categoria === 'proveedor').length;
+    return [...prev, { id: `prov-${n}`, categoria: 'proveedor', nombre: `Proveedor ${cuantos + 1}`, recargoTarjeta: 0, nota: '' }];
+  });
+  /** Quitar un proveedor (queda al menos uno): también se borran sus precios. */
+  const quitarProveedor = (id) => setCatalogo((prev) => {
+    if (prev.filter((p) => p.categoria === 'proveedor').length <= 1) return prev;
+    return prev.filter((p) => p.id !== id).map((p) => {
+      if (!p.precios?.[id]) return p;
+      const { [id]: _quitado, ...resto } = p.precios; // eslint-disable-line no-unused-vars
+      return { ...p, precios: resto };
+    });
+  });
 
   // --- Tipos de panel ---
   const agregarTipoPanel = () => {
@@ -654,7 +699,7 @@ export default function App() {
           {/* GRADA (proyecto propio): solo su tarjeta, las piezas y el presupuesto. */}
           {esGrada && (
             <PanelGrada params={params} resumen={estructura.grada.resumen} unidad={unidad} cambiar={cambiar}
-              catalogo={catalogo} onCambiarInsumo={cambiarInsumo} />
+              catalogo={catalogoConPrecios} onCambiarInsumo={cambiarInsumo} />
           )}
           {/* MONTAJE INDUSTRIAL: componentes (mesas, tanques). */}
           {esMontaje && (
@@ -871,7 +916,7 @@ export default function App() {
                   <div className="grid-params grid-perfiles-pared">
                     {PERFILES_PARED_UI.map(([campo, etiqueta, idGeneral]) => (
                       <SelectorPerfil key={campo} etiqueta={etiqueta} valor={params.paredes[lado][campo]}
-                        perfiles={perfilesDeLista(catalogo)}
+                        perfiles={perfilesDeLista(catalogoConPrecios)}
                         opcionGeneral={`General (${(catalogoResuelto.find((i) => i.id === idGeneral)?.perfil || 'sin elegir').replace('Caño estructural ', 'Caño ')})`}
                         onElegir={(id) => cambiar(`paredes.${lado}.${campo}`)(id ?? '')} />
                     ))}
@@ -895,12 +940,17 @@ export default function App() {
             onCambiarExcedente={cambiar('excedenteBarras')} onCambiarInsumo={cambiarInsumo}
             compartirCortes={params.compartirCortes !== false} onCambiarCompartir={cambiar('compartirCortes')}
             onActualizarPerfil={actualizarInsumo} onAgregarPerfil={agregarPerfil} onQuitarPerfil={quitarPerfil}
-            onAgregarRevestimiento={agregarTipoPanel} onQuitarRevestimiento={quitarTipoPanel} />
+            onAgregarRevestimiento={agregarTipoPanel} onQuitarRevestimiento={quitarTipoPanel}
+            proveedor={proveedorElegido} pago={formaPago} onCambiarPrecio={cambiarPrecio}
+            onActualizarProveedor={actualizarInsumo} onAgregarProveedor={agregarProveedor} onQuitarProveedor={quitarProveedor} />
 
           </section>
           <section id="pestana-presupuesto" role="tabpanel" aria-labelledby="boton-presupuesto"
             className={`pestana${pestanaActiva === 'presupuesto' ? '' : ' oculta'}`}>
-          <TablaPresupuesto items={items} total={total} gruposCortes={gruposCortes} onCambiarInsumo={cambiarInsumo} />
+          <TablaPresupuesto items={items} total={total} gruposCortes={gruposCortes}
+            proveedores={proveedores} proveedor={proveedorElegido} pago={formaPago} comparacion={comparacion}
+            onElegirProveedor={cambiar('proveedorElegido')} onElegirPago={cambiar('formaPago')}
+            onCambiarPrecio={(item, valor) => cambiarPrecio(item.perfilId ?? item.id, proveedorElegido, formaPago, valor)} />
           </section>
         </div>
       </main>

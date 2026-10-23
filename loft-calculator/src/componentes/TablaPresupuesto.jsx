@@ -6,6 +6,8 @@
 // ==========================================================
 
 import CampoNumero from './CampoNumero.jsx';
+import CampoSelect from './CampoSelect.jsx';
+import { MAS_BARATO } from '../motor/proveedores.js';
 import Tarjeta from './Tarjeta.jsx';
 
 const pesos = (n) => n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
@@ -61,13 +63,66 @@ function DiagramaCortes({ grupo }) {
   );
 }
 
-export default function TablaPresupuesto({ items, total, gruposCortes = [], onCambiarInsumo }) {
+/**
+ * Con qué proveedor y forma de pago se calcula, y la tabla para comparar (v1.25).
+ * Tocar una fila de la tabla elige ese proveedor.
+ */
+function ComparacionProveedores({ proveedores, proveedor, pago, comparacion, onElegirProveedor, onElegirPago }) {
+  const opciones = [...proveedores.map((p) => [p.id, p.nombre]), [MAS_BARATO, 'Lo más barato de cada material']];
+  const masBarato = Math.min(...comparacion.filter((c) => c.id !== MAS_BARATO && c[pago].faltan.length === 0).map((c) => c[pago].total));
+  const celda = (c, forma) => (
+    <td className="num">
+      {pesos(c[forma].total)}
+      {c[forma].faltan.length > 0 && (
+        <small className="falta" title={`Sin precio: ${c[forma].faltan.join(', ')}`}> ⚠ faltan {c[forma].faltan.length}</small>
+      )}
+    </td>
+  );
+  return (
+    <div className="comparacion">
+      <div className="grid-params">
+        <CampoSelect etiqueta="Proveedor" valor={proveedor} opciones={opciones} onCambio={onElegirProveedor} />
+        <CampoSelect etiqueta="Forma de pago" valor={pago} opciones={[['efectivo', 'Efectivo'], ['tarjeta', 'Tarjeta']]} onCambio={onElegirPago} />
+      </div>
+      {comparacion.length > 2 && (
+        <div className="table-wrap">
+          <table className="tabla-comparacion">
+            <thead><tr><th>Comparar</th><th className="num">Efectivo</th><th className="num">Tarjeta</th></tr></thead>
+            <tbody>
+              {comparacion.map((c) => (
+                <tr key={c.id} className={`${c.id === proveedor ? 'elegido' : ''}${c[pago].total === masBarato ? ' mas-barato' : ''}`}
+                  onClick={() => onElegirProveedor(c.id)} title="Calcular con este">
+                  <td>{c.nombre}{c[pago].total === masBarato && c.id !== MAS_BARATO && <small> · el más barato</small>}</td>
+                  {celda(c, 'efectivo')}
+                  {celda(c, 'tarjeta')}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <p className="nota">
+        "⚠ faltan" = materiales que ese proveedor no tiene cargados (cuentan $0: el total está incompleto).
+        Los precios se cargan en <strong>Materiales</strong>; acá se puede corregir el del proveedor y la forma de pago elegidos.
+      </p>
+    </div>
+  );
+}
+
+export default function TablaPresupuesto({
+  items, total, gruposCortes = [], proveedores = [], proveedor, pago = 'efectivo', comparacion = [],
+  onElegirProveedor, onElegirPago, onCambiarPrecio,
+}) {
   // Peso de lo que se compra: barras x largo nominal x kg/m de su perfil (v1.21).
   const kilos = items.reduce((acc, i) => acc + (i.cortes && i.kgm ? i.cantidad * i.largoBarra * i.kgm : 0), 0);
 
   return (
     <Tarjeta id="presupuesto" titulo="Presupuesto de materiales" className="presupuesto">
       <p className="nota">Cantidades a comprar y precios. Qué es cada material se carga en la tarjeta <strong>Materiales</strong>.</p>
+      {proveedores.length > 0 && (
+        <ComparacionProveedores proveedores={proveedores} proveedor={proveedor} pago={pago} comparacion={comparacion}
+          onElegirProveedor={onElegirProveedor} onElegirPago={onElegirPago} />
+      )}
       <div className="table-wrap">
         <table>
           <thead>
@@ -88,9 +143,15 @@ export default function TablaPresupuesto({ items, total, gruposCortes = [], onCa
                 </td>
                 <td className="num">{item.cantidad} {item.unidad}</td>
                 <td>
-                  {/* v1.21: el precio de una barra es del perfil de la lista: cambiarlo acá lo cambia en todas sus partes. */}
-                  <CampoNumero etiqueta="" sufijo="$" decimales={0} valor={item.precio}
-                    onCambio={validarPrecio((v) => onCambiarInsumo(item.perfilId ?? item.id, 'precio', v))} />
+                  {/* v1.21: el precio de una barra es del perfil de la lista: cambiarlo acá lo cambia en todas sus partes.
+                      v1.25: se guarda en el proveedor y la forma de pago elegidos; con "lo más barato" no se edita. */}
+                  {proveedor === MAS_BARATO ? (
+                    <span>{item.sinPrecio ? '—' : pesos(item.precio)}{item.proveedorDelPrecio && <small className="detalle"> {item.proveedorDelPrecio}</small>}</span>
+                  ) : (
+                    <CampoNumero etiqueta="" sufijo="$" decimales={0} valor={item.precio}
+                      onCambio={validarPrecio((v) => onCambiarPrecio(item, v))} />
+                  )}
+                  {item.sinPrecio && item.cantidad > 0 && <small className="falta">⚠ sin precio</small>}
                 </td>
                 <td className="num sub">{pesos(item.subtotal)}</td>
               </tr>

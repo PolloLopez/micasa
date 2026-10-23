@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.25.0] - 2026-10-23
+### Agregado
+- **Proveedores** en Materiales: nombre, recargo con tarjeta (%) y una nota (teléfono, dirección…).
+- **Precio de cada material en cada proveedor**, en efectivo y con tarjeta: perfiles de la lista (por barra),
+  revestimientos (por m² o por placa) y los demás materiales (OSB, pilotines, escalones, madera, chapas…).
+  Con tarjeta, si no se carga, es el efectivo + el recargo del proveedor ("auto $…").
+- **Presupuesto**: elegir proveedor y forma de pago, y una tabla para **comparar** los totales de cada proveedor en
+  efectivo y con tarjeta. Avisa los materiales que un proveedor no tiene cargados ("⚠ faltan N"). Tocar una fila
+  calcula con ese proveedor.
+- **"Lo más barato de cada material"**: el presupuesto comprando cada cosa donde está más barata, y dónde.
+### Cambiado
+- Proyectos guardados: el precio de cada material pasa a "Mi proveedor" en efectivo (el total no cambia).
+- El precio que se cambia en el Presupuesto se guarda en el proveedor y la forma de pago elegidos.
+
 ## [1.24.0] - 2026-10-20
 ### Agregado
 - **Paneles con los huecos de las aberturas** en el 3D: las puertas y ventanas se ven (antes quedaban tapadas por el

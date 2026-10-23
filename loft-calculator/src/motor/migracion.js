@@ -49,6 +49,7 @@ import { GRADA_INICIAL } from './grada.js';
 import { MONTAJE_INICIAL } from './montaje.js';
 import { REVESTIMIENTO_POR_DEFECTO, LIMITES_REVESTIMIENTO, VENTAS, UBICACIONES } from './revestimientos.js';
 import { TIPOS_PERFIL, LIMITES_PERFIL, revisarPerfil, armarListaDePerfiles } from './perfiles.js';
+import { conProveedores, FORMAS_DE_PAGO } from './proveedores.js';
 
 const esObjeto = (x) => x !== null && typeof x === 'object' && !Array.isArray(x);
 const esColor = (c) => typeof c === 'string' && /^#[0-9a-fA-F]{6}$/.test(c);
@@ -66,6 +67,9 @@ export function migrarParams(params) {
   }
   nuevos.excedenteBarras ??= PARAMS_INICIALES.excedenteBarras;
   nuevos.compartirCortes = nuevos.compartirCortes !== false; // v1.19.1: por defecto sí (solo un false explícito lo apaga)
+  // v1.25: con qué proveedor y forma de pago se calcula ('' = el primero de la lista).
+  nuevos.proveedorElegido = typeof nuevos.proveedorElegido === 'string' ? nuevos.proveedorElegido : '';
+  nuevos.formaPago = FORMAS_DE_PAGO.includes(nuevos.formaPago) ? nuevos.formaPago : 'efectivo';
   nuevos.panelTecho ??= PARAMS_INICIALES.panelTecho;
   nuevos.piezasEliminadas ??= []; // v1.5
   // v1.7: los proyectos viejos se abren SIN escalera (no se agrega nada que no tenían).
@@ -206,7 +210,8 @@ export function normalizarCatalogo(catalogo) {
     return usos.find((u) => u.id === i.id) ?? i;
   });
 
-  return [...conPerfil, ...(paneles.length > 0 ? paneles : TIPOS_PANEL_INICIALES), ...perfiles];
+  // v1.25: proveedores y precios por proveedor (los catálogos viejos pasan su precio a "Mi proveedor").
+  return conProveedores([...conPerfil, ...(paneles.length > 0 ? paneles : TIPOS_PANEL_INICIALES), ...perfiles], guardado);
 }
 
 /** Un perfil de la lista guardado: se conserva si es válido; si no, se descarta (null). */

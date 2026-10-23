@@ -51,6 +51,11 @@ export function validarParametros(params) {
   };
 
   Object.entries(LIMITES).forEach(([campo, limites]) => anotar(campo, revisarNumero(params[campo], limites)));
+  // v1.25: proveedor ('' = el primero) y forma de pago. Proyectos sin estos datos los completa migrarParams.
+  if (params.formaPago !== undefined && !['efectivo', 'tarjeta'].includes(params.formaPago)) anotar('formaPago', 'Elegí efectivo o tarjeta');
+  if (params.proveedorElegido !== undefined && (typeof params.proveedorElegido !== 'string' || params.proveedorElegido.length > 40)) {
+    anotar('proveedorElegido', 'Proveedor inválido');
+  }
 
   // Lados elegidos (frente, entrepiso, caída del techo).
   ['ladoFrente', 'ladoEntrepiso', 'caidaTecho'].forEach((campo) => {

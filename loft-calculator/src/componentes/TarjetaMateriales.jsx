@@ -20,6 +20,9 @@ import ListaPerfiles from './ListaPerfiles.jsx';
 import SelectorPerfil from './SelectorPerfil.jsx';
 import { LIMITES_REVESTIMIENTO } from '../motor/revestimientos.js';
 import { perfilesDeLista } from '../motor/perfiles.js';
+import { aplicarProveedor, proveedoresDe } from '../motor/proveedores.js';
+import PreciosProveedores from './PreciosProveedores.jsx';
+import ListaProveedores from './ListaProveedores.jsx';
 
 /** Valida un número contra sus límites y, si está bien, lo guarda. */
 const conLimites = ({ min, max }, actualizar, enTexto = (n) => `${n} m`) => (v) => {
@@ -30,18 +33,12 @@ const conLimites = ({ min, max }, actualizar, enTexto = (n) => `${n} m`) => (v) 
 };
 
 /** Un tipo de revestimiento con todos sus datos. */
-function Revestimiento({ tipo, unidad, usos, unicoQueda, onCambiar, onQuitar }) {
+function Revestimiento({ tipo, unidad, usos, unicoQueda, proveedores, onCambiar, onQuitar, onCambiarPrecio }) {
   const cambiar = (campo) => (valor) => onCambiar(tipo.id, campo, valor);
   const medida = (campo, etiqueta) => (
     <CampoNumero key={campo} etiqueta={etiqueta} unidad={unidad} valor={tipo[campo]}
       onCambio={conLimites(LIMITES_REVESTIMIENTO[campo], cambiar(campo))} />
   );
-  /** Precio del revestimiento: entero y no negativo. Devuelve el error (o null) para CampoNumero. */
-  const cambiarPrecio = (v) => {
-    if (v < 0) return 'No puede ser negativo';
-    cambiar('precio')(Math.round(v));
-    return null;
-  };
   const motivoNoBorrar = usos.length > 0 ? `En uso: ${usos.join(', ')}` : unicoQueda ? 'Tiene que quedar al menos uno' : null;
 
   return (
@@ -72,10 +69,6 @@ function Revestimiento({ tipo, unidad, usos, unicoQueda, onCambiar, onQuitar }) 
         </div>
         <CampoSelect etiqueta="Cómo se vende" valor={tipo.venta} onCambio={cambiar('venta')}
           opciones={[['medida', 'A medida'], ['estandar', 'Placa fija']]} />
-        {/* v1.23: el precio también se carga acá (es el mismo que el del Presupuesto).
-            A medida se cobra por m²; placa fija, por placa. */}
-        <CampoNumero etiqueta={tipo.venta === 'estandar' ? 'Precio por placa' : 'Precio por m²'} sufijo="$" decimales={0}
-          valor={tipo.precio} onCambio={cambiarPrecio} />
         {tipo.venta === 'medida' ? (<>
           {medida('anchoUtil', 'Ancho útil')}
           {medida('largoMaximo', 'Largo máximo')}
@@ -90,6 +83,9 @@ function Revestimiento({ tipo, unidad, usos, unicoQueda, onCambiar, onQuitar }) 
         <CampoSelect etiqueta="Ubicación" valor={tipo.ubicacion} onCambio={cambiar('ubicacion')}
           opciones={[['cara', 'Sobre los perfiles'], ['eje', 'Entre perfiles']]} />
       </div>
+      {/* v1.25: precio en cada proveedor. A medida se cobra por m²; placa fija, por placa. */}
+      <PreciosProveedores material={tipo} proveedores={proveedores} unidad={tipo.venta === 'estandar' ? 'placa' : 'm²'}
+        onCambiar={(idProveedor, campo, valor) => onCambiarPrecio(tipo.id, idProveedor, campo, valor)} />
       <small className="detalle">{usos.length > 0 ? `Usado en: ${usos.join(', ')}` : 'Sin uso'}</small>
     </li>
   );
@@ -104,8 +100,12 @@ export default function TarjetaMateriales({
   items, catalogo, revestimientos, unidad, usosDeRevestimiento, excedenteBarras,
   onCambiarExcedente, onCambiarInsumo, onAgregarRevestimiento, onQuitarRevestimiento,
   compartirCortes, onCambiarCompartir, onActualizarPerfil, onAgregarPerfil, onQuitarPerfil,
+  proveedor, pago, onCambiarPrecio, onActualizarProveedor, onAgregarProveedor, onQuitarProveedor,
 }) {
-  const perfiles = perfilesDeLista(catalogo);
+  // v1.25: para mostrar, cada material con el precio del proveedor y la forma de pago elegidos.
+  const conPrecios = aplicarProveedor(catalogo, proveedor, pago);
+  const proveedores = proveedoresDe(catalogo);
+  const perfiles = perfilesDeLista(conPrecios);
   // Columnas, Zanca… (los de este proyecto). Los renglones "por pared" (v1.22) se eligen en cada pared.
   const usosPerfil = items.filter((i) => i.categoria === 'perfil' && !i.derivadoDe);
   const otros = items.filter((i) => i.categoria !== 'panel' && i.categoria !== 'perfil'); // OSB, pilotines, madera…
@@ -126,13 +126,22 @@ export default function TarjetaMateriales({
         Qué es cada material: perfil, medidas y cómo se vende. Las cantidades están en el <strong>Presupuesto</strong>.
       </p>
 
+      {/* v1.25: proveedores. Los precios de cada material se cargan en ese material. */}
+      <h3 className="subtitulo">Proveedores</h3>
+      <p className="nota">
+        Cargá tus proveedores y, en cada material, el precio de cada uno (efectivo y, si cambia, con tarjeta).
+        En el <strong>Presupuesto</strong> elegís con cuál calcular y comparás los totales.
+      </p>
+      <ListaProveedores proveedores={proveedores} onActualizar={onActualizarProveedor}
+        onAgregar={onAgregarProveedor} onQuitar={onQuitarProveedor} />
+
       {/* v1.21: lista de perfiles. Cada parte de la obra elige uno; el precio y el largo de barra son del perfil. */}
       <h3 className="subtitulo">Perfiles (los hierros que usás)</h3>
       <p className="nota">
         Cargá cada hierro una sola vez: tipo, medidas en mm, largo de barra y precio. El peso sale de las medidas
         (aproximado). Las partes que usan el mismo perfil comparten barras y precio.
       </p>
-      <ListaPerfiles perfiles={visibles} todos={perfiles} usadoEn={usadoEn}
+      <ListaPerfiles perfiles={visibles} todos={perfiles} usadoEn={usadoEn} proveedores={proveedores} onCambiarPrecio={onCambiarPrecio}
         onActualizar={onActualizarPerfil} onAgregar={onAgregarPerfil} onQuitar={onQuitarPerfil} />
 
       <h3 className="subtitulo">Qué perfil va en cada parte</h3>
@@ -190,6 +199,9 @@ export default function TarjetaMateriales({
                     <input className="perfil" type="text" value={item.perfil}
                       aria-label={`Descripción de ${item.nombre}`}
                       onChange={(e) => onCambiarInsumo(item.id, 'perfil', e.target.value)} />
+                    {/* v1.25: precio en cada proveedor (el renglón del catálogo, no el del presupuesto). */}
+                    <PreciosProveedores material={catalogo.find((c) => c.id === item.id) ?? item} proveedores={proveedores}
+                      unidad={item.unidad} onCambiar={(idProveedor, campo, valor) => onCambiarPrecio(item.id, idProveedor, campo, valor)} />
                   </td>
                 </tr>
               ))}
@@ -209,7 +221,8 @@ export default function TarjetaMateriales({
         <ul className="opening-list">
           {revestimientos.map((tipo) => (
             <Revestimiento key={tipo.id} tipo={tipo} unidad={unidad} usos={usosDeRevestimiento(tipo.id)}
-              unicoQueda={revestimientos.length === 1} onCambiar={onCambiarInsumo} onQuitar={onQuitarRevestimiento} />
+              unicoQueda={revestimientos.length === 1} onCambiar={onCambiarInsumo} onQuitar={onQuitarRevestimiento}
+              proveedores={proveedores} onCambiarPrecio={onCambiarPrecio} />
           ))}
         </ul>
         <button className="btn-add no-print" onClick={onAgregarRevestimiento}>+ Agregar revestimiento</button>

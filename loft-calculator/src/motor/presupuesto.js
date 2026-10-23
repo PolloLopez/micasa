@@ -12,6 +12,7 @@
 // ==========================================================
 
 import { armarListaDePerfiles, resolverCatalogo, nombrePerfil, kgPorMetro } from './perfiles.js';
+import { conProveedores, aplicarProveedor } from './proveedores.js';
 import { compartirCortes } from './cortesCompartidos.js';
 import { optimizarCortes } from './optimizadorCortes.js';
 import { listarPiezas } from './estructura.js';
@@ -95,11 +96,12 @@ export const TIPOS_PANEL_INICIALES = [
  */
 const fabrica = armarListaDePerfiles(CATALOGO_FIJO.filter((i) => i.categoria === 'perfil'));
 export const PERFILES_INICIALES = fabrica.perfiles;
-export const CATALOGO_INICIAL = [
+// v1.25: con "Mi proveedor" y el precio de cada material en efectivo ahí.
+export const CATALOGO_INICIAL = conProveedores([
   ...CATALOGO_FIJO.map((i) => fabrica.usos.find((u) => u.id === i.id) ?? i),
   ...TIPOS_PANEL_INICIALES,
   ...PERFILES_INICIALES,
-];
+]);
 
 /** Tipos de panel del catálogo. */
 export const tiposDePanel = (catalogo) => catalogo.filter((p) => p.categoria === 'panel');
@@ -152,14 +154,17 @@ function panosPorRevestimiento(estructura) {
 /**
  * @param {object} estructura - resultado de generarEstructura()
  * @param {object[]} catalogo - insumos fijos + tipos de panel
- * @param {{ excedenteBarras?: number, compartir?: boolean }} opciones
+ * @param {{ excedenteBarras?: number, compartir?: boolean, proveedor?: string, pago?: string }} opciones
  *   excedenteBarras: % extra de largo de las barras;
- *   compartir (v1.19.1): renglones del mismo perfil comparten barras (por defecto sí).
+ *   compartir (v1.19.1): renglones del mismo perfil comparten barras (por defecto sí);
+ *   proveedor, pago (v1.25): con qué precios se calcula (id de proveedor o MAS_BARATO; 'efectivo' | 'tarjeta').
+ *     Sin `proveedor` se usa el `precio` que ya tiene cada material (lo usan los tests).
  * @returns {{items: object[], total: number, gruposCortes: object[]}}
  */
-export function calcularPresupuesto(estructura, catalogo, { excedenteBarras = 0, compartir = true } = {}) {
+export function calcularPresupuesto(estructura, catalogo, { excedenteBarras = 0, compartir = true, proveedor, pago } = {}) {
+  const conPrecios = proveedor === undefined ? catalogo : aplicarProveedor(catalogo, proveedor, pago);
   // v1.21: cada uso toma nombre, largo de barra y precio de su perfil de la lista.
-  const r = calcularRenglones(estructura, resolverCatalogo(catalogo), excedenteBarras);
+  const r = calcularRenglones(estructura, resolverCatalogo(conPrecios), excedenteBarras);
   return conCortesCompartidos(r, compartir);
 }
 
@@ -306,6 +311,7 @@ function renglonDePared(producto, perfilElegido, piezas) {
     perfil: nombrePerfil(perfilElegido),
     largoBarra: perfilElegido.largoBarra,
     precio: perfilElegido.precio,
+    sinPrecio: perfilElegido.sinPrecio,
     kgm: kgPorMetro(perfilElegido),
     derivadoDe: producto.id,
   };
