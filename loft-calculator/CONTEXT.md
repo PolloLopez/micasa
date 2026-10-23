@@ -110,6 +110,8 @@ valores inválidos.
 | 2026-10-20 | Panel 3D con huecos armado por franjas (`pedazosDePared`) en vez de una forma con agujeros | Sin triangular agujeros: una puerta que toca el piso o dos ventanas una sobre otra no dan problemas. El área dibujada = pared − huecos (test). |
 | 2026-10-23 | Proveedores (`motor/proveedores.js`) como entradas `categoria: 'proveedor'` del catálogo; cada material con `precios: { idProveedor: { efectivo, tarjeta } }`; `aplicarProveedor` deja el elegido en `precio` | Pedido de Leandro: comparar presupuestos. En el catálogo viajan con el proyecto, el archivo, el link y deshacer sin tocar nada más. Escribir el precio elegido en `precio` deja al resto del motor igual. Los usos de perfil no tienen precio propio (lo toman del perfil). |
 | 2026-10-23 | Tarjeta = recargo % del proveedor, con precio propio opcional por material; comparar con un proveedor para todo + "lo más barato de cada material" | Decisiones de Leandro. Faltantes cuentan $0 y se avisan, para no comparar totales incompletos. Migración: el precio de siempre pasa a "Mi proveedor" en efectivo. |
+| 2026-10-23 | Planos (`motor/planos.js`): cada pared en coordenadas "vista desde afuera" (x desde p1, y desde el piso) y cada planta desde arriba; lista de piezas agrupada por tipo + perfil + largo al cm | Pedido de Leandro: exportar las paredes completas con estructura y medidas. Mismas coordenadas que las aberturas, así las cotas coinciden con lo que carga el herrero. Funciones puras: las usan la pestaña, el PDF y el Excel. |
+| 2026-10-23 | Excel sin librerías (`proyecto/xlsx.js`): zip "stored" (sin comprimir) + XML mínimo, textos inline | Evita sumar una dependencia pesada (SheetJS) para algo acotado. Probado abriendo el archivo con openpyxl y LibreOffice. |
 | 2026-10-20 | Ayuda con "?" y bienvenida la primera vez (`micasa.v2.bienvenidaVista`), salvo si se entra con un link compartido | Los atajos no se descubrían solos. Con link compartido ya se pregunta "¿abrir?": dos ventanas juntas confunden. |
 
 ## Supuestos de obra (en `src/motor/constantes.js`)
@@ -184,4 +186,5 @@ techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 
 - 2026-10-20 v1.23.0: precio de los revestimientos también en Materiales (por m² o por placa).
 - 2026-10-20 v1.24.0: paneles con huecos de las aberturas en el 3D, descontar aberturas en tiras y placas, opacidad de las juntas.
 - 2026-10-23 v1.25.0: proveedores, precios en efectivo/tarjeta por proveedor, comparar presupuestos y "lo más barato de cada material".
+- 2026-10-23 v1.26.0: pestaña Planos (paredes y plantas acotadas, listas de corte, revestimiento), en el PDF y en Excel.
 - Nota: el elemento `id="flonnect-my-app"` que aparece en la página no es de la app: lo inyecta la extensión Flonnect (grabador de pantalla) de Chrome.

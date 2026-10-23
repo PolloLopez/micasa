@@ -342,7 +342,9 @@ button:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
   .pestanas { position: fixed; top: auto; bottom: 0; left: 0; right: 0; z-index: 20; margin: 0;
     background: var(--tarjeta); border-top: 1px solid var(--borde); border-bottom: none;
     padding: 6px 6px calc(6px + env(safe-area-inset-bottom)); }
-  .pestana-boton { min-height: 52px; font-size: 0.75rem; padding: 4px 2px; }
+  /* v1.26: con 6 pestañas, cada botón se achica (min-width 0) para que entren todas en 390 px. */
+  .pestana-boton { min-height: 52px; font-size: 0.72rem; padding: 4px 1px; min-width: 0; overflow: hidden; }
+  .pestanas { gap: 3px; }
   .pestana-boton .nombre-largo { display: none; }
   .pestana-boton .nombre-corto { display: inline; }
   .app { padding-bottom: 72px; }
@@ -470,3 +472,25 @@ kbd {
 .tabla-comparacion tr.elegido td { background: rgba(2, 132, 199, 0.18); font-weight: 600; }
 .tabla-comparacion tr.mas-barato td:first-child small { color: var(--dinero); }
 .falta { color: #fbbf24; font-size: 0.75rem; display: block; }
+
+/* ---------- Planos (v1.26) ---------- */
+.plano { padding: 12px; }
+.dibujo-plano { width: 100%; height: auto; background: #f8fafc; border-radius: 6px; margin: 6px 0 10px; }
+.dibujo-plano .contorno { fill: #e2e8f0; stroke: #94a3b8; stroke-width: 0.02; }
+.dibujo-plano .hueco { fill: #bae6fd; stroke: #0284c7; stroke-width: 0.02; stroke-dasharray: 0.08 0.05; }
+.dibujo-plano text { fill: #0f172a; font-family: system-ui, sans-serif; }
+.dibujo-plano .cota line { stroke: #334155; stroke-width: 0.012; }
+.dibujo-plano .lado-planta { fill: #475569; font-style: italic; }
+.tabla-plano { width: 100%; font-size: 0.8rem; margin: 6px 0; border-collapse: collapse; table-layout: fixed; overflow-wrap: anywhere; }
+.tabla-plano th:first-child, .tabla-plano td:first-child { width: 34%; }
+.tabla-plano .num { width: 16%; }
+.tabla-plano th { text-align: left; color: var(--texto-suave); border-bottom: 1px solid var(--borde); padding: 3px 4px; }
+.tabla-plano td { padding: 3px 4px; border-bottom: 1px solid var(--borde); }
+.tabla-plano .num { text-align: right; }
+.revestimiento-plano { font-size: 0.8rem; margin: 4px 0; color: var(--texto-suave); }
+@media print {
+  .plano { break-before: page; break-inside: auto; }
+  .dibujo-plano { max-height: 150mm; background: #fff; border: 1px solid #ccc; }
+  .tabla-plano th, .tabla-plano td, .revestimiento-plano { color: #000; border-color: #ccc; }
+  .comparacion .tabla-comparacion tr { cursor: default; }
+}

@@ -33,6 +33,9 @@ import { calcularPresupuesto, CATALOGO_INICIAL, tiposDePanel } from './motor/pre
 import { resolverCatalogo, PERFIL_NUEVO, perfilesDeLista } from './motor/perfiles.js';
 import { proveedoresDe, aplicarProveedor, faltanPrecios, MAS_BARATO } from './motor/proveedores.js';
 import SelectorPerfil from './componentes/SelectorPerfil.jsx';
+import Planos from './componentes/Planos.jsx';
+import { todasLasVistas } from './motor/planos.js';
+import { libroDeObra } from './proyecto/exportarExcel.js';
 import { migrarParams, normalizarCatalogo } from './motor/migracion.js';
 import { PARAMS_INICIALES, ABERTURAS_INICIALES } from './motor/parametrosIniciales.js';
 import { LADOS, INSUMO } from './motor/constantes.js';
@@ -229,6 +232,9 @@ export default function App() {
   const paneles = useMemo(() => tiposDePanel(catalogo), [catalogo]);
   // v1.21: cada uso con el nombre, la barra y el precio de su perfil (para el 3D y el editor de piezas).
   const catalogoResuelto = useMemo(() => resolverCatalogo(catalogoConPrecios), [catalogoConPrecios]);
+  // v1.26: cada pared y planta en 2D (pestaña Planos, PDF y Excel).
+  const vistas = useMemo(() => todasLasVistas(estructura, params, catalogoResuelto, aberturasValidas),
+    [estructura, params, catalogoResuelto, aberturasValidas]);
 
   // --- Pestañas del panel (v1.18) ---
   // La elegida se recuerda por navegador. En el celular hay una más, "3D" (vistaMovil):
@@ -237,10 +243,11 @@ export default function App() {
   const [vistaMovil, setVistaMovil] = useState('datos');
   const pestanas = [
     { clave: '3d', nombre: '3D', soloMovil: true },
-    { clave: 'estructura', nombre: esGrada ? 'Grada' : esMontaje ? 'Montaje' : 'Estructura' },
+    { clave: 'estructura', nombre: esGrada ? 'Grada' : esMontaje ? 'Montaje' : 'Estructura', corto: esGrada ? 'Grada' : esMontaje ? 'Montaje' : 'Estruct.' },
     ...(esConstruccion ? [{ clave: 'paredes', nombre: 'Paredes y aberturas', corto: 'Paredes' }] : []),
     { clave: 'materiales', nombre: 'Materiales' },
-    { clave: 'presupuesto', nombre: 'Presupuesto', detalle: pesosCortos(total) },
+    { clave: 'presupuesto', nombre: 'Presupuesto', corto: 'Presup.', detalle: pesosCortos(total) },
+    { clave: 'planos', nombre: 'Planos' }, // v1.26: paredes y plantas acotadas, para imprimir y exportar
   ];
   // Si la guardada no existe en este tipo de proyecto (ej. "Paredes" en una grada), se usa la primera.
   const pestanaActiva = pestanas.some((p) => p.clave === pestanaGuardada && !p.soloMovil) ? pestanaGuardada : 'estructura';
@@ -511,6 +518,23 @@ export default function App() {
     setAviso({ tipo: 'ok', texto: `Descargado como ${nombre}` });
   };
 
+  // --- Excel de la obra (v1.26) ---
+  const exportarExcel = () => {
+    const nombreProveedor = proveedorElegido === MAS_BARATO ? 'Lo más barato de cada material'
+      : proveedores.find((p) => p.id === proveedorElegido)?.nombre ?? '';
+    const bytes = libroDeObra({
+      nombre: nombreProyecto, params, vistas, items, total, gruposCortes,
+      proveedor: nombreProveedor, pago: formaPago === 'tarjeta' ? 'con tarjeta' : 'en efectivo',
+    });
+    const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const enlace = document.createElement('a');
+    enlace.href = URL.createObjectURL(blob);
+    enlace.download = nombreDeArchivo(nombreProyecto).replace(/\.json$/, '.xlsx');
+    enlace.click();
+    URL.revokeObjectURL(enlace.href);
+    setAviso({ tipo: 'ok', texto: `Descargado como ${enlace.download}` });
+  };
+
   // --- Link para compartir ---
 
   /** "Compartir": copia un link que trae el proyecto adentro (medidas, aberturas, precios y colores). */
@@ -644,6 +668,7 @@ export default function App() {
             <option value="mm">Milímetros</option>
           </select>
           <button className="btn-print" onClick={() => window.print()}>Imprimir / PDF</button>
+          <button className="btn-sec" onClick={exportarExcel} title="Presupuesto, cada pared, cada planta y cortes">Excel</button>
           <button className="btn-sec btn-ayuda" onClick={() => setAyudaAbierta(true)} title="Ayuda y atajos de teclado (?)"
             aria-label="Ayuda y atajos de teclado">?<span className="solo-movil"> Ayuda y atajos</span></button>
           <small className="solo-movil version-menu">Pollo Calculator v{VERSION_APP}</small>
@@ -951,6 +976,11 @@ export default function App() {
             proveedores={proveedores} proveedor={proveedorElegido} pago={formaPago} comparacion={comparacion}
             onElegirProveedor={cambiar('proveedorElegido')} onElegirPago={cambiar('formaPago')}
             onCambiarPrecio={(item, valor) => cambiarPrecio(item.perfilId ?? item.id, proveedorElegido, formaPago, valor)} />
+          </section>
+          {/* v1.26: planos de cada pared y planta (en pantalla y en el PDF) + Excel. */}
+          <section id="pestana-planos" role="tabpanel" aria-labelledby="boton-planos"
+            className={`pestana${pestanaActiva === 'planos' ? '' : ' oculta'}`}>
+            <Planos vistas={vistas} params={params} onExportarExcel={exportarExcel} />
           </section>
         </div>
       </main>

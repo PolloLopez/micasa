@@ -85,7 +85,8 @@ abiertas a la vez, 15+ botones de menos de 40 px en el celular.
 - ✅ Perfiles con **medidas reales** (v1.21.0): tipo, medidas y espesor → peso (kg/m); ya no es texto libre.
 - ✅ Precio de los revestimientos también en Materiales (v1.23.0).
 - ✅ Proveedores y comparar presupuestos (v1.25.0): precio por proveedor en efectivo/tarjeta, "lo más barato de cada material".
-- 🟡 [ ] Exportar las paredes completas: estructura y medidas de sus componentes (pedido de Leandro 23/10, a definir).
+- ✅ Exportar las paredes completas (v1.26.0): pestaña Planos, PDF y Excel.
+- 🟢 [ ] Planos: escalonar las cotas cuando quedan muy juntas (hoy se omiten las de menos de 15 cm); escalera en planta; DXF para CAD.
 - 🟢 [ ] Proveedores compartidos entre proyectos (hoy viajan con cada proyecto).
 - 🟡 [ ] Paneles sándwich por **caras**: chapa/chapa, chapa/madera (interior), madera/madera (paneles SIP).
       Cada cara con su material y color.

@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.26.0] - 2026-10-23
+### Agregado
+- **Pestaña Planos**: cada pared vista desde afuera, dibujada y acotada (columnas, jambas, fajas, montantes, riostras,
+  marcos y aberturas), con la cadena de cotas entre columnas y jambas, las alturas de las fajas, el largo y el alto.
+  Debajo: la **lista de piezas para cortar** (pieza, perfil, largo y cantidad), las aberturas con su posición y el
+  **revestimiento** de esa pared (tiras o placas, con las aberturas descontadas). También las plantas de **piso**,
+  **entrepiso** y **techo** vistas desde arriba, con sus piezas.
+- **Imprimir / PDF**: los planos salen al final, una hoja por plano.
+- **Exportar Excel** (botón en el encabezado y en Planos): hoja de Presupuesto (con proveedor y forma de pago), una
+  hoja por pared (cotas, piezas, aberturas, revestimiento), una por planta y la hoja de Cortes (cómo cortar cada
+  barra). Se arma sin librerías nuevas.
+### Cambiado
+- En el celular las 6 pestañas entran en la barra de abajo ("Estruct.", "Presup.").
+
 ## [1.25.0] - 2026-10-23
 ### Agregado
 - **Proveedores** en Materiales: nombre, recargo con tarjeta (%) y una nota (teléfono, dirección…).
