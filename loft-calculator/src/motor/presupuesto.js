@@ -24,6 +24,8 @@ export const CATALOGO_FIJO = [
   { id: INSUMO.COLUMNA, categoria: 'perfil', nombre: 'Columnas', perfil: 'Caño estructural 100x100x1.6', unidad: 'barra', largoBarra: 6, precio: 38000 },
   // v1.22: las columnas de esquina son de dos paredes: renglón propio (arranca igual que Columnas).
   { id: INSUMO.COLUMNA_ESQUINA, categoria: 'perfil', nombre: 'Columnas de esquina', perfil: 'Caño estructural 100x100x1.6', unidad: 'barra', largoBarra: 6, precio: 38000 },
+  // v1.28: las columnas que sostienen el entrepiso (borde libre y fila del medio), con su perfil.
+  { id: INSUMO.COLUMNA_ENTREPISO, categoria: 'perfil', nombre: 'Columnas del entrepiso', perfil: 'Caño estructural 100x100x1.6', unidad: 'barra', largoBarra: 6, precio: 38000 },
   // v1.17: montantes (verticales livianos entre columnas) y montantes de dintel / de antepecho.
   { id: INSUMO.MONTANTE, categoria: 'perfil', nombre: 'Montantes', perfil: 'Caño estructural 50x50x1.6', unidad: 'barra', largoBarra: 6, precio: 18000 },
   // v1.14.1: dintel, jambas y alféizar de las aberturas en su propio renglón (antes iban con las columnas).
@@ -33,7 +35,7 @@ export const CATALOGO_FIJO = [
   // v1.28: el borde de los pisos con perfil propio (antes iba con las soleras).
   { id: INSUMO.BORDE_PISO, categoria: 'perfil', nombre: 'Bordes de piso', perfil: 'Perfil C 120x50x2.0', unidad: 'barra', largoBarra: 6, precio: 35000 },
   // v1.14: borde libre del entrepiso. Arranca igual que los marcos; el perfil lo elige el herrero.
-  { id: INSUMO.VIGA_CIERRE, categoria: 'perfil', nombre: 'Viga de cierre del entrepiso', perfil: 'Perfil C 120x50x2.0', unidad: 'barra', largoBarra: 6, precio: 35000 },
+  { id: INSUMO.VIGA_CIERRE, categoria: 'perfil', nombre: 'Vigas del entrepiso (cierre y apoyo)', perfil: 'Perfil C 120x50x2.0', unidad: 'barra', largoBarra: 6, precio: 35000 },
   { id: INSUMO.PISO, categoria: 'perfil', nombre: 'Estructura de piso', perfil: 'Perfil C 100x45x2.0', unidad: 'barra', largoBarra: 6, precio: 26000 },
   { id: INSUMO.TRANSVERSAL_PISO, categoria: 'perfil', nombre: 'Transversales de piso', perfil: 'Perfil C 80x40x1.6', unidad: 'barra', largoBarra: 6, precio: 22000 },
   { id: INSUMO.PISO_2, categoria: 'perfil', nombre: 'Estructura de piso 2', perfil: 'Perfil C 100x45x2.0', unidad: 'barra', largoBarra: 6, precio: 26000 },
@@ -224,7 +226,7 @@ function calcularRenglones(estructura, catalogo, excedenteBarras) {
   if (e.montaje) return presupuestoMontaje(e.montaje, insumo, perfil);
 
   const items = [
-    perfil(INSUMO.COLUMNA, e.columnas.filter((p) => !p.esquina)),
+    perfil(INSUMO.COLUMNA, e.columnas.filter((p) => !p.esquina && p.tipo !== 'columna-entrepiso')),
     perfil(INSUMO.COLUMNA_ESQUINA, e.columnas.filter((p) => p.esquina)), // v1.22
     perfil(INSUMO.MARCO, e.marcos.filter((p) => p.tipo === 'solera')),
     perfil(INSUMO.BORDE_PISO, e.marcos.filter((p) => p.tipo === 'marco-piso' || p.tipo === 'marco-piso2')), // v1.28
@@ -236,6 +238,12 @@ function calcularRenglones(estructura, catalogo, excedenteBarras) {
     perfil(INSUMO.VIGA_TECHO, e.techo.vigas),
     perfil(INSUMO.CORREA_TECHO, e.techo.correas),
   ];
+
+  // Columnas del entrepiso (v1.28): renglón solo si las hay. Va después de las columnas de esquina.
+  const columnasEntrepiso = e.columnas.filter((p) => p.tipo === 'columna-entrepiso');
+  if (columnasEntrepiso.length > 0 || reasignadas.some((p) => p.insumo === INSUMO.COLUMNA_ENTREPISO)) {
+    items.splice(2, 0, perfil(INSUMO.COLUMNA_ENTREPISO, columnasEntrepiso));
+  }
 
   // Bordes de techo (v1.28): renglón solo si el techo lleva marco perimetral. Va después de las correas.
   const bordesTecho = e.techo.bordes ?? [];
@@ -256,7 +264,7 @@ function calcularRenglones(estructura, catalogo, excedenteBarras) {
 
   // Viga de cierre del entrepiso: el renglón aparece solo si hay borde libre
   // (entrepiso que no llega a la pared de enfrente o que no ocupa todo el lado).
-  const vigasCierre = e.marcos.filter((p) => p.tipo === 'viga-cierre');
+  const vigasCierre = e.marcos.filter((p) => p.tipo === 'viga-cierre' || p.tipo === 'viga-apoyo'); // v1.28: + la de apoyo
   if (vigasCierre.length > 0 || reasignadas.some((p) => p.insumo === INSUMO.VIGA_CIERRE)) {
     items.splice(2, 0, perfil(INSUMO.VIGA_CIERRE, vigasCierre));
   }

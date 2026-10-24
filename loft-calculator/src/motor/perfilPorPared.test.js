@@ -55,7 +55,7 @@ describe('perfil propio de una pared', () => {
     expect(deLado).toMatchObject({ nombre: 'Columnas (lado B)', perfil: 'Caño estructural 80x80x2.0', precio: perfil80.precio, perfilId: perfil80.id });
     expect(deLado.largosPiezas).toHaveLength(deB.length);
     // Ninguna columna se pierde ni se cuenta dos veces.
-    const total = ['columna', 'columnaEsquina', `columna@${perfil80.id}`].reduce((a, id) => a + renglon(r, id).largosPiezas.length, 0);
+    const total = ['columna', 'columnaEsquina', 'columnaEntrepiso', `columna@${perfil80.id}`].reduce((a, id) => a + (renglon(r, id)?.largosPiezas.length ?? 0), 0);
     expect(total).toBe(e.columnas.length);
     // El renglón de pared queda justo debajo de Columnas.
     const ids = r.items.map((i) => i.id);

@@ -128,7 +128,7 @@ export function vistaDePared(e, params, lado, catalogo, aberturas = []) {
 
 const PIEZAS_DE_PLANTA = {
   piso: (e) => [...e.piso.tirantes, ...e.piso.transversales, ...e.marcos.filter((p) => p.tipo === 'marco-piso')],
-  piso2: (e) => [...e.piso2.tirantes, ...e.piso2.transversales, ...e.marcos.filter((p) => p.tipo === 'marco-piso2' || p.tipo === 'viga-cierre')],
+  piso2: (e) => [...e.piso2.tirantes, ...e.piso2.transversales, ...e.marcos.filter((p) => ['marco-piso2', 'viga-cierre', 'viga-apoyo'].includes(p.tipo))],
   techo: (e) => [...(e.techo.bordes ?? []), ...e.techo.vigas, ...e.techo.correas],
 };
 export const NOMBRE_PLANTA = { piso: 'Piso (planta baja)', piso2: 'Entrepiso (piso 2)', techo: 'Techo' };

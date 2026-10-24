@@ -901,6 +901,7 @@ export default function App() {
                 <SelectorLado etiqueta="Apoyado en" valor={params.ladoEntrepiso} params={params}
                   onCambio={cambiar('ladoEntrepiso')} />
               )}
+              {params.anchoEntrepiso > 0 && medida('alturaPiso2', 'Altura del piso 2')}
               {params.anchoEntrepiso > 0 && opcional('largoEntrepiso', 'Parcial (no toda la pared)', 'Largo',
                 Math.max(1, Math.round(lados[params.ladoEntrepiso].largo / 2)))}
               {params.anchoEntrepiso > 0 && params.largoEntrepiso > 0 && (
@@ -909,16 +910,32 @@ export default function App() {
                   onCambio={cambiar('referenciaEntrepiso')} />
               )}
               {params.anchoEntrepiso > 0 && params.largoEntrepiso > 0 && medida('distanciaEntrepiso', 'Dist. a esquina')}
-              {params.anchoEntrepiso > 0 && separacion('separacionColumnasEntrepiso', 'Columnas cada', 'Columnas por borde (con las puntas)', ['columna', 'columnas'], { casilla: 'Columnas intermedias en el borde libre', valorPorDefecto: 2.5 })}
+              {params.anchoEntrepiso > 0 && separacion('separacionColumnasEntrepiso', 'Columnas cada', 'Columnas por borde (con las puntas)', ['columna', 'columnas'], { casilla: 'Columnas intermedias (borde libre y fila del medio)', valorPorDefecto: 2.5 })}
               {params.anchoEntrepiso > 0 && separacion('separacionPiso2', 'Sep. estructura de piso 2', 'Tirantes de piso 2', ['tirante', 'tirantes'])}
               {params.anchoEntrepiso > 0 && separacion('separacionTransversalesPiso2', 'Transversales cada', 'Filas de transversales', ['fila de transversales', 'filas de transversales'], { casilla: 'Lleva transversales', valorPorDefecto: 1.5 })}
             </div>
             {params.anchoEntrepiso > 0 && (
+              <div className="casillas-entrepiso">
+                {/* v1.28: columnas del entrepiso. */}
+                <label className="casilla-opcional">
+                  <input type="checkbox" checked={params.filaColumnasEntrepiso === true}
+                    onChange={(ev) => cambiar('filaColumnasEntrepiso')(ev.target.checked)} />
+                  Fila de columnas en el medio, con viga de apoyo (aunque no haya borde libre)
+                </label>
+                <label className="casilla-opcional">
+                  <input type="checkbox" checked={params.columnasEntrepisoHastaPiso2 === true}
+                    onChange={(ev) => cambiar('columnasEntrepisoHastaPiso2')(ev.target.checked)} />
+                  Las columnas del entrepiso terminan en el piso 2 (si no, suben hasta el techo)
+                </label>
+              </div>
+            )}
+            {params.anchoEntrepiso > 0 && (
               <div className="grid-params grid-perfiles-pared">
+                {selectorPerfilDe(INSUMO.COLUMNA_ENTREPISO, 'Columnas del entrepiso')}
                 {selectorPerfilDe(INSUMO.PISO_2, 'Tirantes piso 2 (interior)')}
                 {params.separacionTransversalesPiso2 > 0 || cantidadDe(params, 'separacionTransversalesPiso2') > 0
                   ? selectorPerfilDe(INSUMO.TRANSVERSAL_PISO_2, 'Transversales piso 2') : null}
-                {selectorPerfilDe(INSUMO.VIGA_CIERRE, 'Viga de cierre (borde libre)')}
+                {selectorPerfilDe(INSUMO.VIGA_CIERRE, 'Vigas de cierre y de apoyo')}
               </div>
             )}
             <p className="nota">

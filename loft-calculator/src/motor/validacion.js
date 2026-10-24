@@ -129,9 +129,15 @@ export function validarParametros(params) {
     anotar('anchoEntrepiso', `No puede superar ${profundidadDisponible.toFixed(2)} m`);
   }
   validarEntrepisoParcial(params, anotar);
-  if (params.anchoEntrepiso > 0 && params.altura < ALTURA_PISO_2 + 0.5) {
-    anotar('altura', `Con entrepiso, la altura mínima es ${ALTURA_PISO_2 + 0.5} m`);
+  // v1.28: la altura del piso 2 se elige (antes fija en 2.30 m); el piso 2 tiene que quedar 50 cm abajo del techo.
+  const alturaPiso2 = params.alturaPiso2 ?? ALTURA_PISO_2;
+  if (params.anchoEntrepiso > 0 && params.altura < alturaPiso2 + 0.5) {
+    anotar('altura', `Con entrepiso a ${alturaPiso2.toFixed(2)} m, la altura mínima es ${(alturaPiso2 + 0.5).toFixed(2)} m`);
+    anotar('alturaPiso2', `Máximo ${(params.altura - 0.5).toFixed(2)} m (50 cm abajo del lado bajo del techo)`);
   }
+  ['filaColumnasEntrepiso', 'columnasEntrepisoHastaPiso2'].forEach((campo) => {
+    if (params[campo] !== undefined && typeof params[campo] !== 'boolean') anotar(campo, 'Valor inválido');
+  });
 
   return errores;
 }
@@ -282,7 +288,7 @@ function validarEscalera(params, anotar) {
   }
   const cantidad = DESCANSOS_POR_FORMA[esc.forma] ?? 0;
   if (cantidad > 0) {
-    validarDescansos(esc, cantidad, anotar);
+    validarDescansos(esc, cantidad, anotar, params.alturaPiso2);
     const giraPerpendicular = esc.giroHacia !== esc.bajaHacia && esc.giroHacia !== opuesto(esc.bajaHacia);
     if (!giraPerpendicular) anotar('escalera.giroHacia', 'El segundo tramo tiene que girar 90° (elegí una pared de costado)');
   }
@@ -293,12 +299,12 @@ function validarEscalera(params, anotar) {
  * (incluido el de abajo y el de arriba) con al menos 2 contrahuellas.
  * El error se anota en 'escalera.descansos.<i>' (el campo de ese descanso).
  */
-function validarDescansos(esc, cantidad, anotar) {
+function validarDescansos(esc, cantidad, anotar, alturaPiso2) {
   if (!Array.isArray(esc.descansos) || esc.descansos.length < cantidad) {
     anotar('escalera.descansos', `Faltan descansos: esta forma lleva ${cantidad}`);
     return;
   }
-  const { contrahuellas } = calcularEscalones(esc);
+  const { contrahuellas } = calcularEscalones(esc, alturaPiso2);
   if (contrahuellas < 2 * (cantidad + 1)) {
     anotar('escalera.forma', `Con ${contrahuellas} contrahuellas no alcanza para ${cantidad + 1} tramos de 2 o más`);
     return;

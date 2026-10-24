@@ -398,7 +398,9 @@ describe('calcularPresupuesto', () => {
   it('las barras coinciden con las piezas de la estructura (3D = cálculo)', () => {
     // v1.22: las de esquina en su renglón; entre los dos, todas las columnas.
     // (largosPiezas = piezas propias del renglón; las barras pueden ser compartidas.)
-    expect(item(INSUMO.COLUMNA).largosPiezas.length + item(INSUMO.COLUMNA_ESQUINA).largosPiezas.length).toBe(e.columnas.length);
+    // v1.28: + las del entrepiso en su renglón.
+    expect(item(INSUMO.COLUMNA).largosPiezas.length + item(INSUMO.COLUMNA_ESQUINA).largosPiezas.length
+      + (item(INSUMO.COLUMNA_ENTREPISO)?.largosPiezas.length ?? 0)).toBe(e.columnas.length);
     expect(item(INSUMO.COLUMNA_ESQUINA).largosPiezas).toHaveLength(4);
     // v1.14.1: dintel, jambas y alféizar en su propio renglón.
     expect(item(INSUMO.MARCO_ABERTURA).largosPiezas).toHaveLength(e.refuerzosAberturas.length);

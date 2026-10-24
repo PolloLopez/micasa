@@ -64,7 +64,10 @@ export const PARAMS_INICIALES = {
   compartirCortes: true, // v1.19.1: renglones del mismo perfil cortan de las mismas barras
   proveedorElegido: '', // v1.25: id del proveedor con el que se calcula ('' = el primero); 'mas-barato' = cada material al menor precio
   formaPago: 'efectivo', // v1.25: 'efectivo' | 'tarjeta'
-  techoConBorde: true, // v1.28: marco perimetral del techo (vigas de las puntas + correas de los bordes)
+  techoConBorde: true,
+  alturaPiso2: 2.3, // v1.28: altura del piso 2 desde el piso de planta baja (antes fija)
+  filaColumnasEntrepiso: false, // v1.28: fila de columnas con viga en el medio del entrepiso
+  columnasEntrepisoHastaPiso2: false, // v1.28: las columnas del entrepiso terminan en el piso 2 (si no, suben al techo) // v1.28: marco perimetral del techo (vigas de las puntas + correas de los bordes)
   cantidades: {}, // v1.27: separaciones cargadas por CANTIDAD { 'paredes.A.separacionVerticales': 4 } (sin clave = por medida)
 
   // Fundación

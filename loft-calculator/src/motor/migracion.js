@@ -41,7 +41,7 @@
 //     donde se apoya el entrepiso, que era la regla de antes => mismas columnas.
 // ==========================================================
 
-import { LADOS, INSUMO, CAMPOS_PERFIL_PARED } from './constantes.js';
+import { LADOS, INSUMO, CAMPOS_PERFIL_PARED, ALTURA_PISO_2 } from './constantes.js';
 import { PARAMS_INICIALES } from './parametrosIniciales.js';
 import { CATALOGO_FIJO, TIPOS_PANEL_INICIALES } from './presupuesto.js';
 import { ESCALERA_INICIAL } from './escalera.js';
@@ -75,6 +75,10 @@ export function migrarParams(params) {
   nuevos.panelTecho ??= PARAMS_INICIALES.panelTecho;
   // v1.28: marco perimetral del techo. Los proyectos de antes no lo tenían (no se agregan piezas solas).
   nuevos.techoConBorde = nuevos.techoConBorde === true;
+  // v1.28: altura del piso 2 (antes fija) y columnas del entrepiso.
+  nuevos.alturaPiso2 = Number.isFinite(nuevos.alturaPiso2) ? nuevos.alturaPiso2 : ALTURA_PISO_2;
+  nuevos.filaColumnasEntrepiso = nuevos.filaColumnasEntrepiso === true;
+  nuevos.columnasEntrepisoHastaPiso2 = nuevos.columnasEntrepisoHastaPiso2 === true;
   nuevos.piezasEliminadas ??= []; // v1.5
   // v1.7: los proyectos viejos se abren SIN escalera (no se agrega nada que no tenían).
   nuevos.escalera = esObjeto(nuevos.escalera) ? { ...ESCALERA_INICIAL, activa: false, ...nuevos.escalera } : { ...ESCALERA_INICIAL, activa: false };
@@ -226,6 +230,7 @@ const RENGLONES_QUE_COPIAN = {
   [INSUMO.COLUMNA_ESQUINA]: INSUMO.COLUMNA, // v1.22
   [INSUMO.BORDE_PISO]: INSUMO.MARCO, // v1.28: antes el borde de piso iba con las soleras
   [INSUMO.BORDE_TECHO]: INSUMO.VIGA_TECHO, // v1.28
+  [INSUMO.COLUMNA_ENTREPISO]: INSUMO.COLUMNA, // v1.28: antes iban con las columnas
 };
 
 /** Un perfil de la lista guardado: se conserva si es válido; si no, se descarta (null). */

@@ -599,3 +599,5 @@ kbd {
   .grilla-plantas .tabla-plano .num { width: 14%; }
   .grupo-cortes .sobra { color: #555; }
 }
+
+.casillas-entrepiso { display: flex; flex-direction: column; gap: 2px; margin: 4px 0 6px; } /* v1.28 */

@@ -91,6 +91,8 @@ abiertas a la vez, 15+ botones de menos de 40 px en el celular.
 - ✅ Imprimir el 3D con lo seleccionado, cotas generales, medidas fijadas y vistas fijas (v1.28.0).
 - ✅ Bordes de pisos y techo con perfil propio; interior por sentido (v1.28.0).
 - ✅ Travesaños de abertura hasta las columnas, arriba y abajo (v1.28.0).
+- ✅ Altura del piso 2 elegible; columnas del entrepiso con perfil propio, hasta el piso 2 o al techo, y fila del medio con viga (v1.28.0).
+- 🟢 [ ] Fila del medio del entrepiso: hoy una sola, a media profundidad. Evaluar varias filas o elegir dónde.
 - 🟢 [ ] Medidas fijadas: hoy son de la sesión (no se guardan en el proyecto). Evaluar guardarlas.
 - 🟢 [ ] Vistas fijas del PDF: ocultar los carteles de las paredes (se superponen en las vistas chicas).
 - 🟡 [ ] Paneles por caras, colores por capa o material, cielorraso (próxima versión de Materiales).

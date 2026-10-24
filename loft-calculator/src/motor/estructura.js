@@ -43,6 +43,8 @@ export const NOMBRE_TIPO_PIEZA = {
   solera: 'Solera superior',
   'marco-piso2': 'Borde de piso 2',
   'viga-cierre': 'Viga de cierre del entrepiso',
+  'viga-apoyo': 'Viga de apoyo del entrepiso', // v1.28: sobre la fila de columnas del medio
+  'columna-entrepiso': 'Columna del entrepiso', // v1.28
   piso: 'Estructura de piso',
   piso2: 'Estructura de piso 2',
   'transv-piso': 'Transversal de piso',
@@ -162,6 +164,14 @@ function posicionesDeColumnas(params, lados) {
       const puntos = separacion > 0 ? repartir(largo, separacion) : [0, largo];
       puntos.forEach((d) => agregar(a[0] + ((b[0] - a[0]) * d) / largo, a[1] + ((b[1] - a[1]) * d) / largo));
     });
+    // v1.28: fila de columnas en el medio del entrepiso (a media profundidad, paralela a la pared donde
+    // apoya), con la misma separación. Sirve aunque el entrepiso no tenga borde libre.
+    const fila = filaDelMedio(rect);
+    if (params.filaColumnasEntrepiso === true) {
+      const separacion = separacionDe(params, 'separacionColumnasEntrepiso', fila.largo);
+      const puntos = separacion > 0 ? repartir(fila.largo, separacion) : [0, fila.largo];
+      puntos.forEach((d) => agregar(...fila.punto(d)));
+    }
   }
   return [...porPosicion.values()];
 }
@@ -175,8 +185,12 @@ function generarColumnas(params, lados, posiciones, aberturas) {
   const y0 = params.elevacion;
   const columnas = [];
   posiciones.forEach(({ x, z, clave, lados: sobre }) => {
-    const alto = alturaEn(x, z, params);
+    // v1.28: las que no están en una pared son del entrepiso: renglón propio y, si se pide, solo hasta el piso 2.
+    const delEntrepiso = sobre.length === 0;
+    const hastaPiso2 = delEntrepiso && params.columnasEntrepisoHastaPiso2 === true && params.anchoEntrepiso > 0;
+    const alto = hastaPiso2 ? (params.alturaPiso2 ?? ALTURA_PISO_2) : alturaEn(x, z, params);
     const grupos = sobre.length > 0 ? sobre : ['interior'];
+    const tipo = delEntrepiso ? 'columna-entrepiso' : 'columna';
     const base = { x, z };
     const vanoQueLaCorta = aberturas
       .filter((op) => sobre.includes(op.lado))
@@ -184,7 +198,7 @@ function generarColumnas(params, lados, posiciones, aberturas) {
       .find(({ v, d }) => d > v.inicio + MARGEN_VANO && d < v.fin - MARGEN_VANO);
 
     if (!vanoQueLaCorta) {
-      columnas.push({ ...pieza(`col:${clave}`, 'columna', grupos, [x, y0, z], [x, y0 + alto, z]), ...base });
+      columnas.push({ ...pieza(`col:${clave}`, tipo, grupos, [x, y0, z], [x, y0 + alto, z]), ...base });
       return;
     }
     const { v } = vanoQueLaCorta;
@@ -357,6 +371,13 @@ function generarMarcos(params, lados, rectEntrepiso) {
     bordesEntrepiso(rectEntrepiso, lados).forEach(({ i, a, b, libre }) => {
       marcos.push(pieza(`marco-piso2:${i}`, libre ? 'viga-cierre' : 'marco-piso2', ['piso2'], [a[0], y, a[1]], [b[0], y, b[1]]));
     });
+    // v1.28: viga sobre la fila de columnas del medio, justo abajo de la estructura del piso 2.
+    if (params.filaColumnasEntrepiso === true) {
+      const fila = filaDelMedio(rectEntrepiso);
+      const [x1, z1] = fila.punto(0);
+      const [x2, z2] = fila.punto(fila.largo);
+      marcos.push(pieza('viga-apoyo:piso2', 'viga-apoyo', ['piso2'], [x1, y - ALTO_VIGA_APOYO, z1], [x2, y - ALTO_VIGA_APOYO, z2]));
+    }
   }
   return marcos;
 }
@@ -392,9 +413,17 @@ function rectanguloEntrepiso(params, lados) {
   ];
   return {
     origen, u: geo.direccion, largoU: largo, v, largoV: a,
-    esquinas, y: params.elevacion + ALTURA_PISO_2,
+    esquinas, y: params.elevacion + (params.alturaPiso2 ?? ALTURA_PISO_2), // v1.28: altura elegible
   };
 }
+
+/** Línea del medio del entrepiso (a media profundidad, a lo largo de la pared donde apoya). */
+function filaDelMedio(rect) {
+  const medio = rect.largoV / 2;
+  const punto = (d) => [rect.origen[0] + rect.u[0] * d + rect.v[0] * medio, rect.origen[1] + rect.u[1] * d + rect.v[1] * medio];
+  return { largo: rect.largoU, punto };
+}
+const ALTO_VIGA_APOYO = 0.12; // la viga de apoyo va abajo de los tirantes del piso 2
 
 /**
  * Los 4 bordes del entrepiso. `libre` = no está apoyado sobre una pared

@@ -73,17 +73,17 @@ export function repartirDescansos(cantidadDescansos, contrahuellas) {
     Math.min(contrahuellas - 2 * (cantidadDescansos - i), Math.max(2 * (i + 1), Math.round((contrahuellas * (i + 1)) / tramos))));
 }
 
-/** Altura que tiene que salvar la escalera. */
-export function alturaEscalera(escalera) {
-  return escalera.alturaTotal > 0 ? escalera.alturaTotal : ALTURA_PISO_2 + ESPESOR_PISO_2;
+/** Altura que tiene que salvar la escalera (v1.28: con la altura del piso 2 elegida). */
+export function alturaEscalera(escalera, alturaPiso2 = ALTURA_PISO_2) {
+  return escalera.alturaTotal > 0 ? escalera.alturaTotal : (alturaPiso2 ?? ALTURA_PISO_2) + ESPESOR_PISO_2;
 }
 
 /**
  * Cantidad y medida de los escalones.
  * @returns {{ contrahuellas, contrahuella, huella, pisadas, alturaTotal, blondel }}
  */
-export function calcularEscalones(escalera) {
-  const alturaTotal = alturaEscalera(escalera);
+export function calcularEscalones(escalera, alturaPiso2 = ALTURA_PISO_2) {
+  const alturaTotal = alturaEscalera(escalera, alturaPiso2);
   const contrahuellas = Math.max(2, Math.round(alturaTotal / escalera.contrahuellaObjetivo));
   const contrahuella = alturaTotal / contrahuellas;
   return {
@@ -130,7 +130,7 @@ export function bajaPerpendicular(lados, entrepiso, bajaHacia) {
  */
 export function generarEscalera(params, lados, entrepiso) {
   const esc = params.escalera;
-  const datos = calcularEscalones(esc);
+  const datos = calcularEscalones(esc, params.alturaPiso2);
   const { contrahuellas: n, contrahuella: C, huella: h } = datos;
   const y0 = params.elevacion;
   const borde = bordeEntrepiso(entrepiso);

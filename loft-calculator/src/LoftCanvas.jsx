@@ -36,6 +36,7 @@ import { vistasFijas } from './motor/vistasFijas.js';
 // Capa y sección (grosor en el 3D) de cada tipo de pieza.
 const ESTILO_PIEZA = {
   columna: { capa: 'columnas', seccion: 0.1 },
+  'columna-entrepiso': { capa: 'columnas', seccion: 0.1 }, // v1.28
   dintel: { capa: 'columnas', seccion: 0.08 },
   jamba: { capa: 'columnas', seccion: 0.08 },
   alfeizar: { capa: 'columnas', seccion: 0.08 },
@@ -47,6 +48,7 @@ const ESTILO_PIEZA = {
   solera: { capa: 'marcos', seccion: 0.12 },
   'marco-piso2': { capa: 'marcos', seccion: 0.12 },
   'viga-cierre': { capa: 'marcos', seccion: 0.12 },
+  'viga-apoyo': { capa: 'marcos', seccion: 0.12 }, // v1.28
   piso: { capa: 'piso', seccion: 0.08 },
   piso2: { capa: 'piso2', seccion: 0.08 },
   'transv-piso': { capa: 'transversales', seccion: 0.09 },
@@ -76,7 +78,7 @@ const ESTILO_PIEZA = {
  * Las piezas del loft mantienen su grosor fijo (para que el modelo se lea claro).
  */
 const INSUMO_POR_TIPO = {
-  'viga-cierre': INSUMO.VIGA_CIERRE,
+  'viga-cierre': INSUMO.VIGA_CIERRE, 'viga-apoyo': INSUMO.VIGA_CIERRE, 'columna-entrepiso': INSUMO.COLUMNA_ENTREPISO,
   zanca: INSUMO.ZANCA, 'apoyo-escalon': INSUMO.APOYO_ESCALON, 'columna-escalera': INSUMO.COLUMNA_ESCALERA,
   riostra: INSUMO.RIOSTRA,
   'grada-zanca': INSUMO.GRADA_ZANCA, 'grada-parante': INSUMO.GRADA_PARANTE, 'grada-apoyo': INSUMO.GRADA_APOYO,

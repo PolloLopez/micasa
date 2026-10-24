@@ -40,6 +40,7 @@ const TRAZO = {
   'transv-piso2': { color: '#be185d', ancho: 0.03 },
   'marco-piso2': { color: '#1d4ed8', ancho: 0.06 },
   'viga-cierre': { color: '#1d4ed8', ancho: 0.07 },
+  'viga-apoyo': { color: '#1d4ed8', ancho: 0.07 }, // v1.28
   'viga-techo': { color: '#c2410c', ancho: 0.06 },
   'correa-techo': { color: '#a16207', ancho: 0.035 },
   'borde-techo': { color: '#9a3412', ancho: 0.07 }, // v1.28

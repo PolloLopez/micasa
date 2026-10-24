@@ -75,7 +75,8 @@ describe('ediciones en la estructura y el presupuesto', () => {
   });
 
   it('el presupuesto cotiza la pieza recortada (menos metros de columna)', () => {
-    const metros = (e) => calcularPresupuesto(e, CATALOGO_INICIAL).items.find((i) => i.id === INSUMO.COLUMNA).cortes.metrosNetos;
+    // v1.28: la columna del altillo es del entrepiso (renglón Columnas del entrepiso).
+    const metros = (e) => calcularPresupuesto(e, CATALOGO_INICIAL).items.find((i) => i.id === INSUMO.COLUMNA_ENTREPISO).largosPiezas.reduce((x, l) => x + l, 0); // sus piezas (las barras pueden ser compartidas)
     const e = generarEstructura(conEdicion({ recorteFin: 2 }), ABERTURAS_INICIALES);
     expect(metros(base) - metros(e)).toBeCloseTo(2);
   });
@@ -84,7 +85,7 @@ describe('ediciones en la estructura y el presupuesto', () => {
     const items = (e) => calcularPresupuesto(e, CATALOGO_INICIAL).items;
     const piezasDe = (e, id) => items(e).find((i) => i.id === id).cortes.barras.flatMap((b) => b.piezas).length;
     const e = generarEstructura(conEdicion({ perfil: INSUMO.ZANCA }), ABERTURAS_INICIALES);
-    expect(piezasDe(e, INSUMO.COLUMNA)).toBe(piezasDe(base, INSUMO.COLUMNA) - 1);
+    expect(piezasDe(e, INSUMO.COLUMNA_ENTREPISO)).toBe(piezasDe(base, INSUMO.COLUMNA_ENTREPISO) - 1);
     expect(piezasDe(e, INSUMO.ZANCA)).toBe(piezasDe(base, INSUMO.ZANCA) + 1);
   });
 

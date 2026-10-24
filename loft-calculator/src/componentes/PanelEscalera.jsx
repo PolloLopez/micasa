@@ -56,7 +56,7 @@ export default function PanelEscalera({ params, resumen, unidad, cambiar, cambia
 
   // Cambiar la forma reparte los descansos parejo (después se editan uno por uno).
   const cambiarForma = (forma) => {
-    const { contrahuellas } = calcularEscalones(esc);
+    const { contrahuellas } = calcularEscalones(esc, params.alturaPiso2);
     const k = DESCANSOS_POR_FORMA[forma];
     const descansos = k === 0 ? esc.descansos : repartirDescansos(k, contrahuellas);
     return cambiarEscalera({ forma, descansos, giroHacia: giroCompatible(esc.bajaHacia, esc.giroHacia, params.ladoEntrepiso) });
@@ -106,7 +106,7 @@ export default function PanelEscalera({ params, resumen, unidad, cambiar, cambia
             {medida('contrahuellaObjetivo', 'Contrahuella objetivo')}
             {/* Destildada = automática (piso 2 + espesor del piso); al tildar arranca de ese valor. */}
             <CampoOpcional casilla="Altura total a mano (si no, automática)" etiqueta="Altura total" unidad={unidad}
-              valorPorDefecto={Number(calcularEscalones({ ...esc, alturaTotal: 0 }).alturaTotal.toFixed(2))}
+              valorPorDefecto={Number(calcularEscalones({ ...esc, alturaTotal: 0 }, params.alturaPiso2).alturaTotal.toFixed(2))}
               valor={esc.alturaTotal} onCambio={cambiar('escalera.alturaTotal')} />
           </div>
 

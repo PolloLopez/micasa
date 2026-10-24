@@ -7,7 +7,7 @@
 // ==========================================================
 
 // Altura del piso del entrepiso (piso 2) medida desde el piso del loft.
-export const ALTURA_PISO_2 = 2.3;
+export const ALTURA_PISO_2 = 2.3; // altura del piso 2 por defecto (v1.28: se puede cambiar, params.alturaPiso2)
 
 // Espesor que se pierde en cada corte con disco (kerf = ancho del disco).
 export const MERMA_POR_CORTE = 0.003;
@@ -26,6 +26,7 @@ export const LADOS = ['A', 'B', 'C', 'D'];
 export const INSUMO = {
   COLUMNA: 'columna',
   COLUMNA_ESQUINA: 'columnaEsquina', // v1.22: las de esquina son de dos paredes: perfil propio
+  COLUMNA_ENTREPISO: 'columnaEntrepiso', // v1.28: las que sostienen el entrepiso (fuera de las paredes)
   MONTANTE: 'montante', // vertical liviano entre columnas (v1.17)
   MARCO_ABERTURA: 'marcoAbertura', // dintel, jambas y alféizar de puertas y ventanas (v1.14.1)
   MARCO: 'marco', // v1.28: solo las soleras (arriba de las paredes); antes también el marco de piso
@@ -118,6 +119,7 @@ export const LIMITES = {
   elevacion: { min: 0, max: 2 },
   separacionPiso: { min: 0.2, max: 2 },
   anchoEntrepiso: { min: 0, max: 30 },
+  alturaPiso2: { min: 1.8, max: 7.5 }, // v1.28: desde el piso de planta baja
   largoEntrepiso: { min: 1, max: 30, opcional: true }, // 0 = todo el lado
   distanciaEntrepiso: { min: 0, max: 30 },
   separacionColumnasEntrepiso: { min: 0.5, max: 30, opcional: true }, // 0 = solo en las puntas

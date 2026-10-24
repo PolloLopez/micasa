@@ -17,6 +17,10 @@
   - Techo con **marco perimetral** opcional: las correas de los dos bordes + una pieza en cada punta forman
     "Bordes de techo"; vigas y correas del interior aparte. Cada sentido con su perfil.
   - Los perfiles de borde e interior se eligen también en las tarjetas Pisos y Techo (mismo dato que Materiales).
+- **Piso 2 (entrepiso)**: altura elegible (antes fija en 2.30 m; la escalera la sigue); las columnas que lo
+  sostienen tienen renglón propio ("Columnas del entrepiso", con su perfil), pueden terminar en el piso 2 en vez de
+  subir al techo, y se puede agregar una **fila de columnas en el medio con viga de apoyo** aunque no haya borde
+  libre (misma separación o cantidad que las del borde libre).
 - **Travesaños de abertura**: casilla en cada abertura para poner una pieza horizontal a la altura del dintel y del
   antepecho, de la abertura hasta la columna de cada lado (renglón Marcos de aberturas).
 ### Cambiado
