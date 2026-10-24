@@ -58,6 +58,7 @@ export function proyectoVacio() {
       proveedorElegido: '',
       formaPago: 'efectivo',
       cantidades: {},
+      techoConBorde: true,
       filasPilotines: 2,
       pilotinesPorFila: 2,
       piezasEliminadas: [],

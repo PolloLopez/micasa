@@ -24,12 +24,12 @@ const CORRIMIENTO_COPIA = 0.5; // la copia aparece a 50 cm de la original
 export const INSUMO_DE_TIPO = {
   columna: INSUMO.COLUMNA,
   montante: INSUMO.MONTANTE, 'montante-dintel': INSUMO.MONTANTE, 'montante-antepecho': INSUMO.MONTANTE,
-  dintel: INSUMO.MARCO_ABERTURA, jamba: INSUMO.MARCO_ABERTURA, alfeizar: INSUMO.MARCO_ABERTURA,
-  'marco-piso': INSUMO.MARCO, solera: INSUMO.MARCO, 'marco-piso2': INSUMO.MARCO,
+  dintel: INSUMO.MARCO_ABERTURA, jamba: INSUMO.MARCO_ABERTURA, alfeizar: INSUMO.MARCO_ABERTURA, travesano: INSUMO.MARCO_ABERTURA,
+  'marco-piso': INSUMO.BORDE_PISO, solera: INSUMO.MARCO, 'marco-piso2': INSUMO.BORDE_PISO, // v1.28: borde de piso aparte
   'viga-cierre': INSUMO.VIGA_CIERRE,
   piso: INSUMO.PISO, 'transv-piso': INSUMO.TRANSVERSAL_PISO,
   piso2: INSUMO.PISO_2, 'transv-piso2': INSUMO.TRANSVERSAL_PISO_2,
-  horizontal: INSUMO.CORREA, 'viga-techo': INSUMO.VIGA_TECHO, 'correa-techo': INSUMO.CORREA_TECHO,
+  horizontal: INSUMO.CORREA, 'viga-techo': INSUMO.VIGA_TECHO, 'correa-techo': INSUMO.CORREA_TECHO, 'borde-techo': INSUMO.BORDE_TECHO,
   zanca: INSUMO.ZANCA, 'marco-descanso': INSUMO.ZANCA, 'apoyo-escalon': INSUMO.APOYO_ESCALON,
   'columna-escalera': INSUMO.COLUMNA_ESCALERA, riostra: INSUMO.RIOSTRA,
   'grada-zanca': INSUMO.GRADA_ZANCA, 'grada-parante': INSUMO.GRADA_PARANTE, 'grada-apoyo': INSUMO.GRADA_APOYO,

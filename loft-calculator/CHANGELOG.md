@@ -1,5 +1,29 @@
 # Changelog
 
+## [1.28.0] - 2026-10-24
+### Agregado
+- **Imprimir / Exportar** (un solo botón): ventana para elegir qué sale — vista 3D actual (con lo resaltado y lo
+  seleccionado), vistas fijas (frente, lateral y desde arriba), cotas generales, medidas fijadas, datos de la obra,
+  presupuesto, cómo cortar cada barra, paredes, plantas y (opcional) todos los formularios. Lo elegido se recuerda.
+- **PDF en 3 hojas** (antes 20 en el ejemplo): 1) 3D + vistas fijas + medidas + datos de la obra; 2) presupuesto +
+  piso, entrepiso y techo; 3) las 4 paredes acotadas en 2 x 2; 4) cortes, solo si se piden (barras iguales juntas:
+  "16 × 6.06"). Las fotos del 3D salen recortadas al dibujo.
+- **Excel en 4 hojas** (antes 9): Obra (datos, medidas y presupuesto), Paredes (las 4), Plantas (las 3) y Cortes,
+  según lo elegido.
+- **Cotas generales en el 3D** (capa en Ayudas): largo del frente y del lateral, altos en las esquinas y elevación.
+- **Medidas fijadas**: después de medir con 📏, "📌 Fijar" la deja dibujada (M1, M2…); se quitan de a una o todas.
+- **Bordes de pisos y techo con perfil propio** (pedido de Leandro: bordes 80x80, interior C 80x40):
+  - "Bordes de piso" (marco de planta baja y entrepiso) separado de "Soleras" (arriba de las paredes).
+  - Techo con **marco perimetral** opcional: las correas de los dos bordes + una pieza en cada punta forman
+    "Bordes de techo"; vigas y correas del interior aparte. Cada sentido con su perfil.
+  - Los perfiles de borde e interior se eligen también en las tarjetas Pisos y Techo (mismo dato que Materiales).
+- **Travesaños de abertura**: casilla en cada abertura para poner una pieza horizontal a la altura del dintel y del
+  antepecho, de la abertura hasta la columna de cada lado (renglón Marcos de aberturas).
+### Cambiado
+- Los proyectos de antes se abren sin marco de techo y con "Bordes de piso" con el mismo perfil que tenían los
+  marcos: el total no cambia (casa de Leandro: $8.599.920).
+- "Marco de piso" pasa a llamarse "Borde de piso" en listas y planos.
+
 ## [1.27.0] - 2026-10-24
 ### Agregado
 - **Por medida o por cantidad**: cada separación (columnas, fajas y montantes de cada pared; tirantes y transversales de

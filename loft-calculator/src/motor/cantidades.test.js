@@ -7,6 +7,7 @@ import { migrarParams } from './migracion.js';
 import { PARAMS_INICIALES as P } from './parametrosIniciales.js';
 
 const con = (cantidades, extra = {}) => ({ ...P, ...extra, cantidades });
+const correasConBordes = (e) => e.techo.correas.length + e.techo.bordes.filter((b) => b.id.startsWith('correa-techo:')).length;
 const deLaPared = (piezas, lado, tipo) => piezas.filter((p) => p.tipo === tipo && p.grupos.includes(lado));
 
 describe('separación según la cantidad', () => {
@@ -63,7 +64,8 @@ describe('la estructura con cantidades', () => {
     expect(deLaPared(e.correas, 'B', 'horizontal')).toHaveLength(2);
     expect(e.piso.tirantes).toHaveLength(9);
     expect(e.techo.vigas).toHaveLength(5);
-    expect(e.techo.correas).toHaveLength(4);
+    // Las correas cuentan con las de los bordes (v1.28: con marco perimetral, esas son "borde de techo").
+    expect(correasConBordes(e)).toBe(4);
     expect(infoSeparacion(p, 'separacionPiso').cantidad).toBe(9);
     expect(infoSeparacion(p, 'separacionCorreasTecho').cantidad).toBe(4);
   });
@@ -81,7 +83,7 @@ describe('la estructura con cantidades', () => {
     const columnasA = deLaPared(generarEstructura(sinEntrepiso, []).columnas, 'A', 'columna').length;
     expect(infoSeparacion(P, 'separacionPiso').cantidad).toBe(e.piso.tirantes.length);
     expect(infoSeparacion(P, 'separacionVigasTecho').cantidad).toBe(e.techo.vigas.length);
-    expect(infoSeparacion(P, 'separacionCorreasTecho').cantidad).toBe(e.techo.correas.length);
+    expect(infoSeparacion(P, 'separacionCorreasTecho').cantidad).toBe(correasConBordes(e));
     expect(infoSeparacion(sinEntrepiso, 'paredes.A.separacionVerticales').cantidad).toBe(columnasA);
     expect(infoSeparacion(P, 'paredes.A.separacionMontantes')).toMatchObject({ porVano: true, cantidad: null });
   });

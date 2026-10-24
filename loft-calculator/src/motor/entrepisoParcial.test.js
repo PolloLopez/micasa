@@ -115,7 +115,8 @@ describe('entrepiso parcial (altillo de 2 x 3 en la esquina D-C)', () => {
 });
 
 describe('presupuesto con viga de cierre', () => {
-  const item = (params, id) => calcularPresupuesto(generarEstructura(params, []), CATALOGO_INICIAL).items.find((i) => i.id === id);
+  // Sin compartir cortes: así las barras de este renglón son solo sus piezas.
+  const item = (params, id) => calcularPresupuesto(generarEstructura(params, []), CATALOGO_INICIAL, { compartir: false }).items.find((i) => i.id === id);
 
   it('renglón propio, separado de los marcos', () => {
     const viga = item(ALTILLO, INSUMO.VIGA_CIERRE);

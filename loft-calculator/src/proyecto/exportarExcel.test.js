@@ -30,15 +30,26 @@ describe('xlsx sin librerías', () => {
 });
 
 describe('libro de la obra', () => {
-  it('presupuesto, 4 paredes, 3 plantas y cortes', () => {
-    const hojas = hojasDeObra(datosDeEjemplo());
-    expect(hojas.map((h) => h.nombre)).toEqual([
-      'Presupuesto', 'Pared Frente (A)', 'Pared Lateral derecho (B)', 'Pared Fondo (C)', 'Pared Lateral izquierdo (D)',
-      'Piso (planta baja)', 'Entrepiso (piso 2)', 'Techo', 'Cortes',
-    ]);
-    const frente = hojas[1].filas.map((f) => (Array.isArray(f) ? f : f.celdas));
-    expect(frente.some((f) => f[0] === '#2' && f[1] === 'ventana')).toBe(true);
-    expect(frente.some((f) => f[0] === 'exterior')).toBe(true);
+  const celdas = (hoja) => hoja.filas.map((f) => (Array.isArray(f) ? f : f.celdas));
+
+  it('v1.28: 4 hojas (antes 9): Obra, Paredes (las 4), Plantas (las 3) y Cortes', () => {
+    const hojas = hojasDeObra({ ...datosDeEjemplo(), resumen: [['Planta', '7.50 m x 4.50 m']], medidas: [{ nombre: 'M1', texto: '2.50 m' }] });
+    expect(hojas.map((h) => h.nombre)).toEqual(['Obra', 'Paredes', 'Plantas', 'Cortes']);
+    const obra = celdas(hojas[0]);
+    expect(obra.some((f) => f[0] === 'Planta')).toBe(true);
+    expect(obra.some((f) => f[0] === 'M1')).toBe(true);
+    expect(obra.some((f) => f[0] === 'TOTAL')).toBe(true);
+    const paredes = celdas(hojas[1]);
+    expect(paredes.filter((f) => String(f[0]).startsWith('Pared '))).toHaveLength(4);
+    expect(paredes.some((f) => f[0] === '#2' && f[1] === 'ventana')).toBe(true);
+    expect(paredes.some((f) => f[0] === 'exterior')).toBe(true);
+    expect(celdas(hojas[2]).filter((f) => String(f[0]).includes('vista desde arriba'))).toHaveLength(3);
+  });
+
+  it('solo lo elegido', () => {
+    const hojas = hojasDeObra(datosDeEjemplo(), { presupuesto: true, paredes: false, plantas: true, cortes: false, resumen: false });
+    expect(hojas.map((h) => h.nombre)).toEqual(['Obra', 'Plantas']);
+    expect(hojasDeObra(datosDeEjemplo(), { paredes: true }).map((h) => h.nombre)).toEqual(['Paredes']);
   });
 
   it('genera el archivo', () => {

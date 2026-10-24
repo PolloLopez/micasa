@@ -28,7 +28,8 @@ export const INSUMO = {
   COLUMNA_ESQUINA: 'columnaEsquina', // v1.22: las de esquina son de dos paredes: perfil propio
   MONTANTE: 'montante', // vertical liviano entre columnas (v1.17)
   MARCO_ABERTURA: 'marcoAbertura', // dintel, jambas y alféizar de puertas y ventanas (v1.14.1)
-  MARCO: 'marco',
+  MARCO: 'marco', // v1.28: solo las soleras (arriba de las paredes); antes también el marco de piso
+  BORDE_PISO: 'bordePiso', // v1.28: marco de piso de planta baja y entrepiso
   PISO: 'piso',
   PISO_2: 'piso2',
   VIGA_CIERRE: 'vigaCierre', // borde libre del entrepiso (v1.14)
@@ -37,6 +38,7 @@ export const INSUMO = {
   CORREA: 'correa',
   VIGA_TECHO: 'vigaTecho',
   CORREA_TECHO: 'correaTecho',
+  BORDE_TECHO: 'bordeTecho', // v1.28: marco perimetral del techo (vigas de las puntas + correas de los bordes)
   OSB: 'osb',
   PILOTIN: 'pilotin',
   ZANCA: 'zanca',

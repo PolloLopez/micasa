@@ -29,7 +29,9 @@ export const CATALOGO_FIJO = [
   // v1.14.1: dintel, jambas y alféizar de las aberturas en su propio renglón (antes iban con las columnas).
   // Arranca con el mismo perfil que las columnas; el herrero pone el que use.
   { id: INSUMO.MARCO_ABERTURA, categoria: 'perfil', nombre: 'Marcos de aberturas', perfil: 'Caño estructural 100x100x1.6', unidad: 'barra', largoBarra: 6, precio: 38000 },
-  { id: INSUMO.MARCO, categoria: 'perfil', nombre: 'Marcos y soleras', perfil: 'Perfil C 120x50x2.0', unidad: 'barra', largoBarra: 6, precio: 35000 },
+  { id: INSUMO.MARCO, categoria: 'perfil', nombre: 'Soleras', perfil: 'Perfil C 120x50x2.0', unidad: 'barra', largoBarra: 6, precio: 35000 },
+  // v1.28: el borde de los pisos con perfil propio (antes iba con las soleras).
+  { id: INSUMO.BORDE_PISO, categoria: 'perfil', nombre: 'Bordes de piso', perfil: 'Perfil C 120x50x2.0', unidad: 'barra', largoBarra: 6, precio: 35000 },
   // v1.14: borde libre del entrepiso. Arranca igual que los marcos; el perfil lo elige el herrero.
   { id: INSUMO.VIGA_CIERRE, categoria: 'perfil', nombre: 'Viga de cierre del entrepiso', perfil: 'Perfil C 120x50x2.0', unidad: 'barra', largoBarra: 6, precio: 35000 },
   { id: INSUMO.PISO, categoria: 'perfil', nombre: 'Estructura de piso', perfil: 'Perfil C 100x45x2.0', unidad: 'barra', largoBarra: 6, precio: 26000 },
@@ -39,6 +41,8 @@ export const CATALOGO_FIJO = [
   { id: INSUMO.CORREA, categoria: 'perfil', nombre: 'Horizontales de pared', perfil: 'Perfil C 80x40x1.6', unidad: 'barra', largoBarra: 6, precio: 22000 },
   { id: INSUMO.VIGA_TECHO, categoria: 'perfil', nombre: 'Vigas de techo', perfil: 'Perfil C 120x50x2.0', unidad: 'barra', largoBarra: 6, precio: 35000 },
   { id: INSUMO.CORREA_TECHO, categoria: 'perfil', nombre: 'Correas de techo', perfil: 'Perfil C 80x40x1.6', unidad: 'barra', largoBarra: 6, precio: 22000 },
+  // v1.28: marco perimetral del techo (si se elige "Marco perimetral").
+  { id: INSUMO.BORDE_TECHO, categoria: 'perfil', nombre: 'Bordes de techo', perfil: 'Perfil C 120x50x2.0', unidad: 'barra', largoBarra: 6, precio: 35000 },
   { id: INSUMO.OSB, categoria: 'placa', nombre: 'Placas OSB', perfil: 'OSB 18 mm 2.44x1.22', unidad: 'placa', largoBarra: null, precio: 28000 },
   { id: INSUMO.PILOTIN, categoria: 'unidad', nombre: 'Pilotines', perfil: 'Pilotín de hormigón', unidad: 'u', largoBarra: null, precio: 15000 },
   // Escalera
@@ -222,7 +226,8 @@ function calcularRenglones(estructura, catalogo, excedenteBarras) {
   const items = [
     perfil(INSUMO.COLUMNA, e.columnas.filter((p) => !p.esquina)),
     perfil(INSUMO.COLUMNA_ESQUINA, e.columnas.filter((p) => p.esquina)), // v1.22
-    perfil(INSUMO.MARCO, e.marcos.filter((p) => p.tipo !== 'viga-cierre')),
+    perfil(INSUMO.MARCO, e.marcos.filter((p) => p.tipo === 'solera')),
+    perfil(INSUMO.BORDE_PISO, e.marcos.filter((p) => p.tipo === 'marco-piso' || p.tipo === 'marco-piso2')), // v1.28
     perfil(INSUMO.PISO, e.piso.tirantes),
     perfil(INSUMO.TRANSVERSAL_PISO, e.piso.transversales),
     perfil(INSUMO.PISO_2, e.piso2.tirantes),
@@ -231,6 +236,12 @@ function calcularRenglones(estructura, catalogo, excedenteBarras) {
     perfil(INSUMO.VIGA_TECHO, e.techo.vigas),
     perfil(INSUMO.CORREA_TECHO, e.techo.correas),
   ];
+
+  // Bordes de techo (v1.28): renglón solo si el techo lleva marco perimetral. Va después de las correas.
+  const bordesTecho = e.techo.bordes ?? [];
+  if (bordesTecho.length > 0 || reasignadas.some((p) => p.insumo === INSUMO.BORDE_TECHO)) {
+    items.push(perfil(INSUMO.BORDE_TECHO, bordesTecho));
+  }
 
   // Montantes (v1.17): renglón solo si la obra lleva.
   const montantes = e.montantes ?? [];

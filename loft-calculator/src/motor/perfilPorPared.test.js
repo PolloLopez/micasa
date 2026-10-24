@@ -70,7 +70,9 @@ describe('perfil propio de una pared', () => {
     const r = calcularPresupuesto(e, CATALOGO_INICIAL);
     expect(renglon(r, `${INSUMO.CORREA}@${perfil80.id}`).largosPiezas).toHaveLength(e.correas.filter((p) => p.grupos.includes('C')).length);
     expect(renglon(r, `${INSUMO.MONTANTE}@${perfil80.id}`).largosPiezas.length).toBeGreaterThan(0);
-    expect(renglon(r, `${INSUMO.MARCO}@${perfil80.id}`).largosPiezas).toHaveLength(2); // solera:C y marco-piso:C
+    // v1.28: la solera va en Soleras y el marco de piso en Bordes de piso, los dos con el perfil de la pared.
+    expect(renglon(r, `${INSUMO.MARCO}@${perfil80.id}`).largosPiezas).toHaveLength(1); // solera:C
+    expect(renglon(r, `${INSUMO.BORDE_PISO}@${perfil80.id}`).largosPiezas).toHaveLength(1); // marco-piso:C
   });
 
   it('el mismo perfil que el general o uno que ya no existe: no hay renglón aparte', () => {

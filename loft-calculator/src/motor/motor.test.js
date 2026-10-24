@@ -255,7 +255,11 @@ describe('generarEstructura', () => {
     e.techo.vigas.forEach((v) => expect(v.largo).toBeCloseTo(largoViga));
     e.techo.correas.forEach((c) => expect(c.largo).toBeCloseTo(7.5));
     // Sobre la pendiente (4,52 m) cada 0,8 => 0, 0,8 ... 4,0 + el borde alto = 7.
-    expect(e.techo.correas).toHaveLength(7);
+    // v1.28: con marco perimetral, las 2 de los bordes son "borde de techo" (+ las 2 de las puntas).
+    expect(e.techo.correas).toHaveLength(5);
+    expect(e.techo.bordes.filter((b) => b.id.startsWith('correa-techo:'))).toHaveLength(2);
+    expect(e.techo.bordes).toHaveLength(4);
+    e.techo.bordes.filter((b) => b.id.startsWith('borde-techo:')).forEach((b) => expect(b.largo).toBeCloseTo(largoViga));
   });
 
   it('superficies: muros trapecio menos aberturas; techo sobre la pendiente', () => {

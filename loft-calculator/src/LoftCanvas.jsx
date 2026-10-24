@@ -30,6 +30,8 @@ import EditorPieza from './componentes/EditorPieza.jsx';
 import { FilaAbertura } from './componentes/AberturasDePared.jsx';
 import { juntasDePano, pedazosDePared } from './motor/revestimientos.js';
 import { medirEntre, puntoMasCercanoEnPieza } from './motor/medicion.js';
+import { cotasGenerales } from './motor/cotas3d.js';
+import { vistasFijas } from './motor/vistasFijas.js';
 
 // Capa y sección (grosor en el 3D) de cada tipo de pieza.
 const ESTILO_PIEZA = {
@@ -37,6 +39,7 @@ const ESTILO_PIEZA = {
   dintel: { capa: 'columnas', seccion: 0.08 },
   jamba: { capa: 'columnas', seccion: 0.08 },
   alfeizar: { capa: 'columnas', seccion: 0.08 },
+  travesano: { capa: 'columnas', seccion: 0.06 }, // v1.28
   montante: { capa: 'columnas', seccion: 0.05 },
   'montante-dintel': { capa: 'columnas', seccion: 0.05 },
   'montante-antepecho': { capa: 'columnas', seccion: 0.05 },
@@ -51,6 +54,7 @@ const ESTILO_PIEZA = {
   horizontal: { capa: 'correas', seccion: 0.04 },
   'viga-techo': { capa: 'techo', seccion: 0.1 },
   'correa-techo': { capa: 'techo', seccion: 0.05 },
+  'borde-techo': { capa: 'techo', seccion: 0.1 }, // v1.28
   zanca: { capa: 'escalera', seccion: 0.12 },
   'marco-descanso': { capa: 'escalera', seccion: 0.1 },
   'apoyo-escalon': { capa: 'escalera', seccion: 0.04 },
@@ -104,6 +108,9 @@ const COLOR_SELECCION = '#facc15';
 const COLOR_RESALTADO = '#f472b6'; // v1.27: rosa, distinto de la selección (amarilla) y de las capas
 const COLOR_JUNTAS = '#fde047'; // juntas de paneles: amarillo claro, se ve sobre paneles claros y oscuros
 const COLOR_MEDIDA = '#facc15';
+const COLOR_MEDIDA_FIJA = '#fb923c'; // v1.28: medidas fijadas (naranja, distinta de la que se está tomando)
+const COLOR_COTAS = '#64748b'; // v1.28: cotas generales (gris: se leen en pantalla oscura y en el PDF blanco)
+const MAXIMO_MEDIDAS_FIJAS = 20;
 const MOVIMIENTO_MAXIMO_CLIC = 5; // px: si el mouse se movió más, fue un arrastre (orbitar)
 
 /**
@@ -299,7 +306,7 @@ function cartel(texto, esFrente) {
 
 /** Arma todas las mallas del modelo dentro de `grupo`. */
 function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
-  const { params, estructura: e, aberturas, capas, gruposVisibles, seleccionada, catalogo, aberturaSeleccionada, medida, resaltado } = opciones;
+  const { params, estructura: e, aberturas, capas, gruposVisibles, seleccionada, catalogo, aberturaSeleccionada, medida, resaltado, medidasFijas = [] } = opciones;
   const { elevacion } = params;
   const grupoVisible = (g) => gruposVisibles[g] !== false; // 'interior' no tiene interruptor
 
@@ -499,6 +506,16 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
     });
   }
 
+  // Medidas fijadas (v1.28): quedan dibujadas aunque se termine de medir; salen en el PDF.
+  if (capas.medidasFijas !== false) {
+    medidasFijas.forEach((m) => {
+      grupo.add(lineas([[m.a, m.b]], COLOR_MEDIDA_FIJA, true));
+      const texto = cartelChico(`${m.nombre} · ${m.resultado.principal.toFixed(2)} m`, 'rgba(234,88,12,0.95)');
+      texto.position.set(...m.a.map((v, i) => (v + m.b[i]) / 2 + (i === 1 ? 0.25 : 0)));
+      grupo.add(texto);
+    });
+  }
+
   // Medición (v1.16): puntos elegidos y la línea con su medida.
   if (medida?.a) {
     const marca = (q) => {
@@ -557,6 +574,84 @@ function cilindroDeChapa({ centro, eje, radio, largo, tapas }, material) {
   return tanque;
 }
 
+/**
+ * Cotas generales (v1.28): largo, ancho y altos (ver motor/cotas3d.js). Van en su propio
+ * grupo para poder prenderlas solo para la foto del PDF sin redibujar todo el modelo.
+ */
+function dibujarCotas(grupo, params, estructura) {
+  vaciarGrupo(grupo);
+  if (!estructura?.paredes?.length) return; // grada y montaje: no tienen paredes
+  cotasGenerales(params).forEach((c) => {
+    grupo.add(lineas([[c.desde, c.hasta], ...c.ticks], COLOR_COTAS, true));
+    const texto = cartelChico(c.texto, 'rgba(51,65,85,0.92)');
+    texto.position.set(...c.desde.map((v, i) => (v + c.hasta[i]) / 2 + (i === 1 && c.desde[1] === c.hasta[1] ? 0.22 : 0)));
+    grupo.add(texto);
+  });
+}
+
+/**
+ * Cámara ortográfica (sin perspectiva) que encuadra la caja mirando desde `vista.desde`,
+ * con `vista.arriba` hacia arriba en la foto (v1.28, vistas fijas del PDF).
+ */
+function camaraOrtografica(caja, vista, aspecto) {
+  const centro = caja.getCenter(new THREE.Vector3());
+  const radio = caja.getSize(new THREE.Vector3()).length() || 10;
+  const camara = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, radio * 4);
+  camara.up.set(...vista.arriba);
+  camara.position.copy(centro).addScaledVector(new THREE.Vector3(...vista.desde), radio * 2);
+  camara.lookAt(centro);
+  camara.updateMatrixWorld();
+  // Se pasan las 8 esquinas de la caja a coordenadas de la cámara para ver cuánto ocupan.
+  const vista2D = new THREE.Box3();
+  [0, 1].forEach((i) => [0, 1].forEach((j) => [0, 1].forEach((k) => {
+    const punto = new THREE.Vector3(i ? caja.max.x : caja.min.x, j ? caja.max.y : caja.min.y, k ? caja.max.z : caja.min.z);
+    vista2D.expandByPoint(punto.applyMatrix4(camara.matrixWorldInverse));
+  })));
+  const margen = 1.08;
+  let medioAncho = ((vista2D.max.x - vista2D.min.x) / 2) * margen;
+  let medioAlto = ((vista2D.max.y - vista2D.min.y) / 2) * margen;
+  if (medioAncho / medioAlto > aspecto) medioAlto = medioAncho / aspecto; else medioAncho = medioAlto * aspecto;
+  const cx = (vista2D.max.x + vista2D.min.x) / 2;
+  const cy = (vista2D.max.y + vista2D.min.y) / 2;
+  Object.assign(camara, { left: cx - medioAncho, right: cx + medioAncho, top: cy + medioAlto, bottom: cy - medioAlto });
+  camara.updateProjectionMatrix();
+  return camara;
+}
+
+/**
+ * Copia el lienzo recortando el blanco de alrededor (con un margen chico) y lo devuelve como imagen PNG.
+ * Se llama justo después de dibujar (si no, WebGL ya borró el lienzo).
+ */
+function recortarBlanco(lienzo) {
+  const copia = document.createElement('canvas');
+  copia.width = lienzo.width;
+  copia.height = lienzo.height;
+  const ctx = copia.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(lienzo, 0, 0);
+  const { data, width, height } = ctx.getImageData(0, 0, copia.width, copia.height);
+  let [x0, y0, x1, y1] = [width, height, -1, -1];
+  for (let y = 0; y < height; y += 2) {
+    for (let x = 0; x < width; x += 2) {
+      const i = (y * width + x) * 4;
+      if (data[i] < 245 || data[i + 1] < 245 || data[i + 2] < 245) { // no es blanco
+        if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+      }
+    }
+  }
+  if (x1 < 0) return copia.toDataURL('image/png'); // todo blanco: va entera
+  const margen = Math.round(Math.max(width, height) * 0.02);
+  [x0, y0] = [Math.max(0, x0 - margen), Math.max(0, y0 - margen)];
+  [x1, y1] = [Math.min(width - 1, x1 + margen), Math.min(height - 1, y1 + margen)];
+  const recorte = document.createElement('canvas');
+  recorte.width = x1 - x0 + 1;
+  recorte.height = y1 - y0 + 1;
+  recorte.getContext('2d').drawImage(copia, x0, y0, recorte.width, recorte.height, 0, 0, recorte.width, recorte.height);
+  return recorte.toDataURL('image/png');
+}
+
+/** Texto de una medida: "2.50 m entre ejes (horizontal 2.50 · vertical 0.00)". */
+const textoMedida = (r) => `${r.principal.toFixed(2)} m${r.entreEjes ? ' entre ejes' : ''} (horizontal ${r.horizontal.toFixed(2)} · vertical ${r.vertical.toFixed(2)})`;
+
 /** Libera la memoria de GPU del grupo (geometrías, texturas de carteles) y lo vacía. */
 function vaciarGrupo(grupo) {
   grupo.traverse((obj) => {
@@ -597,7 +692,7 @@ function mirarAlFrente(camara, controles, params) {
 
 export default function LoftCanvas({
   params, estructura, aberturas, paneles, colores, catalogo, unidad, onCambiarColor, onEliminarPieza, onEditarPieza,
-  opacidades, onCambiarOpacidad, imagenImpresionRef,
+  opacidades, onCambiarOpacidad, capturaRef, onMedidasFijas,
   onActualizarAbertura, onQuitarAbertura, onPegarAbertura, onDuplicarPieza,
   resaltado = null, cartelResaltado = null, onSoltarResaltado,
 }) {
@@ -611,6 +706,13 @@ export default function LoftCanvas({
   // Medir (v1.16): modo activo y puntos tocados { a, piezaA, b, piezaB, resultado }.
   const [midiendo, setMidiendo] = useState(false);
   const [medida, setMedida] = useState(null);
+  // v1.28: medidas que quedan fijas (📌) para verlas juntas y que salgan en el PDF. Son de esta sesión
+  // (no se guardan en el proyecto: si cambian las medidas de la obra, quedarían viejas).
+  const [medidasFijas, setMedidasFijas] = useState([]);
+  const medidasFijasRef = useRef(medidasFijas);
+  medidasFijasRef.current = medidasFijas;
+  const paramsRef = useRef(params); // para las vistas fijas (la foto se saca fuera del render)
+  paramsRef.current = params;
   const midiendoRef = useRef(false);
   const portapapelesRef = useRef(null); // lo copiado con Ctrl+C: { clase: 'abertura' | 'pieza', dato }
   const [avisoVisor, setAvisoVisor] = useState(null); // texto corto ("Copiado: …")
@@ -620,6 +722,8 @@ export default function LoftCanvas({
     ...Object.fromEntries(Object.keys(CAPAS).map((clave) => [clave, true])),
     juntas: true, // líneas de las tiras/placas de los paneles (v1.16)
     etiquetasAberturas: true, // número de cada abertura (v1.16)
+    cotas: false, // v1.28: largo, ancho y altos (en el PDF se pueden pedir aunque estén apagadas)
+    medidasFijas: true, // v1.28: las medidas fijadas con 📌
   }));
 
   // 1) MONTAJE: una sola vez.
@@ -652,6 +756,8 @@ export default function LoftCanvas({
 
     const grupo = new THREE.Group();
     escena.add(grupo);
+    const grupoCotas = new THREE.Group(); // v1.28: cotas generales, aparte (ver dibujarCotas)
+    escena.add(grupoCotas);
     const materiales = crearMateriales(coloresRef.current);
 
     let idCuadro;
@@ -711,27 +817,50 @@ export default function LoftCanvas({
     renderer.domElement.addEventListener('pointerdown', alApretar);
     renderer.domElement.addEventListener('pointerup', alSoltar);
 
-    // Al imprimir (botón o Ctrl+P): foto de la vista actual con fondo blanco para el PDF.
-    // Se dibuja y se lee en el mismo momento (WebGL borra el lienzo después de mostrarlo).
-    const alImprimir = () => {
-      const imagen = imagenImpresionRef?.current;
-      if (!imagen) return;
+    // v1.28: fotos para el PDF, con fondo blanco y sin grilla: la vista actual y, si se piden,
+    // las vistas fijas (frente, lateral, arriba) con cámara ortográfica. Se dibuja y se lee en el
+    // mismo momento (WebGL borra el lienzo después de mostrarlo).
+    const capturar = ({ conCotas = false, conVistasFijas = false } = {}) => {
       const fondo = escena.background;
+      const cotasVisibles = grupoCotas.visible;
       escena.background = new THREE.Color(0xffffff);
       grilla.visible = false;
-      renderer.render(escena, camara);
-      imagen.src = renderer.domElement.toDataURL('image/png');
+      if (conCotas) grupoCotas.visible = true;
+      // Cada foto se recorta al dibujo (sin el blanco de alrededor): en el PDF la obra sale más grande.
+      const foto = (cam) => { renderer.render(escena, cam); return recortarBlanco(renderer.domElement); };
+      // La vista actual con la misma forma que en pantalla, pero de al menos 1200 px de ancho
+      // (en el celular el visor es chico y la foto salía borrosa).
+      const tamanio = renderer.getSize(new THREE.Vector2());
+      if (tamanio.x > 0 && tamanio.x < 1200) renderer.setSize(1200, Math.round(1200 / camara.aspect), false);
+      const fotos = { actual: foto(camara), fijas: [] };
+      renderer.setSize(tamanio.x, tamanio.y, false);
+      if (conVistasFijas) {
+        const [ancho, alto] = [1200, 800]; // 3:2, igual para las tres
+        renderer.setSize(ancho, alto, false);
+        const caja = new THREE.Box3().setFromObject(grupo);
+        if (grupoCotas.visible) caja.union(new THREE.Box3().setFromObject(grupoCotas));
+        fotos.fijas = vistasFijas(paramsRef.current).map((v) => ({
+          clave: v.clave, titulo: v.titulo, imagen: foto(camaraOrtografica(caja, v, ancho / alto)),
+        }));
+        renderer.setSize(tamanio.x, tamanio.y, false);
+      }
       escena.background = fondo;
       grilla.visible = true;
+      grupoCotas.visible = cotasVisibles;
+      return {
+        ...fotos,
+        medidas: medidasFijasRef.current.map((m) => ({ nombre: m.nombre, texto: textoMedida(m.resultado) })),
+      };
     };
-    window.addEventListener('beforeprint', alImprimir);
+    if (capturaRef) capturaRef.current = capturar;
 
     const materialesPanel = new Map();
-    visorRef.current = { grupo, controles, camara, materiales, materialesPanel, frente: null };
+    visorRef.current = { grupo, grupoCotas, controles, camara, materiales, materialesPanel, frente: null };
 
     return () => {
       cancelAnimationFrame(idCuadro);
-      window.removeEventListener('beforeprint', alImprimir);
+      if (capturaRef) capturaRef.current = null;
+      vaciarGrupo(grupoCotas);
       renderer.domElement.removeEventListener('pointerdown', alApretar);
       renderer.domElement.removeEventListener('pointerup', alSoltar);
       observador.disconnect();
@@ -745,7 +874,7 @@ export default function LoftCanvas({
       renderer.domElement.remove();
       visorRef.current = null;
     };
-    // Se monta una sola vez; imagenImpresionRef es un ref (no cambia entre renders).
+    // Se monta una sola vez; capturaRef es un ref (no cambia entre renders).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -762,14 +891,38 @@ export default function LoftCanvas({
       tipo: p, // ubicación y espesor (v1.15): dónde se dibuja respecto de la estructura
     }));
     dibujarModelo(visor.grupo, visor.materiales, visor.materialesPanel,
-      { params, estructura, aberturas, capas, gruposVisibles, seleccionada, catalogo, aberturaSeleccionada, medida, resaltado });
+      { params, estructura, aberturas, capas, gruposVisibles, seleccionada, catalogo, aberturaSeleccionada, medida, resaltado, medidasFijas });
     // Se reacomoda la cámara si cambia el frente o el tipo de proyecto (construcción / grada).
     const encuadre = `${params.tipoProyecto}:${params.ladoFrente}`;
     if (visor.frente !== encuadre) {
       mirarAlFrente(visor.camara, visor.controles, medidasVista(params, estructura));
       visor.frente = encuadre;
     }
-  }, [params, estructura, aberturas, capas, paneles, gruposVisibles, seleccionada, opacidades.paneles, catalogo, aberturaSeleccionada, medida, resaltado]);
+  }, [params, estructura, aberturas, capas, paneles, gruposVisibles, seleccionada, opacidades.paneles, catalogo, aberturaSeleccionada, medida, resaltado, medidasFijas]);
+
+  // 2b) COTAS GENERALES (v1.28): aparte del modelo; se ven si la capa está prendida.
+  useEffect(() => {
+    const visor = visorRef.current;
+    if (!visor) return;
+    dibujarCotas(visor.grupoCotas, params, estructura);
+    visor.grupoCotas.visible = Boolean(capas.cotas);
+  }, [params, estructura, capas.cotas]);
+
+  // v1.28: App las necesita en texto (para el PDF y el Excel).
+  useEffect(() => {
+    onMedidasFijas?.(medidasFijas.map((m) => ({ nombre: m.nombre, texto: textoMedida(m.resultado) })));
+  }, [medidasFijas, onMedidasFijas]);
+
+  /** 📌 Deja fija la medida recién tomada (M1, M2…) y queda listo para medir otra. */
+  const fijarMedida = () => {
+    if (!medida?.resultado) return;
+    setMedidasFijas((prev) => {
+      const numero = Math.max(0, ...prev.map((m) => m.numero)) + 1;
+      return [...prev, { ...medida, numero, nombre: `M${numero}` }].slice(-MAXIMO_MEDIDAS_FIJAS);
+    });
+    setMedida(null);
+  };
+  const quitarMedidaFija = (numero) => setMedidasFijas((prev) => prev.filter((m) => m.numero !== numero));
 
   // 5) MEDIR: el manejador del clic (creado una sola vez) lee el modo por un ref.
   useEffect(() => {
@@ -922,6 +1075,19 @@ export default function LoftCanvas({
             {onSoltarResaltado && <button type="button" className="btn-ctrl" onClick={onSoltarResaltado} aria-label="Dejar de resaltar">✕</button>}
           </div>
         )}
+        {/* v1.28: medidas fijadas (📏 Medir → 📌 Fijar), cada una se puede quitar. */}
+        {medidasFijas.length > 0 && (
+          <div className="medidas-fijas no-print" role="group" aria-label="Medidas fijadas">
+            <span className="titulo-medidas">📌 Medidas:</span>
+            {medidasFijas.map((m) => (
+              <span key={m.numero} className="chip-medida">
+                {m.nombre} {m.resultado.principal.toFixed(2)} m
+                <button type="button" onClick={() => quitarMedidaFija(m.numero)} aria-label={`Quitar la medida ${m.nombre}`}>✕</button>
+              </span>
+            ))}
+            <button type="button" className="btn-ctrl" onClick={() => setMedidasFijas([])}>Borrar todas</button>
+          </div>
+        )}
       </div>
 
       {midiendo && medida?.resultado && (
@@ -930,6 +1096,7 @@ export default function LoftCanvas({
           {medida.resultado.entreEjes ? ' entre ejes' : ''}
           {' · '}horizontal {medida.resultado.horizontal.toFixed(2)} m · vertical {medida.resultado.vertical.toFixed(2)} m
           {!medida.resultado.entreEjes && ` · en línea recta ${medida.resultado.total.toFixed(2)} m`}
+          <button type="button" className="btn-ctrl btn-fijar" onClick={fijarMedida} title="Dejarla dibujada (sale en el PDF) y medir otra">📌 Fijar</button>
         </div>
       )}
 

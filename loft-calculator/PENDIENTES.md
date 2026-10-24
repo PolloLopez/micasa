@@ -57,7 +57,7 @@ abiertas a la vez, 15+ botones de menos de 40 px en el celular.
 - [x] **Texto chico y tenue** (v1.19.0): mínimo 0,75 rem en textos de lectura y gris más claro.
 - [ ] **Modo claro** para usar a pleno sol en la obra.
 - [ ] **Unidades**: largo de barra y precios siempre en m y $ aunque la unidad global sea cm/mm (ya anotado en Uso).
-- [ ] **Medir**: poder dejar varias medidas fijas en el 3D (hoy se ve una por vez).
+- [x] **Medir**: varias medidas fijas en el 3D (v1.28.0).
 
 ### 🟢 Prolijidad
 - [x] **Foco de teclado visible** en todos los botones (v1.18.0).
@@ -87,6 +87,13 @@ abiertas a la vez, 15+ botones de menos de 40 px en el celular.
 - ✅ Proveedores y comparar presupuestos (v1.25.0): precio por proveedor en efectivo/tarjeta, "lo más barato de cada material".
 - ✅ Exportar las paredes completas (v1.26.0): pestaña Planos, PDF y Excel.
 - ✅ Separaciones por medida o por cantidad, en paredes, pisos y techo (v1.27.0).
+- ✅ Imprimir/exportar eligiendo qué sale: PDF de 3 hojas y Excel de 4 (v1.28.0).
+- ✅ Imprimir el 3D con lo seleccionado, cotas generales, medidas fijadas y vistas fijas (v1.28.0).
+- ✅ Bordes de pisos y techo con perfil propio; interior por sentido (v1.28.0).
+- ✅ Travesaños de abertura hasta las columnas, arriba y abajo (v1.28.0).
+- 🟢 [ ] Medidas fijadas: hoy son de la sesión (no se guardan en el proyecto). Evaluar guardarlas.
+- 🟢 [ ] Vistas fijas del PDF: ocultar los carteles de las paredes (se superponen en las vistas chicas).
+- 🟡 [ ] Paneles por caras, colores por capa o material, cielorraso (próxima versión de Materiales).
 - ✅ Resaltar en el 3D lo que se señala (perfil, renglón, pared, pisos, techo…) con el mouse o fijo con 👁 (v1.27.0).
 - ✅ Botones de borrar con texto "Eliminar"; carteles del 3D con ✕ arriba y acciones en el pie (v1.27.0).
 - 🟢 [ ] Resaltar también desde la pestaña Planos (cada pared/planta) y cada componente del montaje por separado.
@@ -135,8 +142,7 @@ abiertas a la vez, 15+ botones de menos de 40 px en el celular.
 
 ### Presupuesto
 - [ ] Bulonería, soldadura, pintura, fijaciones de paneles, babetas/zinguería y mano de obra.
-- [ ] Exportar PDF propio (hoy es "Imprimir → Guardar como PDF" del navegador; ya incluye la vista 3D). Sumar
-      vistas fijas (frente, lateral, planta) además de la vista actual.
+- ✅ Vistas fijas (frente, lateral, desde arriba) en el PDF (v1.28.0). [ ] PDF propio sin pasar por el navegador.
 
 ### Uso
 - [ ] Botón "aplicar a todas las paredes" para no cargar 4 veces la misma separación.

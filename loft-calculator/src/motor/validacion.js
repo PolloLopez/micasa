@@ -76,6 +76,7 @@ export function validarParametros(params) {
     anotar('proveedorElegido', 'Proveedor inválido');
   }
   revisarCantidades(params.cantidades).forEach(([campo, error]) => anotar(campo, error));
+  if (params.techoConBorde !== undefined && typeof params.techoConBorde !== 'boolean') anotar('techoConBorde', 'Valor inválido');
 
   // Lados elegidos (frente, entrepiso, caída del techo).
   ['ladoFrente', 'ladoEntrepiso', 'caidaTecho'].forEach((campo) => {
@@ -350,6 +351,7 @@ export function validarAbertura(abertura, params) {
   if (abertura.etiqueta !== undefined && (typeof abertura.etiqueta !== 'string' || abertura.etiqueta.length > LARGO_MAXIMO_ETIQUETA)) {
     return `La etiqueta puede tener hasta ${LARGO_MAXIMO_ETIQUETA} letras`;
   }
+  if (abertura.travesanos !== undefined && typeof abertura.travesanos !== 'boolean') return 'Travesaños: valor inválido';
   if (!(ancho > 0) || !(alto > 0)) return 'Ancho y alto deben ser mayores a 0';
   if (offsetHorizontal < 0 || alturaAntepecho < 0) return 'Las distancias no pueden ser negativas';
 

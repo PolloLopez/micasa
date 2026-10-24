@@ -41,6 +41,11 @@ import SelectorPerfil from './componentes/SelectorPerfil.jsx';
 import Planos from './componentes/Planos.jsx';
 import { todasLasVistas } from './motor/planos.js';
 import { libroDeObra } from './proyecto/exportarExcel.js';
+import { resumenDeObra } from './proyecto/resumenObra.js';
+import { OPCIONES_IMPRESION_INICIALES, opcionesImpresionValidas } from './proyecto/opcionesImpresion.js';
+import DialogoImprimir from './componentes/DialogoImprimir.jsx';
+import HojasImpresion from './componentes/HojasImpresion.jsx';
+import { flushSync } from 'react-dom';
 import { migrarParams, normalizarCatalogo } from './motor/migracion.js';
 import { PARAMS_INICIALES, ABERTURAS_INICIALES } from './motor/parametrosIniciales.js';
 import { LADOS, INSUMO } from './motor/constantes.js';
@@ -74,7 +79,7 @@ const PERFILES_PARED_UI = [
   ['perfilColumnas', 'Columnas', INSUMO.COLUMNA],
   ['perfilHorizontales', 'Horizontales (fajas)', INSUMO.CORREA],
   ['perfilMontantes', 'Montantes', INSUMO.MONTANTE],
-  ['perfilMarcos', 'Marco de piso y solera', INSUMO.MARCO],
+  ['perfilMarcos', 'Solera y borde de piso', INSUMO.MARCO],
 ];
 
 const catalogoGuardadoValido = (c) => Array.isArray(c) && c.some((p) => p.categoria === 'panel');
@@ -130,7 +135,12 @@ export default function App() {
   // Las guardadas antes de v1.24 no tienen "juntas": se completan con las de fábrica (no se pierden las demás).
   const [opacidades, setOpacidades] = useEstadoGuardado('opacidades', OPACIDADES_INICIALES, opacidadesValidas,
     (o) => ({ ...OPACIDADES_INICIALES, ...o }));
-  const imagenImpresionRef = useRef(null); // foto del 3D que sale en el PDF
+  // v1.28: imprimir y exportar. capturaRef = función de LoftCanvas que saca las fotos del 3D.
+  const capturaRef = useRef(null);
+  const [opcionesImpresion, setOpcionesImpresion] = useEstadoGuardado('impresion', OPCIONES_IMPRESION_INICIALES, opcionesImpresionValidas);
+  const [dialogoImprimir, setDialogoImprimir] = useState(false);
+  const [capturas, setCapturas] = useState(null); // fotos del 3D para las hojas del PDF
+  const [medidasFijas, setMedidasFijas] = useState([]); // las de LoftCanvas, en texto (para el PDF y el Excel)
   const [nombreProyecto, setNombreProyecto] = useEstadoGuardado('nombre', 'Loft', (n) => typeof n === 'string');
   const [aviso, setAviso] = useState(null); // { tipo: 'ok' | 'error', texto }
   // "Mis proyectos": lista guardada en el navegador y cuál está abierto (null = sin guardar).
@@ -594,14 +604,44 @@ export default function App() {
     setAviso({ tipo: 'ok', texto: `Descargado como ${nombre}` });
   };
 
-  // --- Excel de la obra (v1.26) ---
+  // --- Imprimir y exportar (v1.28: se elige qué sale) ---
+  const nombreProveedor = proveedorElegido === MAS_BARATO ? 'Lo más barato de cada material'
+    : proveedores.find((p) => p.id === proveedorElegido)?.nombre ?? '';
+  const textoPago = formaPago === 'tarjeta' ? 'con tarjeta' : 'en efectivo';
+  const resumen = useMemo(() => resumenDeObra({ params, estructura, aberturas: aberturasValidas, catalogo: catalogoResuelto }),
+    [params, estructura, aberturasValidas, catalogoResuelto]);
+
+  /**
+   * Saca las fotos del 3D y las deja en las hojas ANTES de abrir la ventana de imprimir.
+   * flushSync: React actualiza la página en el momento (si no, lo haría después y el PDF saldría sin fotos).
+   */
+  const prepararImpresion = (opciones) => {
+    const fotos = capturaRef.current?.({ conCotas: opciones.cotas, conVistasFijas: opciones.vistasFijas && esConstruccion }) ?? null;
+    flushSync(() => setCapturas(fotos));
+  };
+  const imprimiendoRef = useRef(false); // para no sacar las fotos dos veces (botón + "beforeprint")
+  const imprimir = async () => {
+    setDialogoImprimir(false);
+    prepararImpresion(opcionesImpresion);
+    // Esperar a que las fotos estén listas para dibujarse (si no, alguna puede salir en blanco).
+    await Promise.all([...document.querySelectorAll('.hojas-impresion img')].map((img) => img.decode?.().catch(() => {})));
+    imprimiendoRef.current = true;
+    window.print();
+    imprimiendoRef.current = false;
+  };
+  // Ctrl+P (sin pasar por el botón): se imprime con lo último elegido.
+  useEffect(() => {
+    const alImprimir = () => { if (!imprimiendoRef.current) prepararImpresion(opcionesImpresion); };
+    window.addEventListener('beforeprint', alImprimir);
+    return () => window.removeEventListener('beforeprint', alImprimir);
+  });
+
   const exportarExcel = () => {
-    const nombreProveedor = proveedorElegido === MAS_BARATO ? 'Lo más barato de cada material'
-      : proveedores.find((p) => p.id === proveedorElegido)?.nombre ?? '';
+    setDialogoImprimir(false);
     const bytes = libroDeObra({
       nombre: nombreProyecto, params, vistas, items, total, gruposCortes,
-      proveedor: nombreProveedor, pago: formaPago === 'tarjeta' ? 'con tarjeta' : 'en efectivo',
-    });
+      proveedor: nombreProveedor, pago: textoPago, resumen, medidas: medidasFijas,
+    }, opcionesImpresion);
     const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const enlace = document.createElement('a');
     enlace.href = URL.createObjectURL(blob);
@@ -712,6 +752,14 @@ export default function App() {
       info={infoSeparacion(params, ruta)} casilla={opciones.casilla} valorPorDefecto={opciones.valorPorDefecto}
       onCambioMedida={cambiar(ruta)} onCambioCantidad={cambiarCantidad(ruta)} onCambiarModo={(modo) => cambiarModo(ruta, modo)} />
   );
+  /**
+   * v1.28: perfil de un renglón elegido ahí mismo (pisos y techo: borde e interior). Es el mismo dato que
+   * "Qué perfil va en cada parte" de Materiales: cambiarlo acá lo cambia allá.
+   */
+  const selectorPerfilDe = (idUso, etiqueta) => (
+    <SelectorPerfil key={idUso} etiqueta={etiqueta} valor={catalogoResuelto.find((i) => i.id === idUso)?.perfilId ?? ''}
+      perfiles={perfilesDeLista(catalogoConPrecios)} onElegir={(id) => id && cambiarInsumo(idUso, 'perfilId', id)} />
+  );
   /** Casilla + medida (v1.19): reemplaza los campos "(0 = sin)". 0 guardado = destildada. */
   const opcional = (ruta, casilla, etiqueta, valorPorDefecto) => (
     <CampoOpcional key={ruta} casilla={casilla} etiqueta={etiqueta} unidad={unidad} valorPorDefecto={valorPorDefecto}
@@ -720,7 +768,7 @@ export default function App() {
 
   return (
     <ContextoResaltado value={contextoResaltado}>
-    <div className="app">
+    <div className={`app${opcionesImpresion.formularios ? '' : ' imprimir-sin-formularios'}`}>
       <header>
         <div className="titulo">
           <h1 title={`Pollo Calculator v${VERSION_APP}`}>🐤 <span className="nombre-app">Pollo Calculator</span> <small className="version" title="Versión de la app">v{VERSION_APP}</small></h1>
@@ -754,8 +802,7 @@ export default function App() {
             <option value="cm">Centímetros</option>
             <option value="mm">Milímetros</option>
           </select>
-          <button className="btn-print" onClick={() => window.print()}>Imprimir / PDF</button>
-          <button className="btn-sec" onClick={exportarExcel} title="Presupuesto, cada pared, cada planta y cortes">Excel</button>
+          <button className="btn-print" onClick={() => setDialogoImprimir(true)} title="Elegí qué sale: PDF (2-3 hojas) o Excel">Imprimir / Exportar</button>
           <button className="btn-sec btn-ayuda" onClick={() => setAyudaAbierta(true)} title="Ayuda y atajos de teclado (?)"
             aria-label="Ayuda y atajos de teclado">?<span className="solo-movil"> Ayuda y atajos</span></button>
           <small className="solo-movil version-menu">Pollo Calculator v{VERSION_APP}</small>
@@ -779,6 +826,10 @@ export default function App() {
       {/* Diálogos propios (v1.19): ¿Borrar?, Guardar como…, cambios sin guardar */}
       {dialogo}
       {ayudaAbierta && <Ayuda primeraVez={!bienvenidaVista} onCerrar={cerrarAyuda} />}
+      {dialogoImprimir && (
+        <DialogoImprimir opciones={opcionesImpresion} onCambiar={setOpcionesImpresion} cantidadMedidas={medidasFijas.length}
+          esConstruccion={esConstruccion} onImprimir={imprimir} onExcel={exportarExcel} onCerrar={() => setDialogoImprimir(false)} />
+      )}
 
       {aviso && (
         <div className={`aviso aviso-${aviso.tipo} no-print`} role={aviso.tipo === 'error' ? 'alert' : 'status'}>
@@ -791,7 +842,7 @@ export default function App() {
         <div className="columna-visor">
           <LoftCanvas params={params} estructura={estructura} aberturas={aberturasValidas} paneles={paneles}
             colores={colores} catalogo={catalogoResuelto} unidad={unidad}
-            opacidades={opacidades} onCambiarOpacidad={cambiarOpacidad} imagenImpresionRef={imagenImpresionRef}
+            opacidades={opacidades} onCambiarOpacidad={cambiarOpacidad} capturaRef={capturaRef} onMedidasFijas={setMedidasFijas}
             onCambiarColor={cambiarColor} onEliminarPieza={eliminarPieza} onEditarPieza={editarPieza}
             onActualizarAbertura={actualizarAbertura} onQuitarAbertura={quitarAbertura}
             onPegarAbertura={pegarAbertura} onDuplicarPieza={duplicarPiezaElegida}
@@ -800,11 +851,6 @@ export default function App() {
         </div>
 
         <div className="columna-panel">
-          {/* Foto del 3D para el PDF (se completa al imprimir; ver LoftCanvas). */}
-          <figure className="solo-impresion">
-            <img ref={imagenImpresionRef} alt="Vista 3D de la estructura" />
-            <figcaption>{nombreProyecto || 'Proyecto sin nombre'} · vista 3D al {new Date().toLocaleDateString('es-AR')}</figcaption>
-          </figure>
           {/* Pestañas (v1.18): una sección a la vez. En el celular la barra va fija abajo, con "3D". */}
           <BarraPestanas pestanas={pestanas} activa={vistaMovil === '3d' ? '3d' : pestanaActiva} onElegir={elegirPestana} />
 
@@ -841,6 +887,13 @@ export default function App() {
               {separacion('separacionPiso', 'Sep. estructura de piso', 'Tirantes de piso', ['tirante', 'tirantes'])}
               {separacion('separacionTransversalesPiso', 'Transversales cada', 'Filas de transversales', ['fila de transversales', 'filas de transversales'], { casilla: 'Lleva transversales', valorPorDefecto: 1.5 })}
             </div>
+            {/* v1.28: borde e interior con perfiles propios (y cada sentido el suyo). */}
+            <div className="grid-params grid-perfiles-pared">
+              {selectorPerfilDe(INSUMO.BORDE_PISO, 'Borde (los dos pisos)')}
+              {selectorPerfilDe(INSUMO.PISO, 'Tirantes (interior)')}
+              {params.separacionTransversalesPiso > 0 || cantidadDe(params, 'separacionTransversalesPiso') > 0
+                ? selectorPerfilDe(INSUMO.TRANSVERSAL_PISO, 'Transversales') : null}
+            </div>
             <h3 className="subtitulo">Piso 2 (entrepiso)</h3>
             <div className="grid-params">
               {opcional('anchoEntrepiso', 'Lleva entrepiso', 'Profundidad', 3)}
@@ -860,6 +913,14 @@ export default function App() {
               {params.anchoEntrepiso > 0 && separacion('separacionPiso2', 'Sep. estructura de piso 2', 'Tirantes de piso 2', ['tirante', 'tirantes'])}
               {params.anchoEntrepiso > 0 && separacion('separacionTransversalesPiso2', 'Transversales cada', 'Filas de transversales', ['fila de transversales', 'filas de transversales'], { casilla: 'Lleva transversales', valorPorDefecto: 1.5 })}
             </div>
+            {params.anchoEntrepiso > 0 && (
+              <div className="grid-params grid-perfiles-pared">
+                {selectorPerfilDe(INSUMO.PISO_2, 'Tirantes piso 2 (interior)')}
+                {params.separacionTransversalesPiso2 > 0 || cantidadDe(params, 'separacionTransversalesPiso2') > 0
+                  ? selectorPerfilDe(INSUMO.TRANSVERSAL_PISO_2, 'Transversales piso 2') : null}
+                {selectorPerfilDe(INSUMO.VIGA_CIERRE, 'Viga de cierre (borde libre)')}
+              </div>
+            )}
             <p className="nota">
               Entrepiso parcial: poné el largo y desde qué esquina arranca (vista desde afuera, como las
               aberturas). Los bordes que no tocan una pared llevan <strong>viga de cierre</strong>, con su
@@ -884,6 +945,18 @@ export default function App() {
               {separacion('separacionVigasTecho', 'Sep. vigas de techo', 'Vigas de techo', ['viga', 'vigas'])}
               {separacion('separacionCorreasTecho', 'Sep. correas (s/ pendiente)', 'Correas (con las puntas)', ['correa', 'correas'])}
               {selectorPanel('panelTecho', 'Revestimiento del techo', params.panelTecho)}
+            </div>
+            {/* v1.28: marco perimetral (correas de los bordes + piezas de las puntas) con perfil propio. */}
+            <label className="casilla-opcional">
+              <input type="checkbox" checked={params.techoConBorde === true}
+                onChange={(ev) => cambiar('techoConBorde')(ev.target.checked)} />
+              Marco perimetral (borde del techo con su propio perfil)
+            </label>
+            <h4 className="subtitulo-pared">Perfiles del techo</h4>
+            <div className="grid-params grid-perfiles-pared">
+              {params.techoConBorde && selectorPerfilDe(INSUMO.BORDE_TECHO, 'Borde')}
+              {selectorPerfilDe(INSUMO.VIGA_TECHO, 'Vigas (interior)')}
+              {selectorPerfilDe(INSUMO.CORREA_TECHO, params.techoConBorde ? 'Correas (interior)' : 'Correas')}
             </div>
             <p className="nota">
               Lado bajo: {params.altura.toFixed(2)} m ({nombreLado(params.caidaTecho, params.ladoFrente).toLowerCase()}) ·
@@ -1073,10 +1146,15 @@ export default function App() {
           {/* v1.26: planos de cada pared y planta (en pantalla y en el PDF) + Excel. */}
           <section id="pestana-planos" role="tabpanel" aria-labelledby="boton-planos"
             className={`pestana${pestanaActiva === 'planos' ? '' : ' oculta'}`}>
-            <Planos vistas={vistas} params={params} onExportarExcel={exportarExcel} />
+            <Planos vistas={vistas} params={params} onExportar={() => setDialogoImprimir(true)} />
           </section>
         </div>
       </main>
+      {/* v1.28: lo que sale en el PDF (en pantalla no se ve). */}
+      <HojasImpresion opciones={opcionesImpresion} capturas={capturas} nombre={nombreProyecto}
+        subtitulo={`${new Date().toLocaleDateString('es-AR')} · ${nombreProveedor ? `${nombreProveedor} ${textoPago}` : textoPago} · Pollo Calculator v${VERSION_APP}`}
+        leyenda3D={cartelResaltado ? `Resaltado en rosa — ${cartelResaltado.replace(' (fijado)', '')}` : null}
+        resumen={resumen} items={items} total={total} gruposCortes={gruposCortes} vistas={vistas} params={params} />
     </div>
     </ContextoResaltado>
   );

@@ -1,8 +1,8 @@
 // ==========================================================
 // Planos (v1.26): cada pared y cada planta dibujada y acotada
 // ----------------------------------------------------------
-// Pestaña "Planos": para revisar en pantalla y para el PDF (al imprimir
-// sale una hoja por plano). Cada pared se ve DESDE AFUERA, con las
+// Pestaña "Planos": para revisar en pantalla. Al imprimir, los mismos planos
+// salen juntos en las hojas del PDF (v1.28, HojasImpresion.jsx). Cada pared se ve DESDE AFUERA, con las
 // medidas desde la esquina izquierda y desde el piso, como las aberturas.
 // Abajo de cada dibujo: la lista de piezas para cortar, las aberturas y el
 // revestimiento. Los datos salen de motor/planos.js.
@@ -26,6 +26,7 @@ const TRAZO = {
   jamba: { color: '#7c3aed', ancho: 0.05 },
   dintel: { color: '#7c3aed', ancho: 0.05 },
   alfeizar: { color: '#7c3aed', ancho: 0.05 },
+  travesano: { color: '#7c3aed', ancho: 0.04 }, // v1.28
   horizontal: { color: '#a16207', ancho: 0.04 },
   montante: { color: '#0f766e', ancho: 0.04 },
   'montante-dintel': { color: '#0f766e', ancho: 0.04 },
@@ -41,6 +42,7 @@ const TRAZO = {
   'viga-cierre': { color: '#1d4ed8', ancho: 0.07 },
   'viga-techo': { color: '#c2410c', ancho: 0.06 },
   'correa-techo': { color: '#a16207', ancho: 0.035 },
+  'borde-techo': { color: '#9a3412', ancho: 0.07 }, // v1.28
 };
 const trazo = (tipo) => TRAZO[tipo] ?? { color: '#334155', ancho: 0.04 };
 const TEXTO = 0.15; // alto del texto (m)
@@ -143,7 +145,7 @@ function TablaPiezas({ lista }) {
   return (
     <div className="table-wrap">
     <table className="tabla-plano">
-      <thead><tr><th>Pieza</th><th>Perfil</th><th className="num">Largo (m)</th><th className="num">Cant.</th></tr></thead>
+      <thead><tr><th>Pieza</th><th>Perfil</th><th className="num" title="Largo en metros">Largo</th><th className="num">Cant.</th></tr></thead>
       <tbody>
         {lista.map((g) => (
           <tr key={`${g.nombre}|${g.perfil}|${g.largo}`}>
@@ -156,12 +158,59 @@ function TablaPiezas({ lista }) {
   );
 }
 
-export default function Planos({ vistas, params, onExportarExcel }) {
+/**
+ * Una pared completa: título, dibujo acotado, piezas, aberturas y revestimiento.
+ * La usan la pestaña Planos y las hojas del PDF (v1.28).
+ */
+export function PlanoDePared({ vista: v, params }) {
+  return (
+    <>
+      <h3 className="subtitulo">
+        Pared {nombreDePared(v.lado, params)} · {f2(v.largo)} m · alto {f2(v.alturas[0])}
+        {Math.abs(v.alturas[0] - v.alturas[1]) > 0.005 ? ` a ${f2(v.alturas[1])}` : ''} m
+      </h3>
+      <DibujoPared vista={v} />
+      <TablaPiezas lista={v.lista} />
+      {v.aberturas.length > 0 && (
+        <div className="table-wrap">
+        <table className="tabla-plano">
+          <thead><tr><th>Abertura</th><th className="num">Ancho</th><th className="num">Alto</th><th className="num">Antepecho</th><th className="num">Desde esq. izq.</th></tr></thead>
+          <tbody>
+            {v.aberturas.map((a) => (
+              <tr key={a.numero}>
+                <td>#{a.numero} {a.tipo}{a.etiqueta ? ` · ${a.etiqueta}` : ''}</td>
+                <td className="num">{f2(a.ancho)}</td><td className="num">{f2(a.alto)}</td>
+                <td className="num">{f2(a.antepecho)}</td><td className="num">{f2(a.desde)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        </div>
+      )}
+      {v.revestimiento.map((r) => (
+        <p key={r.cara} className="revestimiento-plano"><strong>Revestimiento {r.cara} ({r.nombre}):</strong> {r.detalle}</p>
+      ))}
+    </>
+  );
+}
+
+/** Una planta completa: título, dibujo y piezas (pestaña y PDF). */
+export function PlanoDePlanta({ vista: p }) {
+  return (
+    <>
+      <h3 className="subtitulo">{NOMBRE_PLANTA[p.nivel]} · vista desde arriba · {medidasDeContorno(p.contorno)}</h3>
+      <DibujoPlanta vista={p} />
+      <TablaPiezas lista={p.lista} />
+    </>
+  );
+}
+
+export default function Planos({ vistas, params, onExportar }) {
   if (!vistas.paredes.length && !vistas.plantas.length) {
     return (
       <Tarjeta id="planos" titulo="Planos">
         <p className="nota">Los planos por pared y por planta están para las construcciones (no para grada ni montaje).</p>
-        <button type="button" className="btn-sec no-print" onClick={onExportarExcel}>Exportar Excel (presupuesto y cortes)</button>
+        <button type="button" className="btn-sec no-print" onClick={onExportar}>Imprimir o exportar…</button>
       </Tarjeta>
     );
   }
@@ -171,45 +220,15 @@ export default function Planos({ vistas, params, onExportarExcel }) {
         <p className="nota">
           Cada pared vista <strong>desde afuera</strong>: medidas desde la esquina izquierda y desde el piso. Las cotas
           de abajo son entre columnas y jambas; las de la izquierda, entre horizontales (fajas). Con
-          <strong> Imprimir / PDF</strong> sale una hoja por plano.
+          <strong> Imprimir / Exportar</strong> elegís qué sale en el PDF o en el Excel (las 4 paredes juntas y las plantas juntas).
         </p>
-        <button type="button" className="btn-print no-print" onClick={onExportarExcel}>Exportar Excel</button>
+        <button type="button" className="btn-print no-print" onClick={onExportar}>Imprimir o exportar…</button>
       </Tarjeta>
       {vistas.paredes.map((v) => (
-        <section key={v.lado} className="card plano">
-          <h3 className="subtitulo">
-            Pared {nombreDePared(v.lado, params)} · {f2(v.largo)} m · alto {f2(v.alturas[0])}
-            {Math.abs(v.alturas[0] - v.alturas[1]) > 0.005 ? ` a ${f2(v.alturas[1])}` : ''} m
-          </h3>
-          <DibujoPared vista={v} />
-          <TablaPiezas lista={v.lista} />
-          {v.aberturas.length > 0 && (
-            <div className="table-wrap">
-            <table className="tabla-plano">
-              <thead><tr><th>Abertura</th><th className="num">Ancho</th><th className="num">Alto</th><th className="num">Antepecho</th><th className="num">Desde esq. izq.</th></tr></thead>
-              <tbody>
-                {v.aberturas.map((a) => (
-                  <tr key={a.numero}>
-                    <td>#{a.numero} {a.tipo}{a.etiqueta ? ` · ${a.etiqueta}` : ''}</td>
-                    <td className="num">{f2(a.ancho)}</td><td className="num">{f2(a.alto)}</td>
-                    <td className="num">{f2(a.antepecho)}</td><td className="num">{f2(a.desde)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            </div>
-          )}
-          {v.revestimiento.map((r) => (
-            <p key={r.cara} className="revestimiento-plano"><strong>Revestimiento {r.cara} ({r.nombre}):</strong> {r.detalle}</p>
-          ))}
-        </section>
+        <section key={v.lado} className="card plano"><PlanoDePared vista={v} params={params} /></section>
       ))}
       {vistas.plantas.map((p) => (
-        <section key={p.nivel} className="card plano">
-          <h3 className="subtitulo">{NOMBRE_PLANTA[p.nivel]} · vista desde arriba · {medidasDeContorno(p.contorno)}</h3>
-          <DibujoPlanta vista={p} />
-          <TablaPiezas lista={p.lista} />
-        </section>
+        <section key={p.nivel} className="card plano"><PlanoDePlanta vista={p} /></section>
       ))}
     </>
   );

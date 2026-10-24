@@ -39,9 +39,9 @@ const MARGEN_VANO = MARGEN_JAMBA; // columna más adentro del vano que eso => se
 /** Nombre legible de cada tipo de pieza (para la UI). */
 export const NOMBRE_TIPO_PIEZA = {
   columna: 'Columna',
-  'marco-piso': 'Marco de piso',
+  'marco-piso': 'Borde de piso', // v1.28: antes "Marco de piso" (mismo renglón que Bordes de piso)
   solera: 'Solera superior',
-  'marco-piso2': 'Marco de piso 2',
+  'marco-piso2': 'Borde de piso 2',
   'viga-cierre': 'Viga de cierre del entrepiso',
   piso: 'Estructura de piso',
   piso2: 'Estructura de piso 2',
@@ -50,9 +50,11 @@ export const NOMBRE_TIPO_PIEZA = {
   horizontal: 'Horizontal (faja)',
   'viga-techo': 'Viga de techo',
   'correa-techo': 'Correa de techo',
+  'borde-techo': 'Borde de techo',
   dintel: 'Dintel',
   jamba: 'Jamba',
   alfeizar: 'Travesaño de antepecho',
+  travesano: 'Travesaño de abertura', // v1.28: de la abertura a la columna, arriba y abajo
   montante: 'Montante',
   'montante-dintel': 'Montante de dintel',
   'montante-antepecho': 'Montante de antepecho',
@@ -229,6 +231,22 @@ function generarRefuerzos(params, lados, posiciones, aberturas) {
     }
     if (!hayColumnaEn(v.fin)) {
       piezas.push(pieza(`ref:${op.id}:jamba-der`, 'jamba', grupos, punto(v.fin, 0), punto(v.fin, altoPared(v.fin))));
+    }
+    // v1.28: travesaños a la altura del dintel y del antepecho, de la abertura hasta la columna de
+    // cada lado (pedido de Leandro: una pieza horizontal arriba y abajo de la ventana).
+    if (op.travesanos === true) {
+      const columnas = columnasDeLado(op.lado, lados, posiciones);
+      const izquierda = Math.max(0, ...columnas.filter((c) => c <= v.inicio + EPSILON));
+      const derecha = Math.min(geo.largo, ...columnas.filter((c) => c >= v.fin - EPSILON));
+      const alturas = [['arriba', v.arriba], ...(v.abajo > 0 ? [['abajo', v.abajo]] : [])];
+      alturas.forEach(([cual, h]) => {
+        if (v.inicio - izquierda > LARGO_MINIMO) {
+          piezas.push(pieza(`ref:${op.id}:trav-${cual}-izq`, 'travesano', grupos, punto(izquierda, h), punto(v.inicio, h)));
+        }
+        if (derecha - v.fin > LARGO_MINIMO) {
+          piezas.push(pieza(`ref:${op.id}:trav-${cual}-der`, 'travesano', grupos, punto(v.fin, h), punto(derecha, h)));
+        }
+      });
     }
   });
   return piezas;
@@ -499,9 +517,22 @@ function generarTecho(params, lados) {
     : params.separacionCorreasTecho / factorPendiente;
   const posiciones = [0, ...interiores(luz, pasoHorizontal), luz];
   const ALTO_VIGA = 0.1; // las correas apoyan arriba de las vigas
-  const correas = posiciones.map((s) =>
+  const todasLasCorreas = posiciones.map((s) =>
     pieza(`correa-techo:${cm(s)}`, 'correa-techo', ['techo'], puntoTecho(0, s, ALTO_VIGA), puntoTecho(bajo.largo, s, ALTO_VIGA))
   );
+
+  // v1.28: marco perimetral (opcional; los proyectos de antes no lo tienen). Las correas de los dos
+  // bordes pasan a ser "borde de techo" (mismo id: las ediciones guardadas siguen valiendo) y se
+  // suman las vigas de las dos puntas. Así el borde y el interior pueden ir con perfiles distintos.
+  const conBorde = params.techoConBorde === true;
+  const esBorde = (i) => conBorde && (i === 0 || i === todasLasCorreas.length - 1);
+  const correas = todasLasCorreas.filter((_, i) => !esBorde(i));
+  const bordes = conBorde ? [
+    ...todasLasCorreas.filter((_, i) => esBorde(i)).map((p) => ({ ...p, tipo: 'borde-techo' })),
+    // Las de las puntas van a la altura de las correas (arriba de las soleras de las paredes de los
+    // costados, que siguen la pendiente): así el marco queda en un plano y no repite la solera.
+    ...[0, bajo.largo].map((d) => pieza(`borde-techo:${cm(d)}`, 'borde-techo', ['techo'], puntoTecho(d, 0, ALTO_VIGA), puntoTecho(d, luz, ALTO_VIGA))),
+  ] : [];
 
   const esquinas = [
     puntoTecho(0, 0, ALTO_VIGA + 0.03),
@@ -513,6 +544,7 @@ function generarTecho(params, lados) {
   return {
     vigas,
     correas,
+    bordes,
     esquinas,
     panel: params.panelTecho,
     largo: bajo.largo, // a lo largo del lado bajo
@@ -582,7 +614,7 @@ export function listarPiezas(e) {
     ...e.columnas, ...e.refuerzosAberturas, ...(e.montantes ?? []), ...(e.riostrasParedes ?? []), ...e.marcos,
     ...e.piso.tirantes, ...e.piso.transversales,
     ...e.piso2.tirantes, ...e.piso2.transversales,
-    ...e.correas, ...e.techo.vigas, ...e.techo.correas,
+    ...e.correas, ...e.techo.vigas, ...e.techo.correas, ...(e.techo.bordes ?? []),
     ...(e.escalera?.piezas ?? []),
     ...(e.grada?.piezas ?? []),
     ...(e.montaje?.piezas ?? []),
@@ -606,7 +638,7 @@ function transformarPiezas(e, cambiar) {
     piso: { tirantes: t(e.piso.tirantes), transversales: t(e.piso.transversales) },
     piso2: { tirantes: t(e.piso2.tirantes), transversales: t(e.piso2.transversales) },
     correas: t(e.correas),
-    techo: { ...e.techo, vigas: t(e.techo.vigas), correas: t(e.techo.correas) },
+    techo: { ...e.techo, vigas: t(e.techo.vigas), correas: t(e.techo.correas), bordes: t(e.techo.bordes ?? []) },
     escalera: e.escalera ? { ...e.escalera, piezas: t(e.escalera.piezas) } : null,
     grada: e.grada ? { ...e.grada, piezas: t(e.grada.piezas) } : null,
     montaje: e.montaje ? { ...e.montaje, piezas: t(e.montaje.piezas) } : null,
@@ -643,7 +675,7 @@ function generarEstructuraSuelta(params, propia) {
   const vacia = {
     pilotines: [], columnas: [], refuerzosAberturas: [], montantes: [], riostrasParedes: [], marcos: [],
     piso: { tirantes: [], transversales: [] }, piso2: { tirantes: [], transversales: [] },
-    correas: [], techo: { vigas: [], correas: [], esquinas: [], superficie: 0 },
+    correas: [], techo: { vigas: [], correas: [], bordes: [], esquinas: [], superficie: 0 },
     escalera: null, paredes: [], entrepiso: null,
     superficies: { piso: 0, piso2: 0, murosNetos: 0, aberturas: 0, techo: 0 },
     grada: null,

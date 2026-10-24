@@ -52,6 +52,12 @@ export function FilaAbertura({ abertura, numero, params, unidad, onActualizar, o
           aria-label={`Texto de la etiqueta de la abertura ${numero}`}
           onChange={(e) => cambiar('etiqueta')(e.target.value)} />
       </div>
+      {/* v1.28: travesaños hasta las columnas, a la altura del dintel y del antepecho. */}
+      <label className="casilla-opcional">
+        <input type="checkbox" checked={abertura.travesanos === true}
+          onChange={(e) => setErrorSelect(cambiar('travesanos')(e.target.checked))} />
+        Travesaños hasta las columnas (arriba{abertura.tipo === 'puerta' ? '' : ' y abajo'})
+      </label>
       <div className="grid-params">
         <CampoSelect etiqueta="Tipo" valor={abertura.tipo} onCambio={cambiarSelect('tipo')}
           opciones={[['ventana', 'Ventana'], ['puerta', 'Puerta']]} />

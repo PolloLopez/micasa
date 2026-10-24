@@ -73,6 +73,8 @@ export function migrarParams(params) {
   // v1.27: separaciones por cantidad (los proyectos viejos, todo por medida).
   nuevos.cantidades = esObjeto(nuevos.cantidades) ? nuevos.cantidades : {};
   nuevos.panelTecho ??= PARAMS_INICIALES.panelTecho;
+  // v1.28: marco perimetral del techo. Los proyectos de antes no lo tenían (no se agregan piezas solas).
+  nuevos.techoConBorde = nuevos.techoConBorde === true;
   nuevos.piezasEliminadas ??= []; // v1.5
   // v1.7: los proyectos viejos se abren SIN escalera (no se agrega nada que no tenían).
   nuevos.escalera = esObjeto(nuevos.escalera) ? { ...ESCALERA_INICIAL, activa: false, ...nuevos.escalera } : { ...ESCALERA_INICIAL, activa: false };
@@ -199,15 +201,18 @@ export function normalizarCatalogo(catalogo) {
   // de la lista (proyectos viejos) arman la suya desde el texto que tenían.
   const perfilesGuardados = guardado.filter((p) => p.categoria === 'hierro').map(normalizarPerfil).filter(Boolean)
     .filter((p, i, lista) => lista.findIndex((q) => q.id === p.id) === i);
-  // v1.22: si el catálogo es de antes de las columnas de esquina, ese renglón NO arma la lista (no es un
-  // dato del herrero: si votara, el precio de Columnas contaría doble) y después copia el perfil de Columnas.
-  const esquinaNueva = !guardado.some((p) => p.id === INSUMO.COLUMNA_ESQUINA);
-  const paraLista = fijos.filter((i) => i.categoria === 'perfil' && !(esquinaNueva && i.id === INSUMO.COLUMNA_ESQUINA));
+  // Renglones nuevos que nacen copiando a otro (para que el proyecto viejo dé lo mismo):
+  //   v1.22 columnas de esquina ← Columnas; v1.28 bordes de piso ← Marcos y soleras, bordes de techo ← Vigas de techo.
+  // Si el catálogo es de antes, ese renglón NO arma la lista (no es un dato del herrero: si votara, el
+  // precio del original contaría doble) y después copia el perfil del original.
+  const nuevos = Object.entries(RENGLONES_QUE_COPIAN).filter(([id]) => !guardado.some((p) => p.id === id));
+  const esNuevo = (id) => nuevos.some(([n]) => n === id);
+  const paraLista = fijos.filter((i) => i.categoria === 'perfil' && !esNuevo(i.id));
   const { usos, perfiles } = armarListaDePerfiles(paraLista, perfilesGuardados);
-  const columna = usos.find((u) => u.id === INSUMO.COLUMNA);
   const conPerfil = fijos.map((i) => {
-    if (esquinaNueva && i.id === INSUMO.COLUMNA_ESQUINA) {
-      return { ...i, perfil: columna?.perfil ?? i.perfil, precio: columna?.precio ?? i.precio, largoBarra: columna?.largoBarra ?? i.largoBarra, perfilId: columna?.perfilId ?? null };
+    if (esNuevo(i.id)) {
+      const original = usos.find((u) => u.id === RENGLONES_QUE_COPIAN[i.id]);
+      return { ...i, perfil: original?.perfil ?? i.perfil, precio: original?.precio ?? i.precio, largoBarra: original?.largoBarra ?? i.largoBarra, perfilId: original?.perfilId ?? null };
     }
     return usos.find((u) => u.id === i.id) ?? i;
   });
@@ -215,6 +220,13 @@ export function normalizarCatalogo(catalogo) {
   // v1.25: proveedores y precios por proveedor (los catálogos viejos pasan su precio a "Mi proveedor").
   return conProveedores([...conPerfil, ...(paneles.length > 0 ? paneles : TIPOS_PANEL_INICIALES), ...perfiles], guardado);
 }
+
+/** Renglón nuevo → renglón del que copia su perfil al abrir un proyecto viejo. */
+const RENGLONES_QUE_COPIAN = {
+  [INSUMO.COLUMNA_ESQUINA]: INSUMO.COLUMNA, // v1.22
+  [INSUMO.BORDE_PISO]: INSUMO.MARCO, // v1.28: antes el borde de piso iba con las soleras
+  [INSUMO.BORDE_TECHO]: INSUMO.VIGA_TECHO, // v1.28
+};
 
 /** Un perfil de la lista guardado: se conserva si es válido; si no, se descarta (null). */
 function normalizarPerfil(p) {
