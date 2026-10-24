@@ -73,7 +73,7 @@ export default function PanelEscalera({ params, resumen, unidad, cambiar, cambia
       : { tipoApoyo: 'angulos', apoyosPorEscalon: 2, largoApoyo: Number((esc.ancho - 0.04).toFixed(2)) });
 
   return (
-    <Tarjeta id="escalera" titulo="Escalera">
+    <Tarjeta id="escalera" titulo="Escalera" resaltar={{ tipo: 'grupo', id: 'escalera', nombre: 'Escalera' }}>
       <label className="capa">
         <input type="checkbox" checked={esc.activa} aria-label="Lleva escalera"
           onChange={(e) => setErrorActiva(cambiar('escalera.activa')(e.target.checked))} />

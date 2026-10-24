@@ -49,7 +49,7 @@ export default function PanelGrada({ params, resumen, unidad, cambiar, catalogo,
   );
 
   return (
-    <Tarjeta id="grada" titulo="Grada para espectadores">
+    <Tarjeta id="grada" titulo="Grada para espectadores" resaltar={{ tipo: 'grupo', id: 'grada', nombre: 'Grada' }}>
       <p className="nota">
         La fila 1 (la más baja) queda adelante, del lado del <strong>Frente (A)</strong>; las filas suben hacia atrás.
         Se sienta en el tablón de adelante de cada fila y se apoyan los pies en la fila de abajo.

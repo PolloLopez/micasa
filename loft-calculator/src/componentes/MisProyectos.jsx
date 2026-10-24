@@ -99,7 +99,7 @@ export default function MisProyectos({
                   <button className="btn-print" onClick={() => onAbrir(entrada)}>Abrir</button>
                   <button className="btn-sec" onClick={() => onDuplicar(entrada.id)}>Duplicar</button>
                   <button className="btn-sec" onClick={() => renombrar(entrada)}>Renombrar</button>
-                  <button className="btn-del" onClick={() => borrar(entrada)} aria-label={`Borrar ${entrada.nombre}`}>✕</button>
+                  <button className="btn-del" onClick={() => borrar(entrada)} aria-label={`Borrar ${entrada.nombre}`}>Eliminar</button>
                 </div>
               </li>
             ))}

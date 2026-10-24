@@ -57,6 +57,7 @@ export function proyectoVacio() {
       compartirCortes: true,
       proveedorElegido: '',
       formaPago: 'efectivo',
+      cantidades: {},
       filasPilotines: 2,
       pilotinesPorFila: 2,
       piezasEliminadas: [],

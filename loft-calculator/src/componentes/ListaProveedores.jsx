@@ -32,7 +32,7 @@ export default function ListaProveedores({ proveedores, onActualizar, onAgregar,
                 onChange={(e) => onActualizar(p.id, { nota: e.target.value })} />
             </div>
             <button type="button" className="btn-del" onClick={() => onQuitar(p.id)} disabled={proveedores.length === 1}
-              aria-label={`Quitar ${p.nombre}`} title={proveedores.length === 1 ? 'Tiene que quedar al menos uno' : 'Quitar proveedor'}>✕</button>
+              aria-label={`Quitar ${p.nombre}`} title={proveedores.length === 1 ? 'Tiene que quedar al menos uno' : 'Quitar proveedor'}>Eliminar</button>
           </li>
         ))}
       </ul>

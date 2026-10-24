@@ -13,7 +13,7 @@ const ATAJOS = [
   ['Ctrl + Z', 'Deshacer el último cambio (medidas, paredes, aberturas, materiales y precios)'],
   ['Ctrl + Y  ·  Ctrl + Shift + Z', 'Rehacer lo que deshiciste'],
   ['Ctrl + C  /  Ctrl + V', 'Copiar y pegar la abertura o el hierro seleccionado en el 3D (aparece al lado)'],
-  ['Esc', 'Soltar la selección del 3D, cerrar una ventana o, en un campo con error, volver al último valor válido'],
+  ['Esc', 'Soltar la selección o el resaltado (👁) del 3D, cerrar una ventana o, en un campo con error, volver al último valor válido'],
   ['←  /  →', 'Pasar de una pestaña a otra (con el foco en las pestañas)'],
   ['?', 'Abrir esta ayuda'],
 ];

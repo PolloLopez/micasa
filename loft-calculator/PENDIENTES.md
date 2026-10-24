@@ -86,6 +86,12 @@ abiertas a la vez, 15+ botones de menos de 40 px en el celular.
 - ✅ Precio de los revestimientos también en Materiales (v1.23.0).
 - ✅ Proveedores y comparar presupuestos (v1.25.0): precio por proveedor en efectivo/tarjeta, "lo más barato de cada material".
 - ✅ Exportar las paredes completas (v1.26.0): pestaña Planos, PDF y Excel.
+- ✅ Separaciones por medida o por cantidad, en paredes, pisos y techo (v1.27.0).
+- ✅ Resaltar en el 3D lo que se señala (perfil, renglón, pared, pisos, techo…) con el mouse o fijo con 👁 (v1.27.0).
+- ✅ Botones de borrar con texto "Eliminar"; carteles del 3D con ✕ arriba y acciones en el pie (v1.27.0).
+- 🟢 [ ] Resaltar también desde la pestaña Planos (cada pared/planta) y cada componente del montaje por separado.
+- 🟢 [ ] Columnas del borde libre por cantidad: hoy es la misma cantidad en cada borde libre (podría ser una por borde).
+- 🟢 [ ] Revisar con Leandro si los otros listados (proveedores, perfiles) también quieren Eliminar al pie.
 - 🟢 [ ] Planos: escalonar las cotas cuando quedan muy juntas (hoy se omiten las de menos de 15 cm); escalera en planta; DXF para CAD.
 - 🟢 [ ] Proveedores compartidos entre proyectos (hoy viajan con cada proyecto).
 - 🟡 [ ] Paneles sándwich por **caras**: chapa/chapa, chapa/madera (interior), madera/madera (paneles SIP).

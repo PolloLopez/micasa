@@ -13,8 +13,12 @@ import CampoSelect from './CampoSelect.jsx';
 import { validarAbertura, copiarAbertura, aberturaNueva, LARGO_MAXIMO_ETIQUETA } from '../motor/validacion.js';
 import { nombreLado } from '../motor/geometria.js';
 
-/** Una abertura con todos sus campos editables. */
-export function FilaAbertura({ abertura, numero, params, unidad, onActualizar, onQuitar, onDuplicar }) {
+/**
+ * Una abertura con todos sus campos editables.
+ * v1.27: Duplicar y Eliminar van al PIE (antes arriba, al lado del título, y el ✕ parecía "cerrar").
+ * `conAcciones={false}`: sin pie (el cartel del 3D pone el suyo).
+ */
+export function FilaAbertura({ abertura, numero, params, unidad, onActualizar, onQuitar, onDuplicar, conAcciones = true }) {
   const [errorSelect, setErrorSelect] = useState(null);
 
   // Prueba el cambio: si la abertura deja de entrar, devuelve el error y no guarda.
@@ -34,10 +38,6 @@ export function FilaAbertura({ abertura, numero, params, unidad, onActualizar, o
       <div className="abertura-titulo">
         <strong>#{numero} {esPuerta ? 'Puerta' : 'Ventana'}</strong>
         <span>{abertura.etiqueta?.trim() ? `“${abertura.etiqueta.trim()}” · ` : ''}{nombreLado(abertura.lado, params.ladoFrente)}</span>
-        <button className="btn-sec btn-chico no-print" onClick={() => onDuplicar(abertura)} title="Crea una igual al lado (después la podés mover o pasar a otra pared)">
-          Duplicar
-        </button>
-        <button className="btn-del no-print" onClick={() => onQuitar(abertura.id)} aria-label={`Quitar abertura ${numero}`}>✕</button>
       </div>
       {/* Etiqueta propia (v1.17), como las paredes: se ve en el 3D junto al número. */}
       <div className="etiqueta-pared">
@@ -66,6 +66,14 @@ export function FilaAbertura({ abertura, numero, params, unidad, onActualizar, o
         )}
       </div>
       {errorSelect && <p className="error" role="alert">{errorSelect}</p>}
+      {conAcciones && (
+        <div className="pie-acciones no-print">
+          <button className="btn-sec btn-chico" onClick={() => onDuplicar(abertura)} title="Crea una igual al lado (después la podés mover o pasar a otra pared)">
+            Duplicar
+          </button>
+          <button className="btn-del eliminar-aparte" onClick={() => onQuitar(abertura.id)} aria-label={`Eliminar abertura ${numero}`}>Eliminar</button>
+        </div>
+      )}
     </li>
   );
 }

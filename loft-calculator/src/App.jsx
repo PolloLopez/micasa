@@ -13,6 +13,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import LoftCanvas from './LoftCanvas.jsx';
 import CampoNumero from './componentes/CampoNumero.jsx';
 import CampoOpcional from './componentes/CampoOpcional.jsx';
+import CampoSeparacion from './componentes/CampoSeparacion.jsx';
+import { BotonResaltar, ZonaResaltable } from './componentes/Resaltar.jsx';
+import { ContextoResaltado } from './componentes/contextoResaltado.js';
+import { contarResaltadas, mismoCriterio } from './motor/resaltado.js';
 import Ayuda from './componentes/Ayuda.jsx';
 import { useDialogo, hayDialogoAbierto } from './componentes/useDialogo.js';
 import SelectorLado from './componentes/SelectorLado.jsx';
@@ -28,7 +32,8 @@ import { useEstadoGuardado } from './hooks/useEstadoGuardado.js';
 import { validarParametros, validarAbertura, copiarAbertura, LARGO_MAXIMO_ETIQUETA } from './motor/validacion.js';
 import { esEdicionVacia } from './motor/edicionPiezas.js';
 import { duplicarPieza, PREFIJO_AGREGADA } from './motor/piezasAgregadas.js';
-import { generarEstructura, listarPiezas } from './motor/estructura.js';
+import { generarEstructura, listarPiezas, infoSeparacion } from './motor/estructura.js';
+import { CAMPOS_CON_CANTIDAD, MAXIMO_CANTIDAD, cantidadDe } from './motor/cantidades.js';
 import { calcularPresupuesto, CATALOGO_INICIAL, tiposDePanel } from './motor/presupuesto.js';
 import { resolverCatalogo, PERFIL_NUEVO, perfilesDeLista } from './motor/perfiles.js';
 import { proveedoresDe, aplicarProveedor, faltanPrecios, MAS_BARATO } from './motor/proveedores.js';
@@ -261,14 +266,48 @@ export default function App() {
   };
   const lados = useMemo(() => geometriaLados(params), [params]);
 
+  // --- Resaltar en el 3D (v1.27) ---
+  // Con el mouse encima (o el foco adentro) de un perfil, un renglón o una parte, el 3D pinta sus piezas.
+  // El 👁 lo deja fijo (en el celular además pasa a la vista 3D). Manda el del mouse; si no hay, el fijo.
+  const [resaltadoMouse, setResaltadoMouse] = useState(null);
+  const [resaltadoFijo, setResaltadoFijo] = useState(null);
+  const resaltado = resaltadoMouse ?? resaltadoFijo;
+  const contextoResaltado = useMemo(() => ({
+    fijo: resaltadoFijo,
+    alPasar: (criterio) => setResaltadoMouse((prev) => (mismoCriterio(prev, criterio) ? prev : criterio)),
+    alternarFijo: (criterio) => {
+      const soltar = mismoCriterio(resaltadoFijo, criterio);
+      setResaltadoFijo(soltar ? null : criterio);
+      if (!soltar && window.matchMedia?.('(max-width: 1000px)').matches) setVistaMovil('3d');
+    },
+  }), [resaltadoFijo]);
+  const cantidadResaltadas = useMemo(
+    () => (resaltado ? contarResaltadas(listarPiezas(estructura), resaltado, catalogoResuelto) : 0),
+    [resaltado, estructura, catalogoResuelto]);
+  const cartelResaltado = resaltado
+    ? `${resaltado.nombre}: ${cantidadResaltadas === 0 ? 'no hay piezas' : `${cantidadResaltadas} pieza${cantidadResaltadas === 1 ? '' : 's'}`}${resaltado === resaltadoFijo ? ' (fijado)' : ''}`
+    : null;
+  // Esc suelta el resaltado fijo (salvo escribiendo en un campo: ahí Esc deshace lo escrito).
+  useEffect(() => {
+    if (!resaltadoFijo) return undefined;
+    const alTeclear = (e) => {
+      if (e.key !== 'Escape' || hayDialogoAbierto() || e.target.closest?.('input, select, textarea')) return;
+      setResaltadoFijo(null);
+    };
+    window.addEventListener('keydown', alTeclear);
+    return () => window.removeEventListener('keydown', alTeclear);
+  }, [resaltadoFijo]);
+
   // --- Handlers (manejadores de eventos) ---
 
   /**
    * Prueba un cambio en `ruta`. Si deja datos inválidos devuelve el
    * mensaje de error (y no guarda); si está bien, guarda y devuelve null.
    */
-  const cambiar = (ruta) => (valor) => {
-    const nuevos = conValor(params, ruta, valor);
+  const cambiar = (ruta) => (valor) => aplicarSiValido(conValor(params, ruta, valor), ruta);
+
+  /** Valida unos parámetros nuevos y, si están bien, los deja. Devuelve el error (para el campo `ruta`) o null. */
+  const aplicarSiValido = (nuevos, ruta) => {
     const errores = validarParametros(nuevos);
     if (Object.keys(errores).length > 0) return errores[ruta] || Object.values(errores)[0];
 
@@ -279,6 +318,43 @@ export default function App() {
     setParams(nuevos);
     return null;
   };
+
+  // --- Separaciones por medida o por cantidad (v1.27) ---
+  const cantidades = params.cantidades ?? {};
+  const sinCantidad = (ruta) => Object.fromEntries(Object.entries(cantidades).filter(([k]) => k !== ruta));
+  /** Cantidad nueva para un campo (ya validado entero en CampoSeparacion). */
+  const cambiarCantidad = (ruta) => (n) => aplicarSiValido({ ...params, cantidades: { ...cantidades, [ruta]: n } }, ruta);
+
+  /**
+   * Pasa un campo de medida a cantidad (o al revés) llevando el valor, así la estructura no salta:
+   * "cada 2.50 m" en 7.50 m → "4 columnas"; y al volver, la separación pareja que daban.
+   * 'sin' = destildar un opcional: por medida y en 0.
+   */
+  const cambiarModo = (ruta, modo) => {
+    const info = infoSeparacion(params, ruta);
+    const { minimo } = CAMPOS_CON_CANTIDAD[ruta];
+    if (modo === 'sin') return aplicarSiValido(conValor({ ...params, cantidades: sinCantidad(ruta) }, ruta, 0), ruta);
+    if (modo === 'cantidad') {
+      const estimada = info.porVano ? montantesPorVanoEstimados(ruta) : info.cantidad ?? 3;
+      const n = Math.min(MAXIMO_CANTIDAD, Math.max(minimo, 1, estimada));
+      return aplicarSiValido({ ...params, cantidades: { ...cantidades, [ruta]: n } }, ruta);
+    }
+    // A medida: la separación que daba la cantidad, redondeada al cm (si no vale, queda la medida de antes).
+    const sinEsta = { ...params, cantidades: sinCantidad(ruta) };
+    const separacion = info.porVano ? separacionMontantesEstimada(ruta) : info.separacion;
+    if (separacion > 0) {
+      const conMedida = conValor(sinEsta, ruta, Math.round(separacion * 100) / 100);
+      if (Object.keys(validarParametros(conMedida)).length === 0) return aplicarSiValido(conMedida, ruta);
+    }
+    return aplicarSiValido(sinEsta, ruta);
+  };
+  /** Montantes: con la separación de columnas de su pared se estima cuántos entran por vano (y al revés). */
+  const separacionColumnas = (ruta) => infoSeparacion(params, ruta.replace('separacionMontantes', 'separacionVerticales')).separacion;
+  const montantesPorVanoEstimados = (ruta) => {
+    const medidaMontantes = ruta.split('.').reduce((o, k) => o[k], params);
+    return medidaMontantes > 0 ? Math.round(separacionColumnas(ruta) / medidaMontantes) - 1 : 1;
+  };
+  const separacionMontantesEstimada = (ruta) => separacionColumnas(ruta) / ((cantidades[ruta] ?? 0) + 1);
 
   const cambiarInsumo = (id, campo, valor) =>
     setCatalogo((prev) => prev.map((p) => (p.id === id ? { ...p, [campo]: valor } : p)));
@@ -626,6 +702,16 @@ export default function App() {
     <CampoNumero key={ruta} etiqueta={etiqueta} unidad={unidad}
       valor={ruta.split('.').reduce((o, k) => o[k], params)} onCambio={cambiar(ruta)} />
   );
+  /**
+   * Separación por medida o por cantidad (v1.27). `piezas` = [singular, plural] para contarlas;
+   * con `casilla`, es opcional (montantes, transversales…).
+   */
+  const separacion = (ruta, etiqueta, etiquetaCantidad, piezas, opciones = {}) => (
+    <CampoSeparacion key={ruta} etiqueta={etiqueta} etiquetaCantidad={etiquetaCantidad} piezas={piezas} unidad={unidad}
+      valor={ruta.split('.').reduce((o, k) => o[k], params)} cantidad={cantidadDe(params, ruta)}
+      info={infoSeparacion(params, ruta)} casilla={opciones.casilla} valorPorDefecto={opciones.valorPorDefecto}
+      onCambioMedida={cambiar(ruta)} onCambioCantidad={cambiarCantidad(ruta)} onCambiarModo={(modo) => cambiarModo(ruta, modo)} />
+  );
   /** Casilla + medida (v1.19): reemplaza los campos "(0 = sin)". 0 guardado = destildada. */
   const opcional = (ruta, casilla, etiqueta, valorPorDefecto) => (
     <CampoOpcional key={ruta} casilla={casilla} etiqueta={etiqueta} unidad={unidad} valorPorDefecto={valorPorDefecto}
@@ -633,6 +719,7 @@ export default function App() {
   );
 
   return (
+    <ContextoResaltado value={contextoResaltado}>
     <div className="app">
       <header>
         <div className="titulo">
@@ -707,7 +794,9 @@ export default function App() {
             opacidades={opacidades} onCambiarOpacidad={cambiarOpacidad} imagenImpresionRef={imagenImpresionRef}
             onCambiarColor={cambiarColor} onEliminarPieza={eliminarPieza} onEditarPieza={editarPieza}
             onActualizarAbertura={actualizarAbertura} onQuitarAbertura={quitarAbertura}
-            onPegarAbertura={pegarAbertura} onDuplicarPieza={duplicarPiezaElegida} />
+            onPegarAbertura={pegarAbertura} onDuplicarPieza={duplicarPiezaElegida}
+            resaltado={resaltado} cartelResaltado={cartelResaltado}
+            onSoltarResaltado={resaltadoFijo ? () => { setResaltadoFijo(null); setResaltadoMouse(null); } : null} />
         </div>
 
         <div className="columna-panel">
@@ -746,11 +835,11 @@ export default function App() {
           </Tarjeta>
 
           {/* PISOS */}
-          <Tarjeta id="pisos" titulo="Pisos">
+          <Tarjeta id="pisos" titulo="Pisos" resaltar={{ tipo: 'grupo', id: ['piso', 'piso2'], nombre: 'Pisos' }}>
             <h3 className="subtitulo">Planta baja</h3>
             <div className="grid-params">
-              {medida('separacionPiso', 'Sep. estructura de piso')}
-              {opcional('separacionTransversalesPiso', 'Lleva transversales', 'Transversales cada', 1.5)}
+              {separacion('separacionPiso', 'Sep. estructura de piso', 'Tirantes de piso', ['tirante', 'tirantes'])}
+              {separacion('separacionTransversalesPiso', 'Transversales cada', 'Filas de transversales', ['fila de transversales', 'filas de transversales'], { casilla: 'Lleva transversales', valorPorDefecto: 1.5 })}
             </div>
             <h3 className="subtitulo">Piso 2 (entrepiso)</h3>
             <div className="grid-params">
@@ -767,9 +856,9 @@ export default function App() {
                   onCambio={cambiar('referenciaEntrepiso')} />
               )}
               {params.anchoEntrepiso > 0 && params.largoEntrepiso > 0 && medida('distanciaEntrepiso', 'Dist. a esquina')}
-              {params.anchoEntrepiso > 0 && opcional('separacionColumnasEntrepiso', 'Columnas intermedias en el borde libre', 'Columnas cada', 2.5)}
-              {params.anchoEntrepiso > 0 && medida('separacionPiso2', 'Sep. estructura de piso 2')}
-              {params.anchoEntrepiso > 0 && opcional('separacionTransversalesPiso2', 'Lleva transversales', 'Transversales cada', 1.5)}
+              {params.anchoEntrepiso > 0 && separacion('separacionColumnasEntrepiso', 'Columnas cada', 'Columnas por borde (con las puntas)', ['columna', 'columnas'], { casilla: 'Columnas intermedias en el borde libre', valorPorDefecto: 2.5 })}
+              {params.anchoEntrepiso > 0 && separacion('separacionPiso2', 'Sep. estructura de piso 2', 'Tirantes de piso 2', ['tirante', 'tirantes'])}
+              {params.anchoEntrepiso > 0 && separacion('separacionTransversalesPiso2', 'Transversales cada', 'Filas de transversales', ['fila de transversales', 'filas de transversales'], { casilla: 'Lleva transversales', valorPorDefecto: 1.5 })}
             </div>
             <p className="nota">
               Entrepiso parcial: poné el largo y desde qué esquina arranca (vista desde afuera, como las
@@ -786,14 +875,14 @@ export default function App() {
             cambiar={cambiar} cambiarEscalera={(cambios) => cambiar('escalera')({ ...params.escalera, ...cambios })} />
 
           {/* TECHO */}
-          <Tarjeta id="techo" titulo="Techo a una agua">
+          <Tarjeta id="techo" titulo="Techo a una agua" resaltar={{ tipo: 'grupo', id: 'techo', nombre: 'Techo' }}>
             <div className="grid-params">
               <SelectorLado etiqueta="Cae hacia" valor={params.caidaTecho} params={params}
                 onCambio={cambiar('caidaTecho')} />
               <CampoNumero etiqueta="Pendiente" sufijo="%" valor={params.pendienteTecho}
                 onCambio={cambiar('pendienteTecho')} decimales={1} />
-              {medida('separacionVigasTecho', 'Sep. vigas de techo')}
-              {medida('separacionCorreasTecho', 'Sep. correas (s/ pendiente)')}
+              {separacion('separacionVigasTecho', 'Sep. vigas de techo', 'Vigas de techo', ['viga', 'vigas'])}
+              {separacion('separacionCorreasTecho', 'Sep. correas (s/ pendiente)', 'Correas (con las puntas)', ['correa', 'correas'])}
               {selectorPanel('panelTecho', 'Revestimiento del techo', params.panelTecho)}
             </div>
             <p className="nota">
@@ -903,8 +992,10 @@ export default function App() {
             {LADOS.map((lado) => {
               const [h1, h2] = alturasPared(lados[lado], params);
               return (
-                <div key={lado} className={`pared ${paredesAbiertas[lado] ? 'abierta' : 'cerrada'}`}>
-                  {/* El título pliega / despliega la pared (aria-expanded para lectores de pantalla). */}
+                <ZonaResaltable key={lado} className={`pared ${paredesAbiertas[lado] ? 'abierta' : 'cerrada'}`}
+                  criterio={{ tipo: 'grupo', id: lado, nombre: nombreLado(lado, params.ladoFrente) }}>
+                  {/* El título pliega / despliega la pared (aria-expanded para lectores de pantalla); al lado, el 👁. */}
+                  <div className="fila-titulo-pared">
                   <button type="button" className="pared-titulo plegable" aria-expanded={paredesAbiertas[lado]}
                     aria-controls={`pared-${lado}`} onClick={() => alternarPared(lado)}>
                     <span className="flecha" aria-hidden="true">▸</span>
@@ -912,6 +1003,8 @@ export default function App() {
                     {params.paredes[lado].etiqueta.trim() && <em>“{params.paredes[lado].etiqueta.trim()}”</em>}
                     <span>lado {lado} · {lados[lado].largo.toFixed(2)} m · alto {h1.toFixed(2)}{Math.abs(h1 - h2) > 0.005 ? ` a ${h2.toFixed(2)}` : ''} m</span>
                   </button>
+                  <BotonResaltar criterio={{ tipo: 'grupo', id: lado, nombre: nombreLado(lado, params.ladoFrente) }} />
+                  </div>
                   <div className="pared-cuerpo" id={`pared-${lado}`}>
                   <div className="etiqueta-pared">
                     <label className="capa">
@@ -927,9 +1020,9 @@ export default function App() {
                       onChange={(e) => cambiar(`paredes.${lado}.etiqueta`)(e.target.value)} />
                   </div>
                   <div className="grid-params">
-                    {medida(`paredes.${lado}.separacionVerticales`, 'Sep. columnas')}
-                    {medida(`paredes.${lado}.separacionHorizontales`, 'Sep. horizontales (fajas)')}
-                    {opcional(`paredes.${lado}.separacionMontantes`, 'Lleva montantes', 'Montantes cada', 0.6)}
+                    {separacion(`paredes.${lado}.separacionVerticales`, 'Sep. columnas', 'Columnas (con las esquinas)', ['columna', 'columnas'])}
+                    {separacion(`paredes.${lado}.separacionHorizontales`, 'Sep. horizontales (fajas)', 'Horizontales (fajas)', ['faja', 'fajas'])}
+                    {separacion(`paredes.${lado}.separacionMontantes`, 'Montantes cada', 'Montantes por vano', ['montante', 'montantes'], { casilla: 'Lleva montantes', valorPorDefecto: 0.6 })}
                     <CampoSelect etiqueta="Riostras en cruz" valor={params.paredes[lado].riostras}
                       opciones={[['no', 'Sin riostras'], ['extremos', 'En las puntas'], ['todos', 'En todos los vanos']]}
                       onCambio={cambiar(`paredes.${lado}.riostras`)} />
@@ -950,7 +1043,7 @@ export default function App() {
                   <AberturasDePared lado={lado} aberturas={aberturasValidas} params={params} unidad={unidad}
                     onAgregar={agregarAbertura} onActualizar={actualizarAbertura} onQuitar={quitarAbertura} />
                   </div>
-                </div>
+                </ZonaResaltable>
               );
             })}
           </Tarjeta>
@@ -985,5 +1078,6 @@ export default function App() {
         </div>
       </main>
     </div>
+    </ContextoResaltado>
   );
 }

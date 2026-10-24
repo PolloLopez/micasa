@@ -15,6 +15,7 @@
 // ==========================================================
 
 import { useEffect, useRef, useState } from 'react';
+import { piezaResaltada } from './motor/resaltado.js';
 import * as THREE from 'three';
 import { hayDialogoAbierto } from './componentes/useDialogo.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -100,6 +101,7 @@ const MEDIA_SECCION_PARED = 0.06;
 
 
 const COLOR_SELECCION = '#facc15';
+const COLOR_RESALTADO = '#f472b6'; // v1.27: rosa, distinto de la selección (amarilla) y de las capas
 const COLOR_JUNTAS = '#fde047'; // juntas de paneles: amarillo claro, se ve sobre paneles claros y oscuros
 const COLOR_MEDIDA = '#facc15';
 const MOVIMIENTO_MAXIMO_CLIC = 5; // px: si el mouse se movió más, fue un arrastre (orbitar)
@@ -127,6 +129,11 @@ function crearMateriales(colores) {
   materiales.juntas = new THREE.LineBasicMaterial({ color: COLOR_JUNTAS, transparent: true, opacity: 1 });
   // Pieza seleccionada: amarillo que brilla.
   materiales.seleccion = new THREE.MeshStandardMaterial({ color: COLOR_SELECCION, emissive: COLOR_SELECCION, emissiveIntensity: 0.6 });
+  // Piezas resaltadas (v1.27): rosa que brilla y se ve A TRAVÉS de todo (depthTest apagado),
+  // así una columna tapada por los paneles o por otra pared igual se ve.
+  materiales.resaltado = new THREE.MeshStandardMaterial({
+    color: COLOR_RESALTADO, emissive: COLOR_RESALTADO, emissiveIntensity: 0.7, depthTest: false, transparent: true, opacity: 0.95,
+  });
   return materiales;
 }
 
@@ -292,7 +299,7 @@ function cartel(texto, esFrente) {
 
 /** Arma todas las mallas del modelo dentro de `grupo`. */
 function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
-  const { params, estructura: e, aberturas, capas, gruposVisibles, seleccionada, catalogo, aberturaSeleccionada, medida } = opciones;
+  const { params, estructura: e, aberturas, capas, gruposVisibles, seleccionada, catalogo, aberturaSeleccionada, medida, resaltado } = opciones;
   const { elevacion } = params;
   const grupoVisible = (g) => gruposVisibles[g] !== false; // 'interior' no tiene interruptor
 
@@ -301,9 +308,12 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
     const estilo = ESTILO_PIEZA[p.tipo];
     const capa = capaDe(p);
     if (!estilo || !capas[capa] || !p.grupos.every(grupoVisible)) return;
-    const material = p.id === seleccionada ? materiales.seleccion : materiales[capa];
+    const elegida = p.id === seleccionada;
+    const resaltada = !elegida && piezaResaltada(p, resaltado, catalogo); // v1.27
+    const material = elegida ? materiales.seleccion : resaltada ? materiales.resaltado : materiales[capa];
     const seccion = seccionDe(p, catalogo, estilo);
-    const malla = barra(p, p.id === seleccionada ? seccion * 1.6 : seccion, material);
+    const malla = barra(p, elegida ? seccion * 1.6 : resaltada ? seccion * 1.3 : seccion, material);
+    if (resaltada) malla.renderOrder = 997; // después de los paneles transparentes
     malla.userData.idPieza = p.id;
     malla.userData.pieza = p; // para medir de eje a eje (ver medicion.js)
     grupo.add(malla);
@@ -589,6 +599,7 @@ export default function LoftCanvas({
   params, estructura, aberturas, paneles, colores, catalogo, unidad, onCambiarColor, onEliminarPieza, onEditarPieza,
   opacidades, onCambiarOpacidad, imagenImpresionRef,
   onActualizarAbertura, onQuitarAbertura, onPegarAbertura, onDuplicarPieza,
+  resaltado = null, cartelResaltado = null, onSoltarResaltado,
 }) {
   const lienzoRef = useRef(null);
   const visorRef = useRef(null); // { grupo, controles, camara, materiales, ... }
@@ -751,14 +762,14 @@ export default function LoftCanvas({
       tipo: p, // ubicación y espesor (v1.15): dónde se dibuja respecto de la estructura
     }));
     dibujarModelo(visor.grupo, visor.materiales, visor.materialesPanel,
-      { params, estructura, aberturas, capas, gruposVisibles, seleccionada, catalogo, aberturaSeleccionada, medida });
+      { params, estructura, aberturas, capas, gruposVisibles, seleccionada, catalogo, aberturaSeleccionada, medida, resaltado });
     // Se reacomoda la cámara si cambia el frente o el tipo de proyecto (construcción / grada).
     const encuadre = `${params.tipoProyecto}:${params.ladoFrente}`;
     if (visor.frente !== encuadre) {
       mirarAlFrente(visor.camara, visor.controles, medidasVista(params, estructura));
       visor.frente = encuadre;
     }
-  }, [params, estructura, aberturas, capas, paneles, gruposVisibles, seleccionada, opacidades.paneles, catalogo, aberturaSeleccionada, medida]);
+  }, [params, estructura, aberturas, capas, paneles, gruposVisibles, seleccionada, opacidades.paneles, catalogo, aberturaSeleccionada, medida, resaltado]);
 
   // 5) MEDIR: el manejador del clic (creado una sola vez) lee el modo por un ref.
   useEffect(() => {
@@ -903,6 +914,14 @@ export default function LoftCanvas({
             ? 'Tocá dos hierros o dos puntos. Entre dos columnas mide de eje a eje. Esc para salir.'
             : 'Arrastrá para orbitar · rueda para zoom · clic en un hierro o una abertura para seleccionarlo · Ctrl+C / Ctrl+V copia y pega')}
         </span>
+        {/* v1.27: qué se está resaltando (al pasar el mouse o fijado con 👁). */}
+        {cartelResaltado && (
+          <div className="cartel-resaltado no-print" role="status">
+            <span className="muestra-resaltado" aria-hidden="true" />
+            <span>{cartelResaltado}</span>
+            {onSoltarResaltado && <button type="button" className="btn-ctrl" onClick={onSoltarResaltado} aria-label="Dejar de resaltar">✕</button>}
+          </div>
+        )}
       </div>
 
       {midiendo && medida?.resultado && (
@@ -916,23 +935,33 @@ export default function LoftCanvas({
 
       {aberturaElegida && (
         <div className="seleccion no-print" role="dialog" aria-label="Abertura seleccionada">
+          {/* v1.27: cerrar arriba a la derecha (como cualquier ventana); las acciones, en el pie. */}
+          <div className="seleccion-cabecera">
+            <strong>Abertura seleccionada</strong>
+            <button type="button" className="btn-cerrar" onClick={() => setAberturaSeleccionada(null)} aria-label="Cerrar" title="Cerrar (Esc)">✕</button>
+          </div>
           <ul className="opening-list">
             <FilaAbertura abertura={aberturaElegida} numero={aberturas.indexOf(aberturaElegida) + 1} params={params}
-              unidad={unidad} onActualizar={onActualizarAbertura}
-              onQuitar={(id) => { onQuitarAbertura(id); setAberturaSeleccionada(null); }}
-              onDuplicar={(op) => { const nueva = onPegarAbertura(op); if (nueva) setAberturaSeleccionada(nueva.id); }} />
+              unidad={unidad} onActualizar={onActualizarAbertura} conAcciones={false} />
           </ul>
           <div className="seleccion-acciones">
-            <button className="btn-ctrl" onClick={() => setAberturaSeleccionada(null)}>Cerrar</button>
+            <button className="btn-ctrl" title="Crea una igual al lado (Ctrl+C y Ctrl+V hace lo mismo)"
+              onClick={() => { const nueva = onPegarAbertura(aberturaElegida); if (nueva) setAberturaSeleccionada(nueva.id); }}>Duplicar</button>
+            <button className="btn-del-texto eliminar-aparte"
+              onClick={() => { onQuitarAbertura(aberturaElegida.id); setAberturaSeleccionada(null); }}>Eliminar abertura</button>
           </div>
         </div>
       )}
 
       {piezaSeleccionada && (
         <div className="seleccion no-print" role="dialog" aria-label="Pieza seleccionada">
-          <div>
-            <strong>Seleccionada:</strong> {describirPieza(piezaSeleccionada, params.ladoFrente)}
-            {piezaSeleccionada.editada && <span className="marca-editada"> · editada</span>}
+          <div className="seleccion-cabecera">
+            <div>
+              <strong>Seleccionada:</strong> {describirPieza(piezaSeleccionada, params.ladoFrente)}
+              {piezaSeleccionada.editada && <span className="marca-editada"> · editada</span>}
+            </div>
+            <button type="button" className="btn-cerrar" onClick={() => { setSeleccionada(null); setEditandoId(null); }}
+              aria-label="Cerrar" title="Cerrar (Esc)">✕</button>
           </div>
           {editandoId === piezaSeleccionada.id && (
             <EditorPieza pieza={piezaSeleccionada} edicion={params.piezasEditadas[piezaSeleccionada.id]}
@@ -947,8 +976,7 @@ export default function LoftCanvas({
               const id = onDuplicarPieza(piezaSeleccionada);
               if (id) { setSeleccionada(id); setEditandoId(id); }
             }}>Duplicar</button>
-            <button className="btn-ctrl" onClick={() => { setSeleccionada(null); setEditandoId(null); }}>Cerrar</button>
-            {/* Eliminar va aparte, a la derecha, para no tocarlo sin querer en vez de "Cerrar". */}
+            {/* Eliminar va aparte, a la derecha del pie, para no tocarlo sin querer. */}
             <button className="btn-del-texto eliminar-aparte" onClick={() => { onEliminarPieza(piezaSeleccionada.id); setSeleccionada(null); }}>
               Eliminar pieza
             </button>

@@ -13,6 +13,8 @@ import CampoSelect from './CampoSelect.jsx';
 import CampoOpcional from './CampoOpcional.jsx';
 import PreciosProveedores from './PreciosProveedores.jsx';
 import { TIPOS_PERFIL, LIMITES_PERFIL, nombrePerfil, kgPorMetro, revisarPerfil } from '../motor/perfiles.js';
+import { BotonResaltar } from './Resaltar.jsx';
+import { usePasarParaResaltar } from './contextoResaltado.js';
 
 const pesos = (n) => n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
 const OPCIONES_TIPO = Object.entries(TIPOS_PERFIL).map(([valor, { nombre }]) => [valor, nombre]);
@@ -49,8 +51,12 @@ function FilaPerfil({ perfil, usadoEn, repetido, proveedores, onActualizar, onQu
   // Plegado: una línea con lo importante. Arranca abierto si hay que revisarlo o si es nuevo (sin precio).
   const [abierto, setAbierto] = useState(Boolean(perfil.revisarPrecio) || perfil.sinPrecio || perfil.precio === 0);
   const nombre = nombrePerfil(perfil) || 'Perfil sin nombre';
+  // v1.27: con el mouse encima (o 👁) se resaltan en el 3D las piezas hechas con este perfil.
+  const criterio = enUso ? { tipo: 'perfil', id: perfil.id, nombre } : null;
+  const pasar = usePasarParaResaltar(criterio);
   return (
-    <li className="fila-perfil">
+    <li className="fila-perfil" {...pasar}>
+      <div className="fila-cabecera-perfil">
       <button type="button" className="cabecera-perfil" aria-expanded={abierto} onClick={() => setAbierto((v) => !v)}>
         <span className="flecha">{abierto ? '▾' : '▸'}</span>
         <strong>{nombre}</strong>
@@ -59,6 +65,8 @@ function FilaPerfil({ perfil, usadoEn, repetido, proveedores, onActualizar, onQu
           {perfil.revisarPrecio && ' · ⚠'}
         </span>
       </button>
+      <BotonResaltar criterio={criterio} />
+      </div>
       <small className="usos-perfil">{enUso ? `Usado en: ${usadoEn.join(', ')}` : 'Sin usar'}</small>
       {repetido && (
         <small className="aviso-precio">⚠ Hay otro perfil igual en la lista{repetido === 'oculto' ? ' (lo usa la grada o el montaje)' : ''}: en los desplegables aparecen los dos.</small>

@@ -64,6 +64,7 @@ export const PARAMS_INICIALES = {
   compartirCortes: true, // v1.19.1: renglones del mismo perfil cortan de las mismas barras
   proveedorElegido: '', // v1.25: id del proveedor con el que se calcula ('' = el primero); 'mas-barato' = cada material al menor precio
   formaPago: 'efectivo', // v1.25: 'efectivo' | 'tarjeta'
+  cantidades: {}, // v1.27: separaciones cargadas por CANTIDAD { 'paredes.A.separacionVerticales': 4 } (sin clave = por medida)
 
   // Fundación
   filasPilotines: 4,

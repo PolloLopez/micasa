@@ -70,6 +70,8 @@ export function migrarParams(params) {
   // v1.25: con qué proveedor y forma de pago se calcula ('' = el primero de la lista).
   nuevos.proveedorElegido = typeof nuevos.proveedorElegido === 'string' ? nuevos.proveedorElegido : '';
   nuevos.formaPago = FORMAS_DE_PAGO.includes(nuevos.formaPago) ? nuevos.formaPago : 'efectivo';
+  // v1.27: separaciones por cantidad (los proyectos viejos, todo por medida).
+  nuevos.cantidades = esObjeto(nuevos.cantidades) ? nuevos.cantidades : {};
   nuevos.panelTecho ??= PARAMS_INICIALES.panelTecho;
   nuevos.piezasEliminadas ??= []; // v1.5
   // v1.7: los proyectos viejos se abren SIN escalera (no se agrega nada que no tenían).

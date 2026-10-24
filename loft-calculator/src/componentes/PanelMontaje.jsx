@@ -92,7 +92,7 @@ function Componente({ c, i, resumen, unidad, cambiar, onQuitar, ladoFrente }) {
         <input type="text" className="perfil nombre-componente" value={c.nombre} maxLength={LARGO_MAXIMO_NOMBRE_COMPONENTE}
           aria-label={`Nombre del componente ${i + 1}`} onChange={(e) => cambiarCampo('nombre')(e.target.value)} />
         <span>{c.tipo === 'mesa' ? 'mesa / bastidor' : 'tanque'}</span>
-        <button className="btn-del" onClick={onQuitar} aria-label={`Quitar ${c.nombre}`} title="Quitar componente">✕</button>
+        <button className="btn-del" onClick={onQuitar} aria-label={`Quitar ${c.nombre}`} title="Quitar componente">Eliminar</button>
       </div>
       <div className="grid-params">
         <CampoNumero etiqueta={`Corrido hacia ${nombreLado('B', ladoFrente)} (x)`} unidad={unidad} valor={c.x} onCambio={cambiarCampo('x')} />
@@ -125,7 +125,7 @@ export default function PanelMontaje({ params, resumenes, unidad, cambiar }) {
   const quitar = (id) => setError(cambiar('montaje.componentes')(componentes.filter((c) => c.id !== id)));
 
   return (
-    <Tarjeta id="montaje" titulo={`Montaje (${componentes.length} componente${componentes.length === 1 ? '' : 's'})`}>
+    <Tarjeta id="montaje" titulo={`Montaje (${componentes.length} componente${componentes.length === 1 ? '' : 's'})`} resaltar={{ tipo: 'grupo', id: 'montaje', nombre: 'Montaje' }}>
       <p className="nota">
         Cada componente se ubica en la planta: <strong>x</strong> y <strong>z</strong> son cuánto se corre su centro desde
         el centro del 3D. Con <strong>Giro 90°</strong> el largo pasa a ir de adelante hacia atrás.

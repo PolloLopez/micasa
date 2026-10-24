@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.27.0] - 2026-10-24
+### Agregado
+- **Por medida o por cantidad**: cada separación (columnas, fajas y montantes de cada pared; tirantes y transversales de
+  piso y entrepiso; columnas del borde libre; vigas y correas del techo) tiene un selector **Medida | Cantidad**.
+  Por medida se muestra cuántas piezas salen ("= 4 columnas"); por cantidad, cada cuánto quedan ("una cada 2.50 m"),
+  repartidas parejo. Al cambiar de modo se pasa el valor, así la estructura no salta.
+  - Columnas de una pared: la cantidad es el **total de la pared, con las esquinas**.
+  - Montantes: cantidad **por vano** entre cada par de columnas.
+  - Fajas: se reparten en el alto mayor de la pared (en una pared inclinada las de arriba son más cortas).
+- **Resaltar en el 3D**: al pasar el mouse por un perfil de la lista, un renglón de Materiales o del Presupuesto, una
+  pared o las tarjetas Pisos, Techo, Escalera, Grada y Montaje, sus piezas se pintan de rosa y se ven a través de
+  todo. Arriba del 3D un cartel dice qué es y cuántas piezas son. El botón **👁** lo deja fijo (otro toque o Esc lo
+  suelta); en el celular además pasa a la vista 3D.
+### Cambiado
+- Los botones de borrar dicen **"Eliminar"** (antes ✕, que parecía "cerrar"): aberturas, revestimientos,
+  proveedores, componentes del montaje y Mis proyectos.
+- Carteles de pieza y abertura seleccionada en el 3D: **✕ para cerrar arriba a la derecha** y las acciones (Editar,
+  Duplicar, Eliminar) en el pie, con Eliminar aparte a la derecha. En la lista de aberturas y de revestimientos,
+  Duplicar/Eliminar también pasan al pie de cada una.
+
 ## [1.26.0] - 2026-10-23
 ### Agregado
 - **Pestaña Planos**: cada pared vista desde afuera, dibujada y acotada (columnas, jambas, fajas, montantes, riostras,

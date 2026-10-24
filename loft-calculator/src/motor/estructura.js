@@ -23,6 +23,7 @@ import {
   geometriaLados, alturaEn, alturasPared, puntoSobreLado, luzTecho, ladoOpuesto, tramoEntrepiso,
 } from './geometria.js';
 import { inicioAbertura } from './validacion.js';
+import { CAMPOS_CON_CANTIDAD, cantidadDe, separacionDe } from './cantidades.js';
 import { cm, pieza, haciaAdentro, cruz } from './segmentos.js';
 import { generarEscalera } from './escalera.js';
 import { generarGrada } from './grada.js';
@@ -89,6 +90,8 @@ function repartir(largo, separacion) {
   return Array.from({ length: tramos + 1 }, (_, i) => (largo * i) / tramos);
 }
 
+// Por medida o por cantidad (v1.27): ver cantidades.js.
+
 /** Posiciones interiores cada `separacion` (sin los extremos 0 y `largo`). */
 function interiores(largo, separacion) {
   const posiciones = [];
@@ -140,7 +143,7 @@ function posicionesDeColumnas(params, lados) {
 
   LADOS.forEach((lado) => {
     const geo = lados[lado];
-    repartir(geo.largo, params.paredes[lado].separacionVerticales).forEach((d) =>
+    repartir(geo.largo, separacionDe(params, `paredes.${lado}.separacionVerticales`, geo.largo)).forEach((d) =>
       agregar(...puntoSobreLado(geo, d))
     );
   });
@@ -151,9 +154,9 @@ function posicionesDeColumnas(params, lados) {
   // sobre la pared (ahí apoya la viga de cierre).
   const rect = rectanguloEntrepiso(params, lados);
   if (rect) {
-    const separacion = params.separacionColumnasEntrepiso;
     bordesEntrepiso(rect, lados).filter((b) => b.libre).forEach(({ a, b }) => {
       const largo = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      const separacion = separacionDe(params, 'separacionColumnasEntrepiso', largo); // v1.27: o por cantidad, en cada borde
       const puntos = separacion > 0 ? repartir(largo, separacion) : [0, largo];
       puntos.forEach((d) => agregar(a[0] + ((b[0] - a[0]) * d) / largo, a[1] + ((b[1] - a[1]) * d) / largo));
     });
@@ -253,14 +256,16 @@ function generarMontantes(params, lados, posiciones, aberturas) {
   const piezas = [];
   LADOS.forEach((lado) => {
     const separacion = params.paredes[lado].separacionMontantes ?? 0;
-    if (!(separacion > 0)) return;
+    const porVano = cantidadDe(params, `paredes.${lado}.separacionMontantes`); // v1.27: n montantes en cada vano
+    if (porVano === 0 || (porVano === null && !(separacion > 0))) return;
     const geo = lados[lado];
     const vanos = aberturas.filter((op) => op.lado === lado).map((op) => vano(op, params));
     const columnas = columnasDeLado(lado, lados, posiciones);
     const ocupado = (d) => columnas.some((c) => Math.abs(c - d) < MARGEN_JAMBA)
       || vanos.some((v) => Math.abs(v.inicio - d) < MARGEN_JAMBA || Math.abs(v.fin - d) < MARGEN_JAMBA);
     for (let i = 0; i < columnas.length - 1; i++) {
-      for (let d = columnas[i] + separacion; d < columnas[i + 1] - EPSILON; d += separacion) {
+      const paso = porVano ? (columnas[i + 1] - columnas[i]) / (porVano + 1) : separacion;
+      for (let d = columnas[i] + paso; d < columnas[i + 1] - EPSILON; d += paso) {
         if (ocupado(d)) continue;
         const [x, z] = puntoSobreLado(geo, d);
         const alto = alturaEn(x, z, params);
@@ -392,12 +397,17 @@ function bordesEntrepiso(rect, lados) {
  * filas de transversales entre tirantes para que no arqueen.
  * `nivel` es 'piso' o 'piso2' (tipo, grupo e id de las piezas).
  */
-function entramadoPiso(rect, separacion, separacionTransversales, y, nivel) {
+function entramadoPiso(rect, separacionCargada, transversalesCargada, y, nivel, params = {}) {
   const cruzanV = rect.largoV <= rect.largoU;
   const luz = cruzanV ? rect.largoV : rect.largoU; // largo de cada tirante
   const largoReparto = cruzanV ? rect.largoU : rect.largoV; // dónde se reparten
   const dirReparto = cruzanV ? rect.u : rect.v;
   const dirLuz = cruzanV ? rect.v : rect.u;
+  // v1.27: las separaciones pueden venir por cantidad (repartidas en el largo de esta planta).
+  const sufijo = nivel === 'piso2' ? '2' : '';
+  const separacion = params.cantidades ? separacionDe(params, `separacionPiso${sufijo}`, largoReparto) : separacionCargada;
+  const separacionTransversales = params.cantidades
+    ? separacionDe(params, `separacionTransversalesPiso${sufijo}`, luz) : transversalesCargada;
 
   const punto = (a, b) => [
     rect.origen[0] + dirReparto[0] * a + dirLuz[0] * b,
@@ -435,7 +445,9 @@ function generarCorreasPared(params, lados) {
   LADOS.forEach((lado) => {
     const geo = lados[lado];
     const [h1, h2] = alturasPared(geo, params);
-    const separacion = params.paredes[lado].separacionHorizontales;
+    // v1.27: por cantidad, las n fajas se reparten parejo en el alto MAYOR de la pared
+    // (en una pared inclinada, las de arriba son más cortas: llegan hasta la solera).
+    const separacion = separacionDe(params, `paredes.${lado}.separacionHorizontales`, Math.max(h1, h2));
     for (let k = 1; k * separacion < Math.max(h1, h2) - EPSILON; k++) {
       const h = k * separacion;
       let a = 0;
@@ -477,11 +489,14 @@ function generarTecho(params, lados) {
     return [x + ax * s, y0 + s * pendiente + extra, z + az * s];
   };
 
-  const vigas = interiores(bajo.largo, params.separacionVigasTecho).map((d) =>
+  const vigas = interiores(bajo.largo, separacionDe(params, 'separacionVigasTecho', bajo.largo)).map((d) =>
     pieza(`viga-techo:${cm(d)}`, 'viga-techo', ['techo'], puntoTecho(d, 0), puntoTecho(d, luz))
   );
 
-  const pasoHorizontal = params.separacionCorreasTecho / factorPendiente;
+  // Por cantidad (v1.27): las correas se reparten parejo a lo largo del faldón (luz horizontal).
+  const pasoHorizontal = cantidadDe(params, 'separacionCorreasTecho') !== null
+    ? separacionDe(params, 'separacionCorreasTecho', luz)
+    : params.separacionCorreasTecho / factorPendiente;
   const posiciones = [0, ...interiores(luz, pasoHorizontal), luz];
   const ALTO_VIGA = 0.1; // las correas apoyan arriba de las vigas
   const correas = posiciones.map((s) =>
@@ -662,9 +677,9 @@ export function generarEstructura(params, aberturas) {
     montantes: generarMontantes(params, lados, posiciones, aberturas), // v1.17
     riostrasParedes: generarRiostrasPared(params, lados, posiciones, aberturas), // v1.17
     marcos: generarMarcos(params, lados, entrepiso),
-    piso: entramadoPiso(planta, params.separacionPiso, params.separacionTransversalesPiso, params.elevacion, 'piso'),
+    piso: entramadoPiso(planta, params.separacionPiso, params.separacionTransversalesPiso, params.elevacion, 'piso', params),
     piso2: entrepiso
-      ? entramadoPiso(entrepiso, params.separacionPiso2, params.separacionTransversalesPiso2, entrepiso.y, 'piso2')
+      ? entramadoPiso(entrepiso, params.separacionPiso2, params.separacionTransversalesPiso2, entrepiso.y, 'piso2', params)
       : { tirantes: [], transversales: [] },
     correas: generarCorreasPared(params, lados),
     techo,
@@ -708,4 +723,56 @@ function marcarPerfilesDePared(e, params) {
     const perfil = params.paredes?.[ladosDeLaPieza[0]]?.[campo];
     return perfil ? { ...p, perfilPared: perfil, ladoPared: ladosDeLaPieza[0] } : p;
   });
+}
+
+// ---------------- Medida <-> cantidad, para la pantalla (v1.27) ----------------
+
+/**
+ * Lo que da un campo de separación con los datos actuales: cuántas piezas y cada cuánto.
+ * Sirve para mostrar "= 4 columnas" al cargar por medida y "cada 2,50 m" al cargar por cantidad.
+ * @returns {{ cantidad: number|null, separacion: number|null, porVano?: boolean }}
+ *   null cuando depende de cada tramo (montantes, columnas del borde libre).
+ */
+export function infoSeparacion(params, ruta) {
+  const campo = CAMPOS_CON_CANTIDAD[ruta];
+  if (!campo || campo.modo === 'porVano' || ruta === 'separacionColumnasEntrepiso') {
+    // Montantes (por vano) y columnas del borde libre (un largo por borde): no hay un único largo.
+    return { cantidad: cantidadDe(params, ruta), separacion: null, porVano: campo?.modo === 'porVano' };
+  }
+  const largo = largoDeCampo(params, geometriaLados(params), ruta);
+  if (!(largo > 0)) return { cantidad: null, separacion: null };
+  if (ruta === 'separacionCorreasTecho') return infoCorreasTecho(params, largo);
+  const separacion = separacionDe(params, ruta, largo);
+  if (!(separacion > 0)) return { cantidad: 0, separacion: 0 };
+  if (campo.modo === 'conExtremos') {
+    // Columnas: repartir() las deja parejas, así que la separación real puede ser menor que la cargada.
+    const cantidad = repartir(largo, separacion).length;
+    return { cantidad, separacion: largo / (cantidad - 1) };
+  }
+  return { cantidad: interiores(largo, separacion).length, separacion };
+}
+
+/** Correas del techo: la medida va sobre la pendiente, el reparto sobre la luz horizontal. */
+function infoCorreasTecho(params, luz) {
+  const pendiente = params.pendienteTecho / 100;
+  const factor = Math.sqrt(1 + pendiente * pendiente);
+  const porCantidad = cantidadDe(params, 'separacionCorreasTecho') !== null;
+  const paso = porCantidad ? separacionDe(params, 'separacionCorreasTecho', luz) : params.separacionCorreasTecho / factor;
+  if (!(paso > 0)) return { cantidad: null, separacion: null };
+  return { cantidad: interiores(luz, paso).length + 2, separacion: paso * factor };
+}
+
+/** Largo en el que se reparte cada campo (el mismo que usa el motor). */
+function largoDeCampo(params, lados, ruta) {
+  const [, lado, nombre] = ruta.split('.');
+  if (nombre === 'separacionVerticales') return lados[lado].largo;
+  if (nombre === 'separacionHorizontales') return Math.max(...alturasPared(lados[lado], params));
+  if (ruta === 'separacionVigasTecho') return lados[params.caidaTecho].largo;
+  if (ruta === 'separacionCorreasTecho') return luzTecho(params);
+  const rect = ruta.endsWith('2') ? rectanguloEntrepiso(params, lados) : rectanguloPlanta(params);
+  if (!rect) return 0;
+  const cruzanV = rect.largoV <= rect.largoU;
+  const reparto = cruzanV ? rect.largoU : rect.largoV;
+  const luz = cruzanV ? rect.largoV : rect.largoU;
+  return ruta.startsWith('separacionTransversales') ? luz : reparto;
 }

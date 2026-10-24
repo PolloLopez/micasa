@@ -9,6 +9,8 @@ import CampoNumero from './CampoNumero.jsx';
 import CampoSelect from './CampoSelect.jsx';
 import { MAS_BARATO } from '../motor/proveedores.js';
 import Tarjeta from './Tarjeta.jsx';
+import { BotonResaltar } from './Resaltar.jsx';
+import { useResaltar, criterioDeRenglon as criterioDe } from './contextoResaltado.js';
 
 const pesos = (n) => n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
 
@@ -114,6 +116,7 @@ export default function TablaPresupuesto({
   onElegirProveedor, onElegirPago, onCambiarPrecio,
 }) {
   // Peso de lo que se compra: barras x largo nominal x kg/m de su perfil (v1.21).
+  const pasar = useResaltar(); // v1.27: resaltar en el 3D las piezas de cada renglón
   const kilos = items.reduce((acc, i) => acc + (i.cortes && i.kgm ? i.cantidad * i.largoBarra * i.kgm : 0), 0);
 
   return (
@@ -135,9 +138,12 @@ export default function TablaPresupuesto({
           </thead>
           <tbody>
             {items.map((item) => (
-              <tr key={item.id}>
+              <tr key={item.id} {...pasar(criterioDe(item))}>
                 <td>
-                  <div className="item-name">{item.nombre}</div>
+                  <div className="item-name">
+                    {item.nombre}
+                    <BotonResaltar criterio={criterioDe(item)} />
+                  </div>
                   {item.perfil && <div className="perfil-texto">{item.perfil}{item.cortes ? ` · barra de ${item.largoBarra} m` : ''}</div>}
                   <small className="detalle">{item.detalle}</small>
                 </td>

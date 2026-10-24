@@ -101,7 +101,8 @@ button { font: inherit; cursor: pointer; }
 .abertura-titulo, .pared-titulo { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; font-size: 0.78rem; }
 .abertura-titulo span, .pared-titulo span { color: var(--texto-tenue); flex: 1; }
 .pared-titulo strong { color: var(--texto); }
-.btn-del { background: var(--peligro); color: #fff; border: none; border-radius: 3px; padding: 2px 7px; }
+.btn-del { background: var(--peligro); color: #fff; border: none; border-radius: 3px; padding: 2px 8px; font-size: 0.75rem; font-weight: 600; white-space: nowrap; min-height: 26px; }
+/* v1.27: los botones de borrar dicen "Eliminar" (antes ✕, que parecía "cerrar"). */
 
 /* ---------- Presupuesto ---------- */
 .table-wrap { overflow-x: auto; }
@@ -203,7 +204,16 @@ input.perfil:focus { outline: 2px solid var(--acento); border-style: solid; }
   background: rgba(15, 23, 42, 0.95); border: 1px solid #facc15; border-radius: 8px; padding: 8px 12px;
   font-size: 0.8rem; display: flex; flex-direction: column; gap: 6px;
 }
-.seleccion-acciones { display: flex; flex-wrap: wrap; gap: 8px; }
+.seleccion-acciones { display: flex; flex-wrap: wrap; gap: 8px; border-top: 1px solid var(--borde); padding-top: 8px; }
+/* v1.27: cabecera con el ✕ de cerrar arriba a la derecha; las acciones (y Eliminar) en el pie. */
+.seleccion-cabecera { display: flex; align-items: flex-start; gap: 8px; }
+.seleccion-cabecera > :first-child { flex: 1; min-width: 0; }
+.btn-cerrar { flex: 0 0 auto; min-width: 32px; min-height: 32px; background: transparent; color: var(--texto-suave);
+  border: 1px solid var(--borde-input); border-radius: 6px; cursor: pointer; font-size: 0.9rem; line-height: 1; }
+.btn-cerrar:hover { color: var(--texto); border-color: var(--texto-suave); }
+.btn-cerrar:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+.pie-acciones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--borde); }
+.pie-acciones .eliminar-aparte { margin-left: auto; }
 /* Eliminar: borde rojo y a la derecha, menos llamativo que "Cerrar" (v1.14.1). */
 .seleccion-acciones .eliminar-aparte { margin-left: auto; background: transparent; color: var(--peligro);
   border: 1px solid var(--peligro); font-weight: normal; }
@@ -229,6 +239,15 @@ input.perfil:focus { outline: 2px solid var(--acento); border-style: solid; }
 .casilla-opcional { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--texto); cursor: pointer; min-height: 28px; }
 .casilla-opcional input { width: 18px; height: 18px; accent-color: var(--acento); margin: 0; }
 .campo-opcional.apagado .casilla-opcional { color: var(--texto-suave); }
+/* v1.27: separación por medida o por cantidad */
+.campo-separacion { display: flex; flex-direction: column; gap: 4px; }
+.campo-separacion.apagado .casilla-opcional { color: var(--texto-suave); }
+.modo-separacion { display: inline-flex; align-self: flex-start; border: 1px solid var(--borde-input); border-radius: 6px; overflow: hidden; }
+.modo-separacion button { background: transparent; color: var(--texto-tenue); border: 0; padding: 4px 10px; font-size: 0.75rem; min-height: 28px; cursor: pointer; }
+.modo-separacion button + button { border-left: 1px solid var(--borde-input); }
+.modo-separacion button[aria-pressed="true"] { background: var(--primario); color: #fff; font-weight: 600; }
+.modo-separacion button:focus-visible { outline: 2px solid var(--acento); outline-offset: -2px; }
+.campo-separacion .derivado { color: var(--acento); font-size: 0.75rem; margin-top: -2px; }
 .acciones-montaje { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 10px; }
 .componente-montaje .pared-titulo { display: flex; align-items: center; gap: 8px; }
 .nombre-componente { flex: 1; min-width: 0; font-weight: 600; }
@@ -494,3 +513,31 @@ kbd {
   .tabla-plano th, .tabla-plano td, .revestimiento-plano { color: #000; border-color: #ccc; }
   .comparacion .tabla-comparacion tr { cursor: default; }
 }
+
+/* ---------- v1.27: resaltar en el 3D ---------- */
+.btn-resaltar {
+  flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
+  min-width: 32px; min-height: 32px; padding: 0 6px; margin-left: 4px; border-radius: 6px;
+  background: transparent; border: 1px solid var(--borde-input); color: var(--texto-tenue); cursor: pointer;
+  font-size: 0.9rem; line-height: 1; vertical-align: middle; text-transform: none; letter-spacing: 0;
+}
+.btn-resaltar:hover { border-color: #f472b6; }
+.btn-resaltar[aria-pressed="true"] { background: #f472b6; border-color: #f472b6; color: #0f172a; }
+.btn-resaltar:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+.card h2.con-resaltar { display: flex; align-items: center; gap: 6px; }
+.fila-titulo-pared, .fila-cabecera-perfil { display: flex; align-items: center; gap: 4px; }
+.fila-titulo-pared .pared-titulo { flex: 1; min-width: 0; margin-bottom: 0; }
+.pared.abierta .fila-titulo-pared { margin-bottom: 6px; }
+.fila-cabecera-perfil .cabecera-perfil { flex: 1; min-width: 0; }
+.item-name .btn-resaltar { min-width: 28px; min-height: 28px; font-size: 0.8rem; }
+.cartel-resaltado {
+  /* Dentro de la barra de controles del 3D, en su propio renglón: nunca tapa nada. */
+  flex: 1 1 100%; max-width: 100%;
+  display: flex; align-items: center; gap: 8px; padding: 4px 6px 4px 10px; border-radius: 6px;
+  background: rgba(15, 23, 42, 0.92); border: 1px solid #f472b6; font-size: 0.8rem;
+}
+.muestra-resaltado { width: 12px; height: 12px; border-radius: 3px; background: #f472b6; flex: 0 0 auto; }
+.cartel-resaltado .btn-ctrl { padding: 2px 8px; min-height: 28px; }
+@media print { .cartel-resaltado, .btn-resaltar { display: none !important; } }
+.canvas-controls { flex-wrap: wrap; }
+.canvas-controls .ctrl-tip { flex: 1 1 220px; min-width: 0; }

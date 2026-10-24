@@ -18,6 +18,8 @@ import CampoSelect from './CampoSelect.jsx';
 import Tarjeta from './Tarjeta.jsx';
 import ListaPerfiles from './ListaPerfiles.jsx';
 import SelectorPerfil from './SelectorPerfil.jsx';
+import { BotonResaltar } from './Resaltar.jsx';
+import { useResaltar, criterioDeRenglon as criterioDe } from './contextoResaltado.js';
 import { LIMITES_REVESTIMIENTO } from '../motor/revestimientos.js';
 import { perfilesDeLista } from '../motor/perfiles.js';
 import { aplicarProveedor, proveedoresDe } from '../motor/proveedores.js';
@@ -57,9 +59,6 @@ function Revestimiento({ tipo, unidad, usos, unicoQueda, proveedores, onCambiar,
         </label>
         <input className="perfil nombre-panel" value={tipo.nombre} aria-label="Nombre del revestimiento"
           onChange={(e) => cambiar('nombre')(e.target.value)} />
-        <button className="btn-del no-print" onClick={() => onQuitar(tipo.id)}
-          disabled={Boolean(motivoNoBorrar)} title={motivoNoBorrar ?? 'Quitar revestimiento'}
-          aria-label={`Quitar ${tipo.nombre}`}>✕</button>
       </div>
       <div className="grid-params">
         <div className="group">
@@ -86,7 +85,13 @@ function Revestimiento({ tipo, unidad, usos, unicoQueda, proveedores, onCambiar,
       {/* v1.25: precio en cada proveedor. A medida se cobra por m²; placa fija, por placa. */}
       <PreciosProveedores material={tipo} proveedores={proveedores} unidad={tipo.venta === 'estandar' ? 'placa' : 'm²'}
         onCambiar={(idProveedor, campo, valor) => onCambiarPrecio(tipo.id, idProveedor, campo, valor)} />
+      {/* v1.27: Eliminar en el pie (antes un ✕ al lado del nombre, que parecía "cerrar"). */}
       <small className="detalle">{usos.length > 0 ? `Usado en: ${usos.join(', ')}` : 'Sin uso'}</small>
+      <div className="pie-acciones no-print">
+        <button className="btn-del eliminar-aparte" onClick={() => onQuitar(tipo.id)}
+          disabled={Boolean(motivoNoBorrar)} title={motivoNoBorrar ?? 'Eliminar revestimiento'}
+          aria-label={`Eliminar ${tipo.nombre}`}>Eliminar</button>
+      </div>
     </li>
   );
 }
@@ -104,6 +109,7 @@ export default function TarjetaMateriales({
 }) {
   // v1.25: para mostrar, cada material con el precio del proveedor y la forma de pago elegidos.
   const conPrecios = aplicarProveedor(catalogo, proveedor, pago);
+  const pasar = useResaltar(); // v1.27: resaltar en el 3D las piezas de cada renglón
   const proveedores = proveedoresDe(catalogo);
   const perfiles = perfilesDeLista(conPrecios);
   // Columnas, Zanca… (los de este proyecto). Los renglones "por pared" (v1.22) se eligen en cada pared.
@@ -152,8 +158,11 @@ export default function TarjetaMateriales({
           </thead>
           <tbody>
             {usosPerfil.map((item) => (
-              <tr key={item.id}>
-                <td className="item-name">{item.nombre}</td>
+              <tr key={item.id} {...pasar(criterioDe(item))}>
+                <td className="item-name">
+                  {item.nombre}
+                  {item.largosPiezas?.length > 0 && <BotonResaltar criterio={criterioDe(item)} />}
+                </td>
                 <td>
                   <SelectorPerfil etiqueta={`Perfil de ${item.nombre}`} conEtiqueta={false} valor={item.perfilId}
                     perfiles={perfiles} onElegir={(id) => onCambiarInsumo(item.id, 'perfilId', id)} />

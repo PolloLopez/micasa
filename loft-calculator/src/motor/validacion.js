@@ -13,6 +13,7 @@ import {
 import { calcularEscalones, DESCANSOS_POR_FORMA } from './escalera.js';
 import { revisarEdicion, PERFILES_ASIGNABLES } from './edicionPiezas.js';
 import { revisarAgregadas } from './piezasAgregadas.js';
+import { CAMPOS_CON_CANTIDAD, MAXIMO_CANTIDAD } from './cantidades.js';
 
 /** Largo máximo del texto de la etiqueta de una pared en el 3D. */
 export const LARGO_MAXIMO_ETIQUETA = 30;
@@ -44,6 +45,24 @@ export function validarPanelesUsados(params, catalogo) {
   return null;
 }
 
+/**
+ * v1.27: las separaciones cargadas por cantidad. Enteros entre el mínimo de cada
+ * campo y MAXIMO_CANTIDAD (una faja o un tirante en 0 colgaría el cálculo).
+ * @returns {[campo, error][]}  el error queda en el campo de la medida (ahí se muestra)
+ */
+export function revisarCantidades(cantidades) {
+  if (cantidades === undefined) return [];
+  if (!cantidades || typeof cantidades !== 'object' || Array.isArray(cantidades)) return [['cantidades', 'Cantidades inválidas']];
+  return Object.entries(cantidades).flatMap(([ruta, n]) => {
+    const campo = CAMPOS_CON_CANTIDAD[ruta];
+    if (!campo) return [['cantidades', `Campo desconocido: ${ruta}`.slice(0, 80)]];
+    if (!Number.isInteger(n)) return [[ruta, 'La cantidad debe ser un número entero']];
+    if (n < campo.minimo) return [[ruta, `Mínimo ${campo.minimo}`]];
+    if (n > MAXIMO_CANTIDAD) return [[ruta, `Máximo ${MAXIMO_CANTIDAD}`]];
+    return [];
+  });
+}
+
 export function validarParametros(params) {
   const errores = {};
   const anotar = (campo, error) => {
@@ -56,6 +75,7 @@ export function validarParametros(params) {
   if (params.proveedorElegido !== undefined && (typeof params.proveedorElegido !== 'string' || params.proveedorElegido.length > 40)) {
     anotar('proveedorElegido', 'Proveedor inválido');
   }
+  revisarCantidades(params.cantidades).forEach(([campo, error]) => anotar(campo, error));
 
   // Lados elegidos (frente, entrepiso, caída del techo).
   ['ladoFrente', 'ladoEntrepiso', 'caidaTecho'].forEach((campo) => {
