@@ -330,7 +330,10 @@ input.perfil:focus { outline: 2px solid var(--acento); border-style: solid; }
 .pestana-boton[aria-selected="true"] { background: var(--primario); color: #fff; border-color: var(--acento); }
 .pestana-boton:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
 .pestana-boton .nombre-corto { display: none; }
-.detalle-pestana { display: block; font-weight: normal; font-size: 0.7rem; color: var(--dinero); }
+.detalle-pestana { display: block; font-weight: normal; font-size: 0.7rem; color: var(--dinero); white-space: nowrap; }
+/* v1.28.1: el total completo; en el celular un poco más chico para que entre en la pestaña. */
+@media (max-width: 600px) { .detalle-pestana { font-size: 0.6rem; letter-spacing: -0.2px; } }
+@media (max-width: 380px) { .detalle-pestana { font-size: 0.55rem; letter-spacing: -0.3px; } }
 .pestana-boton[aria-selected="true"] .detalle-pestana { color: #fff; }
 .pestana { display: flex; flex-direction: column; gap: 16px; }
 .pestana.oculta { display: none; }

@@ -118,10 +118,9 @@ function conValor(obj, ruta, valor) {
 }
 
 /** Total cortito para la pestaña: "$ 7,8 M", "$ 950 mil". */
-function pesosCortos(n) {
-  if (n >= 1e6) return `$ ${(n / 1e6).toLocaleString('es-AR', { maximumFractionDigits: 1 })} M`;
-  if (n >= 1e3) return `$ ${Math.round(n / 1e3).toLocaleString('es-AR')} mil`;
-  return `$ ${Math.round(n)}`;
+/** Total completo para la pestaña (v1.28.1: antes "$ 9,4 M", ahora "$ 9.483.620"). */
+function pesosCompletos(n) {
+  return n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
 }
 
 export default function App() {
@@ -261,7 +260,7 @@ export default function App() {
     { clave: 'estructura', nombre: esGrada ? 'Grada' : esMontaje ? 'Montaje' : 'Estructura', corto: esGrada ? 'Grada' : esMontaje ? 'Montaje' : 'Estruct.' },
     ...(esConstruccion ? [{ clave: 'paredes', nombre: 'Paredes y aberturas', corto: 'Paredes' }] : []),
     { clave: 'materiales', nombre: 'Materiales' },
-    { clave: 'presupuesto', nombre: 'Presupuesto', corto: 'Presup.', detalle: pesosCortos(total) },
+    { clave: 'presupuesto', nombre: 'Presupuesto', corto: 'Presup.', detalle: pesosCompletos(total) },
     { clave: 'planos', nombre: 'Planos' }, // v1.26: paredes y plantas acotadas, para imprimir y exportar
   ];
   // Si la guardada no existe en este tipo de proyecto (ej. "Paredes" en una grada), se usa la primera.

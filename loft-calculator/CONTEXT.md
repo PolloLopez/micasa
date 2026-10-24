@@ -192,6 +192,7 @@ techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 
 - 2026-10-20 v1.24.0: paneles con huecos de las aberturas en el 3D, descontar aberturas en tiras y placas, opacidad de las juntas.
 - 2026-10-23 v1.25.0: proveedores, precios en efectivo/tarjeta por proveedor, comparar presupuestos y "lo más barato de cada material".
 - 2026-10-23 v1.26.0: pestaña Planos (paredes y plantas acotadas, listas de corte, revestimiento), en el PDF y en Excel.
+- 2026-10-24 v1.28.1: total completo en la pestaña Presupuesto.
 - 2026-10-24 v1.28.0: imprimir/exportar con selección (PDF 3 hojas, Excel 4), cotas y medidas fijas en el 3D, bordes de pisos y techo con perfil propio, piso 2 con altura elegible y columnas propias (fila del medio, hasta el piso 2), travesaños de abertura.
 - 2026-10-24 v1.27.0: separaciones por medida o por cantidad, resaltar en el 3D (mouse y 👁), botones "Eliminar" y carteles con ✕ arriba y acciones abajo.
 - Nota: el elemento `id="flonnect-my-app"` que aparece en la página no es de la app: lo inyecta la extensión Flonnect (grabador de pantalla) de Chrome.

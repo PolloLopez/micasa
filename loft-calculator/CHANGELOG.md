@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.28.1] - 2026-10-24
+### Cambiado
+- La pestaña Presupuesto muestra el total completo ("$ 9.483.620") en vez del redondeado ("$ 9,4 M"); en el
+  celular, con letra un poco más chica para que entre.
+
 ## [1.28.0] - 2026-10-24
 ### Agregado
 - **Imprimir / Exportar** (un solo botón): ventana para elegir qué sale — vista 3D actual (con lo resaltado y lo
