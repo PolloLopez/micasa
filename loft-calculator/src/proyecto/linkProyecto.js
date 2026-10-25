@@ -8,11 +8,15 @@
 //   - Se comprime (deflate) y se pasa a base64url (letras, números, - y _)
 //     para que el link sea corto y no se rompa al mandarlo por WhatsApp.
 //   - Si el navegador no sabe comprimir, va sin comprimir (prefijo "j").
+//   - v1.30: prefijo "c" = formato compacto (solo lo distinto de fábrica, ver
+//     formatoCompacto.js) y comprimido: la mitad de largo. Los links viejos
+//     ("z" y "j") se siguen abriendo.
 // Al abrir el link, App lo lee con leerLinkProyecto(), que valida igual
 // que un archivo .json (leerArchivoProyecto).
 // ==========================================================
 
 import { crearArchivoProyecto, leerArchivoProyecto } from './archivoProyecto.js';
+import { compactar, expandir } from './formatoCompacto.js';
 
 export const PREFIJO_HASH = '#proyecto=';
 
@@ -43,13 +47,22 @@ export async function empaquetar(texto) {
   return `z${aBase64Url(await transformar(bytes, new CompressionStream('deflate-raw')))}`;
 }
 
-/** "z..." / "j..." -> texto. Tira error si está roto. */
+/** "z..." / "j..." / "c..." -> texto. Tira error si está roto. ("c" = compacto: devuelve el archivo completo.) */
 export async function desempaquetar(paquete) {
   const tipo = paquete[0];
   const bytes = deBase64Url(paquete.slice(1));
   if (tipo === 'j') return new TextDecoder().decode(bytes);
-  if (tipo === 'z') return new TextDecoder().decode(await transformar(bytes, new DecompressionStream('deflate-raw')));
+  const texto = new TextDecoder().decode(await transformar(bytes, new DecompressionStream('deflate-raw')));
+  if (tipo === 'z') return texto;
+  if (tipo === 'c') return JSON.stringify(expandir(JSON.parse(texto)));
   throw new Error('formato desconocido');
+}
+
+/** Proyecto → paquete compacto "c…" (para el link y para la nube). */
+export async function empaquetarProyecto(proyecto) {
+  const compacto = JSON.stringify(compactar(crearArchivoProyecto(proyecto)));
+  if (typeof CompressionStream === 'undefined') return empaquetar(JSON.stringify(crearArchivoProyecto(proyecto)));
+  return `c${aBase64Url(await transformar(new TextEncoder().encode(compacto), new CompressionStream('deflate-raw')))}`;
 }
 
 /**
@@ -58,8 +71,7 @@ export async function desempaquetar(paquete) {
  * @param urlBase  dirección de la app sin "#" (ej. https://pollolopez.github.io/micasa/)
  */
 export async function crearLinkProyecto(proyecto, urlBase) {
-  const texto = JSON.stringify(crearArchivoProyecto(proyecto));
-  return `${urlBase}${PREFIJO_HASH}${await empaquetar(texto)}`;
+  return `${urlBase}${PREFIJO_HASH}${await empaquetarProyecto(proyecto)}`;
 }
 
 /** ¿El "#" de la dirección trae un proyecto? */

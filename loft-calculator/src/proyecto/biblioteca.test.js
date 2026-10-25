@@ -103,3 +103,15 @@ describe('respaldo de "Mis proyectos"', () => {
     expect(importarRespaldo([], '{"formato":"micasa-proyecto"}').error).toMatch(/no es un respaldo/);
   });
 });
+
+describe('link de la nube en Mis proyectos (v1.30)', () => {
+  it('la entrada guarda el link (con la clave) y la copia no lo hereda', () => {
+    const nube = { id: 'K7x2mQa9Zt12', clave: 'claveclaveclaveclave1234', rev: 3 };
+    const entrada = crearEntrada(proyectoEjemplo(), { id: 'p-1', nombre: 'Casa', nube });
+    expect(entrada.nube).toEqual(nube);
+    expect(JSON.stringify(entrada.datos)).not.toContain(nube.clave); // el .json no lleva la clave
+    const lista = duplicarEntrada([entrada], 'p-1', { nuevoIdCopia: 'p-2' });
+    expect(lista[1].nube).toBeUndefined();
+    expect(crearEntrada(proyectoEjemplo(), { id: 'p-3', nombre: 'Sin link' }).nube).toBeUndefined();
+  });
+});

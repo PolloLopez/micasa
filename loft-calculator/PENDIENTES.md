@@ -105,6 +105,10 @@ abiertas a la vez, 15+ botones de menos de 40 px en el celular.
 - 🟢 [ ] Proveedores compartidos entre proyectos (hoy viajan con cada proyecto).
 - ✅ Flete por proveedor, plan de compra contando el flete y "más barato en" (v1.29.0).
 - ✅ Accesorios con cantidad a mano y precio por proveedor (v1.29.0).
+- ✅ Link compacto (la mitad) y links cortos de ver/editar en Firebase (v1.30.0; falta que Leandro cree el proyecto Firebase: ver firebase/COMO-CONFIGURAR.md).
+- 🔴 [ ] Crear el proyecto de Firebase, publicar las reglas y cargar projectId/apiKey en src/proyecto/configNube.js. Probar las reglas con firebase/probarReglas.mjs (las reglas reales no se pudieron correr en el emulador desde la sesión: se probó la misma lógica con un Firestore falso).
+- 🟡 [ ] Restringir la API key de Firebase al dominio pollolopez.github.io y a la API de Firestore.
+- 🟢 [ ] Historial de versiones del link (hoy `cambios/` guarda solo quién/cuándo; se podría guardar la versión para volver atrás).
 - 🟢 [ ] Accesorios calculados (ej. tornillos por m² de panel, electrodos por metro de soldadura).
 - 🟢 [ ] Flete por viaje según cantidad (cada N barras o kg) si algún proveedor lo cobra así.
 - 🟡 [ ] Paneles sándwich por **caras**: chapa/chapa, chapa/madera (interior), madera/madera (paneles SIP).

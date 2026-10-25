@@ -2,6 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import { crearLinkProyecto, leerLinkProyecto, empaquetar, desempaquetar, tieneProyectoEnLink, PREFIJO_HASH } from './linkProyecto.js';
 import { proyectoEjemplo, gradaEjemplo, montajeEjemplo } from './proyectosBase.js';
+import { crearArchivoProyecto } from './archivoProyecto.js';
 
 const BASE = 'https://pollolopez.github.io/micasa/';
 const hashDe = (link) => link.slice(link.indexOf('#'));
@@ -11,7 +12,7 @@ describe('link para compartir', () => {
     const original = { ...proyectoEjemplo(), nombre: 'Loft de Leandro' };
     original.params.largo = 8.25;
     const link = await crearLinkProyecto(original, BASE);
-    expect(link.startsWith(`${BASE}${PREFIJO_HASH}z`)).toBe(true);
+    expect(link.startsWith(`${BASE}${PREFIJO_HASH}c`)).toBe(true); // v1.30: compacto
     const r = await leerLinkProyecto(hashDe(link));
     expect(r.ok).toBe(true);
     expect(r.proyecto.nombre).toBe('Loft de Leandro');
@@ -65,5 +66,20 @@ describe('tipos de panel con color interior y exterior', () => {
     p.catalogo = p.catalogo.map((i) => (i.id === 'panelTecho' ? { ...i, colorInterior: '#8b5cf6' } : i));
     const r = await leerLinkProyecto(hashDe(await crearLinkProyecto(p, BASE)));
     expect(r.proyecto.catalogo.find((i) => i.id === 'panelTecho').colorInterior).toBe('#8b5cf6');
+  });
+
+  it('v1.30: los links viejos (z, el archivo entero) se siguen abriendo', async () => {
+    const original = { ...proyectoEjemplo(), nombre: 'Viejo' };
+    const viejo = `${PREFIJO_HASH}${await empaquetar(JSON.stringify(crearArchivoProyecto(original)))}`;
+    const r = await leerLinkProyecto(viejo);
+    expect(r.ok).toBe(true);
+    expect(r.proyecto.nombre).toBe('Viejo');
+  });
+
+  it('v1.30: el compacto es bastante más corto que el viejo', async () => {
+    const p = proyectoEjemplo();
+    const viejo = await empaquetar(JSON.stringify(crearArchivoProyecto(p)));
+    const nuevo = await crearLinkProyecto(p, '');
+    expect(nuevo.length).toBeLessThan(viejo.length * 0.6);
   });
 });

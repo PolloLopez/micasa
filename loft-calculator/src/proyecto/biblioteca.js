@@ -26,14 +26,19 @@ export function nuevoId() {
   return `p-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
-/** Arma una entrada a partir del proyecto en pantalla. */
-export function crearEntrada(proyecto, { id = nuevoId(), nombre, fecha = new Date() }) {
+/**
+ * Arma una entrada a partir del proyecto en pantalla.
+ * @param nube  v1.30: { id, clave, rev } si el proyecto tiene link en la nube (la clave queda solo en
+ *              este navegador: no va en el .json ni en el link para ver)
+ */
+export function crearEntrada(proyecto, { id = nuevoId(), nombre, fecha = new Date(), nube = null }) {
   const nombreFinal = (nombre ?? proyecto.nombre ?? '').trim() || 'Proyecto sin nombre';
   return {
     id,
     nombre: nombreFinal,
     guardado: fecha.toISOString(),
     datos: crearArchivoProyecto({ ...proyecto, nombre: nombreFinal }, fecha),
+    ...(nube ? { nube } : {}),
   };
 }
 
@@ -47,7 +52,7 @@ export function borrarEntrada(lista, id) {
   return lista.filter((e) => e.id !== id);
 }
 
-/** Copia una entrada con otro id y "(copia)" en el nombre. */
+/** Copia una entrada con otro id y "(copia)" en el nombre (sin su link de la nube: la copia es otro proyecto). */
 export function duplicarEntrada(lista, id, { nuevoIdCopia = nuevoId(), fecha = new Date() } = {}) {
   const original = lista.find((e) => e.id === id);
   if (!original) return lista;

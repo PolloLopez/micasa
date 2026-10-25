@@ -53,6 +53,8 @@ import { nombreLado, alturasPared, geometriaLados, alturaMaxima } from './motor/
 import { COLORES_INICIALES, coloresValidos, completarColores } from './capas.js';
 import { crearArchivoProyecto, leerArchivoProyecto, nombreDeArchivo } from './proyecto/archivoProyecto.js';
 import { crearLinkProyecto, leerLinkProyecto, tieneProyectoEnLink } from './proyecto/linkProyecto.js';
+import { nubeDisponible, crearEnNube, leerDeNube, guardarEnNube, leerHashNube, linksNube } from './proyecto/nube.js';
+import DialogoCompartir from './componentes/DialogoCompartir.jsx';
 import {
   proyectoVacio, proyectoEjemplo, gradaNueva, gradaEjemplo, montajeNuevo, montajeEjemplo,
 } from './proyecto/proyectosBase.js';
@@ -146,6 +148,10 @@ export default function App() {
   const [biblioteca, setBiblioteca] = useEstadoGuardado('biblioteca', [], esBibliotecaValida, undefined, () =>
     setAviso({ tipo: 'error', texto: 'No se pudo guardar en Mis proyectos: el navegador no tiene lugar. Descargá el proyecto como archivo (.json).' }));
   const [idProyectoActual, setIdProyectoActual] = useEstadoGuardado('proyectoActual', null, (v) => v === null || typeof v === 'string');
+  // v1.30: link en la nube del proyecto en pantalla: { id, clave (null = solo ver), rev } o null.
+  const [nube, setNube] = useEstadoGuardado('nube', null, (v) => v === null
+    || (typeof v === 'object' && typeof v.id === 'string' && (v.clave === null || typeof v.clave === 'string') && Number.isInteger(v.rev)));
+  const [dialogoCompartir, setDialogoCompartir] = useState(false);
   // Ver u ocultar el 3D: oculto, el panel de datos usa todo el ancho (cómodo para cargar en el celular).
   const [ver3D, setVer3D] = useEstadoGuardado('ver3D', true, (v) => typeof v === 'boolean');
   const [mostrarProyectos, setMostrarProyectos] = useState(false);
@@ -485,8 +491,9 @@ export default function App() {
   }, [entradaActual, cambiosSinGuardar]);
 
   /** Reemplaza todo el proyecto en pantalla (nuevo, ejemplo, de la lista o de un archivo). */
-  const cargarProyecto = (proyecto, idEnBiblioteca = null) => {
+  const cargarProyecto = (proyecto, idEnBiblioteca = null, nubeDelProyecto = null) => {
     setNombreProyecto(proyecto.nombre);
+    setNube(nubeDelProyecto); // v1.30: el link de la nube viaja con el proyecto (o no tiene)
     // Otro proyecto: el historial arranca de cero (Ctrl+Z no vuelve al proyecto anterior).
     setHistorial(historialVacio());
     aplicarFoto(proyecto);
@@ -504,16 +511,16 @@ export default function App() {
     });
 
   /** Guarda en Mis proyectos con un id (nuevo o el actual). Si el navegador no tiene lugar, avisa el hook. */
-  const guardarEnBiblioteca = (id, nombre) => {
-    const entrada = crearEntrada(proyectoActual, { id, nombre });
+  const guardarEnBiblioteca = (id, nombre, nubeAGuardar = nube, textoExtra = '') => {
+    const entrada = crearEntrada(proyectoActual, { id, nombre, nube: nubeAGuardar });
     setBiblioteca((prev) => guardarEntrada(prev, entrada));
     setNombreProyecto(entrada.nombre);
     setIdProyectoActual(entrada.id);
-    setAviso({ tipo: 'ok', texto: `Guardado en Mis proyectos: "${entrada.nombre}"` });
+    setAviso({ tipo: 'ok', texto: `Guardado en Mis proyectos: "${entrada.nombre}"${textoExtra}` });
   };
 
   /** "Guardar como…": pide un nombre y crea un proyecto nuevo en la lista. */
-  const guardarComo = async () => {
+  const guardarComo = async (nubeAGuardar = nube, textoExtra = '') => {
     const nombre = await pedirTexto({
       titulo: 'Guardar como…', mensaje: 'Se guarda en Mis proyectos de este navegador.',
       etiqueta: 'Nombre del proyecto', valorInicial: nombreProyecto || '', aceptar: 'Guardar',
@@ -523,11 +530,43 @@ export default function App() {
       setAviso({ tipo: 'error', texto: 'Poné un nombre para guardar el proyecto.' });
       return;
     }
-    guardarEnBiblioteca(nuevoId(), nombre);
+    guardarEnBiblioteca(nuevoId(), nombre, nubeAGuardar, textoExtra);
   };
 
-  /** "Guardar": pisa el proyecto abierto; si nunca se guardó, funciona como "Guardar como…". */
-  const guardar = () => (entradaActual ? guardarEnBiblioteca(entradaActual.id, nombreProyecto) : guardarComo());
+  /**
+   * "Guardar": pisa el proyecto abierto; si nunca se guardó, funciona como "Guardar como…".
+   * v1.30: si el proyecto tiene link para editar, también guarda la versión nueva en la nube.
+   */
+  const guardar = async () => {
+    let nubeNueva = nube;
+    let extra = '';
+    let errorNube = null;
+    if (nube?.clave && nubeDisponible()) {
+      try {
+        const rev = await guardarEnNube(nube.id, nube.clave, proyectoActual, nube.rev);
+        nubeNueva = { ...nube, rev };
+        setNube(nubeNueva);
+        extra = ' y en el link ☁';
+      } catch (e) {
+        errorNube = e.message;
+      }
+    }
+    if (entradaActual) guardarEnBiblioteca(entradaActual.id, nombreProyecto, nubeNueva, extra);
+    else await guardarComo(nubeNueva, extra);
+    // El aviso del error va al final (si no, lo taparía el de "Guardado en Mis proyectos").
+    if (errorNube) setAviso({ tipo: 'error', texto: `Se guardó en este navegador, pero NO en el link: ${errorNube}` });
+  };
+
+  // --- Links cortos en la nube (v1.30) ---
+  const urlBase = () => `${window.location.origin}${window.location.pathname}`;
+  /** Sube el proyecto y queda con su link de editar (si ya estaba en Mis proyectos, se guarda ahí también). */
+  const crearLinksNube = async () => {
+    const creado = await crearEnNube(proyectoActual);
+    setNube(creado);
+    if (entradaActual) guardarEnBiblioteca(entradaActual.id, nombreProyecto, creado, ' (con su link ☁)');
+    else setAviso({ tipo: 'ok', texto: 'Links creados. Guardá el proyecto en Mis proyectos para no perder el link de editar.' });
+  };
+  const linksActuales = nube ? { ver: linksNube(urlBase(), nube.id, '').ver, editar: nube.clave ? linksNube(urlBase(), nube.id, nube.clave).editar : null } : null;
 
   const abrirDeBiblioteca = async (entrada) => {
     if (entrada.id !== idProyectoActual && !(await puedoReemplazar())) return;
@@ -536,7 +575,7 @@ export default function App() {
       setAviso({ tipo: 'error', texto: `No se pudo abrir "${entrada.nombre}": ${r.error}` });
       return;
     }
-    cargarProyecto(r.proyecto, entrada.id);
+    cargarProyecto(r.proyecto, entrada.id, entrada.nube ?? null);
     setMostrarProyectos(false);
     setAviso({ tipo: 'ok', texto: `Proyecto "${entrada.nombre}" abierto` });
   };
@@ -679,6 +718,32 @@ export default function App() {
   // Al abrir la app con un link compartido: ofrece abrir ese proyecto (queda sin guardar).
   useEffect(() => {
     const hash = window.location.hash;
+    // v1.30: link corto de la nube (#p= para ver, #e= para editar).
+    const linkNube = leerHashNube(hash);
+    if (linkNube && nubeDisponible()) {
+      // Se saca el link de la barra de direcciones (el de editar lleva la clave).
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+      leerDeNube(linkNube.id).then(async (r) => {
+        if (!r.ok) {
+          setAviso({ tipo: 'error', texto: r.error });
+          return;
+        }
+        // Si ya está en Mis proyectos (mismo link), se abre sobre esa entrada y se conserva su clave.
+        const entrada = biblioteca.find((e) => e.nube?.id === linkNube.id);
+        const clave = linkNube.clave ?? entrada?.nube?.clave ?? null;
+        const abrir = (entrada && entrada.id === idProyectoActual) || await confirmar({
+          titulo: clave ? 'Proyecto compartido para editar' : 'Proyecto compartido',
+          mensaje: `¿Abrir "${r.proyecto.nombre}"? Reemplaza lo que tenés en pantalla.${clave ? ' Con "Guardar" los cambios quedan en el link.' : ''}`,
+          aceptar: 'Abrir', cancelar: 'No, seguir con el mío',
+        });
+        if (!abrir) return;
+        cargarProyecto(r.proyecto, entrada?.id ?? null, { id: linkNube.id, clave, rev: r.rev });
+        setAviso({ tipo: 'ok', texto: clave
+          ? `"${r.proyecto.nombre}" abierto del link. Los cambios se guardan en el link con "Guardar".`
+          : `"${r.proyecto.nombre}" abierto (solo para ver: tus cambios no cambian el link).` });
+      });
+      return;
+    }
     if (!tieneProyectoEnLink(hash)) return;
     const limpiarLink = () => window.history.replaceState(null, '', window.location.pathname + window.location.search);
     leerLinkProyecto(hash).then(async (r) => {
@@ -802,7 +867,7 @@ export default function App() {
             onClick={(ev) => { if (ev.target.closest('button')) setMenuAbierto(false); }}>
           <button className="btn-sec" onClick={() => setMostrarProyectos(true)}>Mis proyectos ({biblioteca.length})</button>
           <button className="btn-sec" onClick={guardarComo}>Guardar como…</button>
-          <button className="btn-sec" onClick={compartirLink} title="Copia un link que abre este proyecto con tus medidas">Compartir</button>
+          <button className="btn-sec" onClick={() => setDialogoCompartir(true)} title="Links para ver y para editar este proyecto">Compartir{nube ? ' ☁' : ''}</button>
           <button className="btn-sec" onClick={() => setVer3D((v) => !v)} aria-pressed={!ver3D}>
             {ver3D ? 'Ocultar 3D' : 'Ver 3D'}
           </button>
@@ -836,6 +901,10 @@ export default function App() {
       {/* Diálogos propios (v1.19): ¿Borrar?, Guardar como…, cambios sin guardar */}
       {dialogo}
       {ayudaAbierta && <Ayuda primeraVez={!bienvenidaVista} onCerrar={cerrarAyuda} />}
+      {dialogoCompartir && (
+        <DialogoCompartir links={linksActuales} soloVer={Boolean(nube && !nube.clave)} disponible={nubeDisponible()}
+          onCrear={crearLinksNube} onLinkLargo={compartirLink} onCerrar={() => setDialogoCompartir(false)} />
+      )}
       {dialogoImprimir && (
         <DialogoImprimir opciones={opcionesImpresion} onCambiar={setOpcionesImpresion} cantidadMedidas={medidasFijas.length}
           esConstruccion={esConstruccion} onImprimir={imprimir} onExcel={exportarExcel} onCerrar={() => setDialogoImprimir(false)} />

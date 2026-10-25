@@ -1,0 +1,49 @@
+rules_version = '2';
+// ==========================================================
+// Reglas de Firestore de Pollo Calculator (v1.30): links para compartir
+// ----------------------------------------------------------
+//   proyectos/{id}   el proyecto compartido. Cualquiera con el link de VER
+//                    lo puede leer (el id es largo y al azar). Guarda:
+//                      datos      (texto, el proyecto comprimido)
+//                      claveHash  (sha256 en hexa de la clave de edición)
+//                      rev        (número de versión: 0, 1, 2…)
+//   cambios/{id_rev} un registro por cada guardado, con la CLAVE adentro.
+//                    Nadie lo puede leer: así la clave nunca queda a la vista.
+//
+// Para guardar una versión nueva hay que escribir en el mismo envío (batch):
+//   1) cambios/{id}_{rev nueva} con { id, clave } → la regla comprueba que
+//      sha256(clave) sea el claveHash del proyecto;
+//   2) proyectos/{id} con rev + 1 → la regla comprueba que exista ese cambio.
+// Quien solo tiene el link de ver no sabe la clave: no puede guardar.
+// ==========================================================
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function esHash(h) { return h is string && h.size() == 64; }
+    function datosValidos(d) { return d.datos is string && d.datos.size() < 900000 && d.rev is int; }
+    function camposDelProyecto(d) { return d.keys().hasOnly(['datos', 'claveHash', 'rev', 'actualizado']); }
+
+    match /proyectos/{id} {
+      allow get: if true;                 // se lee con el link (no se puede listar)
+      allow list: if false;
+      allow create: if id.size() >= 10 && camposDelProyecto(request.resource.data)
+        && datosValidos(request.resource.data) && request.resource.data.rev == 0
+        && esHash(request.resource.data.claveHash);
+      allow update: if camposDelProyecto(request.resource.data) && datosValidos(request.resource.data)
+        && request.resource.data.claveHash == resource.data.claveHash
+        && request.resource.data.rev == resource.data.rev + 1
+        && existsAfter(/databases/$(database)/documents/cambios/$(id + '_' + string(request.resource.data.rev)));
+      allow delete: if false;
+    }
+
+    match /cambios/{cambio} {
+      allow read: if false;
+      allow create: if request.resource.data.keys().hasOnly(['id', 'clave'])
+        && request.resource.data.clave is string && request.resource.data.clave.size() >= 16
+        && cambio == request.resource.data.id + '_' + string(getAfter(/databases/$(database)/documents/proyectos/$(request.resource.data.id)).data.rev)
+        && hashing.sha256(request.resource.data.clave).toHexString().lower()
+             == get(/databases/$(database)/documents/proyectos/$(request.resource.data.id)).data.claveHash;
+      allow update, delete: if false;
+    }
+  }
+}

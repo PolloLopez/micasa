@@ -625,3 +625,12 @@ kbd {
   .compra-proveedor { background: #fff; color: #000; border-color: #ccc; }
   .compra-proveedor h4, .compra-proveedor h4 span { color: #000; }
 }
+
+/* ---------- v1.30: compartir con links cortos ---------- */
+.dialogo-compartir { max-width: 560px; }
+.fila-link { margin: 0 0 10px; }
+.fila-link label { display: block; font-size: 0.85rem; margin-bottom: 3px; }
+.fila-link label small { color: var(--texto-tenue); }
+.link-y-boton { display: flex; gap: 6px; }
+.link-y-boton input { flex: 1; min-width: 0; font-size: 0.8rem; }
+.dialogo-compartir .btn-print { margin: 4px 0 10px; }

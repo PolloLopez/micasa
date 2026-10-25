@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.30.0] - 2026-10-25
+### Agregado
+- **Links cortos que guardan los cambios** (con Firebase, ver `firebase/COMO-CONFIGURAR.md`): "Compartir" sube el
+  proyecto y da dos links — **para ver** (`#p=<id>`, para el cliente) y **para editar** (`#e=<id>.<clave>`, para vos
+  o el herrero). Con el de editar, "Guardar" guarda también en el link; quien abra cualquiera de los dos ve la última
+  versión. Si dos guardan a la vez, el segundo recibe un aviso y no pisa nada.
+- Reglas de seguridad de Firestore (`firebase/firestore.rules`): la clave nunca queda legible en la base (solo su
+  huella sha256); sin la clave no se puede guardar; no se pueden listar los proyectos. Script de prueba con el
+  emulador: `firebase/probarReglas.mjs`.
+- El link de editar se guarda en Mis proyectos de tu navegador (no viaja en el .json ni en el link de ver).
+### Cambiado
+- El link sin nube ahora lleva solo lo que cambia respecto de lo de fábrica: **la mitad de largo** (tu casa: de
+  4.550 a ~2.080 letras; el ejemplo: ~730). Los links viejos se siguen abriendo.
+- "Compartir" abre una ventana (links cortos o, si la nube no está configurada, el link de siempre).
+
 ## [1.29.0] - 2026-10-24
 ### Agregado
 - **Flete por proveedor** (en Materiales → Proveedores): monto por pedido y, opcional, "gratis desde $X" de compra.
