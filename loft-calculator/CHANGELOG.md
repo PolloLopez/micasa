@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.30.1] - 2026-10-25
+### Cambiado
+- **Links cortos activados**: la app ya apunta al proyecto de Firebase `pollo-calculator` (`src/proyecto/configNube.js`).
+  "Compartir → Crear links cortos" sube el proyecto y da los links de ver y de editar.
+
 ## [1.30.0] - 2026-10-25
 ### Agregado
 - **Links cortos que guardan los cambios** (con Firebase, ver `firebase/COMO-CONFIGURAR.md`): "Compartir" sube el

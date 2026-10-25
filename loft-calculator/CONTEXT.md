@@ -197,6 +197,7 @@ techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 
 - 2026-10-23 v1.25.0: proveedores, precios en efectivo/tarjeta por proveedor, comparar presupuestos y "lo más barato de cada material".
 - 2026-10-23 v1.26.0: pestaña Planos (paredes y plantas acotadas, listas de corte, revestimiento), en el PDF y en Excel.
 - 2026-10-25 v1.30.0: link compacto (la mitad) y links cortos en Firebase para ver/editar que guardan los cambios.
+- 2026-10-25 v1.30.1: configNube.js apunta al proyecto Firebase `pollo-calculator` (links cortos activos tras el deploy).
 - 2026-10-24 v1.29.0: flete por proveedor, plan de compra con flete, "más barato en", accesorios, "no lo vende".
 - 2026-10-24 v1.28.1: total completo en la pestaña Presupuesto.
 - 2026-10-24 v1.28.0: imprimir/exportar con selección (PDF 3 hojas, Excel 4), cotas y medidas fijas en el 3D, bordes de pisos y techo con perfil propio, piso 2 con altura elegible y columnas propias (fila del medio, hasta el piso 2), travesaños de abertura.

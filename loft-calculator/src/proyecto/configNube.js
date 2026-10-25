@@ -8,8 +8,8 @@
 // ==========================================================
 
 // 👉 Pegá acá los dos datos de tu proyecto de Firebase:
-const PROYECTO = ''; // "projectId", ej. 'pollo-calculator'
-const CLAVE_WEB = ''; // "apiKey", ej. 'AIzaSy…'
+const PROYECTO = 'pollo-calculator'; // "projectId"
+const CLAVE_WEB = 'AIzaSyDN2Hjr06zU9wulRq1o6ljg45sPJVfWctw'; // "apiKey" (pública; la seguridad está en las reglas)
 
 // (Para probar se pueden pasar por variables de entorno al compilar:
 //  VITE_NUBE_PROYECTO y VITE_NUBE_CLAVE; si están, mandan sobre lo de arriba.)
