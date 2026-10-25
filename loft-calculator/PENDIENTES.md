@@ -103,6 +103,10 @@ abiertas a la vez, 15+ botones de menos de 40 px en el celular.
 - 🟢 [ ] Revisar con Leandro si los otros listados (proveedores, perfiles) también quieren Eliminar al pie.
 - 🟢 [ ] Planos: escalonar las cotas cuando quedan muy juntas (hoy se omiten las de menos de 15 cm); escalera en planta; DXF para CAD.
 - 🟢 [ ] Proveedores compartidos entre proyectos (hoy viajan con cada proyecto).
+- ✅ Flete por proveedor, plan de compra contando el flete y "más barato en" (v1.29.0).
+- ✅ Accesorios con cantidad a mano y precio por proveedor (v1.29.0).
+- 🟢 [ ] Accesorios calculados (ej. tornillos por m² de panel, electrodos por metro de soldadura).
+- 🟢 [ ] Flete por viaje según cantidad (cada N barras o kg) si algún proveedor lo cobra así.
 - 🟡 [ ] Paneles sándwich por **caras**: chapa/chapa, chapa/madera (interior), madera/madera (paneles SIP).
       Cada cara con su material y color.
 - 🟡 [ ] Perfil por pared y **patrón alternado en la misma capa**: ej. caño 80x80 cada 2 m y 60x60 entre medio

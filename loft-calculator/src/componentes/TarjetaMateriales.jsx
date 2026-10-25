@@ -18,6 +18,7 @@ import CampoSelect from './CampoSelect.jsx';
 import Tarjeta from './Tarjeta.jsx';
 import ListaPerfiles from './ListaPerfiles.jsx';
 import SelectorPerfil from './SelectorPerfil.jsx';
+import { LIMITES_ACCESORIO } from '../motor/presupuesto.js';
 import { BotonResaltar } from './Resaltar.jsx';
 import { useResaltar, criterioDeRenglon as criterioDe } from './contextoResaltado.js';
 import { LIMITES_REVESTIMIENTO } from '../motor/revestimientos.js';
@@ -96,6 +97,41 @@ function Revestimiento({ tipo, unidad, usos, unicoQueda, proveedores, onCambiar,
   );
 }
 
+/** Un accesorio (v1.29): nombre, descripción, cantidad, unidad y precio por proveedor. */
+function Accesorio({ accesorio: a, proveedores, onCambiar, onQuitar, onCambiarPrecio }) {
+  const texto = (campo, largo) => (e) => onCambiar(a.id, { [campo]: e.target.value.slice(0, largo) });
+  const cambiarCantidad = (v) => {
+    const { min, max } = LIMITES_ACCESORIO.cantidad;
+    if (v < min || v > max) return `Entre ${min} y ${max}`;
+    onCambiar(a.id, { cantidad: v });
+    return null;
+  };
+  return (
+    <li className="abertura accesorio">
+      <div className="grid-params">
+        <div className="group">
+          <label htmlFor={`acc-nombre-${a.id}`}>Accesorio</label>
+          <input id={`acc-nombre-${a.id}`} type="text" maxLength={60} value={a.nombre} onChange={texto('nombre', 60)} />
+        </div>
+        <div className="group">
+          <label htmlFor={`acc-desc-${a.id}`}>Descripción</label>
+          <input id={`acc-desc-${a.id}`} type="text" maxLength={120} value={a.perfil} placeholder="ej. T2 punta mecha 14x1" onChange={texto('perfil', 120)} />
+        </div>
+        <CampoNumero etiqueta="Cantidad" decimales={2} valor={a.cantidad} onCambio={cambiarCantidad} />
+        <div className="group">
+          <label htmlFor={`acc-unidad-${a.id}`}>Unidad</label>
+          <input id={`acc-unidad-${a.id}`} type="text" maxLength={15} value={a.unidad} placeholder="caja, kg, u…" onChange={texto('unidad', 15)} />
+        </div>
+      </div>
+      <PreciosProveedores material={a} proveedores={proveedores} unidad={a.unidad}
+        onCambiar={(idProveedor, campo, valor) => onCambiarPrecio(a.id, idProveedor, campo, valor)} />
+      <div className="pie-acciones no-print">
+        <button className="btn-del eliminar-aparte" onClick={() => onQuitar(a.id)} aria-label={`Eliminar ${a.nombre}`}>Eliminar</button>
+      </div>
+    </li>
+  );
+}
+
 /**
  * @param items          renglones del presupuesto (para mostrar solo los materiales de este proyecto)
  * @param catalogo       catálogo guardado (con la lista de perfiles, categoria 'hierro')
@@ -106,6 +142,7 @@ export default function TarjetaMateriales({
   onCambiarExcedente, onCambiarInsumo, onAgregarRevestimiento, onQuitarRevestimiento,
   compartirCortes, onCambiarCompartir, onActualizarPerfil, onAgregarPerfil, onQuitarPerfil,
   proveedor, pago, onCambiarPrecio, onActualizarProveedor, onAgregarProveedor, onQuitarProveedor,
+  onAgregarAccesorio, onQuitarAccesorio,
 }) {
   // v1.25: para mostrar, cada material con el precio del proveedor y la forma de pago elegidos.
   const conPrecios = aplicarProveedor(catalogo, proveedor, pago);
@@ -114,7 +151,9 @@ export default function TarjetaMateriales({
   const perfiles = perfilesDeLista(conPrecios);
   // Columnas, Zanca… (los de este proyecto). Los renglones "por pared" (v1.22) se eligen en cada pared.
   const usosPerfil = items.filter((i) => i.categoria === 'perfil' && !i.derivadoDe);
-  const otros = items.filter((i) => i.categoria !== 'panel' && i.categoria !== 'perfil'); // OSB, pilotines, madera…
+  // OSB, pilotines, madera… (los accesorios y el flete tienen su lugar propio).
+  const otros = items.filter((i) => !['panel', 'perfil', 'accesorio', 'flete'].includes(i.categoria));
+  const accesorios = catalogo.filter((i) => i.categoria === 'accesorio');
   // Qué renglones de ESTE proyecto usa cada perfil (para "Usado en" y para no borrar uno en uso).
   const usadoEn = {};
   items.filter((i) => i.categoria === 'perfil').forEach((i) => i.perfilId && (usadoEn[i.perfilId] ??= []).push(i.nombre));
@@ -218,6 +257,20 @@ export default function TarjetaMateriales({
           </table>
         </div>
       </>)}
+
+      {/* v1.29: accesorios. La cantidad se carga a mano (no sale de la estructura). */}
+      <h3 className="subtitulo">Accesorios (tornillería, electrodos, selladores…)</h3>
+      <p className="nota">
+        Lo que se compra aparte de la estructura. Cargá cuánto vas a necesitar y el precio de cada proveedor
+        (sin precio = ese proveedor no lo vende). Con cantidad 0 no entra al presupuesto.
+      </p>
+      <ul className="opening-list">
+        {accesorios.map((a) => (
+          <Accesorio key={a.id} accesorio={a} proveedores={proveedores} onCambiar={onActualizarPerfil}
+            onQuitar={onQuitarAccesorio} onCambiarPrecio={onCambiarPrecio} />
+        ))}
+      </ul>
+      <button className="btn-add no-print" onClick={onAgregarAccesorio}>+ Agregar accesorio</button>
 
       {revestimientos && (<>
         <h3 className="subtitulo">Revestimientos (paneles, chapas, placas)</h3>

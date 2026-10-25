@@ -43,7 +43,7 @@
 
 import { LADOS, INSUMO, CAMPOS_PERFIL_PARED, ALTURA_PISO_2 } from './constantes.js';
 import { PARAMS_INICIALES } from './parametrosIniciales.js';
-import { CATALOGO_FIJO, TIPOS_PANEL_INICIALES } from './presupuesto.js';
+import { CATALOGO_FIJO, TIPOS_PANEL_INICIALES, ACCESORIOS_INICIALES, LIMITES_ACCESORIO } from './presupuesto.js';
 import { ESCALERA_INICIAL } from './escalera.js';
 import { GRADA_INICIAL } from './grada.js';
 import { MONTAJE_INICIAL } from './montaje.js';
@@ -222,7 +222,12 @@ export function normalizarCatalogo(catalogo) {
   });
 
   // v1.25: proveedores y precios por proveedor (los catálogos viejos pasan su precio a "Mi proveedor").
-  return conProveedores([...conPerfil, ...(paneles.length > 0 ? paneles : TIPOS_PANEL_INICIALES), ...perfiles], guardado);
+  // v1.29: accesorios (los proyectos de antes arrancan con los de fábrica, en cantidad 0 y sin precio).
+  const accesoriosGuardados = guardado.filter((p) => p.categoria === 'accesorio').map(normalizarAccesorio).filter(Boolean)
+    .filter((p, i, lista) => lista.findIndex((q) => q.id === p.id) === i);
+  const hayAccesorios = guardado.some((p) => p.categoria === 'accesorio');
+  const accesorios = hayAccesorios ? accesoriosGuardados : ACCESORIOS_INICIALES;
+  return conProveedores([...conPerfil, ...(paneles.length > 0 ? paneles : TIPOS_PANEL_INICIALES), ...perfiles, ...accesorios], guardado);
 }
 
 /** Renglón nuevo → renglón del que copia su perfil al abrir un proyecto viejo. */
@@ -232,6 +237,24 @@ const RENGLONES_QUE_COPIAN = {
   [INSUMO.BORDE_TECHO]: INSUMO.VIGA_TECHO, // v1.28
   [INSUMO.COLUMNA_ENTREPISO]: INSUMO.COLUMNA, // v1.28: antes iban con las columnas
 };
+
+/** Un accesorio guardado (v1.29): se conserva si tiene id; los textos se recortan y la cantidad se valida. */
+function normalizarAccesorio(p) {
+  if (typeof p.id !== 'string' || !p.id) return null;
+  const { min, max } = LIMITES_ACCESORIO.cantidad;
+  const texto = (v, largo, porDefecto) => (typeof v === 'string' ? v.slice(0, largo) : porDefecto);
+  return {
+    id: p.id,
+    categoria: 'accesorio',
+    nombre: texto(p.nombre, 60, 'Accesorio') || 'Accesorio',
+    perfil: texto(p.perfil, 120, ''),
+    unidad: texto(p.unidad, 15, 'u') || 'u',
+    cantidad: Number.isFinite(p.cantidad) && p.cantidad >= min && p.cantidad <= max ? p.cantidad : 0,
+    largoBarra: null,
+    precio: esPrecio(p.precio) ? p.precio : 0,
+    precios: p.precios ?? {},
+  };
+}
 
 /** Un perfil de la lista guardado: se conserva si es válido; si no, se descarta (null). */
 function normalizarPerfil(p) {

@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.29.0] - 2026-10-24
+### Agregado
+- **Flete por proveedor** (en Materiales → Proveedores): monto por pedido y, opcional, "gratis desde $X" de compra.
+  Se suma una vez a cada proveedor al que se le compra algo y aparece como renglón en el presupuesto.
+- **Plan de compra** (en Presupuesto, con 2 o más proveedores): la combinación más barata **contando el flete**,
+  con lo que hay que comprarle a cada uno, su subtotal y su flete. Si un proveedor ahorra menos que su flete, no se
+  usa. También sale en el PDF y en el Excel.
+- En cada renglón del presupuesto: "más barato en <proveedor>: $X" cuando otro lo vende más barato.
+- **Accesorios** (en Materiales): tornillería, electrodos y selladores ya cargados, y "+ Agregar accesorio" para
+  otros (nombre, descripción, cantidad, unidad y precio en cada proveedor). La cantidad se carga a mano; con 0 no
+  entra al presupuesto.
+### Cambiado
+- Un material sin precio en un proveedor ahora se lee como "no lo vende" (antes "⚠ faltan" / "sin precio").
+  La comparación muestra "no vende N" y los totales de cada proveedor incluyen su flete.
+
 ## [1.28.1] - 2026-10-24
 ### Cambiado
 - La pestaña Presupuesto muestra el total completo ("$ 9.483.620") en vez del redondeado ("$ 9,4 M"); en el

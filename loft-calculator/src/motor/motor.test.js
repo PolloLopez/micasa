@@ -351,7 +351,8 @@ describe('calcularPresupuesto', () => {
     // Opcionales: riostras y montantes (v1.17) aparecen solo si la obra los lleva.
     // Los perfiles de la lista (v1.21, categoria 'hierro') no son renglones del presupuesto.
     // (v1.25: los proveedores tampoco.)
-    const esperados = CATALOGO_INICIAL.filter((p) => p.categoria !== 'hierro' && p.categoria !== 'proveedor').map((p) => p.id)
+    // (v1.29: los accesorios solo si tienen cantidad cargada; los de fábrica arrancan en 0.)
+    const esperados = CATALOGO_INICIAL.filter((p) => !['hierro', 'proveedor', 'accesorio'].includes(p.categoria)).map((p) => p.id)
       .filter((id) => !INSUMOS_GRADA.includes(id) && !INSUMOS_MONTAJE.includes(id) && id !== INSUMO.RIOSTRA && id !== INSUMO.MONTANTE);
     expect(items.map((i) => i.id).sort()).toEqual(esperados.sort());
   });
@@ -471,7 +472,7 @@ describe('migración desde v1.2', () => {
     const paneles = c.filter((i) => i.categoria === 'panel');
     expect(paneles).toHaveLength(1);
     expect(paneles[0]).toMatchObject({ id: 'panelMuros', precio: 41000, color: '#10b981' });
-    expect(c.filter((i) => !['panel', 'hierro', 'proveedor'].includes(i.categoria))).toHaveLength(CATALOGO_FIJO.length);
+    expect(c.filter((i) => !['panel', 'hierro', 'proveedor', 'accesorio'].includes(i.categoria))).toHaveLength(CATALOGO_FIJO.length);
   });
 
   it('catálogo vacío o roto => el de fábrica', () => {

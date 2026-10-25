@@ -59,7 +59,7 @@ export const PARTES_EXCEL = { resumen: true, medidas: true, presupuesto: true, c
  * @param {object} datos { nombre, params, vistas: { paredes, plantas }, items, total, gruposCortes, proveedor, pago, resumen, medidas }
  * @param {object} partes { resumen, medidas, presupuesto, cortes, paredes, plantas } (true = va)
  */
-export function hojasDeObra({ nombre, params, vistas, items, total, gruposCortes = [], proveedor = '', pago = '', resumen = [], medidas = [] }, partes = PARTES_EXCEL) {
+export function hojasDeObra({ nombre, params, vistas, items, total, gruposCortes = [], proveedor = '', pago = '', resumen = [], medidas = [], plan = null }, partes = PARTES_EXCEL) {
   const fecha = new Date().toLocaleDateString('es-AR');
   const hojas = [];
 
@@ -82,6 +82,16 @@ export function hojasDeObra({ nombre, params, vistas, items, total, gruposCortes
       ]),
       { negrita: true, celdas: ['TOTAL', '', '', '', '', { pesos: total }] },
     );
+    // v1.29: plan de compra (con más de un proveedor): a quién comprarle cada material, contando el flete.
+    if (plan && plan.compras.length > 0) {
+      obra.push([], { negrita: true, celdas: ['Plan de compra (contando el flete)', '', '', '', '', { pesos: plan.total }] });
+      plan.compras.forEach((c) => {
+        obra.push({ negrita: true, celdas: [c.proveedor.nombre, '', '', '', '', { pesos: c.total }] });
+        c.renglones.forEach((r) => obra.push([`  ${r.nombre}`, '', r.cantidad, r.unidad ?? '', { pesos: r.precio }, { pesos: r.subtotal }]));
+        obra.push(['  Flete', '', '', '', '', { pesos: c.flete }]);
+      });
+      if (plan.nadieVende.length) obra.push([`Ningún proveedor vende: ${plan.nadieVende.join(', ')}`]);
+    }
   }
   if (obra.length > 3) hojas.push({ nombre: 'Obra', anchos: [30, 60, 10, 10, 14, 16], filas: obra });
 

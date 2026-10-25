@@ -76,7 +76,7 @@ function ComparacionProveedores({ proveedores, proveedor, pago, comparacion, onE
     <td className="num">
       {pesos(c[forma].total)}
       {c[forma].faltan.length > 0 && (
-        <small className="falta" title={`Sin precio: ${c[forma].faltan.join(', ')}`}> ⚠ faltan {c[forma].faltan.length}</small>
+        <small className="falta" title={`No vende: ${c[forma].faltan.join(', ')}`}> · no vende {c[forma].faltan.length}</small>
       )}
     </td>
   );
@@ -104,16 +104,50 @@ function ComparacionProveedores({ proveedores, proveedor, pago, comparacion, onE
         </div>
       )}
       <p className="nota">
-        "⚠ faltan" = materiales que ese proveedor no tiene cargados (cuentan $0: el total está incompleto).
-        Los precios se cargan en <strong>Materiales</strong>; acá se puede corregir el del proveedor y la forma de pago elegidos.
+        Un material sin precio en un proveedor es porque <strong>no lo vende</strong>: ese total no lo incluye ("no vende N"),
+        así que para comparar mirá el <strong>plan de compra</strong>. Los totales incluyen el flete de cada uno.
+        Los precios y el flete se cargan en <strong>Materiales</strong>; acá se puede corregir el precio del proveedor elegido.
       </p>
+    </div>
+  );
+}
+
+/**
+ * Plan de compra (v1.29): a quién comprarle cada material para gastar menos, contando el flete.
+ * Una tarjetita por proveedor con lo que se le compra, el subtotal, el flete y el total.
+ */
+function PlanDeCompra({ plan, mejorUnico }) {
+  if (!plan || plan.compras.length === 0) return null;
+  const ahorro = mejorUnico ? mejorUnico.total - plan.total : 0;
+  return (
+    <div className="plan-compra">
+      <h3 className="subtitulo">Plan de compra: dónde conviene cada material</h3>
+      <p className="nota">
+        La combinación más barata <strong>contando el flete</strong>: si un proveedor ahorra menos que lo que cobra de
+        flete, no se usa. Total del plan: <strong>{pesos(plan.total)}</strong>
+        {ahorro > 0 && mejorUnico && <> · {pesos(ahorro)} menos que comprar todo en {mejorUnico.nombre}</>}.
+      </p>
+      {plan.nadieVende.length > 0 && <p className="falta">⚠ Ningún proveedor vende: {plan.nadieVende.join(', ')}.</p>}
+      <div className="compras-plan">
+        {plan.compras.map((c) => (
+          <section key={c.proveedor.id} className="compra-proveedor">
+            <h4>{c.proveedor.nombre} <span>{pesos(c.total)}</span></h4>
+            <ul>
+              {c.renglones.map((r) => (
+                <li key={r.id}><span>{r.nombre}</span> <small>{r.cantidad} {r.unidad} × {pesos(r.precio)}</small> <span className="num">{pesos(r.subtotal)}</span></li>
+              ))}
+              <li className="flete-plan"><span>Flete</span> <span className="num">{c.flete > 0 ? pesos(c.flete) : 'sin cargo'}</span></li>
+            </ul>
+          </section>
+        ))}
+      </div>
     </div>
   );
 }
 
 export default function TablaPresupuesto({
   items, total, gruposCortes = [], proveedores = [], proveedor, pago = 'efectivo', comparacion = [],
-  onElegirProveedor, onElegirPago, onCambiarPrecio,
+  onElegirProveedor, onElegirPago, onCambiarPrecio, plan = null, masBaratoDe = () => null,
 }) {
   // Peso de lo que se compra: barras x largo nominal x kg/m de su perfil (v1.21).
   const pasar = useResaltar(); // v1.27: resaltar en el 3D las piezas de cada renglón
@@ -125,6 +159,10 @@ export default function TablaPresupuesto({
       {proveedores.length > 0 && (
         <ComparacionProveedores proveedores={proveedores} proveedor={proveedor} pago={pago} comparacion={comparacion}
           onElegirProveedor={onElegirProveedor} onElegirPago={onElegirPago} />
+      )}
+      {proveedores.length > 1 && (
+        <PlanDeCompra plan={plan} mejorUnico={comparacion.filter((c) => c.id !== MAS_BARATO && c[pago].faltan.length === 0)
+          .map((c) => ({ nombre: c.nombre, total: c[pago].total })).sort((a, b) => a.total - b.total)[0]} />
       )}
       <div className="table-wrap">
         <table>
@@ -151,13 +189,20 @@ export default function TablaPresupuesto({
                 <td>
                   {/* v1.21: el precio de una barra es del perfil de la lista: cambiarlo acá lo cambia en todas sus partes.
                       v1.25: se guarda en el proveedor y la forma de pago elegidos; con "lo más barato" no se edita. */}
-                  {proveedor === MAS_BARATO ? (
+                  {/* v1.29: el flete se carga en el proveedor (Materiales), no acá. */}
+                  {proveedor === MAS_BARATO || item.categoria === 'flete' ? (
                     <span>{item.sinPrecio ? '—' : pesos(item.precio)}{item.proveedorDelPrecio && <small className="detalle"> {item.proveedorDelPrecio}</small>}</span>
                   ) : (
                     <CampoNumero etiqueta="" sufijo="$" decimales={0} valor={item.precio}
                       onCambio={validarPrecio((v) => onCambiarPrecio(item, v))} />
                   )}
-                  {item.sinPrecio && item.cantidad > 0 && <small className="falta">⚠ sin precio</small>}
+                  {item.sinPrecio && item.cantidad > 0 && <small className="falta">no lo vende {item.proveedorDelPrecio ?? 'ningún proveedor'}</small>}
+                  {(() => {
+                    // v1.29: si otro proveedor lo vende más barato, se avisa (sin contar el flete).
+                    const barato = item.cantidad > 0 && item.categoria !== 'flete' ? masBaratoDe(item) : null;
+                    if (!barato || barato.id === item.idProveedorDelPrecio || (!item.sinPrecio && barato.precio >= item.precio)) return null;
+                    return <small className="mas-barato-en">más barato en {barato.nombre}: {pesos(barato.precio)}</small>;
+                  })()}
                 </td>
                 <td className="num sub">{pesos(item.subtotal)}</td>
               </tr>

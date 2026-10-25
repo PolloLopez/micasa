@@ -74,7 +74,7 @@ export default function PreciosProveedores({ material, proveedores, unidad, onCa
               <td className="nombre-proveedor">{p.nombre}</td>
               <td>
                 <CampoPrecio etiqueta={`Precio en efectivo de ${material.nombre} en ${p.nombre}`} valor={precio.efectivo}
-                  ayuda="sin precio" onCambio={(v) => onCambiar(p.id, 'efectivo', v)} />
+                  ayuda="no lo vende" onCambio={(v) => onCambiar(p.id, 'efectivo', v)} />
               </td>
               <td>
                 <CampoPrecio etiqueta={`Precio con tarjeta de ${material.nombre} en ${p.nombre}`} valor={precio.tarjeta}

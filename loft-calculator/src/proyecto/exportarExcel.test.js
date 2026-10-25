@@ -46,6 +46,14 @@ describe('libro de la obra', () => {
     expect(celdas(hojas[2]).filter((f) => String(f[0]).includes('vista desde arriba'))).toHaveLength(3);
   });
 
+  it('v1.29: con plan de compra, va en la hoja Obra con el flete', () => {
+    const plan = { total: 1500, nadieVende: [], compras: [{ proveedor: { id: 'b', nombre: 'Barato' }, subtotal: 1000, flete: 500, total: 1500,
+      renglones: [{ id: 'osb', nombre: 'Placas OSB', cantidad: 2, unidad: 'placa', precio: 500, subtotal: 1000 }] }] };
+    const obra = celdas(hojasDeObra({ ...datosDeEjemplo(), plan })[0]);
+    expect(obra.some((f) => f[0] === 'Plan de compra (contando el flete)')).toBe(true);
+    expect(obra.some((f) => f[0] === '  Flete' && f[5].pesos === 500)).toBe(true);
+  });
+
   it('solo lo elegido', () => {
     const hojas = hojasDeObra(datosDeEjemplo(), { presupuesto: true, paredes: false, plantas: true, cortes: false, resumen: false });
     expect(hojas.map((h) => h.nombre)).toEqual(['Obra', 'Plantas']);

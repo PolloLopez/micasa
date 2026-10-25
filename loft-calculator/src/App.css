@@ -475,9 +475,10 @@ kbd {
 
 /* ---------- Proveedores y precios (v1.25) ---------- */
 .lista-proveedores { list-style: none; margin: 0 0 8px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-.fila-proveedor { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.7fr) minmax(0, 1.5fr) auto; gap: 8px; align-items: end;
+.fila-proveedor { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; align-items: end; /* v1.29: + flete */
   background: var(--fondo); border: 1px solid var(--borde); border-radius: 8px; padding: 8px 10px; }
 @media (max-width: 600px) { .fila-proveedor { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+.fila-proveedor .btn-del { justify-self: end; }
 .tabla-precios { width: 100%; margin-top: 8px; font-size: 0.8rem; border-collapse: collapse; }
 .tabla-precios th { text-align: left; color: var(--texto-suave); font-weight: 600; padding: 2px 4px; }
 .tabla-precios td { padding: 2px 4px; }
@@ -597,6 +598,7 @@ kbd {
   .plano-impresion .table-wrap { overflow: visible; }
   .cortes-impresion { columns: 2; column-gap: 5mm; font-size: 7pt; }
   .grupo-cortes { break-inside: avoid; margin-bottom: 2mm; }
+  .plan-impresion p { margin: 0.8mm 0; font-size: 7.5pt; }
   .grupo-cortes ul { margin: 0.5mm 0 0; padding-left: 4mm; }
   .grilla-plantas .tabla-plano th:first-child, .grilla-plantas .tabla-plano td:first-child { width: 36%; }
   .grilla-plantas .tabla-plano .num { width: 14%; }
@@ -604,3 +606,22 @@ kbd {
 }
 
 .casillas-entrepiso { display: flex; flex-direction: column; gap: 2px; margin: 4px 0 6px; } /* v1.28 */
+
+/* ---------- v1.29: plan de compra, flete y accesorios ---------- */
+.plan-compra { margin: 8px 0 12px; }
+.compras-plan { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; }
+.compra-proveedor { border: 1px solid var(--borde); border-radius: 8px; padding: 6px 10px; background: var(--fondo); }
+.compra-proveedor h4 { margin: 0 0 4px; display: flex; justify-content: space-between; gap: 8px; color: var(--acento); font-size: 0.9rem; }
+.compra-proveedor h4 span { color: var(--dinero); }
+.compra-proveedor ul { list-style: none; margin: 0; padding: 0; font-size: 0.8rem; }
+.compra-proveedor li { display: flex; gap: 6px; align-items: baseline; padding: 2px 0; border-bottom: 1px solid var(--borde); }
+.compra-proveedor li > span:first-child { flex: 1; min-width: 0; }
+.compra-proveedor li small { color: var(--texto-tenue); }
+.compra-proveedor .num { white-space: nowrap; }
+.compra-proveedor .flete-plan { color: var(--texto-suave); border-bottom: none; }
+.mas-barato-en { display: block; color: var(--dinero); font-size: 0.72rem; }
+.accesorio .grid-params { margin-bottom: 4px; }
+@media print {
+  .compra-proveedor { background: #fff; color: #000; border-color: #ccc; }
+  .compra-proveedor h4, .compra-proveedor h4 span { color: #000; }
+}

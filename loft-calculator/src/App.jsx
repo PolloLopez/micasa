@@ -36,7 +36,7 @@ import { generarEstructura, listarPiezas, infoSeparacion } from './motor/estruct
 import { CAMPOS_CON_CANTIDAD, MAXIMO_CANTIDAD, cantidadDe } from './motor/cantidades.js';
 import { calcularPresupuesto, CATALOGO_INICIAL, tiposDePanel } from './motor/presupuesto.js';
 import { resolverCatalogo, PERFIL_NUEVO, perfilesDeLista } from './motor/perfiles.js';
-import { proveedoresDe, aplicarProveedor, faltanPrecios, MAS_BARATO } from './motor/proveedores.js';
+import { proveedoresDe, aplicarProveedor, faltanPrecios, MAS_BARATO, planDeCompra, masBaratoEn } from './motor/proveedores.js';
 import SelectorPerfil from './componentes/SelectorPerfil.jsx';
 import Planos from './componentes/Planos.jsx';
 import { todasLasVistas } from './motor/planos.js';
@@ -241,6 +241,8 @@ export default function App() {
     })),
   // eslint-disable-next-line react-hooks/exhaustive-deps
   })), [estructura, catalogo, proveedores, params.excedenteBarras, params.compartirCortes]);
+  // v1.29: plan de compra (a quién comprarle cada material, contando el flete), con las cantidades de este presupuesto.
+  const planCompra = useMemo(() => planDeCompra(items, resolverCatalogo(catalogo), formaPago), [items, catalogo, formaPago]);
   // Catálogo con los precios elegidos (para los desplegables de perfiles y el 3D).
   const catalogoConPrecios = useMemo(() => aplicarProveedor(catalogo, proveedorElegido, formaPago), [catalogo, proveedorElegido, formaPago]);
   const paneles = useMemo(() => tiposDePanel(catalogo), [catalogo]);
@@ -420,6 +422,14 @@ export default function App() {
     ...(params.panelTecho === id ? ['Techo'] : []),
   ];
   const quitarTipoPanel = (id) => setCatalogo((prev) => prev.filter((p) => p.id !== id));
+  // --- Accesorios (v1.29): tornillería, electrodos, selladores… y los que agregue el herrero ---
+  const agregarAccesorio = () => setCatalogo((prev) => {
+    const usados = new Set(prev.map((p) => p.id));
+    let n = 1;
+    while (usados.has(`acc-${n}`)) n++;
+    return [...prev, { id: `acc-${n}`, categoria: 'accesorio', nombre: 'Accesorio nuevo', perfil: '', unidad: 'u', cantidad: 0, largoBarra: null, precio: 0, precios: {} }];
+  });
+  const quitarAccesorio = (id) => setCatalogo((prev) => prev.filter((p) => p.id !== id));
 
   const agregarAbertura = (abertura) => setAberturas((prev) => [...prev, abertura]);
   const actualizarAbertura = (abertura) =>
@@ -640,6 +650,7 @@ export default function App() {
     const bytes = libroDeObra({
       nombre: nombreProyecto, params, vistas, items, total, gruposCortes,
       proveedor: nombreProveedor, pago: textoPago, resumen, medidas: medidasFijas,
+      plan: proveedores.length > 1 ? planCompra : null,
     }, opcionesImpresion);
     const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const enlace = document.createElement('a');
@@ -1149,7 +1160,8 @@ export default function App() {
             onActualizarPerfil={actualizarInsumo} onAgregarPerfil={agregarPerfil} onQuitarPerfil={quitarPerfil}
             onAgregarRevestimiento={agregarTipoPanel} onQuitarRevestimiento={quitarTipoPanel}
             proveedor={proveedorElegido} pago={formaPago} onCambiarPrecio={cambiarPrecio}
-            onActualizarProveedor={actualizarInsumo} onAgregarProveedor={agregarProveedor} onQuitarProveedor={quitarProveedor} />
+            onActualizarProveedor={actualizarInsumo} onAgregarProveedor={agregarProveedor} onQuitarProveedor={quitarProveedor}
+            onAgregarAccesorio={agregarAccesorio} onQuitarAccesorio={quitarAccesorio} />
 
           </section>
           <section id="pestana-presupuesto" role="tabpanel" aria-labelledby="boton-presupuesto"
@@ -1157,7 +1169,8 @@ export default function App() {
           <TablaPresupuesto items={items} total={total} gruposCortes={gruposCortes}
             proveedores={proveedores} proveedor={proveedorElegido} pago={formaPago} comparacion={comparacion}
             onElegirProveedor={cambiar('proveedorElegido')} onElegirPago={cambiar('formaPago')}
-            onCambiarPrecio={(item, valor) => cambiarPrecio(item.perfilId ?? item.id, proveedorElegido, formaPago, valor)} />
+            onCambiarPrecio={(item, valor) => cambiarPrecio(item.perfilId ?? item.id, proveedorElegido, formaPago, valor)}
+            plan={planCompra} masBaratoDe={(item) => masBaratoEn(item, catalogoResuelto, formaPago)} />
           </section>
           {/* v1.26: planos de cada pared y planta (en pantalla y en el PDF) + Excel. */}
           <section id="pestana-planos" role="tabpanel" aria-labelledby="boton-planos"
@@ -1170,7 +1183,8 @@ export default function App() {
       <HojasImpresion opciones={opcionesImpresion} capturas={capturas} nombre={nombreProyecto}
         subtitulo={`${new Date().toLocaleDateString('es-AR')} · ${nombreProveedor ? `${nombreProveedor} ${textoPago}` : textoPago} · Pollo Calculator v${VERSION_APP}`}
         leyenda3D={cartelResaltado ? `Resaltado en rosa — ${cartelResaltado.replace(' (fijado)', '')}` : null}
-        resumen={resumen} items={items} total={total} gruposCortes={gruposCortes} vistas={vistas} params={params} />
+        resumen={resumen} items={items} total={total} gruposCortes={gruposCortes} vistas={vistas} params={params}
+        plan={proveedores.length > 1 ? planCompra : null} />
     </div>
     </ContextoResaltado>
   );

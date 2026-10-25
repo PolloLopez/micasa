@@ -69,7 +69,7 @@ describe('comparar presupuestos', () => {
   const e = generarEstructura(P, []);
   // Segundo proveedor: todo 10 % más barato en efectivo, 20 % de recargo con tarjeta; no tiene pilotines.
   const conOtro = [
-    ...CATALOGO_INICIAL.map((i) => (i.precios ? {
+    ...CATALOGO_INICIAL.map((i) => (i.precios?.['prov-1'] ? {
       ...i,
       precios: { ...i.precios, ...(i.id === INSUMO.PILOTIN ? {} : { otro: { efectivo: Math.round(i.precios['prov-1'].efectivo * 0.9), tarjeta: null } }) },
     } : i)),

@@ -12,7 +12,7 @@
 // ==========================================================
 
 import { armarListaDePerfiles, resolverCatalogo, nombrePerfil, kgPorMetro } from './perfiles.js';
-import { conProveedores, aplicarProveedor } from './proveedores.js';
+import { conProveedores, aplicarProveedor, renglonesDeFlete } from './proveedores.js';
 import { compartirCortes } from './cortesCompartidos.js';
 import { optimizarCortes } from './optimizadorCortes.js';
 import { listarPiezas } from './estructura.js';
@@ -97,6 +97,18 @@ export const TIPOS_PANEL_INICIALES = [
 ];
 
 /**
+ * Accesorios (v1.29): lo que no sale de la estructura y se compra igual (tornillería, electrodos,
+ * selladores…). La cantidad la carga el herrero; el precio, por proveedor como todo. Se pueden agregar más.
+ *   { id, categoria: 'accesorio', nombre, perfil (descripción), unidad, cantidad, precios }
+ */
+export const ACCESORIOS_INICIALES = [
+  { id: 'acc-tornilleria', categoria: 'accesorio', nombre: 'Tornillería', perfil: 'Autoperforantes / bulones', unidad: 'caja', cantidad: 0, largoBarra: null, precio: 0, precios: {} },
+  { id: 'acc-electrodos', categoria: 'accesorio', nombre: 'Electrodos', perfil: 'Electrodos 2.5 mm', unidad: 'kg', cantidad: 0, largoBarra: null, precio: 0, precios: {} },
+  { id: 'acc-selladores', categoria: 'accesorio', nombre: 'Selladores', perfil: 'Sellador poliuretánico', unidad: 'cartucho', cantidad: 0, largoBarra: null, precio: 0, precios: {} },
+];
+export const LIMITES_ACCESORIO = { cantidad: { min: 0, max: 1000000 } };
+
+/**
  * Catálogo de fábrica (v1.21): los usos apuntan a una lista de perfiles armada con
  * los perfiles de arriba (los que se repiten, como el C 80x40x1.6, quedan como UNO).
  */
@@ -107,6 +119,7 @@ export const CATALOGO_INICIAL = conProveedores([
   ...CATALOGO_FIJO.map((i) => fabrica.usos.find((u) => u.id === i.id) ?? i),
   ...TIPOS_PANEL_INICIALES,
   ...PERFILES_INICIALES,
+  ...ACCESORIOS_INICIALES,
 ]);
 
 /** Tipos de panel del catálogo. */
@@ -171,7 +184,9 @@ export function calcularPresupuesto(estructura, catalogo, { excedenteBarras = 0,
   const conPrecios = proveedor === undefined ? catalogo : aplicarProveedor(catalogo, proveedor, pago);
   // v1.21: cada uso toma nombre, largo de barra y precio de su perfil de la lista.
   const r = calcularRenglones(estructura, resolverCatalogo(conPrecios), excedenteBarras);
-  return conCortesCompartidos(r, compartir);
+  // v1.29: el flete de cada proveedor al que se le compra algo, como un renglón más (cuenta en el total).
+  const fletes = proveedor === undefined ? [] : renglonesDeFlete(r, conPrecios);
+  return conCortesCompartidos([...r, ...fletes], compartir);
 }
 
 /**
@@ -291,6 +306,9 @@ function calcularRenglones(estructura, catalogo, excedenteBarras) {
   });
 
   items.push(itemSimple(insumo(INSUMO.PILOTIN), e.pilotines.length, 'grilla de fundación'));
+  // v1.29: accesorios con cantidad cargada (tornillería, electrodos, selladores…).
+  catalogo.filter((i) => i.categoria === 'accesorio' && i.cantidad > 0)
+    .forEach((a) => items.push(itemSimple(a, a.cantidad, 'cantidad cargada a mano')));
 
   // Escalera (si no hay, los renglones quedan en 0 con "no lleva").
   const escalera = e.escalera;
@@ -331,6 +349,8 @@ function renglonDePared(producto, perfilElegido, piezas) {
     largoBarra: perfilElegido.largoBarra,
     precio: perfilElegido.precio,
     sinPrecio: perfilElegido.sinPrecio,
+    proveedorDelPrecio: perfilElegido.proveedorDelPrecio,
+    idProveedorDelPrecio: perfilElegido.idProveedorDelPrecio,
     kgm: kgPorMetro(perfilElegido),
     derivadoDe: producto.id,
   };

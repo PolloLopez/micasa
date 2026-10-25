@@ -57,7 +57,7 @@ function CortesCompactos({ grupos }) {
 }
 
 export default function HojasImpresion({
-  opciones, capturas, nombre, subtitulo, leyenda3D, resumen, items, total, gruposCortes, vistas, params,
+  opciones, capturas, nombre, subtitulo, leyenda3D, resumen, items, total, gruposCortes, vistas, params, plan = null,
 }) {
   const fotos = capturas ?? { actual: null, fijas: [], medidas: [] };
   const conParedes = opciones.paredes && vistas.paredes.length > 0;
@@ -103,6 +103,19 @@ export default function HojasImpresion({
             <>
               <h2>Presupuesto de materiales</h2>
               <PresupuestoCompacto items={items} total={total} />
+              {/* v1.29: con más de un proveedor, a quién comprarle cada cosa (contando el flete). */}
+              {plan && plan.compras.length > 0 && (
+                <div className="plan-impresion">
+                  <h2>Plan de compra (contando el flete): {pesos(plan.total)}</h2>
+                  {plan.compras.map((c) => (
+                    <p key={c.proveedor.id}>
+                      <strong>{c.proveedor.nombre} — {pesos(c.total)}</strong>
+                      {c.flete > 0 ? ` (flete ${pesos(c.flete)})` : ''}: {c.renglones.map((r) => `${r.nombre} ${r.cantidad} ${r.unidad ?? ''}`.trim()).join(' · ')}
+                    </p>
+                  ))}
+                  {plan.nadieVende.length > 0 && <p>Ningún proveedor vende: {plan.nadieVende.join(', ')}.</p>}
+                </div>
+              )}
             </>
           )}
           {conPlantas && (
