@@ -18,6 +18,7 @@ import { useEffect, useRef, useState } from 'react';
 import { piezaResaltada } from './motor/resaltado.js';
 import * as THREE from 'three';
 import { hayDialogoAbierto } from './componentes/useDialogo.js';
+import { useEstadoGuardado } from './hooks/useEstadoGuardado.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { LADOS } from './motor/constantes.js';
 import { CAPAS, AYUDAS, GRUPOS_LEYENDA, capaDelProyecto } from './capas.js';
@@ -1039,7 +1040,18 @@ export default function LoftCanvas({
   }, [autoRotar]);
 
   // Leyenda de capas plegable: en pantallas chicas arranca plegada para no tapar el modelo.
-  const [capasAbiertas, setCapasAbiertas] = useState(() => !window.matchMedia?.('(max-width: 1000px)').matches);
+  // v1.34.2: el panel de capas arranca CERRADO (tapaba el 3D) y recuerda cómo lo dejaste en este navegador.
+  const [capasAbiertas, setCapasAbiertas] = useEstadoGuardado('capasAbiertas', false, (v) => typeof v === 'boolean');
+  // Esc lo cierra (salvo que se esté escribiendo en un campo o haya un diálogo abierto).
+  useEffect(() => {
+    if (!capasAbiertas) return undefined;
+    const alTeclear = (ev) => {
+      if (ev.key !== 'Escape' || hayDialogoAbierto() || ev.target.closest?.('input, select, textarea')) return;
+      setCapasAbiertas(false);
+    };
+    window.addEventListener('keydown', alTeclear);
+    return () => window.removeEventListener('keydown', alTeclear);
+  }, [capasAbiertas, setCapasAbiertas]);
 
   const alternarCapa = (clave) => setCapas((prev) => ({ ...prev, [clave]: !prev[clave] }));
   /** "todo / nada" de un grupo de la leyenda. */
@@ -1196,7 +1208,7 @@ export default function LoftCanvas({
       <div className={`capas no-print${capasAbiertas ? '' : ' plegada'}`} role="group" aria-label="Capas visibles">
         <button type="button" className="btn-ctrl btn-capas" aria-expanded={capasAbiertas}
           onClick={() => setCapasAbiertas((v) => !v)}>
-          {capasAbiertas ? '▾ Capas' : '▸ Capas y colores'}
+          {capasAbiertas ? '▾ Capas y colores' : '▸ Capas y colores'}
         </button>
         {capasAbiertas && (<>
         {/* v1.19: capas agrupadas (Estructura · Superficies · Ayudas), cada grupo con "todo / nada". */}

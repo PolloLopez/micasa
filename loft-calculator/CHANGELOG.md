@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.34.2] - 2026-10-27
+### Cambiado
+- **"Capas y colores" arranca cerrado** (en la compu arrancaba abierto y tapaba el 3D). Recuerda cómo lo dejaste en
+  este navegador y **Esc** lo cierra.
+
 ## [1.34.1] - 2026-10-27
 ### Corregido
 - **El terreno (y cualquier cambio) se perdía al volver a abrir el link**: si el proyecto venía de un link de la
