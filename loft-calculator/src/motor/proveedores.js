@@ -1,3 +1,4 @@
+import { fichaDePerfil } from './perfiles.js';
 // ==========================================================
 // PROVEEDORES Y PRECIOS (v1.25): comparar presupuestos
 // ----------------------------------------------------------
@@ -229,6 +230,7 @@ export function planDeCompra(items, catalogo, pago = 'efectivo') {
       precio: r.precios[k], subtotal: r.item.cantidad * r.precios[k],
       // v1.30.3: lo que hace falta para agrupar por material (pedido al proveedor).
       perfil: r.item.perfil, perfilId: r.item.perfilId, largoBarra: r.item.largoBarra, venta: r.item.venta, detalle: r.item.detalle,
+      ficha: fichaDeMaterial(r.item, catalogo), // v1.30.4: tipo, medidas y espesor para el pedido
     }));
     const subtotal = mejor.compra[k];
     const flete = costoFlete(p, subtotal);
@@ -269,11 +271,11 @@ export function materialesDeCompra(renglones) {
   for (const r of renglones) {
     const clave = r.perfilId ?? r.id; // mismo perfil de la lista = mismo material
     if (!porMaterial.has(clave)) {
-      const nombre = r.perfilId
-        ? `${r.perfil}${r.largoBarra ? ` · barra de ${r.largoBarra} m` : ''}`
-        : (r.perfil ? `${r.nombre} — ${r.perfil}` : r.nombre);
+      // v1.30.4: el largo de la barra va con la cantidad ("21 barras de 12 m"), no en el nombre.
+      const nombre = r.perfilId ? r.perfil : (r.perfil ? `${r.nombre} — ${r.perfil}` : r.nombre);
       porMaterial.set(clave, { clave, nombre, cantidad: 0, unidad: r.unidad, precio: r.precio, subtotal: 0,
-        medidas: r.venta === 'medida' ? r.detalle : null, usos: [] });
+        medidas: r.venta === 'medida' ? r.detalle : null, usos: [],
+        largoBarra: r.perfilId ? r.largoBarra : null, ficha: r.ficha?.medidas || null, kgPorBarra: r.ficha?.kgPorBarra || 0 });
     }
     const m = porMaterial.get(clave);
     m.cantidad = Math.round((m.cantidad + r.cantidad) * 100) / 100; // m² con 2 decimales, sin errores de suma
@@ -288,7 +290,33 @@ export function materialesDeCompra(renglones) {
  * (sin precios: es lo que se le pide, no el presupuesto).
  */
 export function textoPedido(compra, nombreProyecto = '') {
-  const lineas = compra.materiales.map((m) => `• ${m.nombre}: ${m.cantidad} ${m.unidad ?? ''}`.trim()
-    + (m.medidas ? `\n   (${m.medidas})` : ''));
+  const lineas = compra.materiales.map((m) => `• ${cantidadPedida(m)} — ${m.nombre}`
+    + (m.ficha ? `\n   ${m.ficha}` : '')
+    + (m.kgPorBarra ? `${m.ficha ? ' · ' : '\n   '}≈ ${Math.round(m.kgPorBarra * m.cantidad)} kg` : '')
+    + (m.medidas ? `\n   Medidas: ${m.medidas}` : ''));
   return [`Pedido para ${compra.proveedor.nombre}${nombreProyecto ? ` — ${nombreProyecto}` : ''}`, ...lineas].join('\n');
+}
+
+/** Plural simple de las unidades del presupuesto: barra → barras, placa → placas (m², u, kg quedan igual). */
+const PLURALES = { barra: 'barras', placa: 'placas', caja: 'cajas', cartucho: 'cartuchos', rollo: 'rollos' };
+const unidadEn = (unidad, cantidad) => (cantidad === 1 ? unidad : PLURALES[unidad] ?? unidad) ?? '';
+
+/** "21 barras de 12 m", "18 placas", "108.4 m²" (v1.30.4: lo primero que lee el proveedor). */
+export function cantidadPedida(m) {
+  const texto = `${m.cantidad} ${unidadEn(m.unidad, m.cantidad)}`.trim();
+  return m.largoBarra ? `${texto} de ${m.largoBarra} m` : texto;
+}
+
+/**
+ * Ficha del material para el pedido (v1.30.4). Hierros: de la lista de perfiles (tipo y medidas con nombre).
+ * Paneles: espesor y ancho útil. El resto: lo que dice su descripción (el nombre ya la lleva).
+ */
+function fichaDeMaterial(item, catalogo) {
+  if (item.perfilId) return fichaDePerfil(catalogo.find((m) => m.id === item.perfilId));
+  const m = catalogo.find((x) => x.id === item.id);
+  if (m?.categoria === 'panel') {
+    const partes = [m.espesor && `Espesor ${m.espesor} mm`, m.anchoUtil && `ancho útil ${Number(m.anchoUtil).toFixed(2)} m`].filter(Boolean);
+    return { medidas: partes.join(' · '), kgPorBarra: 0 };
+  }
+  return null;
 }

@@ -88,7 +88,9 @@ export function hojasDeObra({ nombre, params, vistas, items, total, gruposCortes
       plan.compras.forEach((c) => {
         obra.push({ negrita: true, celdas: [c.proveedor.nombre, '', '', '', '', { pesos: c.total }] });
         // v1.30.3: por material (lo que se le pide), con las medidas de lo que se vende a medida.
-        c.materiales.forEach((m) => obra.push([`  ${m.nombre}`, m.medidas ?? '', m.cantidad, m.unidad ?? '', { pesos: m.precio }, { pesos: m.subtotal }]));
+        // v1.30.4: con la ficha (tipo, medidas, espesor) y el largo de barra en la unidad.
+        c.materiales.forEach((m) => obra.push([`  ${m.nombre}`, [m.ficha, m.medidas && `Medidas: ${m.medidas}`].filter(Boolean).join(' — '),
+          m.cantidad, m.largoBarra ? `${m.unidad} de ${m.largoBarra} m` : (m.unidad ?? ''), { pesos: m.precio }, { pesos: m.subtotal }]));
         obra.push(['  Flete', '', '', '', '', { pesos: c.flete }]);
       });
       if (plan.nadieVende.length) obra.push([`Ningún proveedor vende: ${plan.nadieVende.join(', ')}`]);

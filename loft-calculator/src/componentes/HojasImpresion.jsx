@@ -12,6 +12,7 @@
 // (clase solo-impresion); los formularios salen solo si se los pide.
 // ==========================================================
 
+import { cantidadPedida } from '../motor/proveedores.js';
 import { PlanoDePared, PlanoDePlanta } from './Planos.jsx';
 import { agruparBarras, textoBarra } from '../proyecto/cortesAgrupados.js';
 
@@ -114,7 +115,7 @@ export default function HojasImpresion({
                       <strong>{c.proveedor.nombre} — {pesos(c.total)}</strong>
                       {c.flete > 0 ? ` (flete ${pesos(c.flete)})` : ''}:{' '}
                       {/* v1.30.3: por material (lo que se le pide al proveedor), no por dónde se usa */}
-                      {c.materiales.map((m) => `${m.nombre}: ${m.cantidad} ${m.unidad ?? ''}`.trim() + (m.medidas ? ` (${m.medidas})` : '')).join(' · ')}
+                      {c.materiales.map((m) => `${cantidadPedida(m)} ${m.nombre}` + (m.ficha ? ` (${m.ficha})` : '') + (m.medidas ? ` — medidas: ${m.medidas}` : '')).join(' · ')}
                     </p>
                   ))}
                   {plan.nadieVende.length > 0 && <p>Ningún proveedor vende: {plan.nadieVende.join(', ')}.</p>}

@@ -297,3 +297,23 @@ export function usosDePerfiles(catalogo) {
   });
   return usos;
 }
+
+/**
+ * Ficha de un perfil para el pedido al proveedor (v1.30.4): el tipo y cada medida con su nombre, para que no haya
+ * dudas de qué se pide. Ej. Perfil C → "Alto 80 mm · Ala 40 mm · Espesor 1.6 mm"; los ángulos, también en pulgadas.
+ * @returns {{ tipo: string, medidas: string, kgPorBarra: number }}
+ */
+export function fichaDePerfil(p) {
+  if (!p) return { tipo: '', medidas: '', kgPorBarra: 0 };
+  const tipo = TIPOS_PERFIL[p.tipo];
+  if (!tipo || p.tipo === 'otro') return { tipo: tipo?.nombre ?? '', medidas: (p.texto ?? '').trim(), kgPorBarra: kgPorMetro(p) * (p.largoBarra || 0) };
+  const medidas = tipo.medidas
+    .filter(([clave, , opciones]) => !(opciones?.opcional && !(p[clave] > 0)))
+    .map(([clave, nombre]) => {
+      const valor = clave === 'b' && !p.b ? p.a : p[clave]; // sin "b" es igual a "a" (cuadrados)
+      const pulgadas = p.tipo === 'angulo' ? enPulgadas(valor) : null;
+      return `${nombre} ${clave === 'espesor' ? esp(valor) : mm(valor)} mm${pulgadas ? ` (${pulgadas})` : ''}`;
+    })
+    .join(' · ');
+  return { tipo: tipo.nombre, medidas, kgPorBarra: kgPorMetro(p) * (p.largoBarra || 0) };
+}

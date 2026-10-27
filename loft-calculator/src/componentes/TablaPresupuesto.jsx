@@ -8,7 +8,7 @@
 import { useState } from 'react';
 import CampoNumero from './CampoNumero.jsx';
 import CampoSelect from './CampoSelect.jsx';
-import { MAS_BARATO, faltanPrecios, usaPlanDeCompra, textoPedido } from '../motor/proveedores.js';
+import { MAS_BARATO, faltanPrecios, usaPlanDeCompra, textoPedido, cantidadPedida } from '../motor/proveedores.js';
 import Tarjeta from './Tarjeta.jsx';
 import { BotonResaltar } from './Resaltar.jsx';
 import { useResaltar, criterioDeRenglon as criterioDe } from './contextoResaltado.js';
@@ -156,8 +156,17 @@ function PlanDeCompra({ plan, mejorUnico, nombreProyecto }) {
             <ul>
               {c.materiales.map((m) => (
                 <li key={m.clave} title={`Para: ${m.usos.join(', ')}`}>
-                  <span>{m.nombre}{m.medidas && <small className="detalle medidas-pedido">{m.medidas}</small>}</span>
-                  <small>{m.cantidad} {m.unidad} × {pesos(m.precio)}</small> <span className="num">{pesos(m.subtotal)}</span>
+                  {/* v1.30.4: primero cantidad y barra, después qué es (tipo, medidas, espesor) y los kilos. */}
+                  <span>
+                    <strong>{cantidadPedida(m)}</strong> · {m.nombre}
+                    {(m.ficha || m.kgPorBarra > 0) && (
+                      <small className="detalle medidas-pedido">
+                        {[m.ficha, m.kgPorBarra > 0 && `≈ ${Math.round(m.kgPorBarra * m.cantidad)} kg`].filter(Boolean).join(' · ')}
+                      </small>
+                    )}
+                    {m.medidas && <small className="detalle medidas-pedido">Medidas: {m.medidas}</small>}
+                  </span>
+                  <small>× {pesos(m.precio)}</small> <span className="num">{pesos(m.subtotal)}</span>
                 </li>
               ))}
               <li className="flete-plan"><span>Flete</span> <span className="num">{c.flete > 0 ? pesos(c.flete) : 'sin cargo'}</span></li>

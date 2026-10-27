@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.30.4] - 2026-10-27
+### Cambiado
+- **El pedido a cada proveedor dice qué barra es**: primero cantidad y largo ("21 barras de 12 m · Perfil C
+  80x40x1.6"), abajo la ficha con cada medida con su nombre y el espesor ("Alto 80 mm · Ala 40 mm · Espesor 1.6 mm")
+  y los kilos. Los ángulos también en pulgadas; los paneles con espesor, ancho útil y medidas a cortar.
+  Igual en "Copiar pedido", el PDF y el Excel.
+
 ## [1.30.3] - 2026-10-27
 ### Cambiado
 - **Plan de compra por material, no por dónde se usa**: cada proveedor muestra su lista (ej. "Perfil C 80x40x1.6 ·

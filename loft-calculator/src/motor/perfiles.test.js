@@ -1,7 +1,7 @@
 // Tests de la lista de perfiles (v1.21). Correr con: npm test
 import { describe, it, expect } from 'vitest';
 import {
-  nombrePerfil, kgPorMetro, perfilDesdeTexto, armarListaDePerfiles, resolverCatalogo, revisarPerfil, enPulgadas, PERFIL_NUEVO,
+  nombrePerfil, kgPorMetro, perfilDesdeTexto, armarListaDePerfiles, resolverCatalogo, revisarPerfil, enPulgadas, PERFIL_NUEVO, fichaDePerfil,
 } from './perfiles.js';
 import { normalizarCatalogo } from './migracion.js';
 import { CATALOGO_INICIAL, CATALOGO_FIJO, calcularPresupuesto } from './presupuesto.js';
@@ -124,5 +124,21 @@ describe('el presupuesto usa el perfil de la lista', () => {
     const cat = CATALOGO_INICIAL.map((i) => (i.id === INSUMO.COLUMNA ? { ...i, perfilId: otro.id } : i));
     const columna = resolverCatalogo(cat).find((i) => i.id === INSUMO.COLUMNA);
     expect(columna).toMatchObject({ perfil: nombrePerfil(otro), precio: otro.precio, largoBarra: otro.largoBarra });
+  });
+});
+
+describe('ficha para el pedido (v1.30.4)', () => {
+  it('cada medida con su nombre y el espesor', () => {
+    expect(fichaDePerfil({ tipo: 'c', a: 80, b: 40, c: 0, espesor: 1.6, largoBarra: 12 }).medidas).toBe('Alto 80 mm · Ala 40 mm · Espesor 1.6 mm');
+    expect(fichaDePerfil({ tipo: 'c', a: 100, b: 50, c: 15, espesor: 2, largoBarra: 12 }).medidas).toBe('Alto 100 mm · Ala 50 mm · Labio 15 mm · Espesor 2.0 mm');
+    expect(fichaDePerfil({ tipo: 'rectangular', a: 100, b: 50, espesor: 2, largoBarra: 6 })).toMatchObject({ tipo: 'Caño rectangular', medidas: 'Alto 100 mm · Ancho 50 mm · Espesor 2.0 mm' });
+    expect(fichaDePerfil({ tipo: 'cuadrado', a: 80, b: 80, espesor: 2, largoBarra: 6 }).medidas).toBe('Lado 80 mm · Espesor 2.0 mm');
+  });
+
+  it('los ángulos también en pulgadas; y los kilos de una barra', () => {
+    const f = fichaDePerfil({ tipo: 'angulo', a: 38.1, b: 38.1, espesor: 4.7625, largoBarra: 6 });
+    expect(f.medidas).toBe('Ala 38.1 mm (1 1/2") · Otra ala 38.1 mm (1 1/2") · Espesor 4.76 mm (3/16")');
+    const caño = { tipo: 'cuadrado', a: 80, b: 80, espesor: 2, largoBarra: 6 };
+    expect(fichaDePerfil(caño).kgPorBarra).toBeCloseTo(kgPorMetro(caño) * 6);
   });
 });

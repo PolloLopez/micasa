@@ -108,7 +108,7 @@ abiertas a la vez, 15+ botones de menos de 40 px en el celular.
 - ✅ Link compacto (la mitad) y links cortos de ver/editar en Firebase (v1.30.0; falta que Leandro cree el proyecto Firebase: ver firebase/COMO-CONFIGURAR.md).
 - ✅ Proyecto Firebase `pollo-calculator` creado (Firestore Standard, southamerica-east1, modo producción) y cargado en configNube.js (v1.30.1).
 - ✅ Total de la obra = plan de compra con varios proveedores (v1.30.2).
-- ✅ Lista de materiales por proveedor + "Copiar pedido" (v1.30.3).
+- ✅ Lista de materiales por proveedor + "Copiar pedido" (v1.30.3); con tipo, medidas, espesor y kilos (v1.30.4).
 - 🟢 [ ] Si "Lo más barato de cada material" y el plan dan igual (sin flete), quizás sobra una de las dos filas en la comparación.
 - 🔴 [ ] Prueba en vivo después del deploy: crear links, guardar con el de editar desde otro navegador/celular, confirmar que el de ver no guarda. Opcional: probar las reglas con firebase/probarReglas.mjs (las reglas reales no se pudieron correr en el emulador desde la sesión: se probó la misma lógica con un Firestore falso).
 - 🟡 [ ] Restringir la API key de Firebase al dominio pollolopez.github.io y a la API de Firestore.

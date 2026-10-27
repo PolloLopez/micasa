@@ -1,6 +1,6 @@
 // Tests de flete, plan de compra y accesorios (v1.29). Correr con: npm test
 import { describe, it, expect } from 'vitest';
-import { costoFlete, renglonesDeFlete, planDeCompra, masBaratoEn, faltanPrecios, totalDeLaObra, usaPlanDeCompra, materialesDeCompra, textoPedido } from './proveedores.js';
+import { costoFlete, renglonesDeFlete, planDeCompra, masBaratoEn, faltanPrecios, totalDeLaObra, usaPlanDeCompra, materialesDeCompra, textoPedido, cantidadPedida } from './proveedores.js';
 import { calcularPresupuesto, CATALOGO_INICIAL } from './presupuesto.js';
 import { normalizarCatalogo } from './migracion.js';
 import { generarEstructura } from './estructura.js';
@@ -136,14 +136,15 @@ describe('lista de materiales por proveedor', () => {
 
   it('suma los renglones del mismo perfil y saca lo que no se compra', () => {
     const m = materialesDeCompra(renglones);
-    expect(m.map((x) => x.nombre)).toEqual(['Caño 80x80x2.0 · barra de 6 m', 'Panel de pared — Panel PUR 50 mm']);
+    expect(m.map((x) => x.nombre)).toEqual(['Caño 80x80x2.0', 'Panel de pared — Panel PUR 50 mm']);
+    expect(m.map(cantidadPedida)).toEqual(['7 barras de 6 m', '108.4 m²']);
     expect(m[0]).toMatchObject({ cantidad: 7, subtotal: 700, usos: ['Columnas', 'Zanca', 'Columnas de escalera'], medidas: null });
     expect(m[1]).toMatchObject({ cantidad: 108.4, medidas: '7 × 4.40 m' });
   });
 
   it('el texto del pedido lleva cantidades y medidas, sin precios', () => {
     const t = textoPedido({ proveedor: { nombre: 'Vastek' }, materiales: materialesDeCompra(renglones) }, 'Casa');
-    expect(t).toBe('Pedido para Vastek — Casa\n• Caño 80x80x2.0 · barra de 6 m: 7 barra\n• Panel de pared — Panel PUR 50 mm: 108.4 m²\n   (7 × 4.40 m)');
+    expect(t).toBe('Pedido para Vastek — Casa\n• 7 barras de 6 m — Caño 80x80x2.0\n• 108.4 m² — Panel de pared — Panel PUR 50 mm\n   Medidas: 7 × 4.40 m');
     expect(t).not.toContain('$');
   });
 
@@ -156,5 +157,28 @@ describe('lista de materiales por proveedor', () => {
       expect(Math.round(suma)).toBe(Math.round(c.subtotal)); // agrupar no cambia la plata
     }
     expect(plan.compras[1].materiales.map((m) => m.clave)).toEqual([INSUMO.OSB]);
+  });
+});
+
+// v1.30.4: el pedido dice qué barra es: tipo, medidas con nombre, espesor y kilos.
+describe('ficha de cada material en el pedido', () => {
+  const e = generarEstructura(P, []);
+  const plan = planDeCompra(calcularPresupuesto(e, CATALOGO_INICIAL, { proveedor: 'prov-1', pago: 'efectivo' }).items, CATALOGO_INICIAL, 'efectivo');
+  const materiales = plan.compras.flatMap((c) => c.materiales);
+
+  it('los hierros llevan tipo, medidas, espesor y kilos', () => {
+    const hierros = materiales.filter((m) => m.largoBarra);
+    expect(hierros.length).toBeGreaterThan(0);
+    for (const m of hierros) {
+      expect(m.ficha).toMatch(/Espesor \d+(\.\d+)? mm/);
+      expect(m.kgPorBarra).toBeGreaterThan(0);
+      expect(cantidadPedida(m)).toMatch(/^\d+ barras? de \d+(\.\d+)? m$/);
+    }
+  });
+
+  it('el texto del pedido lleva la ficha y los kilos', () => {
+    const t = textoPedido(plan.compras[0]);
+    expect(t).toMatch(/barras de 6 m — Caño estructural/);
+    expect(t).toMatch(/Lado \d+ mm · Espesor \d\.\d mm · ≈ \d+ kg/);
   });
 });
