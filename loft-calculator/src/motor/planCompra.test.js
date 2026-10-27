@@ -1,6 +1,6 @@
 // Tests de flete, plan de compra y accesorios (v1.29). Correr con: npm test
 import { describe, it, expect } from 'vitest';
-import { costoFlete, renglonesDeFlete, planDeCompra, masBaratoEn, faltanPrecios, totalDeLaObra, usaPlanDeCompra } from './proveedores.js';
+import { costoFlete, renglonesDeFlete, planDeCompra, masBaratoEn, faltanPrecios, totalDeLaObra, usaPlanDeCompra, materialesDeCompra, textoPedido } from './proveedores.js';
 import { calcularPresupuesto, CATALOGO_INICIAL } from './presupuesto.js';
 import { normalizarCatalogo } from './migracion.js';
 import { generarEstructura } from './estructura.js';
@@ -121,5 +121,40 @@ describe('total de la obra', () => {
     expect(totalDeLaObra(conHierros.total, plan, 1)).toBe(conHierros.total);
     expect(totalDeLaObra(conHierros.total, null, 3)).toBe(conHierros.total);
     expect(usaPlanDeCompra({ compras: [] }, 2)).toBe(false);
+  });
+});
+
+// v1.30.3: el pedido a cada proveedor va por material (no por dónde se usa).
+describe('lista de materiales por proveedor', () => {
+  const renglones = [
+    { id: 'columna', nombre: 'Columnas', perfil: 'Caño 80x80x2.0', perfilId: 'perfil-1', largoBarra: 6, cantidad: 5, unidad: 'barra', precio: 100, subtotal: 500 },
+    { id: 'zanca', nombre: 'Zanca', perfil: 'Caño 80x80x2.0', perfilId: 'perfil-1', largoBarra: 6, cantidad: 2, unidad: 'barra', precio: 100, subtotal: 200 },
+    { id: 'columnaEscalera', nombre: 'Columnas de escalera', perfil: 'Caño 80x80x2.0', perfilId: 'perfil-1', largoBarra: 6, cantidad: 0, unidad: 'barra', precio: 100, subtotal: 0 },
+    { id: 'panelMuros', nombre: 'Panel de pared', perfil: 'Panel PUR 50 mm', venta: 'medida', detalle: '7 × 4.40 m', cantidad: 108.4, unidad: 'm²', precio: 10, subtotal: 1084 },
+    { id: 'panel3', nombre: 'Panel 3', perfil: '', venta: 'medida', detalle: 'sin uso', cantidad: 0, unidad: 'm²', precio: 10, subtotal: 0 },
+  ];
+
+  it('suma los renglones del mismo perfil y saca lo que no se compra', () => {
+    const m = materialesDeCompra(renglones);
+    expect(m.map((x) => x.nombre)).toEqual(['Caño 80x80x2.0 · barra de 6 m', 'Panel de pared — Panel PUR 50 mm']);
+    expect(m[0]).toMatchObject({ cantidad: 7, subtotal: 700, usos: ['Columnas', 'Zanca', 'Columnas de escalera'], medidas: null });
+    expect(m[1]).toMatchObject({ cantidad: 108.4, medidas: '7 × 4.40 m' });
+  });
+
+  it('el texto del pedido lleva cantidades y medidas, sin precios', () => {
+    const t = textoPedido({ proveedor: { nombre: 'Vastek' }, materiales: materialesDeCompra(renglones) }, 'Casa');
+    expect(t).toBe('Pedido para Vastek — Casa\n• Caño 80x80x2.0 · barra de 6 m: 7 barra\n• Panel de pared — Panel PUR 50 mm: 108.4 m²\n   (7 × 4.40 m)');
+    expect(t).not.toContain('$');
+  });
+
+  it('el plan de compra trae la lista de cada proveedor', () => {
+    const e = generarEstructura(P, []);
+    const cat = catalogoCon(1000);
+    const plan = planDeCompra(calcularPresupuesto(e, cat, { proveedor: 'h', pago: 'efectivo' }).items, cat, 'efectivo');
+    for (const c of plan.compras) {
+      const suma = c.materiales.reduce((a, m) => a + m.subtotal, 0);
+      expect(Math.round(suma)).toBe(Math.round(c.subtotal)); // agrupar no cambia la plata
+    }
+    expect(plan.compras[1].materiales.map((m) => m.clave)).toEqual([INSUMO.OSB]);
   });
 });

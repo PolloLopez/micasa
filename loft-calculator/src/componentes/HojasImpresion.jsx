@@ -112,7 +112,9 @@ export default function HojasImpresion({
                   {plan.compras.map((c) => (
                     <p key={c.proveedor.id}>
                       <strong>{c.proveedor.nombre} — {pesos(c.total)}</strong>
-                      {c.flete > 0 ? ` (flete ${pesos(c.flete)})` : ''}: {c.renglones.map((r) => `${r.nombre} ${r.cantidad} ${r.unidad ?? ''}`.trim()).join(' · ')}
+                      {c.flete > 0 ? ` (flete ${pesos(c.flete)})` : ''}:{' '}
+                      {/* v1.30.3: por material (lo que se le pide al proveedor), no por dónde se usa */}
+                      {c.materiales.map((m) => `${m.nombre}: ${m.cantidad} ${m.unidad ?? ''}`.trim() + (m.medidas ? ` (${m.medidas})` : '')).join(' · ')}
                     </p>
                   ))}
                   {plan.nadieVende.length > 0 && <p>Ningún proveedor vende: {plan.nadieVende.join(', ')}.</p>}

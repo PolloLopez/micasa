@@ -227,10 +227,12 @@ export function planDeCompra(items, catalogo, pago = 'efectivo') {
     const suyos = renglones.filter((_, i) => mejor.asignacion[i] === k).map((r) => ({
       id: r.item.id, nombre: r.item.nombre, cantidad: r.item.cantidad, unidad: r.item.unidad,
       precio: r.precios[k], subtotal: r.item.cantidad * r.precios[k],
+      // v1.30.3: lo que hace falta para agrupar por material (pedido al proveedor).
+      perfil: r.item.perfil, perfilId: r.item.perfilId, largoBarra: r.item.largoBarra, venta: r.item.venta, detalle: r.item.detalle,
     }));
     const subtotal = mejor.compra[k];
     const flete = costoFlete(p, subtotal);
-    return { proveedor: { id: p.id, nombre: p.nombre }, renglones: suyos, subtotal, flete, total: subtotal + flete };
+    return { proveedor: { id: p.id, nombre: p.nombre }, renglones: suyos, materiales: materialesDeCompra(suyos), subtotal, flete, total: subtotal + flete };
   }).filter((c) => c.renglones.length > 0);
   return {
     compras,
@@ -254,3 +256,39 @@ export function totalDeLaObra(totalProveedor, plan, cantidadProveedores) {
 
 /** ¿El total de la obra sale del plan de compra? (más de un proveedor y algo para comprar) */
 export const usaPlanDeCompra = (plan, cantidadProveedores) => cantidadProveedores > 1 && Boolean(plan?.compras?.length);
+
+/**
+ * Lista de materiales de una compra (v1.30.3): lo que se le pide al proveedor, agrupado por MATERIAL y no por
+ * dónde se usa. Los renglones del mismo perfil (columnas, zanca, ...) se suman en uno: "Caño 80x80x2.0 · barra
+ * de 6 m: 11 barras". Los que se venden a medida (paneles) llevan las medidas a cortar.
+ * @param renglones los de una compra del plan ({ id, nombre, perfil, perfilId, largoBarra, venta, detalle, cantidad, unidad, precio })
+ * @returns {Array<{ clave, nombre, cantidad, unidad, precio, subtotal, medidas, usos }>}
+ */
+export function materialesDeCompra(renglones) {
+  const porMaterial = new Map();
+  for (const r of renglones) {
+    const clave = r.perfilId ?? r.id; // mismo perfil de la lista = mismo material
+    if (!porMaterial.has(clave)) {
+      const nombre = r.perfilId
+        ? `${r.perfil}${r.largoBarra ? ` · barra de ${r.largoBarra} m` : ''}`
+        : (r.perfil ? `${r.nombre} — ${r.perfil}` : r.nombre);
+      porMaterial.set(clave, { clave, nombre, cantidad: 0, unidad: r.unidad, precio: r.precio, subtotal: 0,
+        medidas: r.venta === 'medida' ? r.detalle : null, usos: [] });
+    }
+    const m = porMaterial.get(clave);
+    m.cantidad = Math.round((m.cantidad + r.cantidad) * 100) / 100; // m² con 2 decimales, sin errores de suma
+    m.subtotal += r.subtotal;
+    m.usos.push(r.nombre);
+  }
+  return [...porMaterial.values()].filter((m) => m.cantidad > 0);
+}
+
+/**
+ * Texto del pedido para un proveedor (v1.30.3), para mandar por WhatsApp o mail: solo materiales y cantidades
+ * (sin precios: es lo que se le pide, no el presupuesto).
+ */
+export function textoPedido(compra, nombreProyecto = '') {
+  const lineas = compra.materiales.map((m) => `• ${m.nombre}: ${m.cantidad} ${m.unidad ?? ''}`.trim()
+    + (m.medidas ? `\n   (${m.medidas})` : ''));
+  return [`Pedido para ${compra.proveedor.nombre}${nombreProyecto ? ` — ${nombreProyecto}` : ''}`, ...lineas].join('\n');
+}

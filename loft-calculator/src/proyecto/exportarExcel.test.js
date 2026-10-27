@@ -48,13 +48,15 @@ describe('libro de la obra', () => {
 
   it('v1.29: con plan de compra, va en la hoja Obra con el flete', () => {
     const plan = { total: 1500, nadieVende: [], compras: [{ proveedor: { id: 'b', nombre: 'Barato' }, subtotal: 1000, flete: 500, total: 1500,
-      renglones: [{ id: 'osb', nombre: 'Placas OSB', cantidad: 2, unidad: 'placa', precio: 500, subtotal: 1000 }] }] };
+      renglones: [{ id: 'osb', nombre: 'Placas OSB', cantidad: 2, unidad: 'placa', precio: 500, subtotal: 1000 }],
+      materiales: [{ clave: 'osb', nombre: 'Placas OSB — OSB 18 mm', cantidad: 2, unidad: 'placa', precio: 500, subtotal: 1000, medidas: null, usos: ['Placas OSB'] }] }] };
     const obra = celdas(hojasDeObra({ ...datosDeEjemplo(), plan })[0]);
     // v1.30.2: el plan es el TOTAL DE LA OBRA; el total de la tabla es solo el del proveedor elegido.
     expect(obra.some((f) => f[0] === 'TOTAL DE LA OBRA — plan de compra (contando el flete)' && f[5].pesos === 1500)).toBe(true);
     expect(obra.some((f) => /^Total con .* \(sin lo que no vende\)$/.test(f[0]))).toBe(true);
     expect(obra.some((f) => f[0] === 'TOTAL')).toBe(false);
     expect(obra.some((f) => f[0] === '  Flete' && f[5].pesos === 500)).toBe(true);
+    expect(obra.some((f) => f[0] === '  Placas OSB — OSB 18 mm' && f[2] === 2)).toBe(true); // v1.30.3: por material
   });
 
   it('solo lo elegido', () => {

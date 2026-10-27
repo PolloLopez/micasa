@@ -1243,7 +1243,7 @@ export default function App() {
             proveedores={proveedores} proveedor={proveedorElegido} pago={formaPago} comparacion={comparacion}
             onElegirProveedor={cambiar('proveedorElegido')} onElegirPago={cambiar('formaPago')}
             onCambiarPrecio={(item, valor) => cambiarPrecio(item.perfilId ?? item.id, proveedorElegido, formaPago, valor)}
-            plan={planCompra} masBaratoDe={(item) => masBaratoEn(item, catalogoResuelto, formaPago)} />
+            plan={planCompra} nombreProyecto={nombreProyecto} masBaratoDe={(item) => masBaratoEn(item, catalogoResuelto, formaPago)} />
           </section>
           {/* v1.26: planos de cada pared y planta (en pantalla y en el PDF) + Excel. */}
           <section id="pestana-planos" role="tabpanel" aria-labelledby="boton-planos"

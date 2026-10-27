@@ -87,7 +87,8 @@ export function hojasDeObra({ nombre, params, vistas, items, total, gruposCortes
       obra.push([], { negrita: true, celdas: ['TOTAL DE LA OBRA — plan de compra (contando el flete)', '', '', '', '', { pesos: plan.total }] });
       plan.compras.forEach((c) => {
         obra.push({ negrita: true, celdas: [c.proveedor.nombre, '', '', '', '', { pesos: c.total }] });
-        c.renglones.forEach((r) => obra.push([`  ${r.nombre}`, '', r.cantidad, r.unidad ?? '', { pesos: r.precio }, { pesos: r.subtotal }]));
+        // v1.30.3: por material (lo que se le pide), con las medidas de lo que se vende a medida.
+        c.materiales.forEach((m) => obra.push([`  ${m.nombre}`, m.medidas ?? '', m.cantidad, m.unidad ?? '', { pesos: m.precio }, { pesos: m.subtotal }]));
         obra.push(['  Flete', '', '', '', '', { pesos: c.flete }]);
       });
       if (plan.nadieVende.length) obra.push([`Ningún proveedor vende: ${plan.nadieVende.join(', ')}`]);

@@ -5,9 +5,10 @@
 // en la tarjeta Materiales: acá solo se cuenta y se pone precio.
 // ==========================================================
 
+import { useState } from 'react';
 import CampoNumero from './CampoNumero.jsx';
 import CampoSelect from './CampoSelect.jsx';
-import { MAS_BARATO, faltanPrecios, usaPlanDeCompra } from '../motor/proveedores.js';
+import { MAS_BARATO, faltanPrecios, usaPlanDeCompra, textoPedido } from '../motor/proveedores.js';
 import Tarjeta from './Tarjeta.jsx';
 import { BotonResaltar } from './Resaltar.jsx';
 import { useResaltar, criterioDeRenglon as criterioDe } from './contextoResaltado.js';
@@ -116,7 +117,26 @@ function ComparacionProveedores({ proveedores, proveedor, pago, comparacion, onE
  * Plan de compra (v1.29): a quién comprarle cada material para gastar menos, contando el flete.
  * Una tarjetita por proveedor con lo que se le compra, el subtotal, el flete y el total.
  */
-function PlanDeCompra({ plan, mejorUnico }) {
+/** Botón "Copiar pedido" (v1.30.3): la lista de un proveedor en texto, para WhatsApp o mail. */
+function BotonCopiarPedido({ compra, nombreProyecto }) {
+  const [copiado, setCopiado] = useState(false);
+  const copiar = async () => {
+    try {
+      await navigator.clipboard.writeText(textoPedido(compra, nombreProyecto));
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 2000);
+    } catch {
+      setCopiado(false); // sin permiso para copiar: no pasa nada
+    }
+  };
+  return (
+    <button type="button" className="btn-sec btn-pedido" onClick={copiar} title="Copia la lista (sin precios) para mandársela al proveedor">
+      {copiado ? '✓ Copiado' : 'Copiar pedido'}
+    </button>
+  );
+}
+
+function PlanDeCompra({ plan, mejorUnico, nombreProyecto }) {
   if (!plan || plan.compras.length === 0) return null;
   const ahorro = mejorUnico ? mejorUnico.total - plan.total : 0;
   return (
@@ -132,12 +152,17 @@ function PlanDeCompra({ plan, mejorUnico }) {
         {plan.compras.map((c) => (
           <section key={c.proveedor.id} className="compra-proveedor">
             <h4>{c.proveedor.nombre} <span>{pesos(c.total)}</span></h4>
+            {/* v1.30.3: por material (lo que se le pide), no por dónde se usa; el uso queda en el globito. */}
             <ul>
-              {c.renglones.map((r) => (
-                <li key={r.id}><span>{r.nombre}</span> <small>{r.cantidad} {r.unidad} × {pesos(r.precio)}</small> <span className="num">{pesos(r.subtotal)}</span></li>
+              {c.materiales.map((m) => (
+                <li key={m.clave} title={`Para: ${m.usos.join(', ')}`}>
+                  <span>{m.nombre}{m.medidas && <small className="detalle medidas-pedido">{m.medidas}</small>}</span>
+                  <small>{m.cantidad} {m.unidad} × {pesos(m.precio)}</small> <span className="num">{pesos(m.subtotal)}</span>
+                </li>
               ))}
               <li className="flete-plan"><span>Flete</span> <span className="num">{c.flete > 0 ? pesos(c.flete) : 'sin cargo'}</span></li>
             </ul>
+            <BotonCopiarPedido compra={c} nombreProyecto={nombreProyecto} />
           </section>
         ))}
       </div>
@@ -147,7 +172,7 @@ function PlanDeCompra({ plan, mejorUnico }) {
 
 export default function TablaPresupuesto({
   items, total, gruposCortes = [], proveedores = [], proveedor, pago = 'efectivo', comparacion = [],
-  onElegirProveedor, onElegirPago, onCambiarPrecio, plan = null, masBaratoDe = () => null,
+  onElegirProveedor, onElegirPago, onCambiarPrecio, plan = null, masBaratoDe = () => null, nombreProyecto = '',
 }) {
   // Peso de lo que se compra: barras x largo nominal x kg/m de su perfil (v1.21).
   const pasar = useResaltar(); // v1.27: resaltar en el 3D las piezas de cada renglón
@@ -161,7 +186,7 @@ export default function TablaPresupuesto({
           onElegirProveedor={onElegirProveedor} onElegirPago={onElegirPago} />
       )}
       {proveedores.length > 1 && (
-        <PlanDeCompra plan={plan} mejorUnico={comparacion.filter((c) => c.id !== MAS_BARATO && c[pago].faltan.length === 0)
+        <PlanDeCompra plan={plan} nombreProyecto={nombreProyecto} mejorUnico={comparacion.filter((c) => c.id !== MAS_BARATO && c[pago].faltan.length === 0)
           .map((c) => ({ nombre: c.nombre, total: c[pago].total })).sort((a, b) => a.total - b.total)[0]} />
       )}
       <div className="table-wrap">

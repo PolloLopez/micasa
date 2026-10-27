@@ -622,6 +622,9 @@ kbd {
 .compra-proveedor li small { color: var(--texto-tenue); }
 .compra-proveedor .num { white-space: nowrap; }
 .compra-proveedor .flete-plan { color: var(--texto-suave); border-bottom: none; }
+/* v1.30.3: medidas a cortar de lo que se vende a medida (paneles) y botón para copiar el pedido */
+.compra-proveedor .medidas-pedido { display: block; line-height: 1.3; }
+.compra-proveedor .btn-pedido { margin-top: 6px; font-size: 0.75rem; padding: 3px 8px; }
 .mas-barato-en { display: block; color: var(--dinero); font-size: 0.72rem; }
 .accesorio .grid-params { margin-bottom: 4px; }
 @media print {

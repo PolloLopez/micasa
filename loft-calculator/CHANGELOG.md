@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.30.3] - 2026-10-27
+### Cambiado
+- **Plan de compra por material, no por dónde se usa**: cada proveedor muestra su lista (ej. "Perfil C 80x40x1.6 ·
+  barra de 12 m: 21 barras" en vez de soleras, bordes, piso... por separado). Los paneles llevan las medidas a cortar.
+  El uso queda en el globito al pasar el mouse. Igual en el PDF y el Excel.
+### Agregado
+- **"Copiar pedido"** en cada proveedor: la lista en texto (sin precios) para mandarla por WhatsApp o mail.
+
 ## [1.30.2] - 2026-10-27
 ### Corregido
 - **El total no contaba lo que el proveedor elegido no vende** (ej. los paneles de Vastek): la pestaña decía
