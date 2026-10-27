@@ -544,7 +544,7 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
   const lados = geometriaLados(params);
   LADOS.forEach((lado) => {
     const pared = params.paredes[lado];
-    if (!pared.mostrarEtiqueta) return;
+    if (!pared.mostrarEtiqueta || !capas.etiquetasParedes) return; // v1.33.1: se pueden sacar todas
     const geo = lados[lado];
     const afuera = [-geo.direccion[1], geo.direccion[0]];
     const texto = pared.etiqueta.trim() || `${nombreLado(lado, params.ladoFrente)} (${lado})`;
@@ -728,6 +728,8 @@ export default function LoftCanvas({
     ...Object.fromEntries(Object.keys(CAPAS).map((clave) => [clave, true])),
     juntas: true, // líneas de las tiras/placas de los paneles (v1.16)
     etiquetasAberturas: true, // número de cada abertura (v1.16)
+    etiquetasParedes: true, // v1.33.1: Frente, Lateral…
+    etiquetasTerreno: true, // v1.33.1: línea municipal, calle, N, pozo…
     cotas: false, // v1.28: largo, ancho y altos (en el PDF se pueden pedir aunque estén apagadas)
     medidasFijas: true, // v1.28: las medidas fijadas con 📌
     terreno: true, // v1.32: el lote, la calle, el pozo, árboles… (si la obra tiene terreno)
@@ -925,11 +927,11 @@ export default function LoftCanvas({
     const visor = visorRef.current;
     if (!visor) return;
     vaciarTerreno(visor.grupoTerreno);
-    if (conTerreno) dibujarTerreno(visor.grupoTerreno, implantacion(params), params.terreno.retiros);
+    if (conTerreno) dibujarTerreno(visor.grupoTerreno, implantacion(params), params.terreno.retiros, capas.etiquetasTerreno);
     visor.grilla.visible = !conTerreno;
   // Solo lo que cambia el terreno (no todo params: redibujar el lote en cada cambio de la estructura no hace falta).
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conTerreno, params.terreno, params.ladoFrente, params.largo, params.ancho]);
+  }, [conTerreno, params.terreno, params.ladoFrente, params.largo, params.ancho, capas.etiquetasTerreno]);
 
   /** Cámara para ver todo el lote: desde la calle, en diagonal y alto. */
   const verTerreno = () => {
@@ -1201,7 +1203,7 @@ export default function LoftCanvas({
         {GRUPOS_LEYENDA.map(({ titulo, capas: clavesGrupo }) => {
           // La capa Terreno solo si el módulo está prendido y la obra tiene terreno (v1.32).
           const visibles = clavesGrupo.filter((clave) => capaDelProyecto(clave, tipoProyecto)
-            && (clave !== 'terreno' || (moduloActivo('terreno') && params.terreno?.activo)));
+            && (!['terreno', 'etiquetasTerreno'].includes(clave) || (moduloActivo('terreno') && params.terreno?.activo)));
           if (visibles.length === 0) return null;
           return (
             <span key={titulo} className="capas-paneles grupo-capas" role="group" aria-label={titulo}>

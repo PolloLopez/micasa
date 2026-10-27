@@ -66,7 +66,7 @@ function rotulo(texto, color = 'rgba(30,41,59,0.85)', alto = 0.45) {
 const esquinasDe = (aMundo, { u, v, ancho, largo }) => [aMundo(u, v), aMundo(u + ancho, v), aMundo(u + ancho, v + largo), aMundo(u, v + largo)];
 
 /** Un elemento del terreno en 3D (pozo, cámara, árbol, construcción, acceso, vereda). */
-function dibujarElemento(el, aMundo) {
+function dibujarElemento(el, aMundo, conEtiqueta = true) {
   const tipo = TIPOS_ELEMENTO[el.tipo];
   const g = new THREE.Group();
   const c = el.caja;
@@ -100,9 +100,11 @@ function dibujarElemento(el, aMundo) {
     const alto = el.tipo === 'camara' ? 0.06 : 0.02;
     g.add(losa(esquinasDe(aMundo, c), alto, tipo.color));
   }
-  const etiqueta = rotulo(el.nombre || tipo.nombre, 'rgba(30,41,59,0.85)', 0.7); // grande: el lote se mira de lejos
-  etiqueta.position.set(cx, Math.max(el.alto ?? 0, 0) + 0.8, cz);
-  g.add(etiqueta);
+  if (conEtiqueta) {
+    const etiqueta = rotulo(el.nombre || tipo.nombre, 'rgba(30,41,59,0.85)', 0.7); // grande: el lote se mira de lejos
+    etiqueta.position.set(cx, Math.max(el.alto ?? 0, 0) + 0.8, cz);
+    g.add(etiqueta);
+  }
   return g;
 }
 
@@ -110,8 +112,9 @@ function dibujarElemento(el, aMundo) {
  * Dibuja el terreno en `grupo`.
  * @param imp  resultado de implantacion(params)
  * @param retiros params.terreno.retiros (0 = no se dibuja)
+ * @param conEtiquetas (v1.33.1) false = sin ningún cartel (línea municipal, calle, N, nombres)
  */
-export function dibujarTerreno(grupo, imp, retiros = {}) {
+export function dibujarTerreno(grupo, imp, retiros = {}, conEtiquetas = true) {
   const { aMundo, lote, norte } = imp;
   const caja = { u: 0, v: 0, ancho: lote.frente, largo: lote.fondo };
 
@@ -128,7 +131,7 @@ export function dibujarTerreno(grupo, imp, retiros = {}) {
   const calle = rotulo('Calle', 'rgba(63,63,70,0.9)', 0.8);
   const [kx, kz] = aMundo(lote.frente / 2, -ANCHO_CALLE + 0.8);
   calle.position.set(kx, 0.3, kz);
-  grupo.add(lm, calle);
+  if (conEtiquetas) grupo.add(lm, calle);
 
   // Retiros (líneas punteadas amarillas) donde el diseñador cargó uno.
   if (retiros.frente > 0) grupo.add(polilinea([aMundo(0, retiros.frente), aMundo(lote.frente, retiros.frente)], 0.01, COLOR_RETIRO, { discontinua: true }));
@@ -136,7 +139,7 @@ export function dibujarTerreno(grupo, imp, retiros = {}) {
   if (retiros.izquierda > 0) grupo.add(polilinea([aMundo(retiros.izquierda, 0), aMundo(retiros.izquierda, lote.fondo)], 0.01, COLOR_RETIRO, { discontinua: true }));
   if (retiros.derecha > 0) grupo.add(polilinea([aMundo(lote.frente - retiros.derecha, 0), aMundo(lote.frente - retiros.derecha, lote.fondo)], 0.01, COLOR_RETIRO, { discontinua: true }));
 
-  imp.elementos.forEach((el) => grupo.add(dibujarElemento(el, aMundo)));
+  imp.elementos.forEach((el) => grupo.add(dibujarElemento(el, aMundo, conEtiquetas)));
 
   // Flecha del norte, afuera del lote junto a la esquina del frente derecho.
   const [ox, oz] = aMundo(lote.frente + 2, 1.5);
@@ -149,9 +152,11 @@ export function dibujarTerreno(grupo, imp, retiros = {}) {
   ], 3));
   flecha.computeVertexNormals();
   grupo.add(new THREE.Mesh(flecha, new THREE.MeshBasicMaterial({ color: '#ef4444', side: THREE.DoubleSide })));
-  const n = rotulo('N', 'rgba(185,28,28,0.95)', 0.9);
-  n.position.set(punta[0] + norte[0] * 0.5, 0.4, punta[1] + norte[1] * 0.5);
-  grupo.add(n);
+  if (conEtiquetas) {
+    const n = rotulo('N', 'rgba(185,28,28,0.95)', 0.9);
+    n.position.set(punta[0] + norte[0] * 0.5, 0.4, punta[1] + norte[1] * 0.5);
+    grupo.add(n);
+  }
 }
 
 /** Libera todo lo del terreno (geometrías, materiales y texturas: acá nada es compartido). */

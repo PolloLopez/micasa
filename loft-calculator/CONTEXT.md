@@ -203,6 +203,7 @@ techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 
 - 2026-10-23 v1.25.0: proveedores, precios en efectivo/tarjeta por proveedor, comparar presupuestos y "lo más barato de cada material".
 - 2026-10-23 v1.26.0: pestaña Planos (paredes y plantas acotadas, listas de corte, revestimiento), en el PDF y en Excel.
 - 2026-10-25 v1.30.0: link compacto (la mitad) y links cortos en Firebase para ver/editar que guardan los cambios.
+- 2026-10-27 v1.33.1: grupo Etiquetas en Capas (paredes, aberturas, terreno) para sacar todos los carteles del 3D.
 - 2026-10-27 v1.33.0: uniones en red (motor/uniones.js), fajas cortadas en los vanos, perfil propio del marco de cada abertura.
 - 2026-10-27 v1.32.0: terreno e implantación (motor/terreno.js, terreno3d.js, PanelTerreno, PlanoImplantacion).
 - 2026-10-27 v1.31.0: Presupuesto en sub-pestañas (Lista de materiales, Por proveedor, Cortes, Precios y detalle) con el total de la obra arriba; listaDeMateriales en proveedores.js.

@@ -42,13 +42,17 @@ export const CAPAS_SOLO_PROYECTOS_SUELTOS = ['grada', 'montaje', 'chapa'];
 export const GRUPOS_LEYENDA = [
   { titulo: 'Estructura', capas: ['pilotines', 'columnas', 'marcos', 'piso', 'piso2', 'transversales', 'correas', 'techo', 'escalera', 'grada', 'montaje'] },
   { titulo: 'Superficies', capas: ['paneles', 'osb', 'aberturas', 'escalones', 'chapa'] },
-  { titulo: 'Ayudas', capas: ['juntas', 'etiquetasAberturas', 'cotas', 'medidasFijas', 'terreno'] },
+  { titulo: 'Ayudas', capas: ['juntas', 'cotas', 'medidasFijas', 'terreno'] },
+  // v1.33.1: todos los carteles juntos, para sacarlos con "nada" (fotos limpias, PDF).
+  { titulo: 'Etiquetas', capas: ['etiquetasParedes', 'etiquetasAberturas', 'etiquetasTerreno'] },
 ];
 
 /** Ayudas del visor: se prenden y apagan como capas, pero no tienen color. */
 export const AYUDAS = {
   juntas: { nombre: 'Juntas de paneles', titulo: 'Dónde termina cada tira o placa: para acomodar las aberturas' },
-  etiquetasAberturas: { nombre: 'Etiquetas de aberturas' },
+  etiquetasParedes: { nombre: 'Paredes', titulo: 'Frente, Lateral… (cada pared puede tener su texto en Paredes)' },
+  etiquetasAberturas: { nombre: 'Aberturas', titulo: 'El número o la etiqueta de cada puerta y ventana' },
+  etiquetasTerreno: { nombre: 'Terreno', titulo: 'Línea municipal, calle, norte y lo que cargaste en el terreno' },
   cotas: { nombre: 'Cotas generales', titulo: 'Largo, ancho y altos de la obra (v1.28)' },
   medidasFijas: { nombre: 'Medidas fijadas', titulo: 'Las medidas que dejaste fijas con 📏 Medir → 📌 (v1.28)' },
   terreno: { nombre: 'Terreno', titulo: 'El lote, la calle, los retiros y lo que cargaste en Terreno e implantación (v1.32)' },

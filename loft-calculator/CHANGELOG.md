@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.33.1] - 2026-10-27
+### Agregado
+- **Se pueden sacar todas las etiquetas del 3D**: en "Capas" hay un grupo **Etiquetas** (Paredes, Aberturas,
+  Terreno) con "todo / nada". Terreno saca línea municipal, calle, la N y los nombres del pozo, árboles, etc.
+  (la flecha del norte queda). Sirve para fotos limpias y para el PDF (sale como se ve).
+
 ## [1.33.0] - 2026-10-27
 ### Corregido
 - **Las fajas ya no cruzan las puertas y ventanas**: se cortan en el marco de cada vano que está a su altura
