@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.34.1] - 2026-10-27
+### Corregido
+- **El terreno (y cualquier cambio) se perdía al volver a abrir el link**: si el proyecto venía de un link de la
+  nube (sobre todo el de ver, que no se puede actualizar), al abrir el link de nuevo se cargaba la versión vieja
+  del link sin preguntar. Ahora, si lo que guardaste es igual o más nuevo que el link, se abre tu versión; si el
+  link es más nuevo, pregunta y avisa si perdés cambios sin guardar.
+- **Al borrar una columna, la solera (o la faja) que cortaba quedaba con el hueco**: ahora lo borrado o editado a
+  mano sobre piezas enteras se aplica antes de armar la red, así lo que cruzaba esa columna vuelve a quedar entero.
+  (Lo hecho sobre un tramo ya cortado, "…~2", se sigue aplicando después.)
+
 ## [1.34.0] - 2026-10-27
 ### Agregado
 - **Elegir qué queda entero** (Materiales → Uniones), por obra, en cada par: soleras ↔ columnas, columnas ↔ fajas,

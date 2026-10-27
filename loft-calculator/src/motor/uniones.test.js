@@ -175,3 +175,24 @@ describe('jerarquía elegible', () => {
     expect(listarPiezas(e).filter((p) => p.id.startsWith('ref:1:jamba-izq~')).length).toBe(0);
   });
 });
+
+// v1.34.1: borrar a mano una columna vuelve a unir lo que ella cortaba.
+describe('piezas borradas a mano', () => {
+  it('sin la columna, la faja y la solera vuelven a pasar enteras por ese lugar', () => {
+    const columna = deTipo(eje(), 'columna').find((p) => !p.esquina && p.grupos.includes('C'));
+    const conFaja = (e) => deTipo(e, 'horizontal').filter((p) => p.id.startsWith('horiz:C:1'));
+    const sinColumna = red(conRed({ piezasEliminadas: [columna.id], uniones: { enteras: { solerasColumnas: 'columnas' } } }));
+    const conColumna = red(conRed({ uniones: { enteras: { solerasColumnas: 'columnas' } } }));
+    expect(listarPiezas(sinColumna).some((p) => p.id.startsWith(columna.id))).toBe(false);
+    expect(conFaja(sinColumna).length).toBe(conFaja(conColumna).length - 1); // un tramo menos: se unieron
+    expect(deTipo(sinColumna, 'solera').length).toBe(deTipo(conColumna, 'solera').length - 1);
+    expect(sinColumna.eliminadasEncontradas.map((p) => p.id)).toEqual([columna.id]);
+  });
+
+  it('borrar un tramo ya cortado sigue funcionando', () => {
+    const tramo = deTipo(red(), 'horizontal').find((p) => p.id.startsWith('horiz:C:1~'));
+    const e = red(conRed({ piezasEliminadas: [tramo.id] }));
+    expect(listarPiezas(e).some((p) => p.id === tramo.id)).toBe(false);
+    expect(e.eliminadasEncontradas.map((p) => p.id)).toEqual([tramo.id]);
+  });
+});

@@ -795,8 +795,18 @@ export function generarEstructura(params, aberturas, catalogo = null) {
   };
   // v1.33: primero los perfiles de cada pared (las uniones necesitan la medida de cada pieza), después las
   // uniones y al final lo hecho a mano (las ediciones apuntan a los tramos ya cortados).
-  const conUniones = aplicarUniones(marcarPerfilesDePared(completa, params), params, catalogo, aberturas);
-  const conCambios = aplicarCambiosManuales(conUniones, new Set(params.piezasEliminadas ?? []), params.piezasEditadas ?? {});
+  // v1.34.1: lo hecho a mano sobre piezas enteras (ej. borrar una columna) va ANTES de las uniones, así la
+  // solera que cruzaba esa columna vuelve a quedar entera. Lo hecho sobre un tramo ya cortado ("…~2") va después.
+  const esTramo = (id) => id.includes('~');
+  const eliminadas = params.piezasEliminadas ?? [];
+  const editadas = params.piezasEditadas ?? {};
+  const soloDe = (filtro) => [new Set(eliminadas.filter(filtro)),
+    Object.fromEntries(Object.entries(editadas).filter(([id]) => filtro(id)))];
+  const antes = aplicarCambiosManuales(marcarPerfilesDePared(completa, params), ...soloDe((id) => !esTramo(id)));
+  const conUniones = aplicarUniones(antes, params, catalogo, aberturas);
+  const conCambios = aplicarCambiosManuales(conUniones, ...soloDe(esTramo));
+  conCambios.eliminadasEncontradas = [...antes.eliminadasEncontradas, ...conCambios.eliminadasEncontradas];
+  conCambios.editadasEncontradas = [...antes.editadasEncontradas, ...conCambios.editadasEncontradas];
   return marcarPerfilesDePared(conCambios, params);
 }
 

@@ -751,9 +751,18 @@ export default function App() {
         // Si ya está en Mis proyectos (mismo link), se abre sobre esa entrada y se conserva su clave.
         const entrada = biblioteca.find((e) => e.nube?.id === linkNube.id);
         const clave = linkNube.clave ?? entrada?.nube?.clave ?? null;
-        const abrir = (entrada && entrada.id === idProyectoActual) || await confirmar({
+        const esElAbierto = Boolean(entrada) && entrada.id === idProyectoActual;
+        // v1.34.1: si lo que tenés guardado es igual o más nuevo que el link (ej. le agregaste el terreno y
+        // guardaste, pero el link de ver no cambia), NO se pisa: se queda tu versión.
+        if (entrada && r.rev <= (entrada.nube?.rev ?? -1)) {
+          if (!esElAbierto) await abrirDeBiblioteca(entrada);
+          setAviso({ tipo: 'ok', texto: `"${entrada.nombre}": se abrió tu versión guardada (el link no tiene cambios más nuevos).` });
+          return;
+        }
+        const perdes = esElAbierto && cambiosSinGuardar ? ' Ojo: perdés los cambios que no guardaste.' : '';
+        const abrir = await confirmar({
           titulo: clave ? 'Proyecto compartido para editar' : 'Proyecto compartido',
-          mensaje: `¿Abrir "${r.proyecto.nombre}"? Reemplaza lo que tenés en pantalla.${clave ? ' Con "Guardar" los cambios quedan en el link.' : ''}`,
+          mensaje: `¿Abrir "${r.proyecto.nombre}"${esElAbierto ? ' (la versión más nueva del link)' : ''}? Reemplaza lo que tenés en pantalla.${perdes}${clave ? ' Con "Guardar" los cambios quedan en el link.' : ''}`,
           aceptar: 'Abrir', cancelar: 'No, seguir con el mío',
         });
         if (!abrir) return;
