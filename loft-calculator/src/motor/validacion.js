@@ -13,6 +13,7 @@ import {
 import { calcularEscalones, DESCANSOS_POR_FORMA } from './escalera.js';
 import { revisarEdicion, PERFILES_ASIGNABLES } from './edicionPiezas.js';
 import { revisarAgregadas } from './piezasAgregadas.js';
+import { validarTerreno } from './terreno.js';
 import { CAMPOS_CON_CANTIDAD, MAXIMO_CANTIDAD } from './cantidades.js';
 
 /** Largo máximo del texto de la etiqueta de una pared en el 3D. */
@@ -76,6 +77,8 @@ export function validarParametros(params) {
     anotar('proveedorElegido', 'Proveedor inválido');
   }
   revisarCantidades(params.cantidades).forEach(([campo, error]) => anotar(campo, error));
+  // v1.32: el terreno (solo si el proyecto lo trae; los viejos lo completa migrarParams).
+  if (params.terreno !== undefined) Object.entries(validarTerreno(params.terreno)).forEach(([campo, error]) => anotar(campo, error));
   if (params.techoConBorde !== undefined && typeof params.techoConBorde !== 'boolean') anotar('techoConBorde', 'Valor inválido');
 
   // Lados elegidos (frente, entrepiso, caída del techo).

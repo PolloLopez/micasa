@@ -25,6 +25,8 @@ import AberturasDePared from './componentes/AberturasDePared.jsx';
 import TarjetaMateriales from './componentes/TarjetaMateriales.jsx';
 import BarraPestanas from './componentes/BarraPestanas.jsx';
 import PanelEscalera from './componentes/PanelEscalera.jsx';
+import PanelTerreno from './componentes/PanelTerreno.jsx';
+import { implantacion as calcularImplantacion } from './motor/terreno.js';
 import PanelGrada from './componentes/PanelGrada.jsx';
 import PanelMontaje from './componentes/PanelMontaje.jsx';
 import TablaPresupuesto from './componentes/TablaPresupuesto.jsx';
@@ -288,6 +290,13 @@ export default function App() {
     setPestanaGuardada(clave);
   };
   const lados = useMemo(() => geometriaLados(params), [params]);
+  // v1.32: la casa en su terreno (distancias, avisos) y el pedido para que el 3D muestre todo el lote.
+  const implantacion = useMemo(() => calcularImplantacion(params), [params]);
+  const [pedidoVerTerreno, setPedidoVerTerreno] = useState(0);
+  const verTerreno = () => {
+    setPedidoVerTerreno((n) => n + 1);
+    if (window.matchMedia?.('(max-width: 1000px)').matches) setVistaMovil('3d'); // en el celular, ir al 3D
+  };
 
   // --- Resaltar en el 3D (v1.27) ---
   // Con el mouse encima (o el foco adentro) de un perfil, un renglón o una parte, el 3D pinta sus piezas.
@@ -932,7 +941,8 @@ export default function App() {
             onActualizarAbertura={actualizarAbertura} onQuitarAbertura={quitarAbertura}
             onPegarAbertura={pegarAbertura} onDuplicarPieza={duplicarPiezaElegida}
             resaltado={resaltado} cartelResaltado={cartelResaltado}
-            onSoltarResaltado={resaltadoFijo ? () => { setResaltadoFijo(null); setResaltadoMouse(null); } : null} />
+            onSoltarResaltado={resaltadoFijo ? () => { setResaltadoFijo(null); setResaltadoMouse(null); } : null}
+            pedidoVerTerreno={pedidoVerTerreno} />
         </div>
 
         <div className="columna-panel">
@@ -964,6 +974,9 @@ export default function App() {
                 onCambio={cambiar('ladoFrente')} ocultarFrente />
             </div>
           </Tarjeta>
+
+          {/* TERRENO (v1.32): el lote, dónde va la casa, pozo, árboles, accesos y el norte. */}
+          <PanelTerreno params={params} unidad={unidad} cambiar={cambiar} implantacion={implantacion} onVerTerreno={verTerreno} />
 
           {/* PISOS */}
           <Tarjeta id="pisos" titulo="Pisos" resaltar={{ tipo: 'grupo', id: ['piso', 'piso2'], nombre: 'Pisos' }}>
@@ -1250,7 +1263,7 @@ export default function App() {
           {/* v1.26: planos de cada pared y planta (en pantalla y en el PDF) + Excel. */}
           <section id="pestana-planos" role="tabpanel" aria-labelledby="boton-planos"
             className={`pestana${pestanaActiva === 'planos' ? '' : ' oculta'}`}>
-            <Planos vistas={vistas} params={params} onExportar={() => setDialogoImprimir(true)} />
+            <Planos vistas={vistas} params={params} implantacion={implantacion} onExportar={() => setDialogoImprimir(true)} />
           </section>
         </div>
       </main>
@@ -1259,7 +1272,7 @@ export default function App() {
         subtitulo={`${new Date().toLocaleDateString('es-AR')} · ${nombreProveedor ? `${nombreProveedor} ${textoPago}` : textoPago} · Pollo Calculator v${VERSION_APP}`}
         leyenda3D={cartelResaltado ? `Resaltado en rosa — ${cartelResaltado.replace(' (fijado)', '')}` : null}
         resumen={resumen} items={items} total={total} gruposCortes={gruposCortes} vistas={vistas} params={params}
-        plan={proveedores.length > 1 ? planCompra : null} materiales={listaMateriales} />
+        plan={proveedores.length > 1 ? planCompra : null} materiales={listaMateriales} implantacion={implantacion} />
     </div>
     </ContextoResaltado>
   );

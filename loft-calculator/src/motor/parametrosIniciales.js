@@ -6,6 +6,7 @@
 import { GRADA_INICIAL } from './grada.js';
 import { MONTAJE_INICIAL } from './montaje.js';
 import { ESCALERA_INICIAL } from './escalera.js';
+import { TERRENO_INICIAL } from './terreno.js';
 
 /** Configuración de una pared (panel). */
 export const PARED_INICIAL = {
@@ -84,6 +85,9 @@ export const PARAMS_INICIALES = {
 
   // Escalera al borde del entrepiso (ver motor/escalera.js)
   escalera: { ...ESCALERA_INICIAL },
+
+  // v1.32: el lote y lo que hay en él (ver motor/terreno.js). activo: false = sin terreno.
+  terreno: structuredClone(TERRENO_INICIAL),
 };
 
 export const ABERTURAS_INICIALES = [

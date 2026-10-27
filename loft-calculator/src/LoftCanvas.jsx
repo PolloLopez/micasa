@@ -32,6 +32,8 @@ import { juntasDePano, pedazosDePared } from './motor/revestimientos.js';
 import { medirEntre, puntoMasCercanoEnPieza } from './motor/medicion.js';
 import { cotasGenerales } from './motor/cotas3d.js';
 import { vistasFijas } from './motor/vistasFijas.js';
+import { implantacion } from './motor/terreno.js';
+import { dibujarTerreno, vaciarTerreno, encuadreTerreno } from './terreno3d.js';
 
 // Capa y sección (grosor en el 3D) de cada tipo de pieza.
 const ESTILO_PIEZA = {
@@ -697,6 +699,7 @@ export default function LoftCanvas({
   opacidades, onCambiarOpacidad, capturaRef, onMedidasFijas,
   onActualizarAbertura, onQuitarAbertura, onPegarAbertura, onDuplicarPieza,
   resaltado = null, cartelResaltado = null, onSoltarResaltado,
+  pedidoVerTerreno = 0, // v1.32: cada vez que cambia, la cámara muestra todo el lote
 }) {
   const lienzoRef = useRef(null);
   const visorRef = useRef(null); // { grupo, controles, camara, materiales, ... }
@@ -726,6 +729,7 @@ export default function LoftCanvas({
     etiquetasAberturas: true, // número de cada abertura (v1.16)
     cotas: false, // v1.28: largo, ancho y altos (en el PDF se pueden pedir aunque estén apagadas)
     medidasFijas: true, // v1.28: las medidas fijadas con 📌
+    terreno: true, // v1.32: el lote, la calle, el pozo, árboles… (si la obra tiene terreno)
   }));
 
   // 1) MONTAJE: una sola vez.
@@ -760,6 +764,8 @@ export default function LoftCanvas({
     escena.add(grupo);
     const grupoCotas = new THREE.Group(); // v1.28: cotas generales, aparte (ver dibujarCotas)
     escena.add(grupoCotas);
+    const grupoTerreno = new THREE.Group(); // v1.32: terreno, aparte (no entra en el encuadre de las vistas fijas)
+    escena.add(grupoTerreno);
     const materiales = crearMateriales(coloresRef.current);
 
     let idCuadro;
@@ -826,6 +832,7 @@ export default function LoftCanvas({
       const fondo = escena.background;
       const cotasVisibles = grupoCotas.visible;
       escena.background = new THREE.Color(0xffffff);
+      const grillaVisible = grilla.visible; // v1.32: con terreno la grilla ya está apagada
       grilla.visible = false;
       if (conCotas) grupoCotas.visible = true;
       // Cada foto se recorta al dibujo (sin el blanco de alrededor): en el PDF la obra sale más grande.
@@ -847,7 +854,7 @@ export default function LoftCanvas({
         renderer.setSize(tamanio.x, tamanio.y, false);
       }
       escena.background = fondo;
-      grilla.visible = true;
+      grilla.visible = grillaVisible;
       grupoCotas.visible = cotasVisibles;
       return {
         ...fotos,
@@ -857,12 +864,13 @@ export default function LoftCanvas({
     if (capturaRef) capturaRef.current = capturar;
 
     const materialesPanel = new Map();
-    visorRef.current = { grupo, grupoCotas, controles, camara, materiales, materialesPanel, frente: null };
+    visorRef.current = { grupo, grupoCotas, grupoTerreno, grilla, controles, camara, materiales, materialesPanel, frente: null };
 
     return () => {
       cancelAnimationFrame(idCuadro);
       if (capturaRef) capturaRef.current = null;
       vaciarGrupo(grupoCotas);
+      vaciarTerreno(grupoTerreno);
       renderer.domElement.removeEventListener('pointerdown', alApretar);
       renderer.domElement.removeEventListener('pointerup', alSoltar);
       observador.disconnect();
@@ -909,6 +917,32 @@ export default function LoftCanvas({
     dibujarCotas(visor.grupoCotas, params, estructura);
     visor.grupoCotas.visible = Boolean(capas.cotas);
   }, [params, estructura, capas.cotas]);
+
+  // 2c) TERRENO (v1.32): el lote y lo que hay en él. Con terreno, la grilla se apaga (el lote hace de piso).
+  const conTerreno = params.tipoProyecto === 'construccion' && params.terreno?.activo && capas.terreno;
+  useEffect(() => {
+    const visor = visorRef.current;
+    if (!visor) return;
+    vaciarTerreno(visor.grupoTerreno);
+    if (conTerreno) dibujarTerreno(visor.grupoTerreno, implantacion(params), params.terreno.retiros);
+    visor.grilla.visible = !conTerreno;
+  // Solo lo que cambia el terreno (no todo params: redibujar el lote en cada cambio de la estructura no hace falta).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conTerreno, params.terreno, params.ladoFrente, params.largo, params.ancho]);
+
+  /** Cámara para ver todo el lote: desde la calle, en diagonal y alto. */
+  const verTerreno = () => {
+    const visor = visorRef.current;
+    if (!visor || !params.terreno?.activo) return;
+    const { centro, haciaCalle, tamanio } = encuadreTerreno(implantacion(params));
+    const d = (tamanio * 0.9 + 6) / Math.sqrt(Math.min(1, visor.camara.aspect)); // pantalla angosta (celular): más lejos
+    visor.camara.position.set(centro[0] + haciaCalle[0] * d - haciaCalle[1] * d * 0.35, d * 0.75, centro[1] + haciaCalle[1] * d + haciaCalle[0] * d * 0.35);
+    visor.controles.target.set(centro[0], 0, centro[1]);
+    visor.controles.update();
+  };
+  const verTerrenoRef = useRef(verTerreno);
+  verTerrenoRef.current = verTerreno;
+  useEffect(() => { if (pedidoVerTerreno > 0) verTerrenoRef.current(); }, [pedidoVerTerreno]);
 
   // v1.28: App las necesita en texto (para el PDF y el Excel).
   useEffect(() => {
@@ -1060,6 +1094,7 @@ export default function LoftCanvas({
         <button className="btn-ctrl" onClick={() => visorRef.current && mirarAlFrente(visorRef.current.camara, visorRef.current.controles, medidasVista(params, estructura))}>
           Ver frente
         </button>
+        {conTerreno && <button className="btn-ctrl" onClick={verTerreno}>Ver terreno</button>}
         <button className={`btn-ctrl${midiendo ? ' activo' : ''}`} aria-pressed={midiendo}
           onClick={() => { setMidiendo((v) => !v); setSeleccionada(null); setAberturaSeleccionada(null); }}>
           📏 {midiendo ? 'Terminar de medir' : 'Medir'}

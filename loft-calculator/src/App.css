@@ -677,3 +677,38 @@ kbd {
 @media print {
   .subpestanas, .resumen-presupuesto .datos-resumen select { display: none; }
 }
+
+/* ---------- Terreno e implantación (v1.32) ---------- */
+.botones-agregar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.botones-agregar .btn-sec { min-height: 36px; font-size: 0.8rem; }
+.elemento-terreno { border: 1px solid var(--borde); border-radius: 8px; padding: 6px 10px 8px; margin-bottom: 8px; background: var(--fondo); }
+.elemento-terreno header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.elemento-terreno header small { color: var(--texto-tenue); flex: 1; }
+.muestra-elemento { width: 14px; height: 14px; border-radius: 50%; border: 1px solid var(--borde-input); flex: none; }
+.distancias-casa { font-size: 0.85rem; color: var(--texto-suave); margin: 4px 0 8px; }
+.avisos-terreno { list-style: none; padding: 8px 10px; margin: 8px 0; border-radius: 8px; background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.4); font-size: 0.85rem; display: flex; flex-direction: column; gap: 4px; }
+.avisos-terreno .error { color: #fca5a5; font-weight: 600; }
+.avisos-terreno .aviso { color: #fde68a; }
+.ok-terreno { color: var(--exito); font-size: 0.85rem; margin: 8px 0; }
+
+/* Plano de implantación (v1.32): en metros; trazos y textos proporcionales al lote. */
+.plano-implantacion { width: 100%; height: auto; max-height: 75vh; background: #f8fafc; border-radius: 6px; margin: 6px 0; }
+.plano-implantacion text { fill: #0f172a; font-family: system-ui, sans-serif; }
+.plano-implantacion .lote { fill: #ecfccb; stroke: #4d7c0f; stroke-width: 0.06; }
+.plano-implantacion .linea-municipal { stroke: #ea580c; stroke-width: 0.12; }
+.plano-implantacion .rotulo-lm { fill: #c2410c; font-weight: 700; }
+.plano-implantacion .rotulo-calle { fill: #475569; font-style: italic; }
+.plano-implantacion .retiro { stroke: #ca8a04; stroke-width: 0.05; stroke-dasharray: 0.4 0.25; }
+.plano-implantacion .casa { fill: #bfdbfe; stroke: #1d4ed8; stroke-width: 0.08; }
+.plano-implantacion .rotulo-casa { font-weight: 700; fill: #1e3a8a; }
+.plano-implantacion .elemento circle, .plano-implantacion .elemento rect { fill-opacity: 0.75; stroke: #334155; stroke-width: 0.04; }
+.plano-implantacion .rotulo-elemento { fill: #0f172a; font-weight: 600; }
+.plano-implantacion .cota line { stroke: #334155; stroke-width: 0.04; }
+.plano-implantacion .norte circle { fill: #fff; stroke: #b91c1c; stroke-width: 0.06; }
+.plano-implantacion .norte path { fill: #b91c1c; }
+.plano-implantacion .norte text { fill: #b91c1c; font-weight: 700; }
+@media print {
+  .bloque-implantacion { break-inside: avoid; }
+  .bloque-implantacion .plano-implantacion { max-height: 150mm; border: 0.3pt solid #ccc; }
+}

@@ -5,10 +5,13 @@
 ## 🗺️ Hoja de ruta acordada (27/10): terreno → sol → muebles
 Decisiones de Leandro: lote rectangular; ubicar pozo séptico y cámara, árboles y otras construcciones, accesos y
 veredas; sol con animación del día; orden Terreno → Sol → Muebles.
-- 🔴 [ ] **Etapa 1 — Terreno e implantación (v1.32)**: lote frente × fondo, línea municipal en el frente, casa
+- ✅ **Etapa 1 — Terreno e implantación (v1.32.0)**: lote frente × fondo, línea municipal en el frente, casa
   ubicada por distancia a frente/fondo/laterales (con aviso si no entra o invade retiros que carga Leandro),
   pozo séptico + cámara (con distancias), árboles/otras construcciones (cajas o cilindros con altura), accesos y
   veredas (rectángulos en el piso), flecha del norte. En el 3D, en una planta "Implantación" en Planos y en el PDF.
+  - 🟡 [ ] Probar con Leandro en un lote real (medidas, orientación, retiros de Mercedes) y ajustar.
+  - 🟢 [ ] Mover elementos arrastrando en el 3D (hoy se cargan las distancias); se resuelve junto con los muebles.
+  - 🟢 [ ] Vereda municipal y ochava (lotes en esquina) si hace falta.
 - 🟡 [ ] **Etapa 2 — Sol (v1.33)**: posición del sol por latitud/fecha/hora (fórmulas astronómicas, sin
   librerías), luz con sombras en el 3D, día y hora elegibles + botones invierno/verano + ▶ animación del día;
   sombras de árboles y otras construcciones; sol que entra por cada abertura. Cuidar el rendimiento en celular.

@@ -14,6 +14,7 @@
 
 import { cantidadPedida } from '../motor/proveedores.js';
 import { PlanoDePared, PlanoDePlanta } from './Planos.jsx';
+import PlanoImplantacion from './PlanoImplantacion.jsx';
 import { agruparBarras, textoBarra } from '../proyecto/cortesAgrupados.js';
 
 const pesos = (n) => n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
@@ -58,7 +59,7 @@ function CortesCompactos({ grupos }) {
 }
 
 export default function HojasImpresion({
-  opciones, capturas, nombre, subtitulo, leyenda3D, resumen, items, total, gruposCortes, vistas, params, plan = null, materiales = [],
+  opciones, capturas, nombre, subtitulo, leyenda3D, resumen, items, total, gruposCortes, vistas, params, plan = null, materiales = [], implantacion = null,
 }) {
   const fotos = capturas ?? { actual: null, fijas: [], medidas: [] };
   const conParedes = opciones.paredes && vistas.paredes.length > 0;
@@ -140,6 +141,13 @@ export default function HojasImpresion({
                 </div>
               )}
             </>
+          )}
+          {/* v1.32: implantación (la casa en su lote), con las plantas. */}
+          {conPlantas && implantacion && params.terreno?.activo && (
+            <div className="bloque-implantacion plano-impresion">
+              <h2>Implantación (la calle abajo)</h2>
+              <PlanoImplantacion imp={implantacion} terreno={params.terreno} />
+            </div>
           )}
           {conPlantas && (
             <div className="bloque-plantas">

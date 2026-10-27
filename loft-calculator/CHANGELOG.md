@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.32.0] - 2026-10-27
+### Agregado
+- **Terreno e implantación** (pestaña Estructura, tarjeta nueva): lote frente × fondo, la casa ubicada por su
+  distancia a la línea municipal y al lateral izquierdo (las otras dos salen solas), hacia dónde mira la calle
+  (rumbo o grados exactos). Retiros y distancias mínimas del pozo **los carga el diseñador** (cambian según el
+  municipio); sin tildar, no se controlan.
+- **En el terreno**: pozo séptico, cámara séptica, árboles, otras construcciones, accesos y veredas, cada uno con
+  nombre, ubicación y medidas. El pozo muestra su distancia a la casa y a cada medianera.
+- **Avisos**: la casa no entra, invade un retiro, algo queda fuera del lote o encima de la casa, el pozo no
+  respeta los mínimos.
+- **3D**: lote, calle, línea municipal, retiros punteados, los elementos con su altura y la flecha del norte;
+  botón "Ver terreno" y capa "Terreno" para prenderlo y apagarlo. Con terreno, la grilla se apaga.
+- **Plano de implantación** (Planos y PDF): lote acotado, la casa con sus 4 distancias, retiros, elementos y el
+  norte, con la calle abajo. El resumen de la obra (PDF y Excel) suma lote, ubicación, retiros y elementos.
+
 ## [1.31.0] - 2026-10-27
 ### Cambiado
 - **Presupuesto reordenado**: arriba siempre el **TOTAL DE LA OBRA**, los kilos de hierro, cuántos proveedores y la

@@ -6,6 +6,7 @@
 //   [['Planta', '7.50 x 4.50 m'], ['Techo', 'cae hacia Fondo (C) · …'], …]
 // ==========================================================
 
+import { resumenDeTerreno } from '../motor/terreno.js';
 import { LADOS } from '../motor/constantes.js';
 import { nombreLado, geometriaLados, alturasPared, alturaMaxima } from '../motor/geometria.js';
 import { infoSeparacion } from '../motor/estructura.js';
@@ -41,6 +42,7 @@ export function resumenDeObra({ params, estructura, aberturas = [], catalogo = [
 
   filas.push(['Planta', `${m(params.largo)} x ${m(params.ancho)} · frente: lado ${params.ladoFrente}`]);
   filas.push(['Alturas', `lado bajo ${m(params.altura)} · lado alto ${m(alturaMaxima(params))} · elevación ${m(params.elevacion)}`]);
+  filas.push(...resumenDeTerreno(params)); // v1.32: el lote y la ubicación (si se cargó)
 
   const techo = [
     `cae hacia ${frente(params.caidaTecho)}`,

@@ -9,6 +9,7 @@
 // ==========================================================
 
 import Tarjeta from './Tarjeta.jsx';
+import PlanoImplantacion from './PlanoImplantacion.jsx';
 import { NOMBRE_PLANTA } from '../motor/planos.js';
 import { nombreDePared } from '../proyecto/exportarExcel.js';
 
@@ -206,7 +207,7 @@ export function PlanoDePlanta({ vista: p }) {
   );
 }
 
-export default function Planos({ vistas, params, onExportar }) {
+export default function Planos({ vistas, params, onExportar, implantacion = null }) {
   if (!vistas.paredes.length && !vistas.plantas.length) {
     return (
       <Tarjeta id="planos" titulo="Planos">
@@ -225,6 +226,13 @@ export default function Planos({ vistas, params, onExportar }) {
         </p>
         <button type="button" className="btn-print no-print" onClick={onExportar}>Imprimir o exportar…</button>
       </Tarjeta>
+      {/* v1.32: la casa en su lote (si se cargó el terreno). */}
+      {implantacion && params.terreno?.activo && (
+        <section className="card plano">
+          <h3 className="subtitulo">Implantación (vista desde arriba, la calle abajo)</h3>
+          <PlanoImplantacion imp={implantacion} terreno={params.terreno} />
+        </section>
+      )}
       {vistas.paredes.map((v) => (
         <section key={v.lado} className="card plano"><PlanoDePared vista={v} params={params} /></section>
       ))}
