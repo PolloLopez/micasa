@@ -1,7 +1,8 @@
 // Tests de flete, plan de compra y accesorios (v1.29). Correr con: npm test
 import { describe, it, expect } from 'vitest';
-import { costoFlete, renglonesDeFlete, planDeCompra, masBaratoEn, faltanPrecios, totalDeLaObra, usaPlanDeCompra, materialesDeCompra, textoPedido, cantidadPedida } from './proveedores.js';
+import { costoFlete, renglonesDeFlete, planDeCompra, masBaratoEn, faltanPrecios, totalDeLaObra, usaPlanDeCompra, materialesDeCompra, textoPedido, cantidadPedida, listaDeMateriales, kilosDeMateriales, textoDeMateriales } from './proveedores.js';
 import { calcularPresupuesto, CATALOGO_INICIAL } from './presupuesto.js';
+import { resolverCatalogo } from './perfiles.js';
 import { normalizarCatalogo } from './migracion.js';
 import { generarEstructura } from './estructura.js';
 import { PARAMS_INICIALES as P } from './parametrosIniciales.js';
@@ -180,5 +181,28 @@ describe('ficha de cada material en el pedido', () => {
     const t = textoPedido(plan.compras[0]);
     expect(t).toMatch(/barras de 6 m — Caño estructural/);
     expect(t).toMatch(/Lado \d+ mm · Espesor \d\.\d mm · ≈ \d+ kg/);
+  });
+});
+
+// v1.31.0: la lista de materiales de la obra, sin proveedor.
+describe('materiales de la obra (sin proveedor)', () => {
+  const e = generarEstructura(P, []);
+  const r = calcularPresupuesto(e, CATALOGO_INICIAL, { proveedor: 'prov-1', pago: 'efectivo' });
+  const lista = listaDeMateriales(r.items, resolverCatalogo(CATALOGO_INICIAL));
+
+  it('un renglón por material, sumando las barras de cada perfil', () => {
+    const barrasPorPerfil = new Map();
+    r.items.filter((i) => i.perfilId && i.cantidad > 0).forEach((i) => barrasPorPerfil.set(i.perfilId, (barrasPorPerfil.get(i.perfilId) ?? 0) + i.cantidad));
+    for (const [perfilId, barras] of barrasPorPerfil) expect(lista.find((m) => m.clave === perfilId).cantidad).toBe(barras);
+    expect(new Set(lista.map((m) => m.clave)).size).toBe(lista.length);
+    expect(lista.some((m) => m.clave.startsWith('flete'))).toBe(false);
+  });
+
+  it('los kilos coinciden con los del presupuesto y el texto no lleva precios', () => {
+    const kilosPresupuesto = r.items.reduce((a, i) => a + (i.cortes && i.kgm ? i.cantidad * i.largoBarra * i.kgm : 0), 0);
+    expect(kilosDeMateriales(lista)).toBeCloseTo(kilosPresupuesto, 0);
+    const t = textoDeMateriales('Materiales — Casa', lista);
+    expect(t.startsWith('Materiales — Casa\n• ')).toBe(true);
+    expect(t).not.toContain('$');
   });
 });

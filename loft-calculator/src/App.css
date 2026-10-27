@@ -640,3 +640,40 @@ kbd {
 .link-y-boton { display: flex; gap: 6px; }
 .link-y-boton input { flex: 1; min-width: 0; font-size: 0.8rem; }
 .dialogo-compartir .btn-print { margin: 4px 0 10px; }
+
+/* ---------- Presupuesto en sub-pestañas (v1.31.0) ---------- */
+/* Total de la obra siempre arriba: lo primero que se busca. */
+.resumen-presupuesto { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+.total.total-obra { margin-top: 0; align-items: center; font-size: 1.15rem; }
+.total.total-obra > span:first-child { display: flex; flex-direction: column; }
+.total.total-obra small { font-size: 0.72rem; color: #e0f2fe; }
+.datos-resumen { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; font-size: 0.8rem; color: var(--texto-suave); }
+.datos-resumen .campo, .datos-resumen label { margin: 0; }
+.datos-resumen select { min-height: 32px; }
+/* Botones tipo "segmentos": grandes para el dedo, con scroll horizontal si no entran en el celular. */
+/* Grilla de 4 (el texto largo pasa a dos renglones); si el panel es muy angosto, 2 x 2. Nunca quedan cortadas. */
+.presupuesto { container-type: inline-size; }
+@container (max-width: 380px) { .subpestanas { grid-template-columns: repeat(2, 1fr) !important; } }
+.subpestanas { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 4px; margin-bottom: 10px;
+  background: var(--fondo); border: 1px solid var(--borde); border-radius: 8px; }
+.subpestanas button { min-height: 44px; padding: 4px 6px; line-height: 1.15; border: none; border-radius: 6px;
+  background: transparent; color: var(--texto-suave); font-weight: 600; font-size: 0.85rem; cursor: pointer; }
+.subpestanas button:hover { background: var(--tarjeta); color: var(--texto); }
+.subpestanas button.activa { background: var(--primario); color: #fff; }
+.subpestanas button:focus-visible { outline: 2px solid var(--acento); outline-offset: 1px; }
+/* Lista de materiales: la cantidad es lo que más se lee. */
+.tabla-materiales td { vertical-align: top; }
+.tabla-materiales .cantidad-material { font-weight: 700; white-space: nowrap; color: var(--acento); }
+.tabla-materiales small.detalle { display: block; }
+.pie-lista { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; }
+.pie-lista .peso-total { margin: 0; }
+.mas-info { font-size: 0.75rem; color: var(--texto-tenue); margin-top: 2px; }
+.mas-info summary { cursor: pointer; color: var(--acento); width: fit-content; padding: 2px 0; }
+.mas-info p { margin: 2px 0 4px; line-height: 1.35; }
+.vacio { padding: 16px; text-align: center; color: var(--texto-tenue); border: 1px dashed var(--borde); border-radius: 8px; font-size: 0.85rem; }
+@media (max-width: 600px) {
+  .total.total-obra { font-size: 1rem; }
+}
+@media print {
+  .subpestanas, .resumen-presupuesto .datos-resumen select { display: none; }
+}

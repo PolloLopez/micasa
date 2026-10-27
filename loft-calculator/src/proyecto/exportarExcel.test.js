@@ -59,6 +59,15 @@ describe('libro de la obra', () => {
     expect(obra.some((f) => f[0] === '  Placas OSB — OSB 18 mm' && f[2] === 2)).toBe(true); // v1.30.3: por material
   });
 
+  it('v1.31.0: la lista de materiales (sin proveedor) va primero en la hoja Obra', () => {
+    const materiales = [{ clave: 'perfil-4', nombre: 'Perfil C 80x40x1.6', cantidad: 21, unidad: 'barra', largoBarra: 12,
+      ficha: 'Alto 80 mm · Ala 40 mm · Espesor 1.6 mm', medidas: null, kgPorBarra: 23.6, usos: [] }];
+    const obra = celdas(hojasDeObra({ ...datosDeEjemplo(), materiales })[0]);
+    const fila = obra.find((f) => f[0] === 'Perfil C 80x40x1.6');
+    expect(fila).toEqual(['Perfil C 80x40x1.6', 'Alto 80 mm · Ala 40 mm · Espesor 1.6 mm', 21, 'barra de 12 m', 496]);
+    expect(obra.findIndex((f) => f[0] === 'Lista de materiales')).toBeLessThan(obra.findIndex((f) => f[0] === 'Insumo'));
+  });
+
   it('solo lo elegido', () => {
     const hojas = hojasDeObra(datosDeEjemplo(), { presupuesto: true, paredes: false, plantas: true, cortes: false, resumen: false });
     expect(hojas.map((h) => h.nombre)).toEqual(['Obra', 'Plantas']);

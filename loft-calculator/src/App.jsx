@@ -36,7 +36,7 @@ import { generarEstructura, listarPiezas, infoSeparacion } from './motor/estruct
 import { CAMPOS_CON_CANTIDAD, MAXIMO_CANTIDAD, cantidadDe } from './motor/cantidades.js';
 import { calcularPresupuesto, CATALOGO_INICIAL, tiposDePanel } from './motor/presupuesto.js';
 import { resolverCatalogo, PERFIL_NUEVO, perfilesDeLista } from './motor/perfiles.js';
-import { proveedoresDe, aplicarProveedor, faltanPrecios, MAS_BARATO, planDeCompra, masBaratoEn, totalDeLaObra } from './motor/proveedores.js';
+import { proveedoresDe, aplicarProveedor, faltanPrecios, MAS_BARATO, planDeCompra, masBaratoEn, totalDeLaObra, listaDeMateriales } from './motor/proveedores.js';
 import SelectorPerfil from './componentes/SelectorPerfil.jsx';
 import Planos from './componentes/Planos.jsx';
 import { todasLasVistas } from './motor/planos.js';
@@ -253,6 +253,8 @@ export default function App() {
   // v1.30.2: el total de la obra (pestaña y TOTAL) es el del plan de compra cuando hay varios proveedores:
   // el de un solo proveedor deja afuera lo que ese no vende (ej. los paneles de otro).
   const totalObra = totalDeLaObra(total, planCompra, proveedores.length);
+  // v1.31.0: todos los materiales de la obra, sin proveedor (sub-pestaña Materiales del presupuesto).
+  const listaMateriales = useMemo(() => listaDeMateriales(items, resolverCatalogo(catalogo)), [items, catalogo]);
   // Catálogo con los precios elegidos (para los desplegables de perfiles y el 3D).
   const catalogoConPrecios = useMemo(() => aplicarProveedor(catalogo, proveedorElegido, formaPago), [catalogo, proveedorElegido, formaPago]);
   const paneles = useMemo(() => tiposDePanel(catalogo), [catalogo]);
@@ -693,7 +695,7 @@ export default function App() {
     const bytes = libroDeObra({
       nombre: nombreProyecto, params, vistas, items, total, gruposCortes,
       proveedor: nombreProveedor, pago: textoPago, resumen, medidas: medidasFijas,
-      plan: proveedores.length > 1 ? planCompra : null,
+      plan: proveedores.length > 1 ? planCompra : null, materiales: listaMateriales,
     }, opcionesImpresion);
     const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const enlace = document.createElement('a');
@@ -1243,7 +1245,7 @@ export default function App() {
             proveedores={proveedores} proveedor={proveedorElegido} pago={formaPago} comparacion={comparacion}
             onElegirProveedor={cambiar('proveedorElegido')} onElegirPago={cambiar('formaPago')}
             onCambiarPrecio={(item, valor) => cambiarPrecio(item.perfilId ?? item.id, proveedorElegido, formaPago, valor)}
-            plan={planCompra} nombreProyecto={nombreProyecto} masBaratoDe={(item) => masBaratoEn(item, catalogoResuelto, formaPago)} />
+            plan={planCompra} nombreProyecto={nombreProyecto} materiales={listaMateriales} masBaratoDe={(item) => masBaratoEn(item, catalogoResuelto, formaPago)} />
           </section>
           {/* v1.26: planos de cada pared y planta (en pantalla y en el PDF) + Excel. */}
           <section id="pestana-planos" role="tabpanel" aria-labelledby="boton-planos"
@@ -1257,7 +1259,7 @@ export default function App() {
         subtitulo={`${new Date().toLocaleDateString('es-AR')} · ${nombreProveedor ? `${nombreProveedor} ${textoPago}` : textoPago} · Pollo Calculator v${VERSION_APP}`}
         leyenda3D={cartelResaltado ? `Resaltado en rosa — ${cartelResaltado.replace(' (fijado)', '')}` : null}
         resumen={resumen} items={items} total={total} gruposCortes={gruposCortes} vistas={vistas} params={params}
-        plan={proveedores.length > 1 ? planCompra : null} />
+        plan={proveedores.length > 1 ? planCompra : null} materiales={listaMateriales} />
     </div>
     </ContextoResaltado>
   );

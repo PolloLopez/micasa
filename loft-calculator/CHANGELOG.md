@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.31.0] - 2026-10-27
+### Cambiado
+- **Presupuesto reordenado**: arriba siempre el **TOTAL DE LA OBRA**, los kilos de hierro, cuántos proveedores y la
+  forma de pago. Debajo, cuatro sub-pestañas (se recuerda la última; flechas del teclado para moverse):
+  **Lista de materiales** · **Por proveedor** · **Cortes** · **Precios y detalle**.
+- Las medidas a cortar de los paneles y "dónde va" cada material quedan plegados (▸): la lista se lee de un vistazo
+  y en el celular se puede ver dónde va cada cosa (antes era solo pasar el mouse).
+- Estados vacíos claros: sin proveedores, sin barras para cortar, sin materiales.
+### Agregado
+- **Lista de materiales de la obra, sin proveedor**: cantidad ("21 barras de 12 m"), material, tipo, medidas,
+  espesor y kilos; botón **Copiar lista** (sin precios). También al principio del PDF y del Excel.
+
 ## [1.30.4] - 2026-10-27
 ### Cambiado
 - **El pedido a cada proveedor dice qué barra es**: primero cantidad y largo ("21 barras de 12 m · Perfil C

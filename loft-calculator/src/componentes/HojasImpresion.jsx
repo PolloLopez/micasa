@@ -58,7 +58,7 @@ function CortesCompactos({ grupos }) {
 }
 
 export default function HojasImpresion({
-  opciones, capturas, nombre, subtitulo, leyenda3D, resumen, items, total, gruposCortes, vistas, params, plan = null,
+  opciones, capturas, nombre, subtitulo, leyenda3D, resumen, items, total, gruposCortes, vistas, params, plan = null, materiales = [],
 }) {
   const fotos = capturas ?? { actual: null, fijas: [], medidas: [] };
   const conParedes = opciones.paredes && vistas.paredes.length > 0;
@@ -102,6 +102,24 @@ export default function HojasImpresion({
         <section className="hoja-impresion">
           {opciones.presupuesto && (
             <>
+              {/* v1.31.0: primero la lista de materiales (todo, sin proveedor). */}
+              {materiales.length > 0 && (
+                <>
+                  <h2>Lista de materiales</h2>
+                  <table className="tabla-impresion">
+                    <thead><tr><th>Cantidad</th><th>Material</th><th>Tipo, medidas y espesor</th><th className="num">Peso</th></tr></thead>
+                    <tbody>
+                      {materiales.map((m) => (
+                        <tr key={m.clave}>
+                          <td>{cantidadPedida(m)}</td><td>{m.nombre}</td>
+                          <td>{[m.ficha, m.medidas && `Medidas: ${m.medidas}`].filter(Boolean).join(' — ')}</td>
+                          <td className="num">{m.kgPorBarra ? `${Math.round(m.kgPorBarra * m.cantidad)} kg` : ''}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </>
+              )}
               <h2>Presupuesto de materiales</h2>
               {/* v1.30.2: con plan de compra, la tabla es la del proveedor elegido y el total de la obra es el del plan. */}
               <PresupuestoCompacto items={items} total={total}

@@ -59,7 +59,7 @@ export const PARTES_EXCEL = { resumen: true, medidas: true, presupuesto: true, c
  * @param {object} datos { nombre, params, vistas: { paredes, plantas }, items, total, gruposCortes, proveedor, pago, resumen, medidas }
  * @param {object} partes { resumen, medidas, presupuesto, cortes, paredes, plantas } (true = va)
  */
-export function hojasDeObra({ nombre, params, vistas, items, total, gruposCortes = [], proveedor = '', pago = '', resumen = [], medidas = [], plan = null }, partes = PARTES_EXCEL) {
+export function hojasDeObra({ nombre, params, vistas, items, total, gruposCortes = [], proveedor = '', pago = '', resumen = [], medidas = [], plan = null, materiales = [] }, partes = PARTES_EXCEL) {
   const fecha = new Date().toLocaleDateString('es-AR');
   const hojas = [];
 
@@ -73,6 +73,13 @@ export function hojasDeObra({ nombre, params, vistas, items, total, gruposCortes
   }
   if (partes.medidas && medidas.length) {
     obra.push({ negrita: true, celdas: ['Medidas tomadas en el 3D'] }, ...medidas.map((md) => [md.nombre, md.texto]), []);
+  }
+  if (partes.presupuesto && materiales.length) {
+    // v1.31.0: todo lo que lleva la obra, por material y sin proveedor (lo primero que se mira).
+    obra.push({ negrita: true, celdas: ['Lista de materiales', 'Tipo, medidas y espesor', 'Cantidad', 'Unidad', 'Peso (kg)'] },
+      ...materiales.map((m) => [m.nombre, [m.ficha, m.medidas && `Medidas: ${m.medidas}`].filter(Boolean).join(' — '),
+        m.cantidad, m.largoBarra ? `${m.unidad} de ${m.largoBarra} m` : (m.unidad ?? ''), m.kgPorBarra ? Math.round(m.kgPorBarra * m.cantidad) : '']),
+      []);
   }
   if (partes.presupuesto) {
     obra.push(

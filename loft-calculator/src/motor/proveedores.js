@@ -290,11 +290,16 @@ export function materialesDeCompra(renglones) {
  * (sin precios: es lo que se le pide, no el presupuesto).
  */
 export function textoPedido(compra, nombreProyecto = '') {
-  const lineas = compra.materiales.map((m) => `• ${cantidadPedida(m)} — ${m.nombre}`
+  return textoDeMateriales(`Pedido para ${compra.proveedor.nombre}${nombreProyecto ? ` — ${nombreProyecto}` : ''}`, compra.materiales);
+}
+
+/** Lista de materiales en texto (v1.31.0): un título y un renglón por material, con ficha, kilos y medidas. */
+export function textoDeMateriales(titulo, materiales) {
+  const lineas = materiales.map((m) => `• ${cantidadPedida(m)} — ${m.nombre}`
     + (m.ficha ? `\n   ${m.ficha}` : '')
     + (m.kgPorBarra ? `${m.ficha ? ' · ' : '\n   '}≈ ${Math.round(m.kgPorBarra * m.cantidad)} kg` : '')
     + (m.medidas ? `\n   Medidas: ${m.medidas}` : ''));
-  return [`Pedido para ${compra.proveedor.nombre}${nombreProyecto ? ` — ${nombreProyecto}` : ''}`, ...lineas].join('\n');
+  return [titulo, ...lineas].join('\n');
 }
 
 /** Plural simple de las unidades del presupuesto: barra → barras, placa → placas (m², u, kg quedan igual). */
@@ -320,3 +325,21 @@ function fichaDeMaterial(item, catalogo) {
   }
   return null;
 }
+
+/**
+ * Todos los materiales de la obra, sin proveedor (v1.31.0): lo que hay que comprar, agrupado por material,
+ * con su ficha y los kilos. Sirve para ver "qué lleva la obra" antes de pensar dónde comprarlo.
+ * @param items     los del presupuesto (calcularPresupuesto)
+ * @param catalogo  resuelto (resolverCatalogo), para la ficha de cada perfil
+ */
+export function listaDeMateriales(items, catalogo) {
+  const renglones = items.filter((i) => i.cantidad > 0 && i.categoria !== 'flete').map((i) => ({
+    id: i.id, nombre: i.nombre, cantidad: i.cantidad, unidad: i.unidad, precio: i.precio ?? 0, subtotal: i.subtotal ?? 0,
+    perfil: i.perfil, perfilId: i.perfilId, largoBarra: i.largoBarra, venta: i.venta, detalle: i.detalle,
+    ficha: fichaDeMaterial(i, catalogo),
+  }));
+  return materialesDeCompra(renglones);
+}
+
+/** Kilos de hierro de una lista de materiales (barras enteras). */
+export const kilosDeMateriales = (materiales) => materiales.reduce((a, m) => a + (m.kgPorBarra || 0) * m.cantidad, 0);
