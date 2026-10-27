@@ -12,6 +12,11 @@ veredas; sol con animación del día; orden Terreno → Sol → Muebles.
   - 🟡 [ ] Probar con Leandro en un lote real (medidas, orientación, retiros de Mercedes) y ajustar.
   - 🟢 [ ] Mover elementos arrastrando en el 3D (hoy se cargan las distancias); se resuelve junto con los muebles.
   - 🟢 [ ] Vereda municipal y ochava (lotes en esquina) si hace falta.
+- ✅ **Módulos por instalación** (v1.32.0, `src/modulos.js`): Terreno es el primero. Cada etapa nueva (Sol, Muebles)
+  entra como módulo propio.
+  - 🟢 [ ] Pasar a módulo lo que ya existe y no todos usan: Grada, Montaje industrial, Nube (links cortos).
+  - 🟢 [ ] Opción C (más adelante): usuarios con login (Firebase Auth) y módulos por usuario/organización con
+    superadmin. Enchufa en `moduloActivo` sin tocar los módulos.
 - 🟡 [ ] **Etapa 2 — Sol (v1.33)**: posición del sol por latitud/fecha/hora (fórmulas astronómicas, sin
   librerías), luz con sombras en el 3D, día y hora elegibles + botones invierno/verano + ▶ animación del día;
   sombras de árboles y otras construcciones; sol que entra por cada abertura. Cuidar el rendimiento en celular.

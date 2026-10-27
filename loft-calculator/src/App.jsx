@@ -27,6 +27,7 @@ import BarraPestanas from './componentes/BarraPestanas.jsx';
 import PanelEscalera from './componentes/PanelEscalera.jsx';
 import PanelTerreno from './componentes/PanelTerreno.jsx';
 import { implantacion as calcularImplantacion } from './motor/terreno.js';
+import { moduloActivo } from './modulos.js';
 import PanelGrada from './componentes/PanelGrada.jsx';
 import PanelMontaje from './componentes/PanelMontaje.jsx';
 import TablaPresupuesto from './componentes/TablaPresupuesto.jsx';
@@ -291,7 +292,9 @@ export default function App() {
   };
   const lados = useMemo(() => geometriaLados(params), [params]);
   // v1.32: la casa en su terreno (distancias, avisos) y el pedido para que el 3D muestre todo el lote.
-  const implantacion = useMemo(() => calcularImplantacion(params), [params]);
+  // Módulo Terreno (se puede apagar por instalación, ver modulos.js): apagado, no se muestra nada (los datos quedan).
+  const moduloTerreno = moduloActivo('terreno');
+  const implantacion = useMemo(() => (moduloTerreno ? calcularImplantacion(params) : null), [params, moduloTerreno]);
   const [pedidoVerTerreno, setPedidoVerTerreno] = useState(0);
   const verTerreno = () => {
     setPedidoVerTerreno((n) => n + 1);
@@ -976,7 +979,7 @@ export default function App() {
           </Tarjeta>
 
           {/* TERRENO (v1.32): el lote, dónde va la casa, pozo, árboles, accesos y el norte. */}
-          <PanelTerreno params={params} unidad={unidad} cambiar={cambiar} implantacion={implantacion} onVerTerreno={verTerreno} />
+          {moduloTerreno && <PanelTerreno params={params} unidad={unidad} cambiar={cambiar} implantacion={implantacion} onVerTerreno={verTerreno} />}
 
           {/* PISOS */}
           <Tarjeta id="pisos" titulo="Pisos" resaltar={{ tipo: 'grupo', id: ['piso', 'piso2'], nombre: 'Pisos' }}>

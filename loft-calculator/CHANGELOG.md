@@ -12,6 +12,9 @@
   respeta los mínimos.
 - **3D**: lote, calle, línea municipal, retiros punteados, los elementos con su altura y la flecha del norte;
   botón "Ver terreno" y capa "Terreno" para prenderlo y apagarlo. Con terreno, la grilla se apaga.
+- **Módulos** (`src/modulos.js`): las funciones grandes se pueden apagar por instalación (quien publica decide;
+  también al compilar con `VITE_MODULOS_APAGADOS=terreno`). Apagado, no se ve nada del módulo y los datos del
+  proyecto se conservan. Terreno es el primero; en esta publicación va **prendido**.
 - **Plano de implantación** (Planos y PDF): lote acotado, la casa con sus 4 distancias, retiros, elementos y el
   norte, con la calle abajo. El resumen de la obra (PDF y Excel) suma lote, ubicación, retiros y elementos.
 

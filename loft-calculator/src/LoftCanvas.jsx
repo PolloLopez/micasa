@@ -33,6 +33,7 @@ import { medirEntre, puntoMasCercanoEnPieza } from './motor/medicion.js';
 import { cotasGenerales } from './motor/cotas3d.js';
 import { vistasFijas } from './motor/vistasFijas.js';
 import { implantacion } from './motor/terreno.js';
+import { moduloActivo } from './modulos.js';
 import { dibujarTerreno, vaciarTerreno, encuadreTerreno } from './terreno3d.js';
 
 // Capa y sección (grosor en el 3D) de cada tipo de pieza.
@@ -919,7 +920,7 @@ export default function LoftCanvas({
   }, [params, estructura, capas.cotas]);
 
   // 2c) TERRENO (v1.32): el lote y lo que hay en él. Con terreno, la grilla se apaga (el lote hace de piso).
-  const conTerreno = params.tipoProyecto === 'construccion' && params.terreno?.activo && capas.terreno;
+  const conTerreno = moduloActivo('terreno') && params.tipoProyecto === 'construccion' && params.terreno?.activo && capas.terreno;
   useEffect(() => {
     const visor = visorRef.current;
     if (!visor) return;
@@ -1196,7 +1197,9 @@ export default function LoftCanvas({
         {capasAbiertas && (<>
         {/* v1.19: capas agrupadas (Estructura · Superficies · Ayudas), cada grupo con "todo / nada". */}
         {GRUPOS_LEYENDA.map(({ titulo, capas: clavesGrupo }) => {
-          const visibles = clavesGrupo.filter((clave) => capaDelProyecto(clave, tipoProyecto));
+          // La capa Terreno solo si el módulo está prendido y la obra tiene terreno (v1.32).
+          const visibles = clavesGrupo.filter((clave) => capaDelProyecto(clave, tipoProyecto)
+            && (clave !== 'terreno' || (moduloActivo('terreno') && params.terreno?.activo)));
           if (visibles.length === 0) return null;
           return (
             <span key={titulo} className="capas-paneles grupo-capas" role="group" aria-label={titulo}>
