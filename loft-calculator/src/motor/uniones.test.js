@@ -53,7 +53,13 @@ describe('red: la pieza que se corta pierde media medida del perfil entero en ca
     const bordesEje = deTipo(eje(), 'marco-piso');
     const bordesRed = deTipo(red(), 'marco-piso');
     const largos = (lista) => lista.map((p) => p.largo).sort((a, b) => a - b);
-    expect(largos(bordesRed)).toEqual(largos(bordesEje).map((l) => (l < 7 ? Number((l - 2 * mitad('marco-piso')).toFixed(4)) : l)));
+    // Los largos llegan hasta la cara de afuera de la esquina (se alargan); los cortos van entre ellos.
+    const [corto1, corto2, largo1, largo2] = largos(bordesRed);
+    expect(corto1).toBeCloseTo(P.ancho - 2 * mitad('marco-piso'), 4);
+    expect(corto2).toBeCloseTo(corto1, 6);
+    expect(largo1).toBeGreaterThan(P.largo);
+    expect(largo2).toBeCloseTo(largo1, 6);
+    expect(largos(bordesEje)).toEqual([P.ancho, P.ancho, P.largo, P.largo]);
     const tiranteEje = deTipo(eje(), 'piso')[0];
     const tiranteRed = listarPiezas(red()).find((p) => p.id === tiranteEje.id);
     expect(tiranteRed.largo).toBeCloseTo(tiranteEje.largo - 2 * mitad('marco-piso'), 4);
@@ -105,10 +111,67 @@ describe('perfil propio del marco de cada abertura', () => {
 describe('datos de las uniones', () => {
   it('los proyectos viejos pasan a la red; se valida la luz', () => {
     const { uniones, ...viejo } = P;
-    expect(migrarParams(viejo).uniones).toEqual({ modo: 'red', luz: 0 });
-    expect(completarUniones({ modo: 'eje', luz: 0.002 })).toEqual({ modo: 'eje', luz: 0.002 });
+    const deFabrica = { solerasColumnas: 'soleras', columnasFajas: 'columnas', montantesFajas: 'montantes', bordesTirantes: 'bordes' };
+    expect(migrarParams(viejo).uniones).toEqual({ modo: 'red', luz: 0, enteras: deFabrica });
+    expect(completarUniones({ modo: 'eje', luz: 0.002, enteras: { columnasFajas: 'fajas', otra: 'x' } }))
+      .toEqual({ modo: 'eje', luz: 0.002, enteras: { ...deFabrica, columnasFajas: 'fajas' } });
+    expect(validarUniones({ modo: 'red', luz: 0, enteras: { ...deFabrica, bordesTirantes: 'vigas' } }))
+      .toEqual({ 'uniones.enteras.bordesTirantes': 'Elegí bordes o tirantes' });
     expect(validarUniones({ modo: 'red', luz: 0.05 })).toEqual({ 'uniones.luz': 'Entre 0 y 20 mm' });
     expect(validarParametros(conRed())).toEqual({});
-    expect(uniones).toEqual({ modo: 'red', luz: 0 });
+    expect(uniones.modo).toBe('red');
+  });
+});
+
+// v1.34: qué queda entero se elige por obra (4 pares) y por abertura (su marco).
+describe('jerarquía elegible', () => {
+  const conEnteras = (enteras, extra = {}) => conRed({ ...extra, uniones: { enteras: { solerasColumnas: 'soleras', columnasFajas: 'columnas', montantesFajas: 'montantes', bordesTirantes: 'bordes', ...enteras } } });
+  const idColumnaC = deTipo(eje(), 'columna').find((p) => !p.esquina && p.grupos.includes('C')).id;
+
+  it('columnas enteras: van de la cara de abajo del marco a la de arriba de la solera; los marcos se cortan', () => {
+    const e = red(conEnteras({ solerasColumnas: 'columnas' }));
+    const antes = listarPiezas(eje()).find((p) => p.id === idColumnaC);
+    const col = listarPiezas(e).find((p) => p.id === idColumnaC);
+    expect(col.largo).toBeCloseTo(antes.largo + mitad('marco-piso') + mitad('solera'), 4);
+    const solerasC = deTipo(e, 'solera').filter((p) => p.id.includes(':C') || p.grupos.includes('C'));
+    expect(solerasC.length).toBeGreaterThan(1); // la solera de C queda en tramos entre columnas
+  });
+
+  it('fajas enteras: la faja sigue de punta a punta y las columnas del medio se cortan en cada faja', () => {
+    const e = red(conEnteras({ columnasFajas: 'fajas' }));
+    const fajas = deTipo(e, 'horizontal').filter((p) => p.id.startsWith('horiz:C:1'));
+    expect(fajas.length).toBe(1);
+    const esquina = medidaVista({ tipo: 'columna', esquina: true }, CATALOGO) / 2;
+    expect(fajas[0].largo).toBeCloseTo(7.5 - 2 * esquina, 4); // contra las esquinas igual se corta (termina ahí)
+    expect(listarPiezas(e).filter((p) => p.id.startsWith(`${idColumnaC}~`)).length).toBeGreaterThan(1);
+  });
+
+  it('montantes ↔ fajas: con fajas enteras, los montantes quedan en tramos', () => {
+    const conMontantes = { paredes: { ...P.paredes, C: { ...P.paredes.C, separacionMontantes: 0.6 } } };
+    const montantesEnteros = deTipo(red(conEnteras({}, conMontantes)), 'montante').filter((p) => p.grupos.includes('C'));
+    const montantesCortados = deTipo(red(conEnteras({ montantesFajas: 'fajas' }, conMontantes)), 'montante').filter((p) => p.grupos.includes('C'));
+    expect(montantesEnteros.length).toBeGreaterThan(0);
+    expect(montantesCortados.length).toBeGreaterThan(montantesEnteros.length);
+  });
+
+  it('tirantes enteros: llegan a la cara de afuera de los bordes y los bordes se cortan entre tirantes', () => {
+    const e = red(conEnteras({ bordesTirantes: 'tirantes' }));
+    const antes = deTipo(eje(), 'piso')[0];
+    const tirante = listarPiezas(e).find((p) => p.id === antes.id);
+    expect(tirante.largo).toBeCloseTo(antes.largo + 2 * mitad('marco-piso'), 4);
+    expect(deTipo(e, 'marco-piso').length).toBeGreaterThan(4);
+  });
+
+  it('marco de una abertura con dintel y alféizar enteros: las jambas quedan en tramos', () => {
+    const ventana = ABERTURAS_INICIALES.find((op) => op.tipo === 'ventana');
+    const aberturas = ABERTURAS_INICIALES.map((op) => (op.id === ventana.id ? { ...op, marcoEntero: 'dintel' } : op));
+    const e = red(conRed(), aberturas);
+    const dintelAntes = listarPiezas(eje()).find((p) => p.id === `ref:${ventana.id}:dintel`);
+    const dintel = listarPiezas(e).find((p) => p.id === `ref:${ventana.id}:dintel`);
+    expect(dintel.largo).toBeCloseTo(dintelAntes.largo + 2 * mitad('jamba'), 4);
+    expect(listarPiezas(e).filter((p) => p.id.startsWith(`ref:${ventana.id}:jamba-izq~`)).length).toBe(3);
+    expect(validarAbertura({ ...ventana, marcoEntero: 'x' }, P)).toBe('Elegí jambas o dintel');
+    // La otra abertura (la puerta) sigue con jambas enteras.
+    expect(listarPiezas(e).filter((p) => p.id.startsWith('ref:1:jamba-izq~')).length).toBe(0);
   });
 });

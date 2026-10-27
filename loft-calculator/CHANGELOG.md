@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.34.0] - 2026-10-27
+### Agregado
+- **Elegir qué queda entero** (Materiales → Uniones), por obra, en cada par: soleras ↔ columnas, columnas ↔ fajas,
+  montantes ↔ fajas, bordes ↔ tirantes. Y **en cada abertura** (Paredes): jambas enteras, o dintel y alféizar
+  enteros con las jambas cortadas.
+### Cambiado
+- Las uniones distinguen el tipo de cruce: **X** (las dos pasan: la que pierde queda en dos), **T** (una termina
+  contra la otra: se corta la que termina, salvo en los pares que se pueden invertir) y **esquina** (la entera
+  llega hasta la cara de afuera de la otra). Por eso los lados largos de soleras, marcos y bordes ahora se
+  alargan hasta la cara de afuera de la esquina (antes quedaban eje a eje).
+- En el proyecto de Leandro: de fábrica $ 7.544.950; con columnas enteras baja a $ 7.457.450; con fajas enteras
+  sube a $ 8.157.450 (las fajas de 7,5 m enteras no se acomodan bien en las barras).
+
 ## [1.33.1] - 2026-10-27
 ### Agregado
 - **Se pueden sacar todas las etiquetas del 3D**: en "Capas" hay un grupo **Etiquetas** (Paredes, Aberturas,

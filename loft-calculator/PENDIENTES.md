@@ -8,7 +8,8 @@
 - 🟢 [ ] Riostras: cortarlas contra columnas y marcos (corte a inglete, hoy van eje a eje).
 - 🟢 [ ] Columnas del entrepiso y bordes del piso 2 contra las columnas de pared (hoy no se tocan).
 - 🟢 [ ] Techo: bordes contra vigas si se arma como red (hoy las correas van apoyadas, que es lo correcto).
-- 🟢 [ ] Elegir la jerarquía por obra (ej. columnas enteras) si algún herrero arma distinto.
+- ✅ Jerarquía elegible por obra (4 pares) y por abertura (v1.34.0).
+- 🟢 [ ] Si hace falta, jerarquía por pared (se decidió no hacerlo por ahora: por obra + por abertura alcanza).
 
 ## 🗺️ Hoja de ruta acordada (27/10): terreno → sol → muebles
 Decisiones de Leandro: lote rectangular; ubicar pozo séptico y cámara, árboles y otras construcciones, accesos y

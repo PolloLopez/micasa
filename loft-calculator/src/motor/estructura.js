@@ -795,7 +795,7 @@ export function generarEstructura(params, aberturas, catalogo = null) {
   };
   // v1.33: primero los perfiles de cada pared (las uniones necesitan la medida de cada pieza), después las
   // uniones y al final lo hecho a mano (las ediciones apuntan a los tramos ya cortados).
-  const conUniones = aplicarUniones(marcarPerfilesDePared(completa, params), params, catalogo);
+  const conUniones = aplicarUniones(marcarPerfilesDePared(completa, params), params, catalogo, aberturas);
   const conCambios = aplicarCambiosManuales(conUniones, new Set(params.piezasEliminadas ?? []), params.piezasEditadas ?? {});
   return marcarPerfilesDePared(conCambios, params);
 }

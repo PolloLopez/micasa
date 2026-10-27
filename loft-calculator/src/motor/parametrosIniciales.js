@@ -91,7 +91,7 @@ export const PARAMS_INICIALES = {
   terreno: structuredClone(TERRENO_INICIAL),
 
   // v1.33: cómo se unen las piezas que se cruzan (ver motor/uniones.js). 'red' = se descuenta el perfil entero.
-  uniones: { ...UNIONES_INICIALES },
+  uniones: structuredClone(UNIONES_INICIALES),
 };
 
 export const ABERTURAS_INICIALES = [

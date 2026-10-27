@@ -75,6 +75,9 @@ export function FilaAbertura({ abertura, numero, params, unidad, onActualizar, o
         {!esPuerta && (
           <CampoNumero etiqueta="Antepecho" unidad={unidad} valor={abertura.alturaAntepecho} onCambio={cambiar('alturaAntepecho')} />
         )}
+        {/* v1.34: qué queda entero en el marco de esta abertura (las uniones de la red, ver Materiales → Uniones). */}
+        <CampoSelect etiqueta="En el marco quedan enteros" valor={abertura.marcoEntero ?? 'jambas'} onCambio={cambiarSelect('marcoEntero')}
+          opciones={[['jambas', 'Las jambas (dintel y alféizar entre ellas)'], ['dintel', 'Dintel y alféizar (jambas cortadas)']]} />
         {/* v1.33: el marco (jambas, dintel, alféizar) con su propio perfil, o el general de Marcos de aberturas. */}
         {perfiles && (
           <SelectorPerfil etiqueta="Perfil del marco" valor={abertura.perfilMarco ?? ''} perfiles={perfiles}

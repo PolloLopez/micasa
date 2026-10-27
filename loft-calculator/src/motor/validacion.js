@@ -361,6 +361,8 @@ export function validarAbertura(abertura, params) {
   // v1.17: etiqueta propia (opcional; si falta se muestra solo el número).
   // v1.33: perfil propio del marco ('' o sin dato = el general "Marcos de aberturas").
   if (abertura.perfilMarco !== undefined && (typeof abertura.perfilMarco !== 'string' || abertura.perfilMarco.length > 40)) return 'Perfil del marco inválido';
+  // v1.34: qué queda entero en su marco ('jambas' de fábrica, o 'dintel' = dintel y alféizar enteros).
+  if (abertura.marcoEntero !== undefined && !['jambas', 'dintel'].includes(abertura.marcoEntero)) return 'Elegí jambas o dintel';
   if (abertura.etiqueta !== undefined && (typeof abertura.etiqueta !== 'string' || abertura.etiqueta.length > LARGO_MAXIMO_ETIQUETA)) {
     return `La etiqueta puede tener hasta ${LARGO_MAXIMO_ETIQUETA} letras`;
   }

@@ -15,11 +15,19 @@ import CampoNumero from './CampoNumero.jsx';
  * @param resultado estructura.uniones ({ metrosDescontados, cortes })
  * @param cambiar   cambiar(ruta) de App (valida y guarda)
  */
+/** Los pares que se pueden invertir: [clave, etiqueta, [[valor, texto], …]] (el primero es el de fábrica). */
+const PARES = [
+  ['solerasColumnas', 'Soleras y columnas', [['soleras', 'Soleras enteras, columnas entre ellas'], ['columnas', 'Columnas enteras, soleras cortadas']]],
+  ['columnasFajas', 'Columnas y fajas', [['columnas', 'Columnas enteras, fajas en tramos'], ['fajas', 'Fajas enteras, columnas cortadas']]],
+  ['montantesFajas', 'Montantes y fajas', [['montantes', 'Montantes enteros, fajas cortadas'], ['fajas', 'Fajas enteras, montantes cortados']]],
+  ['bordesTirantes', 'Bordes y tirantes (pisos)', [['bordes', 'Bordes enteros, tirantes entre ellos'], ['tirantes', 'Tirantes enteros, bordes cortados']]],
+];
+
 export default function TarjetaUniones({ uniones, resultado, cambiar }) {
   const enRed = uniones.modo === 'red';
   return (
     <Tarjeta id="uniones" titulo="Uniones (cómo se cruzan los hierros)">
-      <div className="grid-params">
+      <div className="grid-params grid-uniones">
         <CampoSelect etiqueta="Las piezas que se cruzan" valor={uniones.modo} onCambio={cambiar('uniones.modo')}
           opciones={[['red', 'Se cortan y se sueldan (red)'], ['eje', 'Eje a eje (como antes)']]} />
         {enRed && (
@@ -30,11 +38,18 @@ export default function TarjetaUniones({ uniones, resultado, cambiar }) {
       {enRed ? (<>
         <p className="nota">
           En cada cruce, una pieza queda <strong>entera</strong> y la otra se corta contra sus caras: se le descuenta la
-          mitad del perfil entero en cada punta (más la luz, si cargaste). Queda así:
+          mitad del perfil entero en cada punta (más la luz, si cargaste). Elegí cuál queda entera en cada par:
         </p>
+        {/* v1.34: en cada par se elige cuál queda entera (por obra). El marco de cada abertura se elige en la abertura. */}
+        <div className="grid-params pares-uniones">
+          {PARES.map(([par, etiqueta, opciones]) => (
+            <CampoSelect key={par} etiqueta={etiqueta} valor={uniones.enteras?.[par] ?? opciones[0][0]}
+              opciones={opciones} onCambio={cambiar(`uniones.enteras.${par}`)} />
+          ))}
+        </div>
         <ul className="jerarquia-uniones">
-          <li><strong>Paredes:</strong> soleras y marcos de piso (los lados largos enteros) › columnas y jambas › dinteles y alféizares › montantes › fajas y travesaños.</li>
-          <li><strong>Pisos:</strong> bordes (los largos enteros) › tirantes › transversales.</li>
+          <li>Los lados <strong>largos</strong> de soleras, marcos y bordes quedan enteros y llegan a la esquina; los cortos van entre ellos.</li>
+          <li>El <strong>marco de cada abertura</strong> (jambas enteras o dintel y alféizar enteros) se elige en la abertura, en Paredes.</li>
           <li><strong>Igual que antes:</strong> techo (las correas van apoyadas sobre las vigas), riostras y escalera.</li>
         </ul>
         <p className="nota">
@@ -43,7 +58,8 @@ export default function TarjetaUniones({ uniones, resultado, cambiar }) {
         </p>
         {resultado?.modo === 'red' && (
           <p className="resultado-uniones">
-            Se descontaron <strong>{resultado.metrosDescontados.toLocaleString('es-AR')} m</strong> de hierro en {resultado.cortes} tramos.
+            {resultado.metrosDescontados >= 0 ? 'Se descontaron' : 'Se sumaron'} <strong>{Math.abs(resultado.metrosDescontados).toLocaleString('es-AR')} m</strong> de hierro
+            respecto de eje a eje ({resultado.cortes} tramos ajustados).
           </p>
         )}
       </>) : (
