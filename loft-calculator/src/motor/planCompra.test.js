@@ -1,6 +1,6 @@
 // Tests de flete, plan de compra y accesorios (v1.29). Correr con: npm test
 import { describe, it, expect } from 'vitest';
-import { costoFlete, renglonesDeFlete, planDeCompra, masBaratoEn, faltanPrecios } from './proveedores.js';
+import { costoFlete, renglonesDeFlete, planDeCompra, masBaratoEn, faltanPrecios, totalDeLaObra, usaPlanDeCompra } from './proveedores.js';
 import { calcularPresupuesto, CATALOGO_INICIAL } from './presupuesto.js';
 import { normalizarCatalogo } from './migracion.js';
 import { generarEstructura } from './estructura.js';
@@ -93,5 +93,33 @@ describe('accesorios', () => {
     const c = normalizarCatalogo(conPropio).filter((i) => i.categoria === 'accesorio');
     expect(c).toHaveLength(1);
     expect(c[0]).toMatchObject({ nombre: 'Pintura antióxido', unidad: 'lata', cantidad: 2 });
+  });
+});
+
+// v1.30.2 (caso de Leandro): los paneles los vende SOLO otro proveedor (Vastek). El total del proveedor elegido
+// los deja afuera ("no vende"); el total de la obra tiene que ser el del plan de compra, que los incluye.
+describe('total de la obra', () => {
+  const e = generarEstructura(P, []);
+  // OSB solo en "Barato" (el resto solo en "Hierros"), sin flete.
+  const cat = catalogoCon(0).map((i) => (i.id === INSUMO.OSB ? { ...i, precios: { b: i.precios.b } } : i));
+  const conHierros = calcularPresupuesto(e, cat, { proveedor: 'h', pago: 'efectivo' });
+  const plan = planDeCompra(conHierros.items, cat, 'efectivo');
+  const osb = calcularPresupuesto(e, cat, { proveedor: 'b', pago: 'efectivo' }).items.find((i) => i.id === INSUMO.OSB);
+
+  it('el total de un solo proveedor deja afuera lo que no vende', () => {
+    expect(faltanPrecios(conHierros.items)).toContain(osb.nombre);
+  });
+
+  it('con varios proveedores, el total de la obra es el del plan (incluye lo que vende el otro)', () => {
+    expect(osb.subtotal).toBeGreaterThan(0);
+    expect(plan.total).toBe(conHierros.total + osb.subtotal);
+    expect(usaPlanDeCompra(plan, 2)).toBe(true);
+    expect(totalDeLaObra(conHierros.total, plan, 2)).toBe(plan.total);
+  });
+
+  it('con un solo proveedor (o sin plan), queda el total de siempre', () => {
+    expect(totalDeLaObra(conHierros.total, plan, 1)).toBe(conHierros.total);
+    expect(totalDeLaObra(conHierros.total, null, 3)).toBe(conHierros.total);
+    expect(usaPlanDeCompra({ compras: [] }, 2)).toBe(false);
   });
 });

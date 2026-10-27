@@ -7,7 +7,7 @@
 
 import CampoNumero from './CampoNumero.jsx';
 import CampoSelect from './CampoSelect.jsx';
-import { MAS_BARATO } from '../motor/proveedores.js';
+import { MAS_BARATO, faltanPrecios, usaPlanDeCompra } from '../motor/proveedores.js';
 import Tarjeta from './Tarjeta.jsx';
 import { BotonResaltar } from './Resaltar.jsx';
 import { useResaltar, criterioDeRenglon as criterioDe } from './contextoResaltado.js';
@@ -210,7 +210,19 @@ export default function TablaPresupuesto({
           </tbody>
         </table>
       </div>
-      <div className="total"><span>TOTAL</span><span>{pesos(total)}</span></div>
+      {usaPlanDeCompra(plan, proveedores.length) ? (
+        <>
+          {/* v1.30.2: el total de un proveedor deja afuera lo que no vende; el de la obra es el del plan de compra. */}
+          <div className="total total-proveedor">
+            <span>Con {proveedor === MAS_BARATO ? 'lo más barato de cada material' : proveedores.find((p) => p.id === proveedor)?.nombre}
+              {faltanPrecios(items).length > 0 && <small> (sin lo que no vende: {faltanPrecios(items).join(', ')})</small>}</span>
+            <span>{pesos(total)}</span>
+          </div>
+          <div className="total"><span>TOTAL DE LA OBRA <small>(plan de compra, con flete)</small></span><span>{pesos(plan.total)}</span></div>
+        </>
+      ) : (
+        <div className="total"><span>TOTAL</span><span>{pesos(total)}</span></div>
+      )}
       {kilos > 0 && (
         <p className="peso-total">
           Peso del hierro a comprar: <strong>≈ {Math.round(kilos).toLocaleString('es-AR')} kg</strong>

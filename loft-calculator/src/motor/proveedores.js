@@ -238,3 +238,19 @@ export function planDeCompra(items, catalogo, pago = 'efectivo') {
     nadieVende: renglones.filter((_, i) => mejor.asignacion[i] < 0).map((r) => r.item.nombre),
   };
 }
+
+/**
+ * Total de la obra (v1.30.2): lo que cuesta TODO.
+ * Con más de un proveedor es el total del plan de compra (cada material donde conviene, con flete), porque el
+ * total de un solo proveedor deja afuera lo que ese no vende (ej. los paneles de otro proveedor).
+ * Con uno solo (o sin plan), es el total del presupuesto de siempre.
+ * @param {number} totalProveedor  total con el proveedor elegido (calcularPresupuesto)
+ * @param {object|null} plan       resultado de planDeCompra
+ * @param {number} cantidadProveedores
+ */
+export function totalDeLaObra(totalProveedor, plan, cantidadProveedores) {
+  return usaPlanDeCompra(plan, cantidadProveedores) ? plan.total : totalProveedor;
+}
+
+/** ¿El total de la obra sale del plan de compra? (más de un proveedor y algo para comprar) */
+export const usaPlanDeCompra = (plan, cantidadProveedores) => cantidadProveedores > 1 && Boolean(plan?.compras?.length);

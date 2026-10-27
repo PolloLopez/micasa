@@ -80,11 +80,11 @@ export function hojasDeObra({ nombre, params, vistas, items, total, gruposCortes
       ...items.filter((i) => i.cantidad > 0).map((i) => [
         i.nombre, i.perfil ?? '', i.cantidad, i.unidad ?? '', { pesos: i.precio }, { pesos: i.subtotal },
       ]),
-      { negrita: true, celdas: ['TOTAL', '', '', '', '', { pesos: total }] },
+      { negrita: true, celdas: [plan && plan.compras.length > 0 ? `Total con ${proveedor || 'el proveedor elegido'} (sin lo que no vende)` : 'TOTAL', '', '', '', '', { pesos: total }] },
     );
     // v1.29: plan de compra (con más de un proveedor): a quién comprarle cada material, contando el flete.
     if (plan && plan.compras.length > 0) {
-      obra.push([], { negrita: true, celdas: ['Plan de compra (contando el flete)', '', '', '', '', { pesos: plan.total }] });
+      obra.push([], { negrita: true, celdas: ['TOTAL DE LA OBRA — plan de compra (contando el flete)', '', '', '', '', { pesos: plan.total }] });
       plan.compras.forEach((c) => {
         obra.push({ negrita: true, celdas: [c.proveedor.nombre, '', '', '', '', { pesos: c.total }] });
         c.renglones.forEach((r) => obra.push([`  ${r.nombre}`, '', r.cantidad, r.unidad ?? '', { pesos: r.precio }, { pesos: r.subtotal }]));

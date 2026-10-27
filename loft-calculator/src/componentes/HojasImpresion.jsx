@@ -18,7 +18,7 @@ import { agruparBarras, textoBarra } from '../proyecto/cortesAgrupados.js';
 const pesos = (n) => n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
 
 /** Presupuesto en una tabla chica: solo lo que se compra. */
-function PresupuestoCompacto({ items, total }) {
+function PresupuestoCompacto({ items, total, etiquetaTotal = 'TOTAL' }) {
   return (
     <table className="tabla-impresion">
       <thead><tr><th>Insumo</th><th>Perfil o descripción</th><th className="num">Cant.</th><th className="num">Unit.</th><th className="num">Subtotal</th></tr></thead>
@@ -32,7 +32,7 @@ function PresupuestoCompacto({ items, total }) {
             <td className="num">{pesos(i.subtotal)}</td>
           </tr>
         ))}
-        <tr className="fila-total"><td colSpan={4}>TOTAL</td><td className="num">{pesos(total)}</td></tr>
+        <tr className="fila-total"><td colSpan={4}>{etiquetaTotal}</td><td className="num">{pesos(total)}</td></tr>
       </tbody>
     </table>
   );
@@ -102,11 +102,13 @@ export default function HojasImpresion({
           {opciones.presupuesto && (
             <>
               <h2>Presupuesto de materiales</h2>
-              <PresupuestoCompacto items={items} total={total} />
+              {/* v1.30.2: con plan de compra, la tabla es la del proveedor elegido y el total de la obra es el del plan. */}
+              <PresupuestoCompacto items={items} total={total}
+                etiquetaTotal={plan && plan.compras.length > 0 ? 'Total con el proveedor elegido (sin lo que no vende)' : 'TOTAL'} />
               {/* v1.29: con más de un proveedor, a quién comprarle cada cosa (contando el flete). */}
               {plan && plan.compras.length > 0 && (
                 <div className="plan-impresion">
-                  <h2>Plan de compra (contando el flete): {pesos(plan.total)}</h2>
+                  <h2>TOTAL DE LA OBRA — plan de compra (contando el flete): {pesos(plan.total)}</h2>
                   {plan.compras.map((c) => (
                     <p key={c.proveedor.id}>
                       <strong>{c.proveedor.nombre} — {pesos(c.total)}</strong>

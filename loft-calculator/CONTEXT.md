@@ -122,6 +122,7 @@ valores inválidos.
 | 2026-10-25 | Formato compacto (`formatoCompacto.js`): params y catálogo como diferencia contra lo de fábrica; claves borradas en `~` (no null, porque hay datos que valen null) | El link sin nube baja a la mitad y la nube guarda menos. Se expande al archivo completo y pasa por `leerArchivoProyecto` (misma validación y migración). |
 | 2026-10-23 | Excel sin librerías (`proyecto/xlsx.js`): zip "stored" (sin comprimir) + XML mínimo, textos inline | Evita sumar una dependencia pesada (SheetJS) para algo acotado. Probado abriendo el archivo con openpyxl y LibreOffice. |
 | 2026-10-20 | Ayuda con "?" y bienvenida la primera vez (`micasa.v2.bienvenidaVista`), salvo si se entra con un link compartido | Los atajos no se descubrían solos. Con link compartido ya se pregunta "¿abrir?": dos ventanas juntas confunden. |
+| 2026-10-27 | Con más de un proveedor, el total de la obra (pestaña, TOTAL, PDF, Excel) es el del plan de compra (`totalDeLaObra` en `proveedores.js`); el del proveedor elegido queda como referencia | Decisión de Leandro: el total de un solo proveedor dejaba afuera lo que ese no vende (paneles de Vastek) y parecía un error. El plan siempre compra todo lo que alguien vende. |
 
 ## Supuestos de obra (en `src/motor/constantes.js`)
 Piso del entrepiso a 2,30 m · merma de corte 3 mm · excedente de barras 1 % (editable; depende del proveedor) · placa OSB 2,44 × 1,22 + 10 % de recortes ·
@@ -197,6 +198,7 @@ techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 
 - 2026-10-23 v1.25.0: proveedores, precios en efectivo/tarjeta por proveedor, comparar presupuestos y "lo más barato de cada material".
 - 2026-10-23 v1.26.0: pestaña Planos (paredes y plantas acotadas, listas de corte, revestimiento), en el PDF y en Excel.
 - 2026-10-25 v1.30.0: link compacto (la mitad) y links cortos en Firebase para ver/editar que guardan los cambios.
+- 2026-10-27 v1.30.2: el total de la obra es el del plan de compra (con varios proveedores); el de un proveedor queda como referencia.
 - 2026-10-25 v1.30.1: configNube.js apunta al proyecto Firebase `pollo-calculator` (links cortos activos tras el deploy).
 - 2026-10-24 v1.29.0: flete por proveedor, plan de compra con flete, "más barato en", accesorios, "no lo vende".
 - 2026-10-24 v1.28.1: total completo en la pestaña Presupuesto.

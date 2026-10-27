@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.30.2] - 2026-10-27
+### Corregido
+- **El total no contaba lo que el proveedor elegido no vende** (ej. los paneles de Vastek): la pestaña decía
+  $ 2.847.520 con $ 5.483.750 de paneles en otro proveedor. Ahora, con más de un proveedor, la pestaña y el
+  **TOTAL DE LA OBRA** son el del plan de compra (cada material donde conviene, con flete); abajo queda, chico,
+  "Con <proveedor> (sin lo que no vende: …)" para comparar. Igual en el PDF y el Excel.
+- Al abrir un link corto por primera vez, la ventana "Proyecto compartido" ya no queda encima de la ayuda de bienvenida.
+
 ## [1.30.1] - 2026-10-25
 ### Cambiado
 - **Links cortos activados**: la app ya apunta al proyecto de Firebase `pollo-calculator` (`src/proyecto/configNube.js`).

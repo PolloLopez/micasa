@@ -36,7 +36,7 @@ import { generarEstructura, listarPiezas, infoSeparacion } from './motor/estruct
 import { CAMPOS_CON_CANTIDAD, MAXIMO_CANTIDAD, cantidadDe } from './motor/cantidades.js';
 import { calcularPresupuesto, CATALOGO_INICIAL, tiposDePanel } from './motor/presupuesto.js';
 import { resolverCatalogo, PERFIL_NUEVO, perfilesDeLista } from './motor/perfiles.js';
-import { proveedoresDe, aplicarProveedor, faltanPrecios, MAS_BARATO, planDeCompra, masBaratoEn } from './motor/proveedores.js';
+import { proveedoresDe, aplicarProveedor, faltanPrecios, MAS_BARATO, planDeCompra, masBaratoEn, totalDeLaObra } from './motor/proveedores.js';
 import SelectorPerfil from './componentes/SelectorPerfil.jsx';
 import Planos from './componentes/Planos.jsx';
 import { todasLasVistas } from './motor/planos.js';
@@ -159,7 +159,8 @@ export default function App() {
   const { dialogo, confirmar, pedirTexto, mostrarTexto } = useDialogo(); // ventanas propias (v1.19)
   // Ayuda (v1.19): se abre sola la primera vez (salvo que se entre con un link compartido, que ya pregunta algo).
   const [bienvenidaVista, setBienvenidaVista] = useEstadoGuardado('bienvenidaVista', false, (v) => typeof v === 'boolean');
-  const [ayudaAbierta, setAyudaAbierta] = useState(() => !bienvenidaVista && !tieneProyectoEnLink(window.location.hash));
+  const [ayudaAbierta, setAyudaAbierta] = useState(() => !bienvenidaVista && !tieneProyectoEnLink(window.location.hash)
+    && !leerHashNube(window.location.hash)); // v1.30.2: con link de la nube tampoco (si no, la confirmación queda encima)
   const cerrarAyuda = () => { setAyudaAbierta(false); setBienvenidaVista(true); };
 
   // --- Deshacer / rehacer (v1.18) ---
@@ -249,6 +250,9 @@ export default function App() {
   })), [estructura, catalogo, proveedores, params.excedenteBarras, params.compartirCortes]);
   // v1.29: plan de compra (a quién comprarle cada material, contando el flete), con las cantidades de este presupuesto.
   const planCompra = useMemo(() => planDeCompra(items, resolverCatalogo(catalogo), formaPago), [items, catalogo, formaPago]);
+  // v1.30.2: el total de la obra (pestaña y TOTAL) es el del plan de compra cuando hay varios proveedores:
+  // el de un solo proveedor deja afuera lo que ese no vende (ej. los paneles de otro).
+  const totalObra = totalDeLaObra(total, planCompra, proveedores.length);
   // Catálogo con los precios elegidos (para los desplegables de perfiles y el 3D).
   const catalogoConPrecios = useMemo(() => aplicarProveedor(catalogo, proveedorElegido, formaPago), [catalogo, proveedorElegido, formaPago]);
   const paneles = useMemo(() => tiposDePanel(catalogo), [catalogo]);
@@ -268,7 +272,7 @@ export default function App() {
     { clave: 'estructura', nombre: esGrada ? 'Grada' : esMontaje ? 'Montaje' : 'Estructura', corto: esGrada ? 'Grada' : esMontaje ? 'Montaje' : 'Estruct.' },
     ...(esConstruccion ? [{ clave: 'paredes', nombre: 'Paredes y aberturas', corto: 'Paredes' }] : []),
     { clave: 'materiales', nombre: 'Materiales' },
-    { clave: 'presupuesto', nombre: 'Presupuesto', corto: 'Presup.', detalle: pesosCompletos(total) },
+    { clave: 'presupuesto', nombre: 'Presupuesto', corto: 'Presup.', detalle: pesosCompletos(totalObra) },
     { clave: 'planos', nombre: 'Planos' }, // v1.26: paredes y plantas acotadas, para imprimir y exportar
   ];
   // Si la guardada no existe en este tipo de proyecto (ej. "Paredes" en una grada), se usa la primera.

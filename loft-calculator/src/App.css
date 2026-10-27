@@ -133,6 +133,9 @@ input.perfil:focus { outline: 2px solid var(--acento); border-style: solid; }
   margin-top: 10px; padding: 10px; background: var(--primario); border-radius: 6px;
   display: flex; justify-content: space-between; font-weight: bold; font-size: 1rem;
 }
+/* v1.30.2: total del proveedor elegido (secundario) arriba del total de la obra */
+.total.total-proveedor { background: transparent; border: 1px solid var(--borde); font-weight: normal; font-size: 0.85rem; gap: 8px; }
+.total small { font-weight: normal; color: var(--texto-suave); }
 .nota { font-size: 0.78rem; color: var(--texto-tenue); margin: 8px 0; line-height: 1.4; }
 
 /* ---------- Diagrama de cortes ---------- */

@@ -50,7 +50,10 @@ describe('libro de la obra', () => {
     const plan = { total: 1500, nadieVende: [], compras: [{ proveedor: { id: 'b', nombre: 'Barato' }, subtotal: 1000, flete: 500, total: 1500,
       renglones: [{ id: 'osb', nombre: 'Placas OSB', cantidad: 2, unidad: 'placa', precio: 500, subtotal: 1000 }] }] };
     const obra = celdas(hojasDeObra({ ...datosDeEjemplo(), plan })[0]);
-    expect(obra.some((f) => f[0] === 'Plan de compra (contando el flete)')).toBe(true);
+    // v1.30.2: el plan es el TOTAL DE LA OBRA; el total de la tabla es solo el del proveedor elegido.
+    expect(obra.some((f) => f[0] === 'TOTAL DE LA OBRA — plan de compra (contando el flete)' && f[5].pesos === 1500)).toBe(true);
+    expect(obra.some((f) => /^Total con .* \(sin lo que no vende\)$/.test(f[0]))).toBe(true);
+    expect(obra.some((f) => f[0] === 'TOTAL')).toBe(false);
     expect(obra.some((f) => f[0] === '  Flete' && f[5].pesos === 500)).toBe(true);
   });
 
