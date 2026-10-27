@@ -6,6 +6,7 @@
 // lista completa, el mismo que se ve en el 3D.
 // ==========================================================
 
+import SelectorPerfil from './SelectorPerfil.jsx';
 import { useState } from 'react';
 import CampoNumero from './CampoNumero.jsx';
 import SelectorLado from './SelectorLado.jsx';
@@ -18,7 +19,11 @@ import { nombreLado } from '../motor/geometria.js';
  * v1.27: Duplicar y Eliminar van al PIE (antes arriba, al lado del título, y el ✕ parecía "cerrar").
  * `conAcciones={false}`: sin pie (el cartel del 3D pone el suyo).
  */
-export function FilaAbertura({ abertura, numero, params, unidad, onActualizar, onQuitar, onDuplicar, conAcciones = true }) {
+/**
+ * @param perfiles      (v1.33) lista de perfiles para elegir el del marco de esta abertura (sin ella no se muestra)
+ * @param perfilGeneral nombre del perfil general de "Marcos de aberturas" (para la opción vacía)
+ */
+export function FilaAbertura({ abertura, numero, params, unidad, onActualizar, onQuitar, onDuplicar, conAcciones = true, perfiles = null, perfilGeneral = '' }) {
   const [errorSelect, setErrorSelect] = useState(null);
 
   // Prueba el cambio: si la abertura deja de entrar, devuelve el error y no guarda.
@@ -70,6 +75,12 @@ export function FilaAbertura({ abertura, numero, params, unidad, onActualizar, o
         {!esPuerta && (
           <CampoNumero etiqueta="Antepecho" unidad={unidad} valor={abertura.alturaAntepecho} onCambio={cambiar('alturaAntepecho')} />
         )}
+        {/* v1.33: el marco (jambas, dintel, alféizar) con su propio perfil, o el general de Marcos de aberturas. */}
+        {perfiles && (
+          <SelectorPerfil etiqueta="Perfil del marco" valor={abertura.perfilMarco ?? ''} perfiles={perfiles}
+            opcionGeneral={`General${perfilGeneral ? `: ${perfilGeneral.replace('Caño estructural ', 'Caño ')}` : ''}`}
+            onElegir={(id) => setErrorSelect(cambiar('perfilMarco')(id ?? ''))} />
+        )}
       </div>
       {errorSelect && <p className="error" role="alert">{errorSelect}</p>}
       {conAcciones && (
@@ -88,7 +99,7 @@ export function FilaAbertura({ abertura, numero, params, unidad, onActualizar, o
  * Lista de aberturas de UNA pared, con sus botones para agregar.
  * @param aberturas todas las aberturas (para numerar igual que el 3D y no superponer)
  */
-export default function AberturasDePared({ lado, aberturas, params, unidad, onAgregar, onActualizar, onQuitar }) {
+export default function AberturasDePared({ lado, aberturas, params, unidad, onAgregar, onActualizar, onQuitar, perfiles = null, perfilGeneral = '' }) {
   const [error, setError] = useState(null);
   const deEstaPared = aberturas.map((op, i) => ({ op, numero: i + 1 })).filter(({ op }) => op.lado === lado);
 
@@ -113,7 +124,7 @@ export default function AberturasDePared({ lado, aberturas, params, unidad, onAg
         <ul className="opening-list">
           {deEstaPared.map(({ op, numero }) => (
             <FilaAbertura key={op.id} abertura={op} numero={numero} params={params} unidad={unidad}
-              onActualizar={onActualizar} onQuitar={onQuitar} onDuplicar={duplicar} />
+              onActualizar={onActualizar} onQuitar={onQuitar} onDuplicar={duplicar} perfiles={perfiles} perfilGeneral={perfilGeneral} />
           ))}
         </ul>
       )}

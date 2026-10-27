@@ -1147,7 +1147,9 @@ export default function LoftCanvas({
           </div>
           <ul className="opening-list">
             <FilaAbertura abertura={aberturaElegida} numero={aberturas.indexOf(aberturaElegida) + 1} params={params}
-              unidad={unidad} onActualizar={onActualizarAbertura} conAcciones={false} />
+              unidad={unidad} onActualizar={onActualizarAbertura} conAcciones={false}
+              perfiles={catalogo?.filter((i) => i.categoria === 'hierro') ?? null}
+              perfilGeneral={catalogo?.find((i) => i.id === INSUMO.MARCO_ABERTURA)?.perfil ?? ''} />
           </ul>
           <div className="seleccion-acciones">
             <button className="btn-ctrl" title="Crea una igual al lado (Ctrl+C y Ctrl+V hace lo mismo)"

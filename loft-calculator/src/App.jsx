@@ -26,6 +26,7 @@ import TarjetaMateriales from './componentes/TarjetaMateriales.jsx';
 import BarraPestanas from './componentes/BarraPestanas.jsx';
 import PanelEscalera from './componentes/PanelEscalera.jsx';
 import PanelTerreno from './componentes/PanelTerreno.jsx';
+import TarjetaUniones from './componentes/TarjetaUniones.jsx';
 import { implantacion as calcularImplantacion } from './motor/terreno.js';
 import { moduloActivo } from './modulos.js';
 import PanelGrada from './componentes/PanelGrada.jsx';
@@ -225,7 +226,8 @@ export default function App() {
     () => aberturas.filter((op) => validarAbertura(op, params) === null),
     [aberturas, params]
   );
-  const estructura = useMemo(() => generarEstructura(params, aberturasValidas), [params, aberturasValidas]);
+  // v1.33: con el catálogo, las piezas que se cruzan se cortan contra la que queda entera (uniones).
+  const estructura = useMemo(() => generarEstructura(params, aberturasValidas, catalogo), [params, aberturasValidas, catalogo]);
   const esGrada = params.tipoProyecto === 'grada'; // proyecto de grada: otra pantalla de datos
   const esMontaje = params.tipoProyecto === 'montaje'; // montaje industrial: mesas, tanques...
   const esConstruccion = !esGrada && !esMontaje;
@@ -1232,7 +1234,9 @@ export default function App() {
                   </div>
                   {/* Aberturas de esta pared (v1.17): antes estaban en una tarjeta aparte. */}
                   <AberturasDePared lado={lado} aberturas={aberturasValidas} params={params} unidad={unidad}
-                    onAgregar={agregarAbertura} onActualizar={actualizarAbertura} onQuitar={quitarAbertura} />
+                    onAgregar={agregarAbertura} onActualizar={actualizarAbertura} onQuitar={quitarAbertura}
+                    perfiles={perfilesDeLista(catalogoConPrecios)}
+                    perfilGeneral={catalogoResuelto.find((i) => i.id === INSUMO.MARCO_ABERTURA)?.perfil ?? ''} />
                   </div>
                 </ZonaResaltable>
               );
@@ -1253,6 +1257,8 @@ export default function App() {
             proveedor={proveedorElegido} pago={formaPago} onCambiarPrecio={cambiarPrecio}
             onActualizarProveedor={actualizarInsumo} onAgregarProveedor={agregarProveedor} onQuitarProveedor={quitarProveedor}
             onAgregarAccesorio={agregarAccesorio} onQuitarAccesorio={quitarAccesorio} />
+          {/* v1.33: cómo se cruzan los hierros (red soldada o eje a eje). */}
+          {esConstruccion && <TarjetaUniones uniones={params.uniones} resultado={estructura.uniones} cambiar={cambiar} />}
 
           </section>
           <section id="pestana-presupuesto" role="tabpanel" aria-labelledby="boton-presupuesto"

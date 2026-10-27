@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.33.0] - 2026-10-27
+### Corregido
+- **Las fajas ya no cruzan las puertas y ventanas**: se cortan en el marco de cada vano que está a su altura
+  (en el proyecto de Leandro: una barra menos de Perfil C 80x40). Dintel, alféizar y travesaños llegan hasta la
+  columna cuando una columna hace de jamba.
+### Agregado
+- **Uniones en red** (Materiales → "Uniones"): en cada cruce una pieza queda entera y la otra se corta contra sus
+  caras; se le descuenta la mitad del perfil entero en cada punta (con su medida real de la lista de perfiles) y,
+  si lo cruza por el medio, queda en dos tramos. Se recalculan cortes, barras, planos y 3D.
+  Jerarquía (decisión de Leandro): paredes — soleras y marcos de piso (largos enteros) › columnas y jambas ›
+  dinteles y alféizares › montantes › fajas y travesaños; pisos — bordes (largos enteros) › tirantes ›
+  transversales. Techo, riostras y escalera, igual que antes.
+- **Luz para soldar** configurable (mm por punta). Opción "Eje a eje (como antes)".
+- **Perfil propio del marco de cada abertura** (o el general de "Marcos de aberturas"): sale en un renglón aparte,
+  ej. "Marcos de aberturas (abertura #1)".
+### Ojo
+- Las fajas partidas cambian de id: si habías editado o borrado a mano una faja que ahora queda en tramos, hay que
+  volver a hacerlo en el tramo.
+
 ## [1.32.0] - 2026-10-27
 ### Agregado
 - **Terreno e implantación** (pestaña Estructura, tarjeta nueva): lote frente × fondo, la casa ubicada por su

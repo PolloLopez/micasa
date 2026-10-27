@@ -46,6 +46,7 @@ import { PARAMS_INICIALES } from './parametrosIniciales.js';
 import { CATALOGO_FIJO, TIPOS_PANEL_INICIALES, ACCESORIOS_INICIALES, LIMITES_ACCESORIO } from './presupuesto.js';
 import { ESCALERA_INICIAL } from './escalera.js';
 import { completarTerreno } from './terreno.js';
+import { completarUniones } from './uniones.js';
 import { GRADA_INICIAL } from './grada.js';
 import { MONTAJE_INICIAL } from './montaje.js';
 import { REVESTIMIENTO_POR_DEFECTO, LIMITES_REVESTIMIENTO, VENTAS, UBICACIONES } from './revestimientos.js';
@@ -93,6 +94,7 @@ export function migrarParams(params) {
         : [...ESCALERA_INICIAL.descansos],
   };
   nuevos.terreno = completarTerreno(nuevos.terreno); // v1.32: los proyectos de antes, sin terreno
+  nuevos.uniones = completarUniones(nuevos.uniones); // v1.33: con descuentos en los cruces (lo correcto)
   nuevos.piezasEditadas ??= {}; // v1.8
   nuevos.piezasAgregadas ??= []; // v1.16: piezas duplicadas a mano
   nuevos.escalera.riostras ??= false; // v1.9

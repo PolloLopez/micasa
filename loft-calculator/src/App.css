@@ -712,3 +712,7 @@ kbd {
   .bloque-implantacion { break-inside: avoid; }
   .bloque-implantacion .plano-implantacion { max-height: 150mm; border: 0.3pt solid #ccc; }
 }
+
+/* ---------- Uniones (v1.33) ---------- */
+.jerarquia-uniones { margin: 4px 0 8px; padding-left: 18px; font-size: 0.82rem; color: var(--texto-suave); display: flex; flex-direction: column; gap: 3px; }
+.resultado-uniones { font-size: 0.85rem; color: var(--exito); margin: 6px 0 0; }

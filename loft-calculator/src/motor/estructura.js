@@ -30,6 +30,7 @@ import { generarGrada } from './grada.js';
 import { generarMontaje } from './montaje.js';
 import { aplicarEdicion } from './edicionPiezas.js';
 import { piezasDeAgregadas } from './piezasAgregadas.js';
+import { aplicarUniones } from './uniones.js';
 
 const EPSILON = 0.01; // 1 cm: margen para no duplicar piezas en bordes
 const LARGO_MINIMO = 0.05; // piezas más cortas que 5 cm no se fabrican
@@ -234,17 +235,23 @@ function generarRefuerzos(params, lados, posiciones, aberturas) {
       (c) => c.lados.includes(op.lado) && Math.abs(distanciaSobreLado(geo, c.x, c.z) - d) < MARGEN_JAMBA
     );
     const grupos = [op.lado];
-    piezas.push(pieza(`ref:${op.id}:dintel`, 'dintel', grupos, punto(v.inicio, v.arriba), punto(v.fin, v.arriba)));
+    // v1.33: perfil propio del marco de esta abertura ('' = el general "Marcos de aberturas").
+    const propio = op.perfilMarco
+      ? { perfilPared: op.perfilMarco, ladoPared: `abertura ${op.etiqueta?.trim() || `#${op.id}`}` } : {};
+    const marco = (...args) => ({ ...pieza(...args), ...propio });
+    // v1.33: dintel y alféizar van de jamba a jamba (o hasta la columna que hace de jamba).
+    const [bordeIzq, bordeDer] = bordesDelMarco(v, columnasDeLado(op.lado, lados, posiciones));
+    piezas.push(marco(`ref:${op.id}:dintel`, 'dintel', grupos, punto(bordeIzq, v.arriba), punto(bordeDer, v.arriba)));
     if (v.abajo > 0) {
-      piezas.push(pieza(`ref:${op.id}:alfeizar`, 'alfeizar', grupos, punto(v.inicio, v.abajo), punto(v.fin, v.abajo)));
+      piezas.push(marco(`ref:${op.id}:alfeizar`, 'alfeizar', grupos, punto(bordeIzq, v.abajo), punto(bordeDer, v.abajo)));
     }
     // Jambas de piso a solera (v1.17): como una columna liviana a cada lado del vano.
     const altoPared = (d) => alturaEn(...puntoSobreLado(geo, d), params);
     if (!hayColumnaEn(v.inicio)) {
-      piezas.push(pieza(`ref:${op.id}:jamba-izq`, 'jamba', grupos, punto(v.inicio, 0), punto(v.inicio, altoPared(v.inicio))));
+      piezas.push(marco(`ref:${op.id}:jamba-izq`, 'jamba', grupos, punto(v.inicio, 0), punto(v.inicio, altoPared(v.inicio))));
     }
     if (!hayColumnaEn(v.fin)) {
-      piezas.push(pieza(`ref:${op.id}:jamba-der`, 'jamba', grupos, punto(v.fin, 0), punto(v.fin, altoPared(v.fin))));
+      piezas.push(marco(`ref:${op.id}:jamba-der`, 'jamba', grupos, punto(v.fin, 0), punto(v.fin, altoPared(v.fin))));
     }
     // v1.28: travesaños a la altura del dintel y del antepecho, de la abertura hasta la columna de
     // cada lado (pedido de Leandro: una pieza horizontal arriba y abajo de la ventana).
@@ -254,11 +261,11 @@ function generarRefuerzos(params, lados, posiciones, aberturas) {
       const derecha = Math.min(geo.largo, ...columnas.filter((c) => c >= v.fin - EPSILON));
       const alturas = [['arriba', v.arriba], ...(v.abajo > 0 ? [['abajo', v.abajo]] : [])];
       alturas.forEach(([cual, h]) => {
-        if (v.inicio - izquierda > LARGO_MINIMO) {
-          piezas.push(pieza(`ref:${op.id}:trav-${cual}-izq`, 'travesano', grupos, punto(izquierda, h), punto(v.inicio, h)));
+        if (bordeIzq - izquierda > LARGO_MINIMO) {
+          piezas.push(marco(`ref:${op.id}:trav-${cual}-izq`, 'travesano', grupos, punto(izquierda, h), punto(bordeIzq, h)));
         }
-        if (derecha - v.fin > LARGO_MINIMO) {
-          piezas.push(pieza(`ref:${op.id}:trav-${cual}-der`, 'travesano', grupos, punto(v.fin, h), punto(derecha, h)));
+        if (derecha - bordeDer > LARGO_MINIMO) {
+          piezas.push(marco(`ref:${op.id}:trav-${cual}-der`, 'travesano', grupos, punto(bordeDer, h), punto(derecha, h)));
         }
       });
     }
@@ -487,7 +494,16 @@ function entramadoPiso(rect, separacionCargada, transversalesCargada, y, nivel, 
  * Si la pared es inclinada arriba (paralela a la pendiente), las
  * horizontales altas solo cubren el tramo donde la pared llega.
  */
-function generarCorreasPared(params, lados) {
+/**
+ * v1.33: dónde termina el marco de una abertura a cada lado: en la jamba (borde del vano) o, si hay una
+ * columna a menos de 10 cm que hace de jamba, en esa columna. Lo que cruza el vano se corta ahí.
+ */
+function bordesDelMarco(v, columnas) {
+  const cerca = (d) => columnas.find((c) => Math.abs(c - d) < MARGEN_JAMBA) ?? d;
+  return [cerca(v.inicio), cerca(v.fin)];
+}
+
+function generarCorreasPared(params, lados, posiciones = [], aberturas = []) {
   const correas = [];
   LADOS.forEach((lado) => {
     const geo = lados[lado];
@@ -507,10 +523,27 @@ function generarCorreasPared(params, lados) {
         continue;
       }
       if (b - a < LARGO_MINIMO) continue;
-      const [x1, z1] = puntoSobreLado(geo, a);
-      const [x2, z2] = puntoSobreLado(geo, b);
+      // v1.33: la faja no cruza las aberturas: se corta en el marco de cada vano que está a su altura.
+      const columnas = columnasDeLado(lado, lados, posiciones);
+      const huecos = aberturas.filter((op) => op.lado === lado).map((op) => vano(op, params))
+        .filter((v) => h > v.abajo + EPSILON && h < v.arriba - EPSILON)
+        .map((v) => bordesDelMarco(v, columnas))
+        .sort((p, q) => p[0] - q[0]);
+      const tramos = [];
+      let desde = a;
+      huecos.forEach(([i, f]) => {
+        if (i > desde) tramos.push([desde, Math.min(i, b)]);
+        desde = Math.max(desde, f);
+      });
+      if (desde < b) tramos.push([desde, b]);
       const y = params.elevacion + h;
-      correas.push(pieza(`horiz:${lado}:${k}`, 'horizontal', [lado], [x1, y, z1], [x2, y, z2]));
+      tramos.filter(([i, f]) => f - i >= LARGO_MINIMO).forEach(([i, f], n, todos) => {
+        const [x1, z1] = puntoSobreLado(geo, i);
+        const [x2, z2] = puntoSobreLado(geo, f);
+        // Sin aberturas a esa altura, el id de siempre (las ediciones a mano viejas la siguen encontrando).
+        const id = todos.length === 1 ? `horiz:${lado}:${k}` : `horiz:${lado}:${k}:${n + 1}`;
+        correas.push(pieza(id, 'horizontal', [lado], [x1, y, z1], [x2, y, z2]));
+      });
     }
   });
   return correas;
@@ -721,7 +754,11 @@ function generarEstructuraSuelta(params, propia) {
  * Arma toda la estructura.
  * Precondición: params y aberturas ya validados.
  */
-export function generarEstructura(params, aberturas) {
+/**
+ * @param catalogo (v1.33) para las uniones: con él, las piezas que se cruzan se cortan contra la que queda
+ *                 entera (ver uniones.js). Sin él (tests viejos, grada, montaje), eje a eje como antes.
+ */
+export function generarEstructura(params, aberturas, catalogo = null) {
   if (params.tipoProyecto === 'grada') return generarEstructuraSuelta(params, { grada: generarGrada(params.grada) });
   if (params.tipoProyecto === 'montaje') return generarEstructuraSuelta(params, { montaje: generarMontaje(params.montaje) });
   const lados = geometriaLados(params);
@@ -742,7 +779,7 @@ export function generarEstructura(params, aberturas) {
     piso2: entrepiso
       ? entramadoPiso(entrepiso, params.separacionPiso2, params.separacionTransversalesPiso2, entrepiso.y, 'piso2', params)
       : { tirantes: [], transversales: [] },
-    correas: generarCorreasPared(params, lados),
+    correas: generarCorreasPared(params, lados, posiciones, aberturas), // v1.33: cortadas en las aberturas
     techo,
     escalera: params.escalera?.activa && entrepiso ? generarEscalera(params, lados, entrepiso) : null,
     paredes,
@@ -756,7 +793,10 @@ export function generarEstructura(params, aberturas) {
       techo: techo.superficie,
     },
   };
-  const conCambios = aplicarCambiosManuales(completa, new Set(params.piezasEliminadas ?? []), params.piezasEditadas ?? {});
+  // v1.33: primero los perfiles de cada pared (las uniones necesitan la medida de cada pieza), después las
+  // uniones y al final lo hecho a mano (las ediciones apuntan a los tramos ya cortados).
+  const conUniones = aplicarUniones(marcarPerfilesDePared(completa, params), params, catalogo);
+  const conCambios = aplicarCambiosManuales(conUniones, new Set(params.piezasEliminadas ?? []), params.piezasEditadas ?? {});
   return marcarPerfilesDePared(conCambios, params);
 }
 

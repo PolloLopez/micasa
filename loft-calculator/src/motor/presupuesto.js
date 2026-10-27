@@ -343,7 +343,10 @@ function renglonDePared(producto, perfilElegido, piezas) {
   return {
     ...producto,
     id: `${producto.id}@${perfilElegido.id}`,
-    nombre: `${producto.nombre} (${lados.length > 1 ? 'lados' : 'lado'} ${lados.join(', ')})`,
+    // v1.33: el marco propio de una abertura dice de cuál es ("abertura #3"), no "lado".
+    nombre: lados.some((l) => l.length > 1)
+      ? `${producto.nombre} (${lados.join(', ')})`
+      : `${producto.nombre} (${lados.length > 1 ? 'lados' : 'lado'} ${lados.join(', ')})`,
     perfilId: perfilElegido.id,
     perfil: nombrePerfil(perfilElegido),
     largoBarra: perfilElegido.largoBarra,

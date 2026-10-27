@@ -14,6 +14,7 @@ import { calcularEscalones, DESCANSOS_POR_FORMA } from './escalera.js';
 import { revisarEdicion, PERFILES_ASIGNABLES } from './edicionPiezas.js';
 import { revisarAgregadas } from './piezasAgregadas.js';
 import { validarTerreno } from './terreno.js';
+import { validarUniones } from './uniones.js';
 import { CAMPOS_CON_CANTIDAD, MAXIMO_CANTIDAD } from './cantidades.js';
 
 /** Largo máximo del texto de la etiqueta de una pared en el 3D. */
@@ -79,6 +80,7 @@ export function validarParametros(params) {
   revisarCantidades(params.cantidades).forEach(([campo, error]) => anotar(campo, error));
   // v1.32: el terreno (solo si el proyecto lo trae; los viejos lo completa migrarParams).
   if (params.terreno !== undefined) Object.entries(validarTerreno(params.terreno)).forEach(([campo, error]) => anotar(campo, error));
+  if (params.uniones !== undefined) Object.entries(validarUniones(params.uniones)).forEach(([campo, error]) => anotar(campo, error));
   if (params.techoConBorde !== undefined && typeof params.techoConBorde !== 'boolean') anotar('techoConBorde', 'Valor inválido');
 
   // Lados elegidos (frente, entrepiso, caída del techo).
@@ -357,6 +359,8 @@ export function validarAbertura(abertura, params) {
   const { ancho, alto, offsetHorizontal, alturaAntepecho, lado } = abertura;
   if (!LADOS.includes(lado)) return 'Elegí una pared';
   // v1.17: etiqueta propia (opcional; si falta se muestra solo el número).
+  // v1.33: perfil propio del marco ('' o sin dato = el general "Marcos de aberturas").
+  if (abertura.perfilMarco !== undefined && (typeof abertura.perfilMarco !== 'string' || abertura.perfilMarco.length > 40)) return 'Perfil del marco inválido';
   if (abertura.etiqueta !== undefined && (typeof abertura.etiqueta !== 'string' || abertura.etiqueta.length > LARGO_MAXIMO_ETIQUETA)) {
     return `La etiqueta puede tener hasta ${LARGO_MAXIMO_ETIQUETA} letras`;
   }

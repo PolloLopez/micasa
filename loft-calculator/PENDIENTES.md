@@ -2,6 +2,14 @@
 
 Última limpieza: 2026-10-15 (v1.14.0). Espejo en Trello: tablero "Desarrollo", tarjetas `[CALC]`.
 
+## Uniones y marcos (v1.33.0, pedido de Leandro 27/10)
+- ✅ Fajas cortadas en los vanos; uniones en red con jerarquía y luz; perfil propio del marco de cada abertura.
+- 🟡 [ ] Validar con el herrero la "medida vista" que se descuenta (ala del C, ancho del caño rectangular) y la jerarquía.
+- 🟢 [ ] Riostras: cortarlas contra columnas y marcos (corte a inglete, hoy van eje a eje).
+- 🟢 [ ] Columnas del entrepiso y bordes del piso 2 contra las columnas de pared (hoy no se tocan).
+- 🟢 [ ] Techo: bordes contra vigas si se arma como red (hoy las correas van apoyadas, que es lo correcto).
+- 🟢 [ ] Elegir la jerarquía por obra (ej. columnas enteras) si algún herrero arma distinto.
+
 ## 🗺️ Hoja de ruta acordada (27/10): terreno → sol → muebles
 Decisiones de Leandro: lote rectangular; ubicar pozo séptico y cámara, árboles y otras construcciones, accesos y
 veredas; sol con animación del día; orden Terreno → Sol → Muebles.
