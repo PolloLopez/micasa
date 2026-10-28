@@ -562,6 +562,22 @@ function generarCorreasPared(params, lados, posiciones = [], aberturas = []) {
  * Correas de techo: perpendiculares a las vigas, paralelas al lado bajo;
  * su separación se mide sobre la pendiente.
  */
+/**
+ * v1.35.1: alero de cada lado (params.alero = { A, B, C, D }, 0 = sin). Devuelve cuánto sale el techo hacia
+ * cada borde del faldón: s (del lado bajo al alto) y d (a lo largo del lado bajo).
+ */
+export function alerosDelTecho(params) {
+  const al = params.alero ?? {};
+  const i = LADOS.indexOf(params.caidaTecho);
+  const de = (lado) => (Number.isFinite(al[lado]) ? al[lado] : 0);
+  return {
+    bajo: de(params.caidaTecho), // antes del lado bajo (s < 0)
+    alto: de(LADOS[(i + 2) % 4]), // después del lado alto (s > luz)
+    inicio: de(LADOS[(i + 3) % 4]), // antes de la punta 1 del lado bajo (d < 0)
+    fin: de(LADOS[(i + 1) % 4]), // después de la punta 2 (d > largo)
+  };
+}
+
 function generarTecho(params, lados) {
   const bajo = lados[params.caidaTecho];
   const [ax, az] = haciaAdentro(bajo); // de la pared baja hacia la alta
@@ -575,23 +591,44 @@ function generarTecho(params, lados) {
     return [x + ax * s, y0 + s * pendiente + extra, z + az * s];
   };
 
+  // v1.35.1: aleros. Las vigas llegan al borde del alero de los lados bajo/alto si se eligió "alero"; las correas,
+  // al de los costados. El panel cubre todo el techo con sus aleros.
+  const alero = alerosDelTecho(params);
+  const vigasAlAlero = params.aleroVigas !== 'estructura';
+  const correasAlAlero = params.aleroCorreas !== 'estructura';
+  const sMin = vigasAlAlero ? -alero.bajo : 0;
+  const sMax = luz + (vigasAlAlero ? alero.alto : 0);
+  const dMin = correasAlAlero ? -alero.inicio : 0;
+  const dMax = bajo.largo + (correasAlAlero ? alero.fin : 0);
+
   const vigas = interiores(bajo.largo, separacionDe(params, 'separacionVigasTecho', bajo.largo)).map((d) =>
-    pieza(`viga-techo:${cm(d)}`, 'viga-techo', ['techo'], puntoTecho(d, 0), puntoTecho(d, luz))
+    pieza(`viga-techo:${cm(d)}`, 'viga-techo', ['techo'], puntoTecho(d, sMin), puntoTecho(d, sMax))
   );
 
   // Por cantidad (v1.27): las correas se reparten parejo a lo largo del faldón (luz horizontal).
   const pasoHorizontal = cantidadDe(params, 'separacionCorreasTecho') !== null
     ? separacionDe(params, 'separacionCorreasTecho', luz)
     : params.separacionCorreasTecho / factorPendiente;
-  const posiciones = [0, ...interiores(luz, pasoHorizontal), luz];
+  // v1.35.1: con vigas en el alero, también hay correas en el alero (mismo paso, hasta el borde).
+  const enAlero = (desde, hasta) => {
+    const lista = [];
+    for (let s = desde + pasoHorizontal; s < hasta - EPSILON; s += pasoHorizontal) lista.push(s);
+    return lista;
+  };
+  const posiciones = [
+    ...(sMin < -EPSILON ? [sMin, ...enAlero(sMin, 0).filter((s) => s < -EPSILON)] : []),
+    0, ...interiores(luz, pasoHorizontal), luz,
+    ...(sMax > luz + EPSILON ? [...enAlero(luz, sMax), sMax] : []),
+  ];
   const ALTO_VIGA = 0.1; // las correas apoyan arriba de las vigas
   const todasLasCorreas = posiciones.map((s) =>
-    pieza(`correa-techo:${cm(s)}`, 'correa-techo', ['techo'], puntoTecho(0, s, ALTO_VIGA), puntoTecho(bajo.largo, s, ALTO_VIGA))
+    pieza(`correa-techo:${cm(s)}`, 'correa-techo', ['techo'], puntoTecho(dMin, s, ALTO_VIGA), puntoTecho(dMax, s, ALTO_VIGA))
   );
 
   // v1.28: marco perimetral (opcional; los proyectos de antes no lo tienen). Las correas de los dos
   // bordes pasan a ser "borde de techo" (mismo id: las ediciones guardadas siguen valiendo) y se
   // suman las vigas de las dos puntas. Así el borde y el interior pueden ir con perfiles distintos.
+  // v1.35.1: con aleros, el marco va por el borde de afuera de lo que llega al alero.
   const conBorde = params.techoConBorde === true;
   const esBorde = (i) => conBorde && (i === 0 || i === todasLasCorreas.length - 1);
   const correas = todasLasCorreas.filter((_, i) => !esBorde(i));
@@ -599,15 +636,22 @@ function generarTecho(params, lados) {
     ...todasLasCorreas.filter((_, i) => esBorde(i)).map((p) => ({ ...p, tipo: 'borde-techo' })),
     // Las de las puntas van a la altura de las correas (arriba de las soleras de las paredes de los
     // costados, que siguen la pendiente): así el marco queda en un plano y no repite la solera.
-    ...[0, bajo.largo].map((d) => pieza(`borde-techo:${cm(d)}`, 'borde-techo', ['techo'], puntoTecho(d, 0, ALTO_VIGA), puntoTecho(d, luz, ALTO_VIGA))),
+    ...[dMin, dMax].map((d) => pieza(`borde-techo:${cm(d)}`, 'borde-techo', ['techo'], puntoTecho(d, sMin, ALTO_VIGA), puntoTecho(d, sMax, ALTO_VIGA))),
   ] : [];
 
+  // El panel cubre el techo con TODOS sus aleros (aunque vigas o correas terminen en la estructura).
+  const pMin = -alero.bajo;
+  const pMax = luz + alero.alto;
+  const qMin = -alero.inicio;
+  const qMax = bajo.largo + alero.fin;
   const esquinas = [
-    puntoTecho(0, 0, ALTO_VIGA + 0.03),
-    puntoTecho(bajo.largo, 0, ALTO_VIGA + 0.03),
-    puntoTecho(bajo.largo, luz, ALTO_VIGA + 0.03),
-    puntoTecho(0, luz, ALTO_VIGA + 0.03),
+    puntoTecho(qMin, pMin, ALTO_VIGA + 0.03),
+    puntoTecho(qMax, pMin, ALTO_VIGA + 0.03),
+    puntoTecho(qMax, pMax, ALTO_VIGA + 0.03),
+    puntoTecho(qMin, pMax, ALTO_VIGA + 0.03),
   ];
+  const largoTecho = qMax - qMin;
+  const faldon = (pMax - pMin) * factorPendiente;
 
   return {
     vigas,
@@ -615,10 +659,11 @@ function generarTecho(params, lados) {
     bordes,
     esquinas,
     panel: params.panelTecho,
-    largo: bajo.largo, // a lo largo del lado bajo
-    largoFaldon: luz * factorPendiente, // del lado bajo al alto, sobre la pendiente
-    superficie: bajo.largo * luz * factorPendiente,
+    largo: largoTecho, // a lo largo del lado bajo (con aleros)
+    largoFaldon: faldon, // del borde bajo al alto, sobre la pendiente (con aleros)
+    superficie: largoTecho * faldon,
     ladoAlto: ladoOpuesto(params.caidaTecho),
+    alero, // v1.35.1
   };
 }
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.35.1] - 2026-10-28
+### Agregado
+- **Aleros por lado** (Techo → Aleros): cuánto sale el techo en el frente, el fondo y cada lateral (sin tildar,
+  sin alero). Por separado, si las **vigas** y las **correas** llegan al borde del alero o terminan en la
+  estructura (el alero lo hace el panel solo). Con vigas al alero también hay correas en el alero; el marco
+  perimetral va por el borde de afuera. El revestimiento del techo siempre cubre los aleros (más m² en el
+  presupuesto).
+
 ## [1.35.0] - 2026-10-28
 ### Agregado
 - **Tirantes y transversales del piso, 3 formas** (en Pisos y en Materiales → Uniones):

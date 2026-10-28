@@ -60,6 +60,10 @@ export const PARAMS_INICIALES = {
   separacionVigasTecho: 1,
   separacionCorreasTecho: 0.8,
   panelTecho: 'panelTecho',
+  // v1.35.1: alero de cada lado (m, 0 = sin) y si vigas y correas llegan al borde del alero o terminan en la estructura.
+  alero: { A: 0, B: 0, C: 0, D: 0 },
+  aleroVigas: 'alero', // 'alero' | 'estructura'
+  aleroCorreas: 'alero',
 
   // Compras
   excedenteBarras: 1, // % que las barras traen de más (vienen entre 1 % y 2 % más largas)

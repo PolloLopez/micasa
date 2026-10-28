@@ -1087,6 +1087,23 @@ export default function App() {
                 onChange={(ev) => cambiar('techoConBorde')(ev.target.checked)} />
               Marco perimetral (borde del techo con su propio perfil)
             </label>
+            {/* v1.35.1: alero de cada lado y hasta dónde llegan vigas y correas. */}
+            <h4 className="subtitulo-pared">Aleros</h4>
+            <div className="grid-params">
+              {LADOS.map((lado) => opcional(`alero.${lado}`, `Alero ${nombreLado(lado, params.ladoFrente).toLowerCase()} (${lado})`, 'Sale', 0.5))}
+            </div>
+            {LADOS.some((lado) => params.alero?.[lado] > 0) && (
+              <div className="grid-params grid-uniones">
+                <CampoSelect etiqueta="Vigas en los aleros" valor={params.aleroVigas ?? 'alero'} onCambio={cambiar('aleroVigas')}
+                  opciones={[['alero', 'Llegan al borde del alero'], ['estructura', 'Terminan en la estructura']]} />
+                <CampoSelect etiqueta="Correas en los aleros" valor={params.aleroCorreas ?? 'alero'} onCambio={cambiar('aleroCorreas')}
+                  opciones={[['alero', 'Llegan al borde del alero'], ['estructura', 'Terminan en la estructura']]} />
+              </div>
+            )}
+            {LADOS.some((lado) => params.alero?.[lado] > 0) && (
+              <p className="nota">El revestimiento del techo siempre cubre los aleros. Las vigas salen en los aleros del lado bajo
+                y del alto; las correas, en los de los costados. Si terminan en la estructura, el alero lo hace el panel solo.</p>
+            )}
             <h4 className="subtitulo-pared">Perfiles del techo</h4>
             <div className="grid-params grid-perfiles-pared">
               {params.techoConBorde && selectorPerfilDe(INSUMO.BORDE_TECHO, 'Borde')}

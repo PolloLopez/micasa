@@ -96,6 +96,10 @@ export function migrarParams(params) {
   nuevos.terreno = completarTerreno(nuevos.terreno); // v1.32: los proyectos de antes, sin terreno
   // v1.35: zapatas (los proyectos de antes, sin zapata).
   nuevos.zapata = esObjeto(nuevos.zapata) ? { ...PARAMS_INICIALES.zapata, ...nuevos.zapata } : { ...PARAMS_INICIALES.zapata };
+  // v1.35.1: aleros (los proyectos de antes, sin alero).
+  nuevos.alero = Object.fromEntries(LADOS.map((l) => [l, Number.isFinite(nuevos.alero?.[l]) ? nuevos.alero[l] : 0]));
+  nuevos.aleroVigas = nuevos.aleroVigas === 'estructura' ? 'estructura' : 'alero';
+  nuevos.aleroCorreas = nuevos.aleroCorreas === 'estructura' ? 'estructura' : 'alero';
   nuevos.uniones = completarUniones(nuevos.uniones); // v1.33: con descuentos en los cruces (lo correcto)
   nuevos.piezasEditadas ??= {}; // v1.8
   nuevos.piezasAgregadas ??= []; // v1.16: piezas duplicadas a mano

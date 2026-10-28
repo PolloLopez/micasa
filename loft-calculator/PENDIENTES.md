@@ -8,7 +8,7 @@
 - ✅ **Zapatas**: lado x lado x alto y profundidad de fundación; dibujo bajo tierra (capa propia); hormigón y
   excavación en el presupuesto — v1.35.0.
   - 🟢 [ ] Con tirantes apoyados, subir también el OSB del 3D (hoy queda a la altura de siempre).
-- 🔴 [ ] **Alero por lado** (frente, fondo, laterales; 0 = sin); vigas y correas: llegan al borde del alero o
+- ✅ **Alero por lado** (v1.35.1) (frente, fondo, laterales; 0 = sin); vigas y correas: llegan al borde del alero o
   terminan en la estructura (cada una por separado).
 - 🔴 [ ] **Ejes**: vigas de techo sobre columnas; columnas sobre pilotines; modulación única (una medida ordena
   columnas, vigas, tirantes y pilotines).

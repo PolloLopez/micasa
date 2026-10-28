@@ -133,6 +133,7 @@ valores inválidos.
 | 2026-10-27 | Al abrir un link de la nube que ya está en Mis proyectos, se compara la versión (rev): si la guardada es igual o más nueva, se abre la guardada | Leandro perdía el terreno: el link de ver no se actualiza y se recargaba solo, pisando lo guardado. |
 | 2026-10-28 | Tirantes/transversales: 'tirantes' | 'transversales' | 'apoyados' en `uniones.enteras`. Con transversales enteros o apoyados, cada fila de transversales se genera como UNA pieza; apoyados = los tirantes no participan de la red del piso, suben (alto transversal + alto tirante)/2 y se alargan media medida del borde en cada punta | Decisión de Leandro (las 3 elegibles). El alto sale de la "a" del perfil (`medidaAlto`). |
 | 2026-10-28 | Zapatas como `params.zapata` (activa, lado, alto, profundidad desde el terreno al fondo) y dos insumos fijos (hormigón m³, excavación m³) | Decisión de Leandro: medidas + presupuesto. Insumos fijos: los catálogos viejos los reciben con el precio de ejemplo en el primer proveedor. |
+| 2026-10-28 | Alero por lado de la casa (A–D) y no por "bajo/alto/costados"; el techo los traduce a s (faldón) y d (a lo largo del lado bajo). Vigas extienden s, correas extienden d; el panel siempre cubre todo | Decisión de Leandro (por lado + elegir vigas y correas). Así el alero no cambia de lugar si se cambia hacia dónde cae el techo. |
 
 ## Supuestos de obra (en `src/motor/constantes.js`)
 Piso del entrepiso a 2,30 m · merma de corte 3 mm · excedente de barras 1 % (editable; depende del proveedor) · placa OSB 2,44 × 1,22 + 10 % de recortes ·
@@ -208,6 +209,7 @@ techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 
 - 2026-10-23 v1.25.0: proveedores, precios en efectivo/tarjeta por proveedor, comparar presupuestos y "lo más barato de cada material".
 - 2026-10-23 v1.26.0: pestaña Planos (paredes y plantas acotadas, listas de corte, revestimiento), en el PDF y en Excel.
 - 2026-10-25 v1.30.0: link compacto (la mitad) y links cortos en Firebase para ver/editar que guardan los cambios.
+- 2026-10-28 v1.35.1: aleros por lado (params.alero A–D, aleroVigas, aleroCorreas; alerosDelTecho).
 - 2026-10-28 v1.35.0: tirantes/transversales en 3 formas (enteras.tirantesTransversales) y zapatas (params.zapata).
 - 2026-10-27 v1.34.3: terreno por partes en Capas (8 casillas) y opacidad del terreno.
 - 2026-10-27 v1.34.2: panel de capas cerrado al entrar, recordado por navegador, Esc lo cierra.

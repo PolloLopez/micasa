@@ -81,6 +81,16 @@ export function validarParametros(params) {
   // v1.32: el terreno (solo si el proyecto lo trae; los viejos lo completa migrarParams).
   if (params.terreno !== undefined) Object.entries(validarTerreno(params.terreno)).forEach(([campo, error]) => anotar(campo, error));
   if (params.uniones !== undefined) Object.entries(validarUniones(params.uniones)).forEach(([campo, error]) => anotar(campo, error));
+  // v1.35.1: aleros.
+  if (params.alero !== undefined) {
+    LADOS.forEach((l) => {
+      const v = params.alero?.[l];
+      if (!Number.isFinite(v) || v < 0 || v > 3) anotar(`alero.${l}`, 'Entre 0 y 3 m');
+    });
+    ['aleroVigas', 'aleroCorreas'].forEach((c) => {
+      if (params[c] !== undefined && !['alero', 'estructura'].includes(params[c])) anotar(c, 'Elegí alero o estructura');
+    });
+  }
   // v1.35: zapatas.
   if (params.zapata !== undefined) {
     const z = params.zapata;
