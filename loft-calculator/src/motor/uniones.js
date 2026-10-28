@@ -41,10 +41,21 @@ export const OPCIONES_ENTERAS = {
   columnasFajas: ['columnas', 'fajas'],
   montantesFajas: ['montantes', 'fajas'],
   bordesTirantes: ['bordes', 'tirantes'],
+  // v1.35: tirantes y transversales del piso: en el mismo plano (uno entero) o tirantes apoyados encima.
+  tirantesTransversales: ['tirantes', 'transversales', 'apoyados'],
 };
 export const ENTERAS_INICIALES = Object.fromEntries(Object.entries(OPCIONES_ENTERAS).map(([k, v]) => [k, v[0]]));
 export const UNIONES_INICIALES = { modo: 'red', luz: 0, enteras: { ...ENTERAS_INICIALES } }; // 'eje' = eje a eje (como antes)
-export const MARCOS_ABERTURA = ['jambas', 'dintel']; // qué queda entero en el marco de una abertura
+export const MARCOS_ABERTURA = ['jambas', 'dintel'];
+
+/** v1.35: textos de las 3 formas de armar tirantes y transversales (tarjetas Pisos y Uniones). */
+export const OPCIONES_PISO = [
+  ['tirantesTransversales', 'Tirantes y transversales (pisos)', [
+    ['tirantes', 'Tirantes enteros, transversales entre ellos'],
+    ['transversales', 'Transversales enteros, tirantes cortados'],
+    ['apoyados', 'Tirantes apoyados sobre los transversales'],
+  ]],
+]; // qué queda entero en el marco de una abertura
 
 const TOLERANCIA = 0.015; // 1,5 cm: dos ejes a menos de eso se tocan
 const LARGO_MINIMO = 0.05; // tramos de menos de 5 cm no se fabrican
@@ -83,8 +94,13 @@ function rangoEn(red, p, ctx) {
   }
   if (p.tipo === 'viga-cierre') return 1;
   // Pisos: tirantes entre bordes, o enteros con los bordes cortados entre ellos.
-  if (p.tipo === 'piso' || p.tipo === 'piso2') return enteras.bordesTirantes === 'tirantes' ? -1 : 2;
-  if (p.tipo === 'transv-piso' || p.tipo === 'transv-piso2') return 3;
+  // v1.35: con los tirantes APOYADOS sobre los transversales no se cruzan con nada (van en otro nivel).
+  if (p.tipo === 'piso' || p.tipo === 'piso2') {
+    if (enteras.tirantesTransversales === 'apoyados') return null;
+    return enteras.bordesTirantes === 'tirantes' ? -1 : 2;
+  }
+  // Transversales: entre tirantes (3) o enteros de borde a borde (1.5: cortan a los tirantes, no a los bordes).
+  if (p.tipo === 'transv-piso' || p.tipo === 'transv-piso2') return enteras.tirantesTransversales === 'tirantes' ? 3 : 1.5;
   // Paredes.
   const C = enteras.solerasColumnas === 'columnas' ? -1 : 2; // columnas y jambas
   const F = enteras.columnasFajas === 'fajas' ? C - 0.5 : 5; // fajas
@@ -134,6 +150,41 @@ export function medidaVista(p, catalogo) {
     if (mm > 0) return mm / 1000;
   }
   return seccionDesdePerfil(texto) ?? 0.05; // sin datos: 5 cm (un perfil chico)
+}
+
+/** Alto (m) del perfil de una pieza: la "a" (alto del C, del caño rectangular, lado del cuadrado). */
+export function medidaAlto(p, catalogo) {
+  const deLista = (id) => catalogo.find((i) => i.categoria === 'hierro' && i.id === id);
+  const uso = catalogo.find((i) => i.id === (p.insumo ?? INSUMO_DE_TIPO[p.tipo]));
+  const perfil = p.perfilPared ? deLista(p.perfilPared) : (uso?.perfilId ? deLista(uso.perfilId) : null);
+  if (perfil && perfil.tipo !== 'otro' && perfil.a > 0) return perfil.a / 1000;
+  return seccionDesdePerfil(uso?.perfil) ?? 0.08;
+}
+
+/**
+ * v1.35: tirantes APOYADOS sobre los transversales. Suben (eje a eje) la mitad del transversal más la mitad
+ * del tirante y, con la red, llegan hasta la cara de afuera de los bordes (apoyan también sobre ellos).
+ */
+function apoyarTirantes(e, catalogo, conRed) {
+  const subir = (nivel) => (p) => {
+    const sube = (medidaAlto({ tipo: `transv-${nivel}` }, catalogo) + medidaAlto(p, catalogo)) / 2;
+    let desde = [p.desde[0], p.desde[1] + sube, p.desde[2]];
+    let hasta = [p.hasta[0], p.hasta[1] + sube, p.hasta[2]];
+    let { largo } = p;
+    if (conRed) {
+      const mitadBorde = medidaVista({ tipo: nivel === 'piso2' ? 'marco-piso2' : 'marco-piso' }, catalogo) / 2;
+      const u = por(resta(hasta, desde), 1 / largoDe(resta(hasta, desde)));
+      desde = suma(desde, por(u, -mitadBorde));
+      hasta = suma(hasta, por(u, mitadBorde));
+      largo = Number((largo + 2 * mitadBorde).toFixed(4));
+    }
+    return { ...p, desde, hasta, largo, largoEje: p.largoEje ?? p.largo, apoyado: true };
+  };
+  return {
+    ...e,
+    piso: { ...e.piso, tirantes: e.piso.tirantes.map(subir('piso')) },
+    piso2: { ...e.piso2, tirantes: e.piso2.tirantes.map(subir('piso2')) },
+  };
 }
 
 /** Dónde se cruzan los ejes de p y q: t sobre p, s sobre q (o null si no se tocan o son casi paralelas). */
@@ -235,7 +286,12 @@ const LISTAS = [
  */
 export function aplicarUniones(e, params, catalogo, aberturas = []) {
   const config = completarUniones(params.uniones);
-  if (config.modo !== 'red' || !catalogo) return { ...e, uniones: { modo: 'eje', metrosDescontados: 0, cortes: 0 } };
+  const apoyados = config.enteras.tirantesTransversales === 'apoyados' && catalogo;
+  if (config.modo !== 'red' || !catalogo) {
+    // Eje a eje: sin descuentos, pero los tirantes apoyados igual van un nivel más arriba.
+    const base = apoyados ? apoyarTirantes(e, catalogo, false) : e;
+    return { ...base, uniones: { modo: 'eje', metrosDescontados: 0, cortes: 0 } };
+  }
   const ctx = {
     ejeLargo: params.largo >= params.ancho ? 'x' : 'z',
     enteras: config.enteras,
@@ -263,8 +319,12 @@ export function aplicarUniones(e, params, catalogo, aberturas = []) {
     if (ruta.length === 1) nueva[ruta[0]] = procesar(leer(ruta));
     else nueva[ruta[0]] = { ...nueva[ruta[0]], [ruta[1]]: procesar(leer(ruta)) };
   });
-  nueva.uniones = { modo: 'red', metrosDescontados: Math.round(metrosDescontados * 100) / 100, cortes };
-  return nueva;
+  const final = apoyados ? apoyarTirantes(nueva, catalogo, true) : nueva;
+  if (apoyados) {
+    [...final.piso.tirantes, ...final.piso2.tirantes].forEach((p) => { metrosDescontados -= p.largo - p.largoEje; });
+  }
+  final.uniones = { modo: 'red', metrosDescontados: Math.round(metrosDescontados * 100) / 100, cortes };
+  return final;
 }
 
 /** Completa la configuración de uniones (proyectos de antes: con red, que es lo correcto, y la jerarquía de fábrica). */

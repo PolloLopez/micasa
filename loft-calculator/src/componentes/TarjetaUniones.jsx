@@ -9,6 +9,7 @@
 import Tarjeta from './Tarjeta.jsx';
 import CampoSelect from './CampoSelect.jsx';
 import CampoNumero from './CampoNumero.jsx';
+import { OPCIONES_PISO } from '../motor/uniones.js';
 
 /**
  * @param uniones   params.uniones ({ modo: 'red'|'eje', luz en m })
@@ -21,6 +22,7 @@ const PARES = [
   ['columnasFajas', 'Columnas y fajas', [['columnas', 'Columnas enteras, fajas en tramos'], ['fajas', 'Fajas enteras, columnas cortadas']]],
   ['montantesFajas', 'Montantes y fajas', [['montantes', 'Montantes enteros, fajas cortadas'], ['fajas', 'Fajas enteras, montantes cortados']]],
   ['bordesTirantes', 'Bordes y tirantes (pisos)', [['bordes', 'Bordes enteros, tirantes entre ellos'], ['tirantes', 'Tirantes enteros, bordes cortados']]],
+  ...OPCIONES_PISO,
 ];
 
 export default function TarjetaUniones({ uniones, resultado, cambiar }) {

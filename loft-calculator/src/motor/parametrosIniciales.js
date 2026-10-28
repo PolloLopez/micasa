@@ -73,6 +73,8 @@ export const PARAMS_INICIALES = {
   cantidades: {}, // v1.27: separaciones cargadas por CANTIDAD { 'paredes.A.separacionVerticales': 4 } (sin clave = por medida)
 
   // Fundación
+  // v1.35: zapata bajo cada pilotín. profundidad = del nivel del terreno al fondo de la zapata.
+  zapata: { activa: false, lado: 0.6, alto: 0.3, profundidad: 0.8 },
   filasPilotines: 4,
   pilotinesPorFila: 3,
 

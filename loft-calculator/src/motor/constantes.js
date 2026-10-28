@@ -42,6 +42,8 @@ export const INSUMO = {
   BORDE_TECHO: 'bordeTecho', // v1.28: marco perimetral del techo (vigas de las puntas + correas de los bordes)
   OSB: 'osb',
   PILOTIN: 'pilotin',
+  HORMIGON_ZAPATA: 'hormigonZapata', // v1.35: hormigón de las zapatas (m³)
+  EXCAVACION: 'excavacion', // v1.35: excavación de los pozos de las zapatas (m³)
   ZANCA: 'zanca',
   APOYO_ESCALON: 'apoyoEscalon',
   COLUMNA_ESCALERA: 'columnaEscalera',

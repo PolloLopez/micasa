@@ -9,6 +9,7 @@
 
 export const CAPAS = {
   pilotines: { nombre: 'Pilotines', color: '#94a3b8' },
+  zapatas: { nombre: 'Zapatas', color: '#78716c' }, // v1.35: bajo tierra, debajo de cada pilotín
   columnas: { nombre: 'Columnas', color: '#ef4444' },
   marcos: { nombre: 'Marcos', color: '#3b82f6' },
   piso: { nombre: 'Piso', color: '#06b6d4' },
@@ -43,7 +44,7 @@ export const CAPAS_SOLO_PROYECTOS_SUELTOS = ['grada', 'montaje', 'chapa'];
 export const CAPAS_TERRENO = ['terrenoLote', 'terrenoCalle', 'terrenoRetiros', 'terrenoPozos', 'terrenoArboles', 'terrenoConstrucciones', 'terrenoAccesos', 'terrenoNorte'];
 
 export const GRUPOS_LEYENDA = [
-  { titulo: 'Estructura', capas: ['pilotines', 'columnas', 'marcos', 'piso', 'piso2', 'transversales', 'correas', 'techo', 'escalera', 'grada', 'montaje'] },
+  { titulo: 'Estructura', capas: ['pilotines', 'zapatas', 'columnas', 'marcos', 'piso', 'piso2', 'transversales', 'correas', 'techo', 'escalera', 'grada', 'montaje'] },
   { titulo: 'Superficies', capas: ['paneles', 'osb', 'aberturas', 'escalones', 'chapa'] },
   { titulo: 'Ayudas', capas: ['juntas', 'cotas', 'medidasFijas'] },
   // v1.34.3: cada parte del terreno por separado (solo si la obra tiene terreno).

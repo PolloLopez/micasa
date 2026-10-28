@@ -43,6 +43,10 @@ export function resumenDeObra({ params, estructura, aberturas = [], catalogo = [
 
   filas.push(['Planta', `${m(params.largo)} x ${m(params.ancho)} · frente: lado ${params.ladoFrente}`]);
   filas.push(['Alturas', `lado bajo ${m(params.altura)} · lado alto ${m(alturaMaxima(params))} · elevación ${m(params.elevacion)}`]);
+  // v1.35: fundación (pilotines y, si lleva, zapatas).
+  const z = params.zapata;
+  filas.push(['Fundación', `${params.filasPilotines * params.pilotinesPorFila} pilotines (${params.filasPilotines} filas x ${params.pilotinesPorFila})`
+    + (z?.activa ? ` · zapatas de ${m(z.lado)} x ${m(z.lado)} x ${m(z.alto)}, fondo a ${m(z.profundidad)}` : '')]);
   if (moduloActivo('terreno')) filas.push(...resumenDeTerreno(params)); // v1.32: el lote y la ubicación (si se cargó y el módulo está prendido)
 
   const techo = [

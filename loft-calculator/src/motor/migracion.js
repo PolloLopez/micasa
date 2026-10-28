@@ -94,6 +94,8 @@ export function migrarParams(params) {
         : [...ESCALERA_INICIAL.descansos],
   };
   nuevos.terreno = completarTerreno(nuevos.terreno); // v1.32: los proyectos de antes, sin terreno
+  // v1.35: zapatas (los proyectos de antes, sin zapata).
+  nuevos.zapata = esObjeto(nuevos.zapata) ? { ...PARAMS_INICIALES.zapata, ...nuevos.zapata } : { ...PARAMS_INICIALES.zapata };
   nuevos.uniones = completarUniones(nuevos.uniones); // v1.33: con descuentos en los cruces (lo correcto)
   nuevos.piezasEditadas ??= {}; // v1.8
   nuevos.piezasAgregadas ??= []; // v1.16: piezas duplicadas a mano

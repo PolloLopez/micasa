@@ -4,7 +4,7 @@ import { generarEstructura, listarPiezas } from './estructura.js';
 import { calcularPresupuesto, CATALOGO_INICIAL } from './presupuesto.js';
 import { normalizarCatalogo, migrarParams } from './migracion.js';
 import { PARAMS_INICIALES as P, ABERTURAS_INICIALES } from './parametrosIniciales.js';
-import { medidaVista, completarUniones, validarUniones } from './uniones.js';
+import { medidaVista, medidaAlto, completarUniones, validarUniones } from './uniones.js';
 import { validarAbertura, validarParametros } from './validacion.js';
 
 const CATALOGO = normalizarCatalogo(CATALOGO_INICIAL);
@@ -111,7 +111,7 @@ describe('perfil propio del marco de cada abertura', () => {
 describe('datos de las uniones', () => {
   it('los proyectos viejos pasan a la red; se valida la luz', () => {
     const { uniones, ...viejo } = P;
-    const deFabrica = { solerasColumnas: 'soleras', columnasFajas: 'columnas', montantesFajas: 'montantes', bordesTirantes: 'bordes' };
+    const deFabrica = { solerasColumnas: 'soleras', columnasFajas: 'columnas', montantesFajas: 'montantes', bordesTirantes: 'bordes', tirantesTransversales: 'tirantes' };
     expect(migrarParams(viejo).uniones).toEqual({ modo: 'red', luz: 0, enteras: deFabrica });
     expect(completarUniones({ modo: 'eje', luz: 0.002, enteras: { columnasFajas: 'fajas', otra: 'x' } }))
       .toEqual({ modo: 'eje', luz: 0.002, enteras: { ...deFabrica, columnasFajas: 'fajas' } });
@@ -194,5 +194,37 @@ describe('piezas borradas a mano', () => {
     const e = red(conRed({ piezasEliminadas: [tramo.id] }));
     expect(listarPiezas(e).some((p) => p.id === tramo.id)).toBe(false);
     expect(e.eliminadasEncontradas.map((p) => p.id)).toEqual([tramo.id]);
+  });
+});
+
+// v1.35: tirantes y transversales del piso (3 formas de armarlo).
+describe('tirantes y transversales del piso', () => {
+  const con = (opcion, modo = 'red') => red(conRed({ uniones: { modo, enteras: { tirantesTransversales: opcion } } }));
+  const filas = (e) => deTipo(e, 'transv-piso');
+  const tirantes = (e) => deTipo(e, 'piso');
+
+  it('transversales enteros: una pieza por fila de borde a borde y los tirantes cortados en cada fila', () => {
+    const e = con('transversales');
+    const nFilas = new Set(filas(e).map((p) => p.desde[2].toFixed(3) + p.desde[0].toFixed(3))).size;
+    expect(filas(e).every((p) => p.id.includes(':fila:'))).toBe(true);
+    expect(filas(e).length).toBe(nFilas);
+    const tirantesDeFabrica = tirantes(red());
+    expect(tirantes(e).length).toBe(tirantesDeFabrica.length * (filas(e).length + 1));
+  });
+
+  it('tirantes apoyados: nada se corta, suben un nivel y llegan a la cara de afuera de los bordes', () => {
+    const e = con('apoyados');
+    const base = tirantes(eje());
+    expect(tirantes(e).length).toBe(base.length);
+    const t = tirantes(e)[0];
+    const t0 = base.find((p) => p.id === t.id);
+    const sube = (medidaAlto({ tipo: 'transv-piso' }, CATALOGO) + medidaAlto({ tipo: 'piso' }, CATALOGO)) / 2;
+    expect(t.desde[1]).toBeCloseTo(t0.desde[1] + sube, 6);
+    expect(t.largo).toBeCloseTo(t0.largo + 2 * mitad('marco-piso'), 4);
+    expect(filas(e).every((p) => p.id.includes(':fila:'))).toBe(true);
+    // En eje a eje también suben (es la forma), pero sin alargarse.
+    const ejeApoyado = tirantes(con('apoyados', 'eje')).find((p) => p.id === t.id);
+    expect(ejeApoyado.largo).toBe(t0.largo);
+    expect(ejeApoyado.desde[1]).toBeCloseTo(t.desde[1], 6);
   });
 });

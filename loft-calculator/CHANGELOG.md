@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.35.0] - 2026-10-28
+### Agregado
+- **Tirantes y transversales del piso, 3 formas** (en Pisos y en Materiales → Uniones):
+  tirantes enteros con transversales entre ellos (como hasta ahora) · transversales enteros de borde a borde con
+  los tirantes cortados · **tirantes apoyados sobre los transversales** (dos niveles: nada se corta, los tirantes
+  suben y llegan a la cara de afuera de los bordes).
+- **Zapatas** (Fundación → "Pilotines con zapata"): lado, alto y profundidad (del terreno al fondo de la zapata).
+  Se dibujan bajo tierra (capa "Zapatas"), el pilotín arranca arriba de la zapata y el presupuesto suma
+  **hormigón** (m³) y **excavación** (m³) con precios de ejemplo para cargar los tuyos. El resumen de la obra
+  suma la fundación.
+
 ## [1.34.3] - 2026-10-27
 ### Agregado
 - **Capas del terreno por partes**: grupo **Terreno** en "Capas y colores" con Lote, Calle y línea municipal,

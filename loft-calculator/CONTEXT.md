@@ -131,6 +131,8 @@ valores inválidos.
 | 2026-10-27 | Jerarquía de uniones elegible: por obra en 4 pares (`params.uniones.enteras`) y por abertura (`marcoEntero`); el tipo de cruce (X, T, esquina) se deduce de la geometría y solo en los pares invertibles (soleras/columnas, bordes/tirantes, dintel/jamba de la misma abertura) la pieza que termina puede quedar entera y cortar a la que pasa | Pedido de Leandro (nivel "por obra + por abertura"). Con la regla de la T, una faja que termina en una jamba nunca parte la jamba aunque las fajas "ganen", y la entera llega hasta la cara de afuera (largo real de compra). |
 | 2026-10-27 | Cambios a mano en dos pasos: sobre piezas enteras ANTES de las uniones, sobre tramos (`id~n`) después | Leandro: al borrar una columna las soleras quedaban cortadas con el hueco. Así la red se arma con lo que realmente queda. |
 | 2026-10-27 | Al abrir un link de la nube que ya está en Mis proyectos, se compara la versión (rev): si la guardada es igual o más nueva, se abre la guardada | Leandro perdía el terreno: el link de ver no se actualiza y se recargaba solo, pisando lo guardado. |
+| 2026-10-28 | Tirantes/transversales: 'tirantes' | 'transversales' | 'apoyados' en `uniones.enteras`. Con transversales enteros o apoyados, cada fila de transversales se genera como UNA pieza; apoyados = los tirantes no participan de la red del piso, suben (alto transversal + alto tirante)/2 y se alargan media medida del borde en cada punta | Decisión de Leandro (las 3 elegibles). El alto sale de la "a" del perfil (`medidaAlto`). |
+| 2026-10-28 | Zapatas como `params.zapata` (activa, lado, alto, profundidad desde el terreno al fondo) y dos insumos fijos (hormigón m³, excavación m³) | Decisión de Leandro: medidas + presupuesto. Insumos fijos: los catálogos viejos los reciben con el precio de ejemplo en el primer proveedor. |
 
 ## Supuestos de obra (en `src/motor/constantes.js`)
 Piso del entrepiso a 2,30 m · merma de corte 3 mm · excedente de barras 1 % (editable; depende del proveedor) · placa OSB 2,44 × 1,22 + 10 % de recortes ·
@@ -206,6 +208,7 @@ techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 
 - 2026-10-23 v1.25.0: proveedores, precios en efectivo/tarjeta por proveedor, comparar presupuestos y "lo más barato de cada material".
 - 2026-10-23 v1.26.0: pestaña Planos (paredes y plantas acotadas, listas de corte, revestimiento), en el PDF y en Excel.
 - 2026-10-25 v1.30.0: link compacto (la mitad) y links cortos en Firebase para ver/editar que guardan los cambios.
+- 2026-10-28 v1.35.0: tirantes/transversales en 3 formas (enteras.tirantesTransversales) y zapatas (params.zapata).
 - 2026-10-27 v1.34.3: terreno por partes en Capas (8 casillas) y opacidad del terreno.
 - 2026-10-27 v1.34.2: panel de capas cerrado al entrar, recordado por navegador, Esc lo cierra.
 - 2026-10-27 v1.34.1: no se pisa lo guardado al reabrir un link de la nube; borrar una columna rearma la red.

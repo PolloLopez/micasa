@@ -27,6 +27,7 @@ import BarraPestanas from './componentes/BarraPestanas.jsx';
 import PanelEscalera from './componentes/PanelEscalera.jsx';
 import PanelTerreno from './componentes/PanelTerreno.jsx';
 import TarjetaUniones from './componentes/TarjetaUniones.jsx';
+import { OPCIONES_PISO } from './motor/uniones.js';
 import { implantacion as calcularImplantacion } from './motor/terreno.js';
 import { moduloActivo } from './modulos.js';
 import PanelGrada from './componentes/PanelGrada.jsx';
@@ -999,6 +1000,11 @@ export default function App() {
               {separacion('separacionPiso', 'Sep. estructura de piso', 'Tirantes de piso', ['tirante', 'tirantes'])}
               {separacion('separacionTransversalesPiso', 'Transversales cada', 'Filas de transversales', ['fila de transversales', 'filas de transversales'], { casilla: 'Lleva transversales', valorPorDefecto: 1.5 })}
             </div>
+            {/* v1.35: cómo se arman tirantes y transversales (lo mismo que en Materiales → Uniones). */}
+            <div className="grid-params grid-uniones">
+              <CampoSelect etiqueta="Tirantes y transversales" valor={params.uniones?.enteras?.tirantesTransversales ?? 'tirantes'}
+                opciones={OPCIONES_PISO[0][2]} onCambio={cambiar('uniones.enteras.tirantesTransversales')} />
+            </div>
             {/* v1.28: borde e interior con perfiles propios (y cada sentido el suyo). */}
             <div className="grid-params grid-perfiles-pared">
               {selectorPerfilDe(INSUMO.BORDE_PISO, 'Borde (los dos pisos)')}
@@ -1101,6 +1107,25 @@ export default function App() {
               <CampoNumero etiqueta="Pilotines por fila (ancho)" sufijo="u" decimales={0}
                 valor={params.pilotinesPorFila} onCambio={cambiar('pilotinesPorFila')} />
             </div>
+            {/* v1.35: zapata bajo cada pilotín (hormigón y excavación en el presupuesto). */}
+            <label className="casilla-opcional">
+              <input type="checkbox" checked={params.zapata?.activa === true}
+                onChange={(ev) => cambiar('zapata.activa')(ev.target.checked)} />
+              Pilotines con zapata
+            </label>
+            {params.zapata?.activa && (
+              <div className="grid-params">
+                {medida('zapata.lado', 'Lado de la zapata')}
+                {medida('zapata.alto', 'Alto de la zapata')}
+                {medida('zapata.profundidad', 'Profundidad (terreno a fondo)')}
+              </div>
+            )}
+            {params.zapata?.activa && (
+              <p className="nota">
+                La profundidad se mide desde el nivel del terreno hasta el fondo de la zapata; el pilotín va de la zapata
+                al piso. Suma hormigón y excavación al presupuesto (precios de ejemplo: cargá los tuyos en Materiales).
+              </p>
+            )}
           </Tarjeta>
           </>)}
 

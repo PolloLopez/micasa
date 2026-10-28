@@ -81,6 +81,20 @@ export function validarParametros(params) {
   // v1.32: el terreno (solo si el proyecto lo trae; los viejos lo completa migrarParams).
   if (params.terreno !== undefined) Object.entries(validarTerreno(params.terreno)).forEach(([campo, error]) => anotar(campo, error));
   if (params.uniones !== undefined) Object.entries(validarUniones(params.uniones)).forEach(([campo, error]) => anotar(campo, error));
+  // v1.35: zapatas.
+  if (params.zapata !== undefined) {
+    const z = params.zapata;
+    if (typeof z?.activa !== 'boolean') anotar('zapata.activa', 'Valor inválido');
+    const entre = (campo, min, max) => {
+      if (!Number.isFinite(z?.[campo]) || z[campo] < min || z[campo] > max) anotar(`zapata.${campo}`, `Entre ${min} y ${max} m`);
+    };
+    entre('lado', 0.2, 3);
+    entre('alto', 0.1, 1.5);
+    entre('profundidad', 0.2, 5);
+    if (Number.isFinite(z?.alto) && Number.isFinite(z?.profundidad) && z.profundidad < z.alto) {
+      anotar('zapata.profundidad', 'Tiene que ser al menos el alto de la zapata');
+    }
+  }
   if (params.techoConBorde !== undefined && typeof params.techoConBorde !== 'boolean') anotar('techoConBorde', 'Valor inválido');
 
   // Lados elegidos (frente, entrepiso, caída del techo).

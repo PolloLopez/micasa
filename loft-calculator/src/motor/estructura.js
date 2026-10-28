@@ -30,7 +30,7 @@ import { generarGrada } from './grada.js';
 import { generarMontaje } from './montaje.js';
 import { aplicarEdicion } from './edicionPiezas.js';
 import { piezasDeAgregadas } from './piezasAgregadas.js';
-import { aplicarUniones } from './uniones.js';
+import { aplicarUniones, completarUniones } from './uniones.js';
 
 const EPSILON = 0.01; // 1 cm: margen para no duplicar piezas en bordes
 const LARGO_MINIMO = 0.05; // piezas más cortas que 5 cm no se fabrican
@@ -475,7 +475,13 @@ function entramadoPiso(rect, separacionCargada, transversalesCargada, y, nivel, 
   );
 
   const transversales = [];
-  if (separacionTransversales > 0) {
+  // v1.35: con transversales enteros (o tirantes apoyados encima) cada fila es UNA pieza de borde a borde.
+  const corridos = completarUniones(params.uniones).enteras.tirantesTransversales !== 'tirantes';
+  if (separacionTransversales > 0 && corridos) {
+    interiores(luz, separacionTransversales).forEach((b) => {
+      transversales.push(pieza(`transv-${nivel}:fila:${cm(b)}`, `transv-${nivel}`, [nivel], punto(0, b), punto(largoReparto, b)));
+    });
+  } else if (separacionTransversales > 0) {
     const apoyos = [0, ...posicionesTirantes, largoReparto];
     interiores(luz, separacionTransversales).forEach((b) => {
       for (let i = 0; i < apoyos.length - 1; i++) {
@@ -770,6 +776,7 @@ export function generarEstructura(params, aberturas, catalogo = null) {
 
   const completa = {
     pilotines: generarPilotines(params),
+    zapata: params.zapata?.activa ? { ...params.zapata } : null, // v1.35: una por pilotín
     columnas: generarColumnas(params, lados, posiciones, aberturas),
     refuerzosAberturas: generarRefuerzos(params, lados, posiciones, aberturas),
     montantes: generarMontantes(params, lados, posiciones, aberturas), // v1.17

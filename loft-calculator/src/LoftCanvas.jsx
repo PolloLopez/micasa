@@ -160,7 +160,7 @@ const OPACIDADES = [
 ];
 
 /** Capas de hierro (todas menos superficies y madera): comparten la opacidad "Hierros". */
-const CAPAS_SUPERFICIE = ['paneles', 'osb', 'aberturas', 'chapa', 'escalones'];
+const CAPAS_SUPERFICIE = ['paneles', 'osb', 'aberturas', 'chapa', 'escalones', 'zapatas']; // zapatas: hormigón, no hierro
 const CAPAS_HIERRO = Object.keys(CAPAS).filter((c) => !CAPAS_SUPERFICIE.includes(c));
 
 /** Opacidad de un material: 1 = sólido (tapa lo de atrás); menos = se ve a través. */
@@ -376,11 +376,22 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
     return; // un montaje no tiene pilotines, pisos, paneles, aberturas ni carteles de paredes
   }
 
+  // v1.35: con zapata, el pilotín arranca bajo tierra, arriba de la zapata.
+  const baseZapata = e.zapata ? -e.zapata.profundidad + e.zapata.alto : 0;
   if (capas.pilotines) {
     e.pilotines.forEach(({ x, z }) => {
-      const p = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, elevacion || 0.01, 16), materiales.pilotines);
-      p.position.set(x, elevacion / 2, z);
+      const alto = Math.max(elevacion - baseZapata, 0.01);
+      const p = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, alto, 16), materiales.pilotines);
+      p.position.set(x, baseZapata + alto / 2, z);
       grupo.add(p);
+    });
+  }
+  if (capas.zapatas && e.zapata) {
+    const { lado, alto, profundidad } = e.zapata;
+    e.pilotines.forEach(({ x, z }) => {
+      const zapata = new THREE.Mesh(new THREE.BoxGeometry(lado, alto, lado), materiales.zapatas);
+      zapata.position.set(x, -profundidad + alto / 2, z);
+      grupo.add(zapata);
     });
   }
 

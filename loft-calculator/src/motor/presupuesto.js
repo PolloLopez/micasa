@@ -47,6 +47,9 @@ export const CATALOGO_FIJO = [
   { id: INSUMO.BORDE_TECHO, categoria: 'perfil', nombre: 'Bordes de techo', perfil: 'Perfil C 120x50x2.0', unidad: 'barra', largoBarra: 6, precio: 35000 },
   { id: INSUMO.OSB, categoria: 'placa', nombre: 'Placas OSB', perfil: 'OSB 18 mm 2.44x1.22', unidad: 'placa', largoBarra: null, precio: 28000 },
   { id: INSUMO.PILOTIN, categoria: 'unidad', nombre: 'Pilotines', perfil: 'Pilotín de hormigón', unidad: 'u', largoBarra: null, precio: 15000 },
+  // v1.35: zapatas de los pilotines (solo si se tilda "Pilotines con zapata"). Precios de ejemplo: cargá los tuyos.
+  { id: INSUMO.HORMIGON_ZAPATA, categoria: 'unidad', nombre: 'Hormigón de zapatas', perfil: 'Hormigón H-21', unidad: 'm³', largoBarra: null, precio: 180000 },
+  { id: INSUMO.EXCAVACION, categoria: 'unidad', nombre: 'Excavación de zapatas', perfil: 'Pozos a mano o con máquina', unidad: 'm³', largoBarra: null, precio: 30000 },
   // Escalera
   { id: INSUMO.ZANCA, categoria: 'perfil', nombre: 'Zanca y marco de descanso', perfil: 'Caño estructural 120x60x2.0', unidad: 'barra', largoBarra: 6, precio: 42000 },
   { id: INSUMO.APOYO_ESCALON, categoria: 'perfil', nombre: 'Apoyos de escalón', perfil: 'Ángulo 1 1/2" x 3/16"', unidad: 'barra', largoBarra: 6, precio: 18000 },
@@ -306,6 +309,16 @@ function calcularRenglones(estructura, catalogo, excedenteBarras) {
   });
 
   items.push(itemSimple(insumo(INSUMO.PILOTIN), e.pilotines.length, 'grilla de fundación'));
+  // v1.35: zapatas: hormigón (lado x lado x alto) y excavación (lado x lado x profundidad), por pilotín.
+  if (e.zapata) {
+    const { lado, alto, profundidad } = e.zapata;
+    const n = e.pilotines.length;
+    const m3 = (v) => Math.round(v * 100) / 100;
+    items.push(itemSimple(insumo(INSUMO.HORMIGON_ZAPATA), m3(n * lado * lado * alto),
+      `${n} zapatas de ${lado.toFixed(2)} x ${lado.toFixed(2)} x ${alto.toFixed(2)} m`));
+    items.push(itemSimple(insumo(INSUMO.EXCAVACION), m3(n * lado * lado * profundidad),
+      `${n} pozos de ${lado.toFixed(2)} x ${lado.toFixed(2)} m, ${profundidad.toFixed(2)} m de profundidad`));
+  }
   // v1.29: accesorios con cantidad cargada (tornillería, electrodos, selladores…).
   catalogo.filter((i) => i.categoria === 'accesorio' && i.cantidad > 0)
     .forEach((a) => items.push(itemSimple(a, a.cantidad, 'cantidad cargada a mano')));

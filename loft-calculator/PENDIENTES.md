@@ -2,6 +2,20 @@
 
 Última limpieza: 2026-10-15 (v1.14.0). Espejo en Trello: tablero "Desarrollo", tarjetas `[CALC]`.
 
+## 🗺️ Hoja de ruta (28/10, decisiones de Leandro): Estructura → Sol → Muebles
+- ✅ **Pisos**: tirantes ↔ transversales con 3 opciones (mismo plano tirantes enteros / mismo plano
+  transversales enteros / tirantes apoyados sobre los transversales) — v1.35.0.
+- ✅ **Zapatas**: lado x lado x alto y profundidad de fundación; dibujo bajo tierra (capa propia); hormigón y
+  excavación en el presupuesto — v1.35.0.
+  - 🟢 [ ] Con tirantes apoyados, subir también el OSB del 3D (hoy queda a la altura de siempre).
+- 🔴 [ ] **Alero por lado** (frente, fondo, laterales; 0 = sin); vigas y correas: llegan al borde del alero o
+  terminan en la estructura (cada una por separado).
+- 🔴 [ ] **Ejes**: vigas de techo sobre columnas; columnas sobre pilotines; modulación única (una medida ordena
+  columnas, vigas, tirantes y pilotines).
+- 🟡 [ ] **Sol** (módulo): entrada del sol por las aberturas, sombras, ▶ animación del día (usa el norte).
+- 🟢 [ ] **Muebles** (módulo): formas por tipo + materiales; foto del frente pegada en su cara; fotos guardadas en
+  este navegador (achicadas), no viajan en el link.
+
 ## Uniones y marcos (v1.33.0, pedido de Leandro 27/10)
 - ✅ Fajas cortadas en los vanos; uniones en red con jerarquía y luz; perfil propio del marco de cada abertura.
 - 🟡 [ ] Validar con el herrero la "medida vista" que se descuenta (ala del C, ancho del caño rectangular) y la jerarquía.
