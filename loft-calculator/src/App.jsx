@@ -106,7 +106,7 @@ function conPanelesExistentes(params, catalogo) {
 }
 
 /** Opacidad de fábrica del 3D: paneles y OSB se ven a través; los hierros, sólidos. */
-const OPACIDADES_INICIALES = { paneles: 0.35, osb: 0.45, hierros: 1, juntas: 1 }; // juntas: v1.24
+const OPACIDADES_INICIALES = { paneles: 0.35, osb: 0.45, hierros: 1, juntas: 1, terreno: 0.9 }; // juntas: v1.24; terreno: v1.34.3
 const opacidadesValidas = (o) => o && typeof o === 'object'
   && Object.keys(OPACIDADES_INICIALES).every((k) => Number.isFinite(o[k]) && o[k] >= 0.05 && o[k] <= 1);
 

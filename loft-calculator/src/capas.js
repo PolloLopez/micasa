@@ -39,10 +39,15 @@ export const CAPAS_SOLO_PROYECTOS_SUELTOS = ['grada', 'montaje', 'chapa'];
  *   Ayudas      = dibujos que no son piezas (juntas, etiquetas).
  * Cada grupo tiene "todo / nada". Las capas que no existen en el tipo de proyecto no se muestran.
  */
+/** Las casillas del terreno (una por parte, ver terreno3d.js PARTES_TERRENO). */
+export const CAPAS_TERRENO = ['terrenoLote', 'terrenoCalle', 'terrenoRetiros', 'terrenoPozos', 'terrenoArboles', 'terrenoConstrucciones', 'terrenoAccesos', 'terrenoNorte'];
+
 export const GRUPOS_LEYENDA = [
   { titulo: 'Estructura', capas: ['pilotines', 'columnas', 'marcos', 'piso', 'piso2', 'transversales', 'correas', 'techo', 'escalera', 'grada', 'montaje'] },
   { titulo: 'Superficies', capas: ['paneles', 'osb', 'aberturas', 'escalones', 'chapa'] },
-  { titulo: 'Ayudas', capas: ['juntas', 'cotas', 'medidasFijas', 'terreno'] },
+  { titulo: 'Ayudas', capas: ['juntas', 'cotas', 'medidasFijas'] },
+  // v1.34.3: cada parte del terreno por separado (solo si la obra tiene terreno).
+  { titulo: 'Terreno', capas: CAPAS_TERRENO },
   // v1.33.1: todos los carteles juntos, para sacarlos con "nada" (fotos limpias, PDF).
   { titulo: 'Etiquetas', capas: ['etiquetasParedes', 'etiquetasAberturas', 'etiquetasTerreno'] },
 ];
@@ -55,7 +60,15 @@ export const AYUDAS = {
   etiquetasTerreno: { nombre: 'Terreno', titulo: 'Línea municipal, calle, norte y lo que cargaste en el terreno' },
   cotas: { nombre: 'Cotas generales', titulo: 'Largo, ancho y altos de la obra (v1.28)' },
   medidasFijas: { nombre: 'Medidas fijadas', titulo: 'Las medidas que dejaste fijas con 📏 Medir → 📌 (v1.28)' },
-  terreno: { nombre: 'Terreno', titulo: 'El lote, la calle, los retiros y lo que cargaste en Terreno e implantación (v1.32)' },
+  // v1.34.3: el terreno por partes (antes era una sola casilla).
+  terrenoLote: { nombre: 'Lote', titulo: 'El pasto y el contorno del lote' },
+  terrenoCalle: { nombre: 'Calle y línea municipal' },
+  terrenoRetiros: { nombre: 'Retiros', titulo: 'Las líneas punteadas de los retiros que cargaste' },
+  terrenoPozos: { nombre: 'Pozo y cámara' },
+  terrenoArboles: { nombre: 'Árboles' },
+  terrenoConstrucciones: { nombre: 'Construcciones' },
+  terrenoAccesos: { nombre: 'Accesos y veredas' },
+  terrenoNorte: { nombre: 'Norte', titulo: 'La flecha del norte' },
 };
 
 /**

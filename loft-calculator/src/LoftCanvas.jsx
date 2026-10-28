@@ -21,7 +21,7 @@ import { hayDialogoAbierto } from './componentes/useDialogo.js';
 import { useEstadoGuardado } from './hooks/useEstadoGuardado.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { LADOS } from './motor/constantes.js';
-import { CAPAS, AYUDAS, GRUPOS_LEYENDA, capaDelProyecto } from './capas.js';
+import { CAPAS, AYUDAS, GRUPOS_LEYENDA, CAPAS_TERRENO, capaDelProyecto } from './capas.js';
 import { posicionAbertura, listarPiezas } from './motor/estructura.js';
 import { geometriaLados, nombreLado } from './motor/geometria.js';
 import { describirPieza } from './descripcionPiezas.js';
@@ -35,7 +35,7 @@ import { cotasGenerales } from './motor/cotas3d.js';
 import { vistasFijas } from './motor/vistasFijas.js';
 import { implantacion } from './motor/terreno.js';
 import { moduloActivo } from './modulos.js';
-import { dibujarTerreno, vaciarTerreno, encuadreTerreno } from './terreno3d.js';
+import { dibujarTerreno, vaciarTerreno, encuadreTerreno, PARTES_TERRENO } from './terreno3d.js';
 
 // Capa y sección (grosor en el 3D) de cada tipo de pieza.
 const ESTILO_PIEZA = {
@@ -156,6 +156,7 @@ const OPACIDADES = [
   { clave: 'osb', nombre: 'OSB' },
   { clave: 'hierros', nombre: 'Hierros' },
   { clave: 'juntas', nombre: 'Juntas' }, // v1.24: líneas de unión de los paneles
+  { clave: 'terreno', nombre: 'Terreno' }, // v1.34.3: el lote, la calle y lo que hay en el terreno
 ];
 
 /** Capas de hierro (todas menos superficies y madera): comparten la opacidad "Hierros". */
@@ -733,7 +734,7 @@ export default function LoftCanvas({
     etiquetasTerreno: true, // v1.33.1: línea municipal, calle, N, pozo…
     cotas: false, // v1.28: largo, ancho y altos (en el PDF se pueden pedir aunque estén apagadas)
     medidasFijas: true, // v1.28: las medidas fijadas con 📌
-    terreno: true, // v1.32: el lote, la calle, el pozo, árboles… (si la obra tiene terreno)
+    ...Object.fromEntries(CAPAS_TERRENO.map((c) => [c, true])), // v1.34.3: cada parte del terreno
   }));
 
   // 1) MONTAJE: una sola vez.
@@ -923,21 +924,28 @@ export default function LoftCanvas({
   }, [params, estructura, capas.cotas]);
 
   // 2c) TERRENO (v1.32): el lote y lo que hay en él. Con terreno, la grilla se apaga (el lote hace de piso).
-  const conTerreno = moduloActivo('terreno') && params.tipoProyecto === 'construccion' && params.terreno?.activo && capas.terreno;
+  const obraConTerreno = moduloActivo('terreno') && params.tipoProyecto === 'construccion' && params.terreno?.activo;
+  const conTerreno = obraConTerreno && CAPAS_TERRENO.some((c) => capas[c]);
+  // Qué partes se ven: { lote: true, calle: false, … } (la capa terrenoLote es la parte 'lote').
+  const partesTerreno = Object.fromEntries(PARTES_TERRENO.map((parte, i) => [parte, capas[CAPAS_TERRENO[i]] !== false]));
+  const clavePartes = JSON.stringify(partesTerreno);
   useEffect(() => {
     const visor = visorRef.current;
     if (!visor) return;
     vaciarTerreno(visor.grupoTerreno);
-    if (conTerreno) dibujarTerreno(visor.grupoTerreno, implantacion(params), params.terreno.retiros, capas.etiquetasTerreno);
+    if (conTerreno) {
+      dibujarTerreno(visor.grupoTerreno, implantacion(params), params.terreno.retiros,
+        { etiquetas: capas.etiquetasTerreno, partes: partesTerreno, opacidad: opacidades.terreno ?? 0.9 });
+    }
     visor.grilla.visible = !conTerreno;
   // Solo lo que cambia el terreno (no todo params: redibujar el lote en cada cambio de la estructura no hace falta).
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conTerreno, params.terreno, params.ladoFrente, params.largo, params.ancho, capas.etiquetasTerreno]);
+  }, [conTerreno, params.terreno, params.ladoFrente, params.largo, params.ancho, capas.etiquetasTerreno, clavePartes, opacidades.terreno]);
 
   /** Cámara para ver todo el lote: desde la calle, en diagonal y alto. */
   const verTerreno = () => {
     const visor = visorRef.current;
-    if (!visor || !params.terreno?.activo) return;
+    if (!visor || !obraConTerreno) return;
     const { centro, haciaCalle, tamanio } = encuadreTerreno(implantacion(params));
     const d = (tamanio * 0.9 + 6) / Math.sqrt(Math.min(1, visor.camara.aspect)); // pantalla angosta (celular): más lejos
     visor.camara.position.set(centro[0] + haciaCalle[0] * d - haciaCalle[1] * d * 0.35, d * 0.75, centro[1] + haciaCalle[1] * d + haciaCalle[0] * d * 0.35);
@@ -1215,7 +1223,7 @@ export default function LoftCanvas({
         {GRUPOS_LEYENDA.map(({ titulo, capas: clavesGrupo }) => {
           // La capa Terreno solo si el módulo está prendido y la obra tiene terreno (v1.32).
           const visibles = clavesGrupo.filter((clave) => capaDelProyecto(clave, tipoProyecto)
-            && (!['terreno', 'etiquetasTerreno'].includes(clave) || (moduloActivo('terreno') && params.terreno?.activo)));
+            && (!(CAPAS_TERRENO.includes(clave) || clave === 'etiquetasTerreno') || obraConTerreno));
           if (visibles.length === 0) return null;
           return (
             <span key={titulo} className="capas-paneles grupo-capas" role="group" aria-label={titulo}>
@@ -1232,13 +1240,13 @@ export default function LoftCanvas({
         <span className="capas-paneles capas-opacidad">
           <strong className="titulo-grupo">Opacidad</strong>
           {/* Grada y montaje no tienen paneles ni OSB: solo la opacidad de los hierros. */}
-          {OPACIDADES.filter(({ clave }) => clave === 'hierros' || (!esGrada && !esMontaje))
+          {OPACIDADES.filter(({ clave }) => (clave === 'terreno' ? obraConTerreno : clave === 'hierros' || (!esGrada && !esMontaje)))
             .map(({ clave, nombre }) => (
               <label key={clave} className="capa control-opacidad">
                 {nombre}
-                <input type="range" min="0.05" max="1" step="0.05" value={opacidades[clave]}
+                <input type="range" min="0.05" max="1" step="0.05" value={opacidades[clave] ?? 1}
                   aria-label={`Opacidad de ${nombre}`} onChange={(e) => onCambiarOpacidad(clave, Number(e.target.value))} />
-                <span className="valor-opacidad">{Math.round(opacidades[clave] * 100)} %</span>
+                <span className="valor-opacidad">{Math.round((opacidades[clave] ?? 1) * 100)} %</span>
               </label>
             ))}
         </span>

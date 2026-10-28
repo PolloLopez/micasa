@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.34.3] - 2026-10-27
+### Agregado
+- **Capas del terreno por partes**: grupo **Terreno** en "Capas y colores" con Lote, Calle y línea municipal,
+  Retiros, Pozo y cámara, Árboles, Construcciones, Accesos y veredas, y Norte (con "todo / nada"). Solo aparece
+  si la obra tiene terreno.
+- **Opacidad del terreno** (en Opacidad, de fábrica 90 %): el lote, la calle y lo que hay en el terreno se pueden
+  ver a través para mirar la casa. Los carteles siempre se leen.
+
 ## [1.34.2] - 2026-10-27
 ### Cambiado
 - **"Capas y colores" arranca cerrado** (en la compu arrancaba abierto y tapaba el 3D). Recuerda cómo lo dejaste en

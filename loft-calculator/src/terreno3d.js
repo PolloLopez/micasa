@@ -108,55 +108,85 @@ function dibujarElemento(el, aMundo, conEtiqueta = true) {
   return g;
 }
 
+/** Qué parte del terreno es cada tipo de elemento (para prenderlas y apagarlas en Capas, v1.34.3). */
+const PARTE_DE_ELEMENTO = { pozo: 'pozos', camara: 'pozos', arbol: 'arboles', construccion: 'construcciones', acceso: 'accesos', vereda: 'accesos' };
+
+/** Las partes del terreno que se pueden prender y apagar (claves de la capa: terreno + Parte). */
+export const PARTES_TERRENO = ['lote', 'calle', 'retiros', 'pozos', 'arboles', 'construcciones', 'accesos', 'norte'];
+
+/** Baja la opacidad de todo lo que se dibujó (multiplica la que ya tenía cada material). */
+function aplicarOpacidadTerreno(grupo, factor) {
+  if (factor >= 0.999) return;
+  grupo.traverse((obj) => {
+    if (!obj.material || obj.isSprite) return; // los carteles siempre se leen
+    obj.material.opacity = (obj.material.transparent ? obj.material.opacity : 1) * factor;
+    obj.material.transparent = true;
+    obj.material.depthWrite = false;
+  });
+}
+
 /**
  * Dibuja el terreno en `grupo`.
  * @param imp  resultado de implantacion(params)
  * @param retiros params.terreno.retiros (0 = no se dibuja)
- * @param conEtiquetas (v1.33.1) false = sin ningún cartel (línea municipal, calle, N, nombres)
+ * @param opciones { etiquetas: bool (v1.33.1), partes: { lote, calle, … } (v1.34.3, todas por defecto), opacidad: 0..1 }
  */
-export function dibujarTerreno(grupo, imp, retiros = {}, conEtiquetas = true) {
+export function dibujarTerreno(grupo, imp, retiros = {}, { etiquetas: conEtiquetas = true, partes = {}, opacidad = 1 } = {}) {
   const { aMundo, lote, norte } = imp;
   const caja = { u: 0, v: 0, ancho: lote.frente, largo: lote.fondo };
+  const ver = (parte) => partes[parte] !== false;
 
   // Lote (pasto) y su contorno.
-  grupo.add(losa(esquinasDe(aMundo, caja), -0.02, COLOR_LOTE, 0.9));
-  grupo.add(polilinea(esquinasDe(aMundo, caja), 0.005, '#a3e635', { cerrada: true }));
+  if (ver('lote')) {
+    grupo.add(losa(esquinasDe(aMundo, caja), -0.02, COLOR_LOTE, 0.9));
+    grupo.add(polilinea(esquinasDe(aMundo, caja), 0.005, '#a3e635', { cerrada: true }));
+  }
 
   // Calle delante de la línea municipal y la línea municipal (naranja).
-  grupo.add(losa(esquinasDe(aMundo, { u: -2, v: -ANCHO_CALLE, ancho: lote.frente + 4, largo: ANCHO_CALLE }), -0.03, COLOR_CALLE));
-  grupo.add(polilinea([aMundo(0, 0), aMundo(lote.frente, 0)], 0.01, COLOR_LINEA_MUNICIPAL));
-  const lm = rotulo('Línea municipal', 'rgba(194,65,12,0.9)', 0.8);
-  const [lx, lz] = aMundo(lote.frente / 2, -0.6);
-  lm.position.set(lx, 0.3, lz);
-  const calle = rotulo('Calle', 'rgba(63,63,70,0.9)', 0.8);
-  const [kx, kz] = aMundo(lote.frente / 2, -ANCHO_CALLE + 0.8);
-  calle.position.set(kx, 0.3, kz);
-  if (conEtiquetas) grupo.add(lm, calle);
+  if (ver('calle')) {
+    grupo.add(losa(esquinasDe(aMundo, { u: -2, v: -ANCHO_CALLE, ancho: lote.frente + 4, largo: ANCHO_CALLE }), -0.03, COLOR_CALLE));
+    grupo.add(polilinea([aMundo(0, 0), aMundo(lote.frente, 0)], 0.01, COLOR_LINEA_MUNICIPAL));
+    if (conEtiquetas) {
+      const lm = rotulo('Línea municipal', 'rgba(194,65,12,0.9)', 0.8);
+      const [lx, lz] = aMundo(lote.frente / 2, -0.6);
+      lm.position.set(lx, 0.3, lz);
+      const calle = rotulo('Calle', 'rgba(63,63,70,0.9)', 0.8);
+      const [kx, kz] = aMundo(lote.frente / 2, -ANCHO_CALLE + 0.8);
+      calle.position.set(kx, 0.3, kz);
+      grupo.add(lm, calle);
+    }
+  }
 
   // Retiros (líneas punteadas amarillas) donde el diseñador cargó uno.
-  if (retiros.frente > 0) grupo.add(polilinea([aMundo(0, retiros.frente), aMundo(lote.frente, retiros.frente)], 0.01, COLOR_RETIRO, { discontinua: true }));
-  if (retiros.fondo > 0) grupo.add(polilinea([aMundo(0, lote.fondo - retiros.fondo), aMundo(lote.frente, lote.fondo - retiros.fondo)], 0.01, COLOR_RETIRO, { discontinua: true }));
-  if (retiros.izquierda > 0) grupo.add(polilinea([aMundo(retiros.izquierda, 0), aMundo(retiros.izquierda, lote.fondo)], 0.01, COLOR_RETIRO, { discontinua: true }));
-  if (retiros.derecha > 0) grupo.add(polilinea([aMundo(lote.frente - retiros.derecha, 0), aMundo(lote.frente - retiros.derecha, lote.fondo)], 0.01, COLOR_RETIRO, { discontinua: true }));
+  if (ver('retiros')) {
+    if (retiros.frente > 0) grupo.add(polilinea([aMundo(0, retiros.frente), aMundo(lote.frente, retiros.frente)], 0.01, COLOR_RETIRO, { discontinua: true }));
+    if (retiros.fondo > 0) grupo.add(polilinea([aMundo(0, lote.fondo - retiros.fondo), aMundo(lote.frente, lote.fondo - retiros.fondo)], 0.01, COLOR_RETIRO, { discontinua: true }));
+    if (retiros.izquierda > 0) grupo.add(polilinea([aMundo(retiros.izquierda, 0), aMundo(retiros.izquierda, lote.fondo)], 0.01, COLOR_RETIRO, { discontinua: true }));
+    if (retiros.derecha > 0) grupo.add(polilinea([aMundo(lote.frente - retiros.derecha, 0), aMundo(lote.frente - retiros.derecha, lote.fondo)], 0.01, COLOR_RETIRO, { discontinua: true }));
+  }
 
-  imp.elementos.forEach((el) => grupo.add(dibujarElemento(el, aMundo, conEtiquetas)));
+  imp.elementos.filter((el) => ver(PARTE_DE_ELEMENTO[el.tipo] ?? 'accesos'))
+    .forEach((el) => grupo.add(dibujarElemento(el, aMundo, conEtiquetas)));
 
   // Flecha del norte, afuera del lote junto a la esquina del frente derecho.
-  const [ox, oz] = aMundo(lote.frente + 2, 1.5);
-  const largo = 1.6;
-  const punta = [ox + norte[0] * largo, oz + norte[1] * largo];
-  const costado = [-norte[1] * 0.45, norte[0] * 0.45];
-  const flecha = new THREE.BufferGeometry();
-  flecha.setAttribute('position', new THREE.Float32BufferAttribute([
-    punta[0], 0.03, punta[1], ox + costado[0], 0.03, oz + costado[1], ox - costado[0], 0.03, oz - costado[1],
-  ], 3));
-  flecha.computeVertexNormals();
-  grupo.add(new THREE.Mesh(flecha, new THREE.MeshBasicMaterial({ color: '#ef4444', side: THREE.DoubleSide })));
-  if (conEtiquetas) {
-    const n = rotulo('N', 'rgba(185,28,28,0.95)', 0.9);
-    n.position.set(punta[0] + norte[0] * 0.5, 0.4, punta[1] + norte[1] * 0.5);
-    grupo.add(n);
+  if (ver('norte')) {
+    const [ox, oz] = aMundo(lote.frente + 2, 1.5);
+    const largo = 1.6;
+    const punta = [ox + norte[0] * largo, oz + norte[1] * largo];
+    const costado = [-norte[1] * 0.45, norte[0] * 0.45];
+    const flecha = new THREE.BufferGeometry();
+    flecha.setAttribute('position', new THREE.Float32BufferAttribute([
+      punta[0], 0.03, punta[1], ox + costado[0], 0.03, oz + costado[1], ox - costado[0], 0.03, oz - costado[1],
+    ], 3));
+    flecha.computeVertexNormals();
+    grupo.add(new THREE.Mesh(flecha, new THREE.MeshBasicMaterial({ color: '#ef4444', side: THREE.DoubleSide })));
+    if (conEtiquetas) {
+      const n = rotulo('N', 'rgba(185,28,28,0.95)', 0.9);
+      n.position.set(punta[0] + norte[0] * 0.5, 0.4, punta[1] + norte[1] * 0.5);
+      grupo.add(n);
+    }
   }
+  aplicarOpacidadTerreno(grupo, opacidad);
 }
 
 /** Libera todo lo del terreno (geometrías, materiales y texturas: acá nada es compartido). */
