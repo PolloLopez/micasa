@@ -15,7 +15,19 @@
 // paredes de enfrente quedan alineadas (aunque se recorran al revés).
 // ==========================================================
 
-export const EJES_INICIALES = { modulo: 0, vigasSobreColumnas: false, pilotinesBajoColumnas: false };
+export const EJES_INICIALES = { modulo: 0, vigasSobreColumnas: false, pilotinesBajoColumnas: false, pilotinesModulo: 'grilla' };
+
+/**
+ * v1.36.1: con modulación, dónde van los pilotines (Leandro: uno en cada cruce sobredimensiona).
+ *   'grilla'  con su propia grilla (filas x pilotines por fila), como sin módulo — de fábrica
+ *   'cada2'   en los cruces de 2 en 2 módulos (más los bordes)
+ *   'cruces'  en cada cruce de la grilla
+ */
+export const PILOTINES_CON_MODULO = [
+  ['grilla', 'Con su propia grilla (filas y pilotines por fila)'],
+  ['cada2', 'Cada 2 módulos (y en los bordes)'],
+  ['cruces', 'En cada cruce del módulo'],
+];
 
 const EPSILON = 0.01;
 const CERCA_DE_COLUMNA = 0.3; // un pilotín de la grilla a menos de 30 cm de una columna no se repite
@@ -65,7 +77,14 @@ export function completarEjes(e) {
     modulo: Number.isFinite(base.modulo) && base.modulo >= 0 ? base.modulo : 0,
     vigasSobreColumnas: base.vigasSobreColumnas === true,
     pilotinesBajoColumnas: base.pilotinesBajoColumnas === true,
+    pilotinesModulo: PILOTINES_CON_MODULO.some(([v]) => v === base.pilotinesModulo) ? base.pilotinesModulo : 'grilla',
   };
+}
+
+/** Líneas del módulo tomando una de cada `paso` (siempre con las dos puntas). */
+export function lineasCada(largo, m, paso) {
+  const todas = lineasDelModulo(largo, m);
+  return todas.filter((_, i) => i % paso === 0 || i === todas.length - 1);
 }
 
 /** Errores de carga. */
@@ -76,6 +95,7 @@ export function validarEjes(e) {
   ['vigasSobreColumnas', 'pilotinesBajoColumnas'].forEach((c) => {
     if (typeof e[c] !== 'boolean') errores[`ejes.${c}`] = 'Valor inválido';
   });
+  if (e.pilotinesModulo !== undefined && !PILOTINES_CON_MODULO.some(([v]) => v === e.pilotinesModulo)) errores['ejes.pilotinesModulo'] = 'Opción inválida';
   return errores;
 }
 

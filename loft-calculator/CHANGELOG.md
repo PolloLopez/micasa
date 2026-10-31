@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.37.0] - 2026-10-31
+### Agregado
+- **Sol** (módulo nuevo, botón "☀ Sol" en el 3D): luz del sol del día y la hora que elijas, con **sombras**;
+  atajos Invierno / Verano / Equinoccio y **▶ Día** (la hora avanza de la salida a la puesta). Muestra la altura y de
+  dónde viene el sol, a qué hora sale y se pone, y **por qué aberturas entra**. Las aberturas dejan pasar la luz
+  (se ve la mancha de sol adentro). El norte sale del terreno (o, sin terreno, se elige en el mismo panel); el lugar
+  de fábrica es Mercedes (latitud, longitud y huso guardados en el proyecto). Cálculo de la NOAA, sin librerías.
+### Cambiado
+- **Pilotines con la modulación**: ya no van obligados en cada cruce (sobredimensiona). Se elige en Fundación: con su
+  propia grilla (de fábrica), cada 2 módulos, o en cada cruce. "Un pilotín bajo cada columna" sigue siendo opcional.
+
 ## [1.36.0] - 2026-10-31
 ### Agregado
 - **Forma y medida de los pilotines** (Fundación): redondo (diámetro) o cuadrado (lado). Se dibuja así en el 3D y el

@@ -718,3 +718,15 @@ kbd {
 .resultado-uniones { font-size: 0.85rem; color: var(--exito); margin: 6px 0 0; }
 /* v1.34: los textos de cada par son largos: columnas más anchas para que no se corten. */
 .pares-uniones, .card .grid-uniones { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+
+/* ---------- Sol (v1.37) ---------- */
+.panel-sol { position: absolute; top: 56px; right: 12px; z-index: 11; width: min(340px, calc(100% - 24px));
+  background: rgba(15, 23, 42, 0.92); border: 1px solid var(--borde); border-radius: 8px; padding: 8px 10px;
+  display: flex; flex-direction: column; gap: 6px; font-size: 0.8rem; color: var(--texto); }
+.panel-sol-titulo { display: flex; justify-content: space-between; align-items: center; }
+.fila-sol { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.fila-sol input[type="date"], .fila-sol select { background: var(--fondo); color: var(--texto); border: 1px solid var(--borde-input); border-radius: 4px; padding: 2px 4px; }
+.hora-sol { display: flex; align-items: center; gap: 6px; flex: 1; }
+.hora-sol span { font-variant-numeric: tabular-nums; font-weight: 700; color: #fde68a; }
+.hora-sol input { flex: 1; accent-color: #fbbf24; }
+.dato-sol { margin: 0; color: var(--texto-suave); line-height: 1.35; }

@@ -9,6 +9,7 @@ import { ESCALERA_INICIAL } from './escalera.js';
 import { TERRENO_INICIAL } from './terreno.js';
 import { UNIONES_INICIALES } from './uniones.js';
 import { EJES_INICIALES, PILOTIN_INICIAL } from './ejes.js';
+import { SOL_INICIAL } from './sol.js';
 
 /** Configuración de una pared (panel). */
 export const PARED_INICIAL = {
@@ -99,6 +100,8 @@ export const PARAMS_INICIALES = {
 
   // v1.32: el lote y lo que hay en él (ver motor/terreno.js). activo: false = sin terreno.
   terreno: structuredClone(TERRENO_INICIAL),
+  // v1.37: dónde está la obra para calcular el sol (latitud, longitud, huso horario). De fábrica: Mercedes.
+  sol: { ...SOL_INICIAL },
 
   // v1.33: cómo se unen las piezas que se cruzan (ver motor/uniones.js). 'red' = se descuenta el perfil entero.
   uniones: structuredClone(UNIONES_INICIALES),

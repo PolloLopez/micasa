@@ -22,11 +22,17 @@ export const MODULOS = {
     descripcion: 'Lote, ubicación de la casa, retiros, pozo, árboles, accesos y norte (3D, Planos y PDF).',
     desde: '1.32.0',
   },
+  sol: {
+    nombre: 'Sol',
+    descripcion: 'Luz del sol de un día y una hora, sombras, animación del día y por qué aberturas entra.',
+    desde: '1.37.0',
+  },
 };
 
 // 👉 Lo que va prendido en esta publicación (pollolopez.github.io/micasa).
 const ACTIVOS_EN_ESTA_INSTALACION = {
   terreno: true,
+  sol: true,
 };
 
 const entorno = typeof import.meta !== 'undefined' ? import.meta.env ?? {} : {};

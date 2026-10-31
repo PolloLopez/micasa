@@ -31,7 +31,7 @@ import { generarMontaje } from './montaje.js';
 import { aplicarEdicion } from './edicionPiezas.js';
 import { piezasDeAgregadas } from './piezasAgregadas.js';
 import { aplicarUniones, completarUniones } from './uniones.js';
-import { completarEjes, marcasDelModulo, lineasDelModulo, subdividir, unirPilotines } from './ejes.js';
+import { completarEjes, marcasDelModulo, lineasCada, subdividir, unirPilotines } from './ejes.js';
 
 const EPSILON = 0.01; // 1 cm: margen para no duplicar piezas en bordes
 const LARGO_MINIMO = 0.05; // piezas más cortas que 5 cm no se fabrican
@@ -136,9 +136,10 @@ function generarPilotines({ largo, ancho, filasPilotines, pilotinesPorFila }) {
  */
 function pilotinesDeLaObra(params, posiciones) {
   const ejes = completarEjes(params.ejes);
-  if (ejes.modulo > 0) {
-    const xs = lineasDelModulo(params.largo, ejes.modulo);
-    const zs = lineasDelModulo(params.ancho, ejes.modulo);
+  if (ejes.modulo > 0 && ejes.pilotinesModulo !== 'grilla') {
+    const paso = ejes.pilotinesModulo === 'cada2' ? 2 : 1;
+    const xs = lineasCada(params.largo, ejes.modulo, paso);
+    const zs = lineasCada(params.ancho, ejes.modulo, paso);
     return xs.flatMap((x) => zs.map((z) => ({ x: x - params.largo / 2, z: z - params.ancho / 2 })));
   }
   const grilla = generarPilotines(params);

@@ -15,7 +15,9 @@
   - 🟢 [ ] Pilotines y zapatas en el plano de planta (hoy solo 3D y presupuesto).
 - ✅ **Ejes** (v1.36.0): vigas de techo sobre columnas; columnas sobre pilotines; modulación única (una medida ordena
   columnas, vigas, tirantes y pilotines).
-- 🟡 [ ] **Sol** (módulo): entrada del sol por las aberturas, sombras, ▶ animación del día (usa el norte).
+- ✅ **Sol** (módulo, v1.37.0): entrada del sol por las aberturas, sombras, ▶ animación del día (usa el norte).
+  - 🟢 [ ] Lugar del sol (latitud/longitud/huso) editable en pantalla (hoy queda Mercedes de fábrica).
+  - 🟢 [ ] Sombras en el PDF (foto del 3D con el sol de una fecha/hora).
 - 🟢 [ ] **Muebles** (módulo): formas por tipo + materiales; foto del frente pegada en su cara; fotos guardadas en
   este navegador (achicadas), no viajan en el link.
 

@@ -135,6 +135,8 @@ valores inválidos.
 | 2026-10-28 | Zapatas como `params.zapata` (activa, lado, alto, profundidad desde el terreno al fondo) y dos insumos fijos (hormigón m³, excavación m³) | Decisión de Leandro: medidas + presupuesto. Insumos fijos: los catálogos viejos los reciben con el precio de ejemplo en el primer proveedor. |
 | 2026-10-28 | Alero por lado de la casa (A–D) y no por "bajo/alto/costados"; el techo los traduce a s (faldón) y d (a lo largo del lado bajo). Vigas extienden s, correas extienden d; el panel siempre cubre todo | Decisión de Leandro (por lado + elegir vigas y correas). Así el alero no cambia de lugar si se cambia hacia dónde cae el techo. |
 | 2026-10-31 | Ejes en `params.ejes` { modulo, vigasSobreColumnas, pilotinesBajoColumnas }. La grilla del módulo se mide desde la esquina de menor x y menor z (no desde la punta 1 de cada pared), así frente y fondo quedan alineados; vigas y tirantes = líneas del módulo subdivididas parejas a no más de su separación | Decisión de Leandro (vigas sobre columnas, columnas sobre pilotines, modulación única). Las columnas del borde del entrepiso siguen su propia separación. |
+| 2026-10-31 | Sol: posición con las fórmulas de la NOAA (sin librerías); fecha/hora/animación son de la sesión (no del proyecto) y el lugar (lat/long/huso) sí; sombras con una DirectionalLight y shadowMap prendido desde el arranque (prenderlo después obliga a recompilar materiales); las aberturas no tiran sombra (entra el sol); sin terreno, un piso claro recibe las sombras | Decisión de Leandro (fecha y hora + ▶ animación del día). Sobre el fondo oscuro una sombra negra no se veía. |
+| 2026-10-31 | Con modulación, los pilotines usan su propia grilla de fábrica (opciones: cada 2 módulos, cada cruce) | Leandro: un pilotín en cada cruce o bajo cada columna sobredimensiona. |
 
 ## Supuestos de obra (en `src/motor/constantes.js`)
 Piso del entrepiso a 2,30 m · merma de corte 3 mm · excedente de barras 1 % (editable; depende del proveedor) · placa OSB 2,44 × 1,22 + 10 % de recortes ·
@@ -210,6 +212,7 @@ techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 
 - 2026-10-23 v1.25.0: proveedores, precios en efectivo/tarjeta por proveedor, comparar presupuestos y "lo más barato de cada material".
 - 2026-10-23 v1.26.0: pestaña Planos (paredes y plantas acotadas, listas de corte, revestimiento), en el PDF y en Excel.
 - 2026-10-25 v1.30.0: link compacto (la mitad) y links cortos en Firebase para ver/editar que guardan los cambios.
+- 2026-10-31 v1.37.0: módulo Sol (motor/sol.js, PanelSol, luz con sombras) y pilotines con módulo elegibles (ejes.pilotinesModulo).
 - 2026-10-31 v1.36.0: pilotines redondos/cuadrados y ejes (motor/ejes.js: modulación, vigas sobre columnas, pilotines bajo columnas).
 - 2026-10-28 v1.35.1: aleros por lado (params.alero A–D, aleroVigas, aleroCorreas; alerosDelTecho).
 - 2026-10-28 v1.35.0: tirantes/transversales en 3 formas (enteras.tirantesTransversales) y zapatas (params.zapata).

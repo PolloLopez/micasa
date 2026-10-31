@@ -28,6 +28,7 @@ import PanelEscalera from './componentes/PanelEscalera.jsx';
 import PanelTerreno from './componentes/PanelTerreno.jsx';
 import TarjetaUniones from './componentes/TarjetaUniones.jsx';
 import { OPCIONES_PISO } from './motor/uniones.js';
+import { PILOTINES_CON_MODULO } from './motor/ejes.js';
 import { implantacion as calcularImplantacion } from './motor/terreno.js';
 import { moduloActivo } from './modulos.js';
 import PanelGrada from './componentes/PanelGrada.jsx';
@@ -957,7 +958,7 @@ export default function App() {
             onPegarAbertura={pegarAbertura} onDuplicarPieza={duplicarPiezaElegida}
             resaltado={resaltado} cartelResaltado={cartelResaltado}
             onSoltarResaltado={resaltadoFijo ? () => { setResaltadoFijo(null); setResaltadoMouse(null); } : null}
-            pedidoVerTerreno={pedidoVerTerreno} />
+            pedidoVerTerreno={pedidoVerTerreno} onCambiarParam={(ruta, valor) => cambiar(ruta)(valor)} />
         </div>
 
         <div className="columna-panel">
@@ -994,7 +995,7 @@ export default function App() {
               <p className="nota">
                 Grilla cada {params.ejes.modulo.toFixed(2)} m desde la esquina: las columnas van en sus líneas (manda sobre la
                 separación de columnas de cada pared), las vigas de techo y los tirantes también (y entre dos líneas se reparten
-                parejos a no más de su separación) y los pilotines en los cruces.
+                parejos a no más de su separación). Los pilotines se eligen en Fundación.
               </p>
             )}
           </Tarjeta>
@@ -1147,8 +1148,11 @@ export default function App() {
             </div>
             {/* v1.36: un pilotín bajo cada columna (sin módulo; con módulo van en los cruces de la grilla). */}
             {params.ejes?.modulo > 0 ? (
-              <p className="nota">Con la modulación cada {params.ejes.modulo.toFixed(2)} m, los pilotines van en los cruces de la grilla
-                (filas y pilotines por fila no se usan).</p>
+              <div className="grid-params grid-uniones">
+                {/* v1.36.1: con módulo, los pilotines no van obligados en cada cruce (sobredimensiona). */}
+                <CampoSelect etiqueta="Pilotines con la modulación" valor={params.ejes.pilotinesModulo ?? 'grilla'}
+                  opciones={PILOTINES_CON_MODULO} onCambio={cambiar('ejes.pilotinesModulo')} />
+              </div>
             ) : (
               <label className="casilla-opcional">
                 <input type="checkbox" checked={params.ejes?.pilotinesBajoColumnas === true}

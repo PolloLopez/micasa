@@ -1,6 +1,6 @@
 // Tests de los ejes y la forma de los pilotines (v1.36). Correr con: npm test
 import { describe, it, expect } from 'vitest';
-import { generarEstructura, listarPiezas } from './estructura.js';
+import { generarEstructura } from './estructura.js';
 import { calcularPresupuesto, CATALOGO_INICIAL } from './presupuesto.js';
 import { migrarParams } from './migracion.js';
 import { validarParametros } from './validacion.js';
@@ -22,7 +22,7 @@ describe('ayudas de la grilla', () => {
 });
 
 describe('modulación única', () => {
-  const e = est(con({ modulo: 1.25 }));
+  const e = est(con({ modulo: 1.25, pilotinesModulo: 'cruces' }));
   const lineasX = lineasDelModulo(7.5, 1.25).map((x) => Number((x - 3.75).toFixed(3)));
 
   it('las columnas del frente y del fondo caen en las mismas líneas (alineadas)', () => {
@@ -43,6 +43,16 @@ describe('modulación única', () => {
     expect(vigasX.length).toBe(11); // 6 módulos de 1.25 partidos en 2 (separación 1 m) = 12 tramos → 11 vigas
     const tirantesX = xsDe(e.piso.tirantes);
     lineasX.slice(1, -1).forEach((x) => expect(tirantesX).toContain(x));
+  });
+});
+
+describe('pilotines con la modulación (v1.36.1: no obligados en cada cruce)', () => {
+  it('de fábrica usan su propia grilla; cada 2 módulos toma uno de cada dos más los bordes', () => {
+    expect(est(con({ modulo: 1.25 })).pilotines.length).toBe(12); // filas x por fila, como sin módulo
+    const cada2 = est(con({ modulo: 1.25, pilotinesModulo: 'cada2' })).pilotines;
+    // x: 0, 2.5, 5, 7.5 (4) · z: 0, 2.5, 4.5 (3)
+    expect(cada2.length).toBe(12);
+    expect(xsDe(cada2)).toEqual([-3.75, -1.25, 1.25, 3.75]);
   });
 });
 
@@ -86,7 +96,7 @@ describe('forma y medida del pilotín', () => {
     const { pilotin, ejes, ...viejo } = P;
     const m = migrarParams(viejo);
     expect(m.pilotin).toEqual({ forma: 'redondo', medida: 0.3 });
-    expect(m.ejes).toEqual({ modulo: 0, vigasSobreColumnas: false, pilotinesBajoColumnas: false });
+    expect(m.ejes).toEqual({ modulo: 0, vigasSobreColumnas: false, pilotinesBajoColumnas: false, pilotinesModulo: 'grilla' });
     expect([pilotin.forma, ejes.modulo]).toEqual(['redondo', 0]);
   });
 });

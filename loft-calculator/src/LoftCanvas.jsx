@@ -36,6 +36,8 @@ import { vistasFijas } from './motor/vistasFijas.js';
 import { implantacion } from './motor/terreno.js';
 import { moduloActivo } from './modulos.js';
 import { dibujarTerreno, vaciarTerreno, encuadreTerreno, PARTES_TERRENO } from './terreno3d.js';
+import { posicionDelSol, salidaYPuesta, diaDelAnio, direccionDelSol, aberturasConSol, completarSol } from './motor/sol.js';
+import PanelSol from './componentes/PanelSol.jsx';
 
 // Capa y sección (grosor en el 3D) de cada tipo de pieza.
 const ESTILO_PIEZA = {
@@ -719,6 +721,7 @@ export default function LoftCanvas({
   onActualizarAbertura, onQuitarAbertura, onPegarAbertura, onDuplicarPieza,
   resaltado = null, cartelResaltado = null, onSoltarResaltado,
   pedidoVerTerreno = 0, // v1.32: cada vez que cambia, la cámara muestra todo el lote
+  onCambiarParam = null, // v1.37: (ruta, valor) para el norte desde el panel del sol
 }) {
   const lienzoRef = useRef(null);
   const visorRef = useRef(null); // { grupo, controles, camara, materiales, ... }
@@ -774,10 +777,29 @@ export default function LoftCanvas({
     controles.dampingFactor = 0.05;
     controles.autoRotateSpeed = 2;
 
-    escena.add(new THREE.AmbientLight(0xffffff, 0.85));
+    const ambiente = new THREE.AmbientLight(0xffffff, 0.85);
+    escena.add(ambiente);
     const luz = new THREE.DirectionalLight(0xffffff, 1);
     luz.position.set(10, 20, 10);
     escena.add(luz);
+    // v1.37: el sol (con sombras), apagado hasta que se abre "☀ Sol". Y un piso invisible que solo recibe sombras.
+    const sol = new THREE.DirectionalLight(0xfff4e0, 2.2);
+    sol.castShadow = true;
+    sol.shadow.mapSize.set(2048, 2048);
+    sol.shadow.bias = -0.0005;
+    sol.visible = false;
+    escena.add(sol, sol.target);
+    // Piso claro (sobre el fondo oscuro una sombra negra no se vería). Con terreno, recibe el lote.
+    const pisoSombras = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), new THREE.MeshStandardMaterial({ color: '#94a3b8' }));
+    pisoSombras.rotation.x = -Math.PI / 2;
+    pisoSombras.position.y = -0.01;
+    pisoSombras.receiveShadow = true;
+    pisoSombras.visible = false;
+    escena.add(pisoSombras);
+    // Sombras prendidas desde el arranque: prenderlas después obliga a recompilar todos los materiales.
+    // Mientras el sol está apagado no hay ninguna luz que tire sombra, así que no cuestan nada.
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     const grilla = new THREE.GridHelper(30, 30, 0x475569, 0x1e293b);
     escena.add(grilla);
 
@@ -885,7 +907,7 @@ export default function LoftCanvas({
     if (capturaRef) capturaRef.current = capturar;
 
     const materialesPanel = new Map();
-    visorRef.current = { grupo, grupoCotas, grupoTerreno, grilla, controles, camara, materiales, materialesPanel, frente: null };
+    visorRef.current = { grupo, grupoCotas, grupoTerreno, grilla, controles, camara, materiales, materialesPanel, frente: null, renderer, ambiente, luz, sol, pisoSombras };
 
     return () => {
       cancelAnimationFrame(idCuadro);
@@ -900,6 +922,8 @@ export default function LoftCanvas({
       Object.values(materiales).forEach((m) => m.dispose());
       materialesPanel.forEach((m) => { m.exterior.dispose(); m.interior.dispose(); });
       grilla.geometry.dispose();
+      pisoSombras.geometry.dispose();
+      pisoSombras.material.dispose();
       grilla.material.dispose();
       renderer.dispose();
       renderer.domElement.remove();
@@ -971,6 +995,72 @@ export default function LoftCanvas({
   const verTerrenoRef = useRef(verTerreno);
   verTerrenoRef.current = verTerreno;
   useEffect(() => { if (pedidoVerTerreno > 0) verTerrenoRef.current(); }, [pedidoVerTerreno]);
+
+  // ---------- v1.37: SOL ----------
+  // Se abre con "☀ Sol": luz del sol del día y la hora elegidos, con sombras. Es de la sesión (no se guarda en
+  // el proyecto); el lugar (latitud, longitud, huso) y el norte sí son del proyecto.
+  const moduloSol = moduloActivo('sol') && params.tipoProyecto === 'construccion';
+  const hoy = new Date();
+  const [sol, setSol] = useState(() => ({
+    activo: false,
+    fecha: `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`,
+    hora: 10,
+    animando: false,
+  }));
+  const cambiarSol = (cambios) => setSol((prev) => ({ ...prev, ...cambios }));
+  const lugar = completarSol(params.sol);
+  const dia = diaDelAnio(sol.fecha);
+  const horario = salidaYPuesta(lugar, dia);
+  const posSol = posicionDelSol(lugar, dia, sol.hora);
+  const norte = implantacion(params).norte;
+  const haciaSol = direccionDelSol(posSol, norte);
+  const infoSol = { ...posSol, ...horario, aberturas: aberturasConSol(params, aberturas, haciaSol) };
+  const solPrendido = moduloSol && sol.activo;
+
+  // Luz del sol y sombras.
+  useEffect(() => {
+    const visor = visorRef.current;
+    if (!visor) return;
+    const { ambiente, luz, sol: luzSol, pisoSombras } = visor;
+    luz.visible = !solPrendido;
+    luzSol.visible = solPrendido && posSol.altura > 0;
+    pisoSombras.visible = solPrendido && !conTerreno; // con terreno, el lote recibe las sombras
+    if (!solPrendido) {
+      ambiente.intensity = 0.85;
+      return;
+    }
+    const alto = Math.max(0, Math.sin((posSol.altura * Math.PI) / 180));
+    ambiente.intensity = posSol.altura > 0 ? 0.35 + 0.3 * alto : 0.18; // de noche, casi a oscuras
+    const tamanio = Math.max(params.largo, params.ancho, conTerreno ? Math.max(params.terreno.frente, params.terreno.fondo) : 0) + 10;
+    const lejos = tamanio * 1.5;
+    luzSol.position.set(haciaSol[0] * lejos, haciaSol[1] * lejos, haciaSol[2] * lejos);
+    luzSol.target.position.set(0, 0, 0);
+    const cam = luzSol.shadow.camera;
+    cam.left = -tamanio; cam.right = tamanio; cam.top = tamanio; cam.bottom = -tamanio;
+    cam.near = 0.5; cam.far = lejos * 2.5;
+    cam.updateProjectionMatrix();
+  }, [solPrendido, posSol.altura, haciaSol[0], haciaSol[1], haciaSol[2], conTerreno, params.largo, params.ancho, params.terreno]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Qué tira sombra y qué la recibe (después de cada redibujo). Las aberturas no tiran: por ahí entra el sol.
+  useEffect(() => {
+    const visor = visorRef.current;
+    if (!visor) return;
+    [visor.grupo, visor.grupoTerreno].forEach((g) => g.traverse((obj) => {
+      if (!obj.isMesh) return;
+      obj.castShadow = solPrendido && !obj.userData.idAbertura;
+      obj.receiveShadow = solPrendido;
+    }));
+  });
+
+  // ▶ Día: la hora avanza sola de la salida a la puesta (y vuelve a empezar).
+  useEffect(() => {
+    if (!sol.animando || !solPrendido) return undefined;
+    const id = setInterval(() => setSol((prev) => {
+      const siguiente = prev.hora + 0.1;
+      return { ...prev, hora: siguiente > horario.puesta ? horario.salida : siguiente };
+    }), 120);
+    return () => clearInterval(id);
+  }, [sol.animando, solPrendido, horario.salida, horario.puesta]);
 
   // v1.28: App las necesita en texto (para el PDF y el Excel).
   useEffect(() => {
@@ -1126,6 +1216,11 @@ export default function LoftCanvas({
   return (
     <div className="canvas-box">
       <div className="lienzo" ref={lienzoRef} />
+      {solPrendido && (
+        <PanelSol estado={sol} onCambiar={cambiarSol} info={infoSol} onCerrar={() => cambiarSol({ activo: false, animando: false })}
+          sinTerreno={!obraConTerreno} orientacion={params.terreno?.orientacion ?? 0}
+          onOrientacion={(g) => onCambiarParam?.('terreno.orientacion', g)} />
+      )}
       <div className="canvas-controls no-print">
         <button className="btn-ctrl" onClick={() => setAutoRotar((v) => !v)}>
           {autoRotar ? '⏸ Pausar giro' : '▶ Girar'}
@@ -1134,6 +1229,12 @@ export default function LoftCanvas({
           Ver frente
         </button>
         {conTerreno && <button className="btn-ctrl" onClick={verTerreno}>Ver terreno</button>}
+        {moduloSol && (
+          <button className={`btn-ctrl${sol.activo ? ' activo' : ''}`} aria-pressed={sol.activo}
+            onClick={() => cambiarSol({ activo: !sol.activo, animando: false })} title="Luz del sol del día y la hora que elijas, con sombras">
+            ☀ Sol
+          </button>
+        )}
         <button className={`btn-ctrl${midiendo ? ' activo' : ''}`} aria-pressed={midiendo}
           onClick={() => { setMidiendo((v) => !v); setSeleccionada(null); setAberturaSeleccionada(null); }}>
           📏 {midiendo ? 'Terminar de medir' : 'Medir'}

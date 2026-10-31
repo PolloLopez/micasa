@@ -48,6 +48,7 @@ import { ESCALERA_INICIAL } from './escalera.js';
 import { completarTerreno } from './terreno.js';
 import { completarUniones } from './uniones.js';
 import { completarEjes, completarPilotin } from './ejes.js';
+import { completarSol } from './sol.js';
 import { GRADA_INICIAL } from './grada.js';
 import { MONTAJE_INICIAL } from './montaje.js';
 import { REVESTIMIENTO_POR_DEFECTO, LIMITES_REVESTIMIENTO, VENTAS, UBICACIONES } from './revestimientos.js';
@@ -103,7 +104,8 @@ export function migrarParams(params) {
   nuevos.aleroCorreas = nuevos.aleroCorreas === 'estructura' ? 'estructura' : 'alero';
   nuevos.uniones = completarUniones(nuevos.uniones);
   nuevos.pilotin = completarPilotin(nuevos.pilotin); // v1.36: redondo de 30 cm (como se dibujaba)
-  nuevos.ejes = completarEjes(nuevos.ejes); // v1.36: sin modulación // v1.33: con descuentos en los cruces (lo correcto)
+  nuevos.ejes = completarEjes(nuevos.ejes); // v1.36: sin modulación
+  nuevos.sol = completarSol(nuevos.sol); // v1.37: Mercedes // v1.33: con descuentos en los cruces (lo correcto)
   nuevos.piezasEditadas ??= {}; // v1.8
   nuevos.piezasAgregadas ??= []; // v1.16: piezas duplicadas a mano
   nuevos.escalera.riostras ??= false; // v1.9
