@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.36.0] - 2026-10-31
+### Agregado
+- **Forma y medida de los pilotines** (Fundación): redondo (diámetro) o cuadrado (lado). Se dibuja así en el 3D y el
+  presupuesto lo dice ("Pilotín de hormigón ø 30 cm" / "40 x 40 cm").
+- **Ejes, para que las cargas bajen derecho**:
+  - **Modulación única** (Planta y altura): una medida (ej. 1,25 m) arma una grilla desde la esquina; las columnas
+    van en sus líneas (alineadas frente con fondo), las vigas de techo y los tirantes también (parejos adentro de cada
+    módulo, a no más de su separación) y los pilotines en los cruces.
+  - Sin módulo: **vigas sobre las columnas** del lado bajo (Techo) y **un pilotín bajo cada columna** (Fundación; la
+    grilla de siempre completa el resto sin repetir cerca).
+
 ## [1.35.1] - 2026-10-28
 ### Agregado
 - **Aleros por lado** (Techo → Aleros): cuánto sale el techo en el frente, el fondo y cada lateral (sin tildar,

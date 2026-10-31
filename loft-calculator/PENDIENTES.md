@@ -10,9 +10,10 @@
   - 🟢 [ ] Con tirantes apoyados, subir también el OSB del 3D (hoy queda a la altura de siempre).
 - ✅ **Alero por lado** (v1.35.1) (frente, fondo, laterales; 0 = sin); vigas y correas: llegan al borde del alero o
   terminan en la estructura (cada una por separado).
-- 🔴 [ ] **Pilotines: forma y medida** (pedido de Leandro 29/10): redondo (diámetro) o cuadrado (lado), con su
+- ✅ **Pilotines: forma y medida** (v1.36.0) (pedido de Leandro 29/10): redondo (diámetro) o cuadrado (lado), con su
   dibujo en el 3D y en los planos, y que el presupuesto lo diga ("Pilotín de hormigón ø 30 cm").
-- 🔴 [ ] **Ejes**: vigas de techo sobre columnas; columnas sobre pilotines; modulación única (una medida ordena
+  - 🟢 [ ] Pilotines y zapatas en el plano de planta (hoy solo 3D y presupuesto).
+- ✅ **Ejes** (v1.36.0): vigas de techo sobre columnas; columnas sobre pilotines; modulación única (una medida ordena
   columnas, vigas, tirantes y pilotines).
 - 🟡 [ ] **Sol** (módulo): entrada del sol por las aberturas, sombras, ▶ animación del día (usa el norte).
 - 🟢 [ ] **Muebles** (módulo): formas por tipo + materiales; foto del frente pegada en su cara; fotos guardadas en

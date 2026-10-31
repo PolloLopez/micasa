@@ -987,7 +987,16 @@ export default function App() {
               {medida('elevacion', 'Elevación s/ terreno')}
               <SelectorLado etiqueta="¿Qué lado es el frente?" valor={params.ladoFrente} params={params}
                 onCambio={cambiar('ladoFrente')} ocultarFrente />
+              {/* v1.36: una medida que ordena columnas, vigas de techo, tirantes y pilotines. */}
+              {opcional('ejes.modulo', 'Modulación única', 'Cada', 1.25)}
             </div>
+            {params.ejes?.modulo > 0 && (
+              <p className="nota">
+                Grilla cada {params.ejes.modulo.toFixed(2)} m desde la esquina: las columnas van en sus líneas (manda sobre la
+                separación de columnas de cada pared), las vigas de techo y los tirantes también (y entre dos líneas se reparten
+                parejos a no más de su separación) y los pilotines en los cruces.
+              </p>
+            )}
           </Tarjeta>
 
           {/* TERRENO (v1.32): el lote, dónde va la casa, pozo, árboles, accesos y el norte. */}
@@ -1081,6 +1090,14 @@ export default function App() {
               {separacion('separacionCorreasTecho', 'Sep. correas (s/ pendiente)', 'Correas (con las puntas)', ['correa', 'correas'])}
               {selectorPanel('panelTecho', 'Revestimiento del techo', params.panelTecho)}
             </div>
+            {/* v1.36: vigas de techo sobre las columnas del lado bajo (sin módulo; con módulo van en la grilla). */}
+            {!(params.ejes?.modulo > 0) && (
+              <label className="casilla-opcional">
+                <input type="checkbox" checked={params.ejes?.vigasSobreColumnas === true}
+                  onChange={(ev) => cambiar('ejes.vigasSobreColumnas')(ev.target.checked)} />
+                Vigas sobre las columnas (entre dos columnas, parejas a no más de la separación)
+              </label>
+            )}
             {/* v1.28: marco perimetral (correas de los bordes + piezas de las puntas) con perfil propio. */}
             <label className="casilla-opcional">
               <input type="checkbox" checked={params.techoConBorde === true}
@@ -1123,7 +1140,22 @@ export default function App() {
                 valor={params.filasPilotines} onCambio={cambiar('filasPilotines')} />
               <CampoNumero etiqueta="Pilotines por fila (ancho)" sufijo="u" decimales={0}
                 valor={params.pilotinesPorFila} onCambio={cambiar('pilotinesPorFila')} />
+              {/* v1.36: forma y medida del pilotín. */}
+              <CampoSelect etiqueta="Forma del pilotín" valor={params.pilotin?.forma ?? 'redondo'} onCambio={cambiar('pilotin.forma')}
+                opciones={[['redondo', 'Redondo'], ['cuadrado', 'Cuadrado']]} />
+              {medida('pilotin.medida', params.pilotin?.forma === 'cuadrado' ? 'Lado del pilotín' : 'Diámetro del pilotín')}
             </div>
+            {/* v1.36: un pilotín bajo cada columna (sin módulo; con módulo van en los cruces de la grilla). */}
+            {params.ejes?.modulo > 0 ? (
+              <p className="nota">Con la modulación cada {params.ejes.modulo.toFixed(2)} m, los pilotines van en los cruces de la grilla
+                (filas y pilotines por fila no se usan).</p>
+            ) : (
+              <label className="casilla-opcional">
+                <input type="checkbox" checked={params.ejes?.pilotinesBajoColumnas === true}
+                  onChange={(ev) => cambiar('ejes.pilotinesBajoColumnas')(ev.target.checked)} />
+                Un pilotín bajo cada columna (la grilla completa el resto)
+              </label>
+            )}
             {/* v1.35: zapata bajo cada pilotín (hormigón y excavación en el presupuesto). */}
             <label className="casilla-opcional">
               <input type="checkbox" checked={params.zapata?.activa === true}

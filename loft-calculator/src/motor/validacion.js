@@ -15,6 +15,7 @@ import { revisarEdicion, PERFILES_ASIGNABLES } from './edicionPiezas.js';
 import { revisarAgregadas } from './piezasAgregadas.js';
 import { validarTerreno } from './terreno.js';
 import { validarUniones } from './uniones.js';
+import { validarEjes, validarPilotin } from './ejes.js';
 import { CAMPOS_CON_CANTIDAD, MAXIMO_CANTIDAD } from './cantidades.js';
 
 /** Largo máximo del texto de la etiqueta de una pared en el 3D. */
@@ -91,6 +92,9 @@ export function validarParametros(params) {
       if (params[c] !== undefined && !['alero', 'estructura'].includes(params[c])) anotar(c, 'Elegí alero o estructura');
     });
   }
+  // v1.36: pilotín y ejes.
+  if (params.pilotin !== undefined) Object.entries(validarPilotin(params.pilotin)).forEach(([c, e]) => anotar(c, e));
+  if (params.ejes !== undefined) Object.entries(validarEjes(params.ejes)).forEach(([c, e]) => anotar(c, e));
   // v1.35: zapatas.
   if (params.zapata !== undefined) {
     const z = params.zapata;

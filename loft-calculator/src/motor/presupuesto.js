@@ -16,6 +16,7 @@ import { conProveedores, aplicarProveedor, renglonesDeFlete } from './proveedore
 import { compartirCortes } from './cortesCompartidos.js';
 import { optimizarCortes } from './optimizadorCortes.js';
 import { listarPiezas } from './estructura.js';
+import { textoPilotin } from './ejes.js';
 import { INSUMO, PLACA_OSB, DESPERDICIO_PLACAS } from './constantes.js';
 import { cuentaRevestimiento, REVESTIMIENTO_POR_DEFECTO } from './revestimientos.js';
 
@@ -308,7 +309,11 @@ function calcularRenglones(estructura, catalogo, excedenteBarras) {
     items.push({ ...itemSimple(tipo, cuenta.cantidad, cuenta.detalle), unidad: cuenta.unidad, piezasRevestimiento: cuenta.piezas });
   });
 
-  items.push(itemSimple(insumo(INSUMO.PILOTIN), e.pilotines.length, 'grilla de fundación'));
+  // v1.36: el pilotín dice su forma y medida ("Pilotín de hormigón ø 30 cm").
+  const pilotin = insumo(INSUMO.PILOTIN);
+  const medidaPilotin = e.pilotin ? textoPilotin(e.pilotin) : null;
+  items.push(itemSimple(medidaPilotin && !pilotin.perfil.includes(medidaPilotin) ? { ...pilotin, perfil: `${pilotin.perfil} ${medidaPilotin}`.trim() } : pilotin,
+    e.pilotines.length, e.pilotines.some((p) => p.bajoColumna) ? 'uno bajo cada columna + grilla' : 'grilla de fundación'));
   // v1.35: zapatas: hormigón (lado x lado x alto) y excavación (lado x lado x profundidad), por pilotín.
   if (e.zapata) {
     const { lado, alto, profundidad } = e.zapata;

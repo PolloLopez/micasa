@@ -8,6 +8,7 @@ import { MONTAJE_INICIAL } from './montaje.js';
 import { ESCALERA_INICIAL } from './escalera.js';
 import { TERRENO_INICIAL } from './terreno.js';
 import { UNIONES_INICIALES } from './uniones.js';
+import { EJES_INICIALES, PILOTIN_INICIAL } from './ejes.js';
 
 /** Configuración de una pared (panel). */
 export const PARED_INICIAL = {
@@ -79,6 +80,9 @@ export const PARAMS_INICIALES = {
   // Fundación
   // v1.35: zapata bajo cada pilotín. profundidad = del nivel del terreno al fondo de la zapata.
   zapata: { activa: false, lado: 0.6, alto: 0.3, profundidad: 0.8 },
+  // v1.36: forma y medida del pilotín (diámetro o lado) y ejes (modulación, vigas sobre columnas, pilotines bajo columnas).
+  pilotin: { ...PILOTIN_INICIAL },
+  ejes: { ...EJES_INICIALES },
   filasPilotines: 4,
   pilotinesPorFila: 3,
 

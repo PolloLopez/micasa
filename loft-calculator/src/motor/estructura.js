@@ -31,6 +31,7 @@ import { generarMontaje } from './montaje.js';
 import { aplicarEdicion } from './edicionPiezas.js';
 import { piezasDeAgregadas } from './piezasAgregadas.js';
 import { aplicarUniones, completarUniones } from './uniones.js';
+import { completarEjes, marcasDelModulo, lineasDelModulo, subdividir, unirPilotines } from './ejes.js';
 
 const EPSILON = 0.01; // 1 cm: margen para no duplicar piezas en bordes
 const LARGO_MINIMO = 0.05; // piezas más cortas que 5 cm no se fabrican
@@ -130,6 +131,20 @@ function generarPilotines({ largo, ancho, filasPilotines, pilotinesPorFila }) {
   return pilotines;
 }
 
+/**
+ * v1.36: pilotines según los ejes: en los cruces del módulo, o la grilla de siempre más uno bajo cada columna.
+ */
+function pilotinesDeLaObra(params, posiciones) {
+  const ejes = completarEjes(params.ejes);
+  if (ejes.modulo > 0) {
+    const xs = lineasDelModulo(params.largo, ejes.modulo);
+    const zs = lineasDelModulo(params.ancho, ejes.modulo);
+    return xs.flatMap((x) => zs.map((z) => ({ x: x - params.largo / 2, z: z - params.ancho / 2 })));
+  }
+  const grilla = generarPilotines(params);
+  return ejes.pilotinesBajoColumnas ? unirPilotines(grilla, posiciones) : grilla;
+}
+
 // ---------------- Columnas ----------------
 
 /**
@@ -137,6 +152,18 @@ function generarPilotines({ largo, ancho, filasPilotines, pilotinesPorFila }) {
  * del borde libre del entrepiso. Una esquina compartida es UNA columna.
  * Cada posición sabe sobre qué paredes está (lados).
  */
+/**
+ * v1.36: dónde caen las líneas del módulo sobre un tramo que arranca en `origen` ([x, z]) y avanza en
+ * `direccion` (un eje: ±x o ±z). Distancias desde el origen, con las puntas 0 y `largo` incluidas.
+ */
+function marcasEnTramo(params, origen, direccion, largo) {
+  const { modulo } = completarEjes(params.ejes);
+  const eje = Math.abs(direccion[0]) > 0.5 ? 0 : 1;
+  const total = eje === 0 ? params.largo : params.ancho;
+  const marcas = marcasDelModulo(origen[eje], Math.sign(direccion[eje]), largo, -total / 2, total, modulo);
+  return [...new Set([0, ...marcas, largo].map((d) => Number(d.toFixed(4))))].sort((a, b) => a - b);
+}
+
 function posicionesDeColumnas(params, lados) {
   const porPosicion = new Map();
   const agregar = (x, z) => {
@@ -148,9 +175,12 @@ function posicionesDeColumnas(params, lados) {
 
   LADOS.forEach((lado) => {
     const geo = lados[lado];
-    repartir(geo.largo, separacionDe(params, `paredes.${lado}.separacionVerticales`, geo.largo)).forEach((d) =>
-      agregar(...puntoSobreLado(geo, d))
-    );
+    // v1.36: con modulación, las columnas van en las líneas de la grilla (alineadas con la pared de enfrente).
+    const conModulo = completarEjes(params.ejes).modulo > 0;
+    const posiciones = conModulo
+      ? marcasEnTramo(params, geo.p1, geo.direccion, geo.largo)
+      : repartir(geo.largo, separacionDe(params, `paredes.${lado}.separacionVerticales`, geo.largo));
+    posiciones.forEach((d) => agregar(...puntoSobreLado(geo, d)));
   });
 
   // Borde libre del entrepiso: columnas en las puntas de cada borde libre y,
@@ -469,7 +499,12 @@ function entramadoPiso(rect, separacionCargada, transversalesCargada, y, nivel, 
     rect.origen[1] + dirReparto[1] * a + dirLuz[1] * b,
   ];
 
-  const posicionesTirantes = interiores(largoReparto, separacion);
+  // v1.36: con modulación, un tirante en cada línea de la grilla y, entre dos, parejos a no más de la separación.
+  const conModulo = completarEjes(params.ejes).modulo > 0;
+  const posicionesTirantes = conModulo
+    ? subdividir(marcasEnTramo(params, rect.origen, dirReparto, largoReparto), separacion)
+      .filter((a) => a > EPSILON && a < largoReparto - EPSILON)
+    : interiores(largoReparto, separacion);
   const tirantes = posicionesTirantes.map((a) =>
     pieza(`${nivel}:${cm(a)}`, nivel, [nivel], punto(a, 0), punto(a, luz))
   );
@@ -601,7 +636,15 @@ function generarTecho(params, lados) {
   const dMin = correasAlAlero ? -alero.inicio : 0;
   const dMax = bajo.largo + (correasAlAlero ? alero.fin : 0);
 
-  const vigas = interiores(bajo.largo, separacionDe(params, 'separacionVigasTecho', bajo.largo)).map((d) =>
+  // v1.36: vigas sobre las columnas (o sobre las líneas del módulo) y, entre dos, parejas a no más de la separación.
+  const ejes = completarEjes(params.ejes);
+  const sepVigas = separacionDe(params, 'separacionVigasTecho', bajo.largo);
+  const marcasVigas = ejes.modulo > 0 ? marcasEnTramo(params, bajo.p1, bajo.direccion, bajo.largo)
+    : ejes.vigasSobreColumnas ? columnasDeLado(params.caidaTecho, lados, posicionesDeColumnas(params, lados)) : null;
+  const posicionesVigas = marcasVigas
+    ? subdividir([0, ...marcasVigas, bajo.largo], sepVigas).filter((d) => d > EPSILON && d < bajo.largo - EPSILON)
+    : interiores(bajo.largo, sepVigas);
+  const vigas = posicionesVigas.map((d) =>
     pieza(`viga-techo:${cm(d)}`, 'viga-techo', ['techo'], puntoTecho(d, sMin), puntoTecho(d, sMax))
   );
 
@@ -820,8 +863,9 @@ export function generarEstructura(params, aberturas, catalogo = null) {
   const posiciones = posicionesDeColumnas(params, lados);
 
   const completa = {
-    pilotines: generarPilotines(params),
+    pilotines: pilotinesDeLaObra(params, posiciones), // v1.36: con módulo o bajo las columnas
     zapata: params.zapata?.activa ? { ...params.zapata } : null, // v1.35: una por pilotín
+    pilotin: { ...(params.pilotin ?? {}) }, // v1.36: forma y medida
     columnas: generarColumnas(params, lados, posiciones, aberturas),
     refuerzosAberturas: generarRefuerzos(params, lados, posiciones, aberturas),
     montantes: generarMontantes(params, lados, posiciones, aberturas), // v1.17

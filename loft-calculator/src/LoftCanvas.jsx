@@ -381,7 +381,12 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
   if (capas.pilotines) {
     e.pilotines.forEach(({ x, z }) => {
       const alto = Math.max(elevacion - baseZapata, 0.01);
-      const p = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, alto, 16), materiales.pilotines);
+      // v1.36: redondo (diámetro) o cuadrado (lado).
+      const medida = e.pilotin?.medida ?? 0.3;
+      const forma = e.pilotin?.forma === 'cuadrado'
+        ? new THREE.BoxGeometry(medida, alto, medida)
+        : new THREE.CylinderGeometry(medida / 2, medida / 2, alto, 16);
+      const p = new THREE.Mesh(forma, materiales.pilotines);
       p.position.set(x, baseZapata + alto / 2, z);
       grupo.add(p);
     });
