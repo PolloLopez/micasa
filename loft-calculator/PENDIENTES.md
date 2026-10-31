@@ -18,6 +18,14 @@
 - ✅ **Sol** (módulo, v1.37.0): entrada del sol por las aberturas, sombras, ▶ animación del día (usa el norte).
   - 🟢 [ ] Lugar del sol (latitud/longitud/huso) editable en pantalla (hoy queda Mercedes de fábrica).
   - 🟢 [ ] Sombras en el PDF (foto del 3D con el sol de una fecha/hora).
+- 🔴 [ ] **Tabiques interiores** (divisiones del baño y antebaño; pedido de Leandro 31/10): reusando el motor de
+  paredes (soleras, montantes, uniones, cortes). Perfiles elegibles de la lista (ej. steel frame 70 mm); revestimiento
+  POR CARA de la lista de revestimientos (Durlock común, verde para húmedos, cementicia…) con placas y recortes.
+  Ubicación con medidas: paralelo a una pared, a X m de ella, desde Y m de la esquina, largo; alto hasta el techo,
+  hasta el piso 2 o una medida. Puede llevar puerta (las aberturas de siempre). En 3D y planta.
+- 🔴 [ ] **Mesada**: estructura (perfiles de la lista) contra una pared; largo, profundidad, alto (0,90 de fábrica);
+  Durlock al frente y costados; tapa aparte (granito, madera… m² o pieza); huecos bajo mesada (heladera, lavarropas,
+  bacha) sin estructura al frente; estantes interiores; zócalo para el pie (retirado).
 - 🟢 [ ] **Muebles** (módulo): formas por tipo + materiales; foto del frente pegada en su cara; fotos guardadas en
   este navegador (achicadas), no viajan en el link.
 
