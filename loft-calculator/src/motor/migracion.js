@@ -108,7 +108,7 @@ export function migrarParams(params) {
   nuevos.ejes = completarEjes(nuevos.ejes); // v1.36: sin modulación
   // v1.38: mesadas y muebles (los proyectos de antes, sin ninguno).
   nuevos.mesadas = Array.isArray(nuevos.mesadas) ? nuevos.mesadas.map((m) => ({ ...MESADA_NUEVA, ...m, huecos: Array.isArray(m?.huecos) ? m.huecos : [] })) : [];
-  nuevos.muebles = Array.isArray(nuevos.muebles) ? nuevos.muebles.map((m) => ({ mostrarEtiqueta: true, ...m })) : []; // v1.38.1: con cartel
+  nuevos.muebles = Array.isArray(nuevos.muebles) ? nuevos.muebles.map((m) => ({ mostrarEtiqueta: true, color: '', ...m })) : []; // v1.38.1: con cartel
   nuevos.sol = completarSol(nuevos.sol); // v1.37: Mercedes // v1.33: con descuentos en los cruces (lo correcto)
   nuevos.piezasEditadas ??= {}; // v1.8
   nuevos.piezasAgregadas ??= []; // v1.16: piezas duplicadas a mano

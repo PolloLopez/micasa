@@ -160,11 +160,24 @@ input.perfil:focus { outline: 2px solid var(--acento); border-style: solid; }
 }
 .ctrl-tip { font-size: 0.75rem; color: var(--texto-tenue); }
 .btn-ctrl { background: var(--tarjeta); border: 1px solid var(--borde-input); color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; }
+/* v1.38.2: capas compactas, abajo a la izquierda: pestañas arriba y UNA sección a la vez (antes tapaban el 3D). */
 .capas {
-  position: absolute; bottom: 12px; left: 12px; right: 12px; z-index: 10; display: flex; flex-wrap: wrap; gap: 6px 12px;
-  background: rgba(15, 23, 42, 0.85); padding: 6px 10px; border-radius: 8px; border: 1px solid var(--borde); font-size: 0.75rem;
+  position: absolute; bottom: 12px; left: 12px; z-index: 10; display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
+  width: min(460px, calc(100% - 24px)); max-height: 45%; overflow-y: auto;
+  background: rgba(15, 23, 42, 0.88); padding: 6px 8px; border-radius: 8px; border: 1px solid var(--borde); font-size: 0.75rem;
 }
-.capas.plegada { right: auto; padding: 4px; }
+.capas.plegada { width: auto; padding: 4px; }
+.pestanas-capas { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip-capas {
+  background: transparent; color: var(--texto-suave); border: 1px solid var(--borde-input); border-radius: 999px;
+  padding: 1px 9px; font-size: 0.72rem; line-height: 1.6; cursor: pointer;
+}
+.chip-capas.activa { background: var(--acento); border-color: var(--acento); color: #0f172a; font-weight: 600; }
+.contenido-capas { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding-top: 6px; border-top: 1px solid var(--borde); width: 100%; }
+.todo-nada { display: inline-flex; gap: 4px; }
+.selector-color { display: inline-flex; align-items: center; gap: 2px; }
+.btn-restablecer { background: none; border: none; color: var(--texto-tenue); cursor: pointer; padding: 0 2px; font-size: 0.8rem; line-height: 1; }
+.btn-restablecer:hover { color: var(--acento); }
 .btn-capas { flex-basis: auto; }
 .capas-paneles { display: flex; flex-wrap: wrap; gap: 6px 12px; flex-basis: 100%; padding-top: 4px; border-top: 1px solid var(--borde); }
 .capa.apagada { opacity: 0.4; }
@@ -360,6 +373,8 @@ button:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
   /* Botones y campos de 44 px: se tocan bien con el dedo en la obra. */
   button, select, input:not([type="checkbox"]):not([type="range"]):not([type="color"]) { min-height: 44px; }
   .capas .btn-mini { min-height: 34px; min-width: 48px; } /* todo / nada: un poco más bajos para que la leyenda no tape el 3D */
+  .capas .chip-capas { min-height: 32px; }
+  .capas .btn-restablecer { min-height: 32px; min-width: 28px; }
   /* Barra de pestañas fija abajo, con "3D". */
   .pestanas { position: fixed; top: auto; bottom: 0; left: 0; right: 0; z-index: 20; margin: 0;
     background: var(--tarjeta); border-top: 1px solid var(--borde); border-bottom: none;
@@ -739,3 +754,8 @@ kbd {
 .fila-agregar-mueble { display: flex; align-items: end; gap: 8px; margin-bottom: 8px; }
 .fila-agregar-mueble .group { flex: 1; max-width: 260px; }
 .aviso-mueble { color: #fcd34d; font-size: 0.8rem; margin: 4px 0 0; }
+
+/* v1.38.2: campos de color (mueble, tapa y estantes) con el mismo cuadradito de la leyenda */
+.campo-color .etiqueta-campo { font-size: 0.8rem; color: var(--texto-suave); }
+.campo-color .muestra { width: 32px; height: 32px; }
+.fila-colores { display: flex; gap: 10px; align-items: center; }

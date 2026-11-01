@@ -14,6 +14,7 @@ import Tarjeta from './Tarjeta.jsx';
 import CampoNumero from './CampoNumero.jsx';
 import CampoSelect from './CampoSelect.jsx';
 import SelectorPerfil from './SelectorPerfil.jsx';
+import SelectorColor from './SelectorColor.jsx';
 import { LADOS } from '../motor/constantes.js';
 import { nombreLado, largoLado } from '../motor/geometria.js';
 import { mesadaNueva, tramosDelFrente } from '../motor/interiores.js';
@@ -41,7 +42,7 @@ function Casilla({ texto, valor, onCambio }) {
 }
 
 /** Una mesada: dónde va, medidas, estructura, revestimiento y huecos. */
-function Mesada({ m, i, params, unidad, cambiar, onQuitar, paneles, perfiles, perfilGeneral, generada }) {
+function Mesada({ m, i, params, unidad, cambiar, onQuitar, paneles, perfiles, perfilGeneral, generada, colores }) {
   const ruta = `mesadas.${i}`;
   const medida = (campo, etiqueta) => (
     <CampoNumero etiqueta={etiqueta} unidad={unidad} valor={m[campo]} onCambio={cambiar(`${ruta}.${campo}`)} />
@@ -111,6 +112,16 @@ function Mesada({ m, i, params, unidad, cambiar, onQuitar, paneles, perfiles, pe
             {paneles.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
           </select>
         </div>
+        {/* v1.38.2: colores propios de esta mesada (↺ vuelve al de la capa). */}
+        <div className="group campo-color">
+          <span className="etiqueta-campo">Color de tapa y estantes</span>
+          <span className="fila-colores">
+            <SelectorColor valor={m.colorTapa} porDefecto={colores.tapasMesada} nombre={`la tapa de ${m.nombre}`}
+              onCambio={cambiar(`${ruta}.colorTapa`)} onRestablecer={() => cambiar(`${ruta}.colorTapa`)('')} />
+            <SelectorColor valor={m.colorEstantes} porDefecto={colores.escalones} nombre={`los estantes de ${m.nombre}`}
+              onCambio={cambiar(`${ruta}.colorEstantes`)} onRestablecer={() => cambiar(`${ruta}.colorEstantes`)('')} />
+          </span>
+        </div>
         <CampoNumero etiqueta="Estantes por tramo" decimales={0} valor={m.estantes}
           onCambio={(v) => (Number.isInteger(v) ? cambiar(`${ruta}.estantes`)(v) : 'Un número entero')} />
         {medida('zocalo', 'Alto del zócalo (0 = sin)')}
@@ -151,7 +162,7 @@ function Mesada({ m, i, params, unidad, cambiar, onQuitar, paneles, perfiles, pe
  * @param generadas  e.mesadas de la estructura (piezas, paños, tapa) para mostrar el resumen
  * @param perfilGeneral texto del perfil del renglón "Estructura de mesadas" (la opción vacía)
  */
-export default function PanelMesadas({ params, unidad, cambiar, paneles, perfiles, perfilGeneral, generadas }) {
+export default function PanelMesadas({ params, unidad, cambiar, paneles, perfiles, perfilGeneral, generadas, colores }) {
   const mesadas = params.mesadas;
   const [aviso, setAviso] = useState(null); // si la mesada nueva no entra (pared corta), se dice por qué
   const agregar = () => {
@@ -168,7 +179,7 @@ export default function PanelMesadas({ params, unidad, cambiar, paneles, perfile
       {mesadas.length === 0 && <p className="vacio">Todavía no hay mesadas.</p>}
       {mesadas.map((m, i) => (
         <Mesada key={m.id} m={m} i={i} params={params} unidad={unidad} cambiar={cambiar} onQuitar={() => quitar(m.id)}
-          paneles={paneles} perfiles={perfiles} perfilGeneral={perfilGeneral} generada={generadas?.find((g) => g.id === m.id)} />
+          paneles={paneles} perfiles={perfiles} perfilGeneral={perfilGeneral} generada={generadas?.find((g) => g.id === m.id)} colores={colores} />
       ))}
       <button type="button" className="btn-sec" onClick={agregar}>+ Mesada</button>
       {aviso && <p className="error" role="alert">{aviso}</p>}

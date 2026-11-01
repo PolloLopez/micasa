@@ -13,7 +13,8 @@ import Tarjeta from './Tarjeta.jsx';
 import CampoNumero from './CampoNumero.jsx';
 import CampoSelect from './CampoSelect.jsx';
 import { nombreLado } from '../motor/geometria.js';
-import { TIPOS_MUEBLE, MATERIALES_MUEBLE, muebleNuevo, muebleFueraDeLaPlanta } from '../motor/interiores.js';
+import SelectorColor from './SelectorColor.jsx';
+import { TIPOS_MUEBLE, MATERIALES_MUEBLE, muebleNuevo, muebleFueraDeLaPlanta, colorDelMueble } from '../motor/interiores.js';
 
 const f2 = (n) => n.toFixed(2).replace('.', ',');
 const GIROS = [[0, 'Sin girar'], [90, '90°'], [180, '180° (de espaldas)'], [270, '270°']];
@@ -29,7 +30,7 @@ function Mueble({ m, i, params, unidad, cambiar, onQuitar }) {
   return (
     <section className="elemento-terreno mueble">
       <header>
-        <span className="muestra-elemento" style={{ background: MATERIALES_MUEBLE[m.material]?.color }} aria-hidden="true" />
+        <span className="muestra-elemento" style={{ background: colorDelMueble(m) }} aria-hidden="true" />
         <strong>{m.nombre || tipo.nombre}</strong>
         <small>{m.nombre !== tipo.nombre ? tipo.nombre : ''} {f2(m.ancho)} x {f2(m.profundidad)} x {f2(m.alto)} m</small>
         <button type="button" className="btn-del" onClick={onQuitar} aria-label={`Quitar ${m.nombre}`} title="Quitar">✕</button>
@@ -51,6 +52,12 @@ function Mueble({ m, i, params, unidad, cambiar, onQuitar }) {
         {medida('alto', 'Alto')}
         <CampoSelect etiqueta="Material" valor={m.material}
           opciones={Object.entries(MATERIALES_MUEBLE).map(([clave, mat]) => [clave, mat.nombre])} onCambio={cambiar(`${ruta}.material`)} />
+        {/* v1.38.2: color propio (↺ vuelve al del material). */}
+        <div className="group campo-color">
+          <span className="etiqueta-campo">Color</span>
+          <SelectorColor valor={m.color} porDefecto={MATERIALES_MUEBLE[m.material]?.color ?? '#a16207'} nombre={m.nombre || 'el mueble'}
+            onCambio={cambiar(`${ruta}.color`)} onRestablecer={() => cambiar(`${ruta}.color`)('')} />
+        </div>
         {medida('distanciaIzquierda', 'Al lateral izquierdo')}
         {medida('distanciaFrente', 'Al frente')}
         <CampoSelect etiqueta="Giro" valor={String(m.giro)} opciones={GIROS.map(([g, t]) => [String(g), t])}

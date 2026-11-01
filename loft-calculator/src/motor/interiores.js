@@ -25,6 +25,10 @@ import { LADOS, ALTURA_PISO_2 } from './constantes.js';
 const ALTO_PISO = 0.09; // el piso terminado está un poco arriba de la estructura (OSB)
 const MEDIA_PARED = 0.06; // la mesada arranca en la cara de adentro de los perfiles de la pared, no en su eje
 const cm = (n) => Math.round(n * 100);
+/** v1.38.2: color propio opcional: '' (o sin dato) = el de fábrica; si no, '#rrggbb'. */
+export const colorOpcional = (c) => c === undefined || c === '' || (typeof c === 'string' && /^#[0-9a-fA-F]{6}$/.test(c));
+/** Color con el que se dibuja un mueble: el propio o el de su material. */
+export const colorDelMueble = (m) => m.color || MATERIALES_MUEBLE[m.material]?.color || MATERIALES_MUEBLE.madera.color;
 
 // ---------- Mesadas ----------
 
@@ -48,6 +52,8 @@ export const MESADA_NUEVA = {
   estantes: 1, // estantes por tramo (0 = sin)
   huecos: [], // [{ desde, ancho, nombre }] medidos desde la punta izquierda de la mesada (vista de frente)
   mostrarEtiqueta: true, // v1.38.1: cartel con el nombre en el 3D (como paredes y aberturas)
+  colorTapa: '', // v1.38.2: color propio de la tapa ('' = el de la capa "Tapas, placas y estantes")
+  colorEstantes: '', // v1.38.2: color propio de los estantes ('' = el de la madera)
 };
 
 /** Una mesada nueva con un id libre. */
@@ -161,6 +167,7 @@ export function generarMesada(params, m) {
   return {
     id: m.id, nombre: m.nombre, piezas, panos, panel: m.revestimiento,
     mostrarEtiqueta: m.mostrarEtiqueta !== false,
+    colorTapa: m.colorTapa || '', colorEstantes: m.colorEstantes || '', // v1.38.2
     ejes: { alongo, adentro }, // para el 3D: hacia dónde mira cada placa
     tapa: { m2: m.largo * prof, largo: m.largo, profundidad: prof, espesor: m.espesorTapa },
     estantesM2: estantes.reduce((acc, e) => acc + (e.hasta - e.desde) * (prof - 0.02) * e.alturas.length, 0),
@@ -201,6 +208,7 @@ export function validarMesada(m, params) {
   if (!['piso', 'piso2'].includes(m.nivel)) return 'Elegí planta baja o piso 2';
   if (typeof m.nombre !== 'string' || m.nombre.length > 40) return 'El nombre puede tener hasta 40 letras';
   if (m.mostrarEtiqueta !== undefined && typeof m.mostrarEtiqueta !== 'boolean') return 'Valor inválido';
+  if (!colorOpcional(m.colorTapa) || !colorOpcional(m.colorEstantes)) return 'Color inválido';
   for (const h of m.huecos ?? []) {
     if (!num(h.desde, 0, m.largo) || !num(h.ancho, 0.1, m.largo) || h.desde + h.ancho > m.largo + 0.001) return 'Un hueco no entra en la mesada';
   }
@@ -243,6 +251,7 @@ export function muebleNuevo(tipo, muebles, id) {
     ancho: t.ancho, profundidad: t.profundidad, alto: t.alto, material: t.material,
     distanciaFrente: 0.5 + iguales * 0.3, distanciaIzquierda: 0.5 + iguales * 0.3, giro: 0,
     mostrarEtiqueta: true, // v1.38.1: cartel con el nombre en el 3D
+    color: '', // v1.38.2: color propio ('' = el de su material)
   };
 }
 
@@ -276,6 +285,7 @@ export function validarMueble(m, params) {
   if (m.nivel === 'piso2' && !(params.anchoEntrepiso > 0)) return 'No hay entrepiso';
   if (typeof m.nombre !== 'string' || m.nombre.length > 40) return 'El nombre puede tener hasta 40 letras';
   if (m.mostrarEtiqueta !== undefined && typeof m.mostrarEtiqueta !== 'boolean') return 'Valor inválido';
+  if (!colorOpcional(m.color)) return 'Color inválido';
   return null;
 }
 

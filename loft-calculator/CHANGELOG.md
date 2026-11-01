@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.38.2] - 2026-11-01
+### Agregado
+- **Color propio por mueble** (al lado del material; ↺ vuelve al del material) y **color de tapa y de estantes por
+  mesada** (↺ vuelve al de la capa).
+- Un solo selector de color para toda la app (`SelectorColor`): el mismo cuadradito en la leyenda, los muebles y las
+  mesadas. En la leyenda, ↺ vuelve cada capa a su color de fábrica.
+### Cambiado
+- **Capas más chicas**: ahora es un recuadro abajo a la izquierda con pestañas (Estructura, Superficies, Interiores,
+  Ayudas, Etiquetas, Opacidad, Partes) y se ve una sección a la vez (antes ocupaba todo el ancho y tapaba el 3D).
+  Recuerda la última sección abierta.
+
 ## [1.38.1] - 2026-11-01
 ### Agregado
 - **Etiquetas de mesadas y muebles** en el 3D, como las de paredes y aberturas: el nombre es el cartel. Cada mesada y

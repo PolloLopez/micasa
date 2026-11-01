@@ -7,7 +7,7 @@ import { validarParametros } from './validacion.js';
 import { PARAMS_INICIALES as P, ABERTURAS_INICIALES } from './parametrosIniciales.js';
 import { INSUMO } from './constantes.js';
 import {
-  MESADA_NUEVA, mesadaNueva, generarMesada, tramosDelFrente, ubicarMesada, validarMesada,
+  MESADA_NUEVA, mesadaNueva, colorDelMueble, generarMesada, tramosDelFrente, ubicarMesada, validarMesada,
   muebleNuevo, ubicarMueble, validarMueble, muebleFueraDeLaPlanta,
 } from './interiores.js';
 
@@ -224,5 +224,29 @@ describe('etiquetas de mesadas y muebles (v1.38.1)', () => {
     expect(migrarParams({ ...P, mesadas: [{ id: 2 }] }).mesadas[0].mostrarEtiqueta).toBe(true);
     expect(validarMueble({ ...sinEtiqueta, mostrarEtiqueta: 'si' }, P)).toBe('Valor inválido');
     expect(validarMesada(mesada({ mostrarEtiqueta: 1 }), P)).toBe('Valor inválido');
+  });
+});
+
+describe('colores propios (v1.38.2)', () => {
+  it('mueble: sin color usa el de su material; con color, el suyo', () => {
+    const m = muebleNuevo('heladera', [], 1);
+    expect(m.color).toBe('');
+    expect(colorDelMueble(m)).toBe('#f1f5f9'); // blanco
+    expect(colorDelMueble({ ...m, color: '#dc2626' })).toBe('#dc2626');
+    expect(validarMueble({ ...m, color: 'rojo' }, P)).toBe('Color inválido');
+    expect(validarMueble({ ...m, color: '#dc2626' }, P)).toBeNull();
+  });
+
+  it('mesada: color de tapa y de estantes opcionales', () => {
+    expect(generarMesada(P, mesada()).colorTapa).toBe('');
+    expect(generarMesada(P, mesada({ colorTapa: '#111827' })).colorTapa).toBe('#111827');
+    expect(validarMesada(mesada({ colorEstantes: '#12345' }), P)).toBe('Color inválido');
+    expect(validarMesada(mesada({ colorTapa: '#ffffff', colorEstantes: '' }), P)).toBeNull();
+  });
+
+  it('los muebles de antes quedan con el color de su material', () => {
+    const { color, ...viejo } = muebleNuevo('cama1', [], 1);
+    expect(color).toBe('');
+    expect(migrarParams({ ...P, muebles: [viejo] }).muebles[0].color).toBe('');
   });
 });

@@ -1336,7 +1336,7 @@ export default function App() {
           {/* v1.38: interiores. Las mesadas van al presupuesto; los muebles son para dimensionar. */}
           <PanelMesadas params={params} unidad={unidad} cambiar={cambiar} paneles={paneles}
             perfiles={perfilesDeLista(catalogoConPrecios)} generadas={estructura.mesadas}
-            perfilGeneral={catalogoResuelto.find((i) => i.id === INSUMO.ESTRUCTURA_MESADA)?.perfil ?? ''} />
+            perfilGeneral={catalogoResuelto.find((i) => i.id === INSUMO.ESTRUCTURA_MESADA)?.perfil ?? ''} colores={colores} />
           {moduloMuebles && <PanelMuebles params={params} unidad={unidad} cambiar={cambiar} />}
 
           </section>

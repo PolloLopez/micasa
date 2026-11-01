@@ -42,6 +42,15 @@ function materiales() {
   return materialesMuebles;
 }
 
+// v1.38.2: materiales de colores propios (muebles, tapas, estantes), creados una vez por color y brillo.
+const porColor = new Map();
+/** Material de un color elegido a mano. @param base { metal, aspereza } (de MATERIALES_MUEBLE) */
+export function materialDeColor(color, base = { metal: 0, aspereza: 0.7 }) {
+  const clave = `${color}|${base.metal}|${base.aspereza}`;
+  if (!porColor.has(clave)) porColor.set(clave, new THREE.MeshStandardMaterial({ color, metalness: base.metal, roughness: base.aspereza }));
+  return porColor.get(clave);
+}
+
 /**
  * Cajas de cada forma, en coordenadas del mueble: x = ancho (centrado), y = alto (desde el piso),
  * z = profundidad (centrada; +z es el FRENTE del mueble). Cada caja: [ancho, alto, prof, x, y, z, material].
@@ -107,7 +116,9 @@ function cajasDe(forma, ancho, alto, prof, mat) {
 export function dibujarMueble(params, mueble) {
   const { centro, angulo, y } = ubicarMueble(params, mueble);
   const forma = TIPOS_MUEBLE[mueble.tipo]?.forma ?? 'caja';
-  const mat = materiales()[mueble.material] ?? materiales().madera;
+  // v1.38.2: con color propio, el mismo brillo de su material pero de ese color.
+  const base = MATERIALES_MUEBLE[mueble.material] ?? MATERIALES_MUEBLE.madera;
+  const mat = mueble.color ? materialDeColor(mueble.color, base) : (materiales()[mueble.material] ?? materiales().madera);
   const grupo = new THREE.Group();
   cajasDe(forma, mueble.ancho, mueble.alto, mueble.profundidad, mat).forEach(([a, h, p, x, yy, z, material]) => {
     if (!(a > 0 && h > 0 && p > 0)) return;

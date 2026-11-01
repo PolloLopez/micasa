@@ -214,6 +214,7 @@ techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 
 - 2026-10-23 v1.25.0: proveedores, precios en efectivo/tarjeta por proveedor, comparar presupuestos y "lo más barato de cada material".
 - 2026-10-23 v1.26.0: pestaña Planos (paredes y plantas acotadas, listas de corte, revestimiento), en el PDF y en Excel.
 - 2026-10-25 v1.30.0: link compacto (la mitad) y links cortos en Firebase para ver/editar que guardan los cambios.
+- 2026-11-01 v1.38.2: colores propios (mueble.color, mesada.colorTapa/colorEstantes; '' = el de fábrica), SelectorColor único y capas en pestañas.
 - 2026-11-01 v1.38.1: etiquetas de mesadas y muebles (mostrarEtiqueta por cada uno + capas etiquetasMesadas/etiquetasMuebles).
 - 2026-11-01 v1.38.0: mesadas (motor/interiores.js, PanelMesadas, interiores3d.js) con estructura, revestimiento, tapa, estantes, huecos y zócalo; muebles (PanelMuebles, módulo); sol más fuerte con intensidad regulable.
 - 2026-10-31 v1.37.0: módulo Sol (motor/sol.js, PanelSol, luz con sombras) y pilotines con módulo elegibles (ejes.pilotinesModulo).

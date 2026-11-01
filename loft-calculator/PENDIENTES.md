@@ -33,7 +33,8 @@
   sale de la planta.
   - 🟢 [ ] Foto del frente pegada en su cara; fotos guardadas en este navegador (achicadas), no viajan en el link.
   - 🟢 [ ] Muebles en el plano de planta; mover con el mouse en el 3D.
-  - 🟢 [ ] Color propio por mueble y color de tapa por mesada (hoy: color del material / de la capa).
+  - ✅ Color propio por mueble y color de tapa y estantes por mesada (v1.38.2).
+- ✅ Capas en pestañas, una sección a la vez, sin tapar el 3D (v1.38.2).
 - ✅ Etiquetas de mesadas y muebles en el 3D, apagables una por una y por capa (v1.38.1).
 - ✅ **Sol más fuerte** (v1.38.0): intensidad regulable (50–300 %, 150 % de fábrica).
 

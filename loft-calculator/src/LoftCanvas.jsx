@@ -21,8 +21,9 @@ import { hayDialogoAbierto } from './componentes/useDialogo.js';
 import { useEstadoGuardado } from './hooks/useEstadoGuardado.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { LADOS } from './motor/constantes.js';
-import { CAPAS, AYUDAS, GRUPOS_LEYENDA, CAPAS_TERRENO, CAPAS_MESADAS, CAPAS_MUEBLES, capaDelProyecto } from './capas.js';
-import { losaGruesa, dibujarMueble } from './interiores3d.js';
+import { CAPAS, AYUDAS, GRUPOS_LEYENDA, CAPAS_TERRENO, CAPAS_MESADAS, CAPAS_MUEBLES, COLORES_INICIALES, capaDelProyecto } from './capas.js';
+import SelectorColor from './componentes/SelectorColor.jsx';
+import { losaGruesa, dibujarMueble, materialDeColor } from './interiores3d.js';
 import { ubicarMueble } from './motor/interiores.js';
 import { posicionAbertura, listarPiezas } from './motor/estructura.js';
 import { geometriaLados, nombreLado } from './motor/geometria.js';
@@ -469,8 +470,11 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
   if (capas.tapasMesada && grupoVisible('mesada')) {
     (e.mesadas ?? []).forEach((m) => {
       const { tapa, frente, costados, zocalo, estantes, espesorTapa } = m.dibujo;
-      if (espesorTapa > 0) grupo.add(losaGruesa(tapa, espesorTapa, materiales.tapasMesada));
-      estantes.forEach((esq) => grupo.add(losaGruesa(esq, 0.018, materiales.escalones, false)));
+      // v1.38.2: cada mesada puede tener su color de tapa y de estantes ('' = el de la capa).
+      const matTapa = m.colorTapa ? materialDeColor(m.colorTapa, { metal: 0.1, aspereza: 0.35 }) : materiales.tapasMesada;
+      const matEstantes = m.colorEstantes ? materialDeColor(m.colorEstantes) : materiales.escalones;
+      if (espesorTapa > 0) grupo.add(losaGruesa(tapa, espesorTapa, matTapa));
+      estantes.forEach((esq) => grupo.add(losaGruesa(esq, 0.018, matEstantes, false)));
       if (!m.panel) return; // sin revestimiento: se ve la estructura
       const mats = materialesPanel.get(m.panel);
       const [ax, az] = m.ejes.adentro;
@@ -1212,6 +1216,8 @@ export default function LoftCanvas({
   // Leyenda de capas plegable: en pantallas chicas arranca plegada para no tapar el modelo.
   // v1.34.2: el panel de capas arranca CERRADO (tapaba el 3D) y recuerda cómo lo dejaste en este navegador.
   const [capasAbiertas, setCapasAbiertas] = useEstadoGuardado('capasAbiertas', false, (v) => typeof v === 'boolean');
+  // v1.38.2: qué sección de capas se ve (Estructura, Superficies…), recordada en este navegador.
+  const [seccionCapas, setSeccionCapas] = useEstadoGuardado('seccionCapas', 'Estructura', (v) => typeof v === 'string');
   // Esc lo cierra (salvo que se esté escribiendo en un campo o haya un diálogo abierto).
   useEffect(() => {
     if (!capasAbiertas) return undefined;
@@ -1245,9 +1251,8 @@ export default function LoftCanvas({
       <span key={clave} className={`capa${capas[clave] ? '' : ' apagada'}`}>
         <input type="checkbox" checked={capas[clave]} onChange={() => alternarCapa(clave)} aria-label={`Mostrar ${nombre}`} />
         {conColor && (
-          <input type="color" className="muestra" value={colores[clave]}
-            onChange={(e) => onCambiarColor(clave, e.target.value)} aria-label={`Color de ${nombre}`}
-            title={`Cambiar color de ${nombre}`} />
+          <SelectorColor valor={colores[clave]} porDefecto={COLORES_INICIALES[clave]} nombre={nombre}
+            onCambio={(c) => onCambiarColor(clave, c)} onRestablecer={() => onCambiarColor(clave, COLORES_INICIALES[clave])} />
         )}
         <span onClick={() => alternarCapa(clave)} title={titulo}>{nombre}</span>
       </span>
@@ -1264,6 +1269,45 @@ export default function LoftCanvas({
   ];
   /** "todo / nada" de las partes (paredes, techo, pisos…). */
   const ponerPartes = (valor) => setGruposVisibles((prev) => ({ ...prev, ...Object.fromEntries(partes.map((p) => [p.clave, valor])) }));
+
+  // v1.38.2: secciones de la leyenda (una visible a la vez). Cada una: título, contenido y "todo / nada".
+  const secciones = [
+    ...GRUPOS_LEYENDA.map(({ titulo, capas: clavesGrupo }) => {
+      // Terreno solo con el módulo prendido y la obra con terreno; Interiores solo si hay mesadas o muebles.
+      const visibles = clavesGrupo.filter((clave) => capaDelProyecto(clave, tipoProyecto)
+        && (!(CAPAS_TERRENO.includes(clave) || clave === 'etiquetasTerreno') || obraConTerreno)
+        && (!CAPAS_MESADAS.includes(clave) || hayMesadas)
+        && (!CAPAS_MUEBLES.includes(clave) || hayMuebles));
+      return visibles.length === 0 ? null
+        : { titulo, contenido: visibles.map((clave) => casillaCapa(clave)), todoNada: (valor) => ponerCapas(visibles, valor) };
+    }).filter(Boolean),
+    {
+      titulo: 'Opacidad',
+      // Grada y montaje no tienen paneles ni OSB: solo la opacidad de los hierros.
+      contenido: OPACIDADES.filter(({ clave }) => (clave === 'terreno' ? obraConTerreno : clave === 'hierros' || (!esGrada && !esMontaje)))
+        .map(({ clave, nombre }) => (
+          <label key={clave} className="capa control-opacidad">
+            {nombre}
+            <input type="range" min="0.05" max="1" step="0.05" value={opacidades[clave] ?? 1}
+              aria-label={`Opacidad de ${nombre}`} onChange={(e) => onCambiarOpacidad(clave, Number(e.target.value))} />
+            <span className="valor-opacidad">{Math.round((opacidades[clave] ?? 1) * 100)} %</span>
+          </label>
+        )),
+    },
+    {
+      // Partes completas: ocultar una oculta su panel Y sus hierros.
+      titulo: 'Partes',
+      contenido: partes.map(({ clave, nombre }) => (
+        <span key={clave} className="capa">
+          <input type="checkbox" checked={gruposVisibles[clave] !== false} onChange={() => alternarGrupo(clave)}
+            aria-label={`Mostrar ${nombre} completo`} />
+          <span onClick={() => alternarGrupo(clave)}>{nombre}</span>
+        </span>
+      )),
+      todoNada: (valor) => ponerPartes(valor),
+    },
+  ];
+  const seccion = secciones.find((x) => x.titulo === seccionCapas) ?? secciones[0];
 
   // La pieza seleccionada puede desaparecer (se eliminó o cambió una medida).
   const piezaSeleccionada = seleccionada ? listarPiezas(estructura).find((p) => p.id === seleccionada) : null;
@@ -1386,58 +1430,30 @@ export default function LoftCanvas({
         </div>
       )}
 
+      {/* v1.38.2: capas en pestañas (una sección a la vez, a la izquierda): antes todas juntas tapaban el 3D. */}
       <div className={`capas no-print${capasAbiertas ? '' : ' plegada'}`} role="group" aria-label="Capas visibles">
         <button type="button" className="btn-ctrl btn-capas" aria-expanded={capasAbiertas}
           onClick={() => setCapasAbiertas((v) => !v)}>
-          {capasAbiertas ? '▾ Capas y colores' : '▸ Capas y colores'}
+          {capasAbiertas ? '▾ Capas' : '▸ Capas'}
         </button>
         {capasAbiertas && (<>
-        {/* v1.19: capas agrupadas (Estructura · Superficies · Ayudas), cada grupo con "todo / nada". */}
-        {GRUPOS_LEYENDA.map(({ titulo, capas: clavesGrupo }) => {
-          // La capa Terreno solo si el módulo está prendido y la obra tiene terreno (v1.32).
-          const visibles = clavesGrupo.filter((clave) => capaDelProyecto(clave, tipoProyecto)
-            && (!(CAPAS_TERRENO.includes(clave) || clave === 'etiquetasTerreno') || obraConTerreno)
-            && (!CAPAS_MESADAS.includes(clave) || hayMesadas) // v1.38: solo si hay
-            && (!CAPAS_MUEBLES.includes(clave) || hayMuebles));
-          if (visibles.length === 0) return null;
-          return (
-            <span key={titulo} className="capas-paneles grupo-capas" role="group" aria-label={titulo}>
-              <strong className="titulo-grupo">{titulo}</strong>
-              <button type="button" className="btn-mini" onClick={() => ponerCapas(visibles, true)}
-                aria-label={`Mostrar todo ${titulo}`}>todo</button>
-              <button type="button" className="btn-mini" onClick={() => ponerCapas(visibles, false)}
-                aria-label={`Ocultar todo ${titulo}`}>nada</button>
-              {visibles.map((clave) => casillaCapa(clave))}
-            </span>
-          );
-        })}
-        {/* Opacidad: de "se ve a través" a sólido, para ver cómo queda cerrada. */}
-        <span className="capas-paneles capas-opacidad">
-          <strong className="titulo-grupo">Opacidad</strong>
-          {/* Grada y montaje no tienen paneles ni OSB: solo la opacidad de los hierros. */}
-          {OPACIDADES.filter(({ clave }) => (clave === 'terreno' ? obraConTerreno : clave === 'hierros' || (!esGrada && !esMontaje)))
-            .map(({ clave, nombre }) => (
-              <label key={clave} className="capa control-opacidad">
-                {nombre}
-                <input type="range" min="0.05" max="1" step="0.05" value={opacidades[clave] ?? 1}
-                  aria-label={`Opacidad de ${nombre}`} onChange={(e) => onCambiarOpacidad(clave, Number(e.target.value))} />
-                <span className="valor-opacidad">{Math.round((opacidades[clave] ?? 1) * 100)} %</span>
-              </label>
+          <div className="pestanas-capas" role="tablist" aria-label="Secciones de capas">
+            {secciones.map(({ titulo }) => (
+              <button key={titulo} type="button" role="tab" aria-selected={titulo === seccion.titulo}
+                className={`chip-capas${titulo === seccion.titulo ? ' activa' : ''}`} onClick={() => setSeccionCapas(titulo)}>
+                {titulo}
+              </button>
             ))}
-        </span>
-        {/* Partes completas: ocultar una oculta su panel Y sus hierros. */}
-        <span className="capas-paneles">
-          <strong className="titulo-grupo">Partes</strong>
-          <button type="button" className="btn-mini" onClick={() => ponerPartes(true)} aria-label="Mostrar todas las partes">todo</button>
-          <button type="button" className="btn-mini" onClick={() => ponerPartes(false)} aria-label="Ocultar todas las partes">nada</button>
-          {partes.map(({ clave, nombre }) => (
-            <span key={clave} className="capa">
-              <input type="checkbox" checked={gruposVisibles[clave] !== false} onChange={() => alternarGrupo(clave)}
-                aria-label={`Mostrar ${nombre} completo`} />
-              <span onClick={() => alternarGrupo(clave)}>{nombre}</span>
-            </span>
-          ))}
-        </span>
+          </div>
+          <div className="contenido-capas" role="group" aria-label={seccion.titulo}>
+            {seccion.todoNada && (
+              <span className="todo-nada">
+                <button type="button" className="btn-mini" onClick={() => seccion.todoNada(true)} aria-label={`Mostrar todo ${seccion.titulo}`}>todo</button>
+                <button type="button" className="btn-mini" onClick={() => seccion.todoNada(false)} aria-label={`Ocultar todo ${seccion.titulo}`}>nada</button>
+              </span>
+            )}
+            {seccion.contenido}
+          </div>
         </>)}
       </div>
     </div>
