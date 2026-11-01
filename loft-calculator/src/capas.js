@@ -25,7 +25,15 @@ export const CAPAS = {
   grada: { nombre: 'Grada', color: '#a855f7' }, // hierros de la grada
   montaje: { nombre: 'Estructura', color: '#f59e0b' }, // hierros de un montaje (mesas, patas de tanques)
   chapa: { nombre: 'Chapa', color: '#cbd5e1' }, // tanques y tapas de chapa (semitransparente)
+  // v1.38: interiores (solo si la obra tiene mesadas o muebles).
+  mesadas: { nombre: 'Estructura de mesadas', color: '#a78bfa' }, // hierros de las mesadas
+  tapasMesada: { nombre: 'Tapas, placas y estantes', color: '#57534e' }, // el color es el de la tapa (granito); las placas, el de su revestimiento
+  muebles: { nombre: 'Muebles', color: '#a16207', colorPorTipo: true, titulo: 'El color es el material de cada mueble' },
 };
+
+/** Capas de interiores (v1.38): se muestran en la leyenda solo si la obra tiene mesadas (las dos primeras) o muebles. */
+export const CAPAS_MESADAS = ['mesadas', 'tapasMesada'];
+export const CAPAS_MUEBLES = ['muebles'];
 
 /** Capas que se muestran en la leyenda de un proyecto de grada (el resto no tiene piezas). */
 export const CAPAS_GRADA = ['grada', 'escalones'];
@@ -46,6 +54,7 @@ export const CAPAS_TERRENO = ['terrenoLote', 'terrenoCalle', 'terrenoRetiros', '
 export const GRUPOS_LEYENDA = [
   { titulo: 'Estructura', capas: ['pilotines', 'zapatas', 'columnas', 'marcos', 'piso', 'piso2', 'transversales', 'correas', 'techo', 'escalera', 'grada', 'montaje'] },
   { titulo: 'Superficies', capas: ['paneles', 'osb', 'aberturas', 'escalones', 'chapa'] },
+  { titulo: 'Interiores', capas: [...CAPAS_MESADAS, ...CAPAS_MUEBLES] }, // v1.38
   { titulo: 'Ayudas', capas: ['juntas', 'cotas', 'medidasFijas'] },
   // v1.34.3: cada parte del terreno por separado (solo si la obra tiene terreno).
   { titulo: 'Terreno', capas: CAPAS_TERRENO },

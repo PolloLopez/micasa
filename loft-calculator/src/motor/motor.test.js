@@ -354,7 +354,8 @@ describe('calcularPresupuesto', () => {
     // (v1.29: los accesorios solo si tienen cantidad cargada; los de fábrica arrancan en 0.)
     const esperados = CATALOGO_INICIAL.filter((p) => !['hierro', 'proveedor', 'accesorio'].includes(p.categoria)).map((p) => p.id)
       .filter((id) => !INSUMOS_GRADA.includes(id) && !INSUMOS_MONTAJE.includes(id) && id !== INSUMO.RIOSTRA && id !== INSUMO.MONTANTE
-        && id !== INSUMO.HORMIGON_ZAPATA && id !== INSUMO.EXCAVACION); // v1.35: solo con zapatas
+        && id !== INSUMO.HORMIGON_ZAPATA && id !== INSUMO.EXCAVACION // v1.35: solo con zapatas
+        && ![INSUMO.ESTRUCTURA_MESADA, INSUMO.TAPA_MESADA, INSUMO.ESTANTE_MESADA].includes(id)); // v1.38: solo con mesadas
     expect(items.map((i) => i.id).sort()).toEqual(esperados.sort());
   });
 

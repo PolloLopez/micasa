@@ -44,6 +44,9 @@ export const INSUMO = {
   PILOTIN: 'pilotin',
   HORMIGON_ZAPATA: 'hormigonZapata', // v1.35: hormigón de las zapatas (m³)
   EXCAVACION: 'excavacion', // v1.35: excavación de los pozos de las zapatas (m³)
+  ESTRUCTURA_MESADA: 'estructuraMesada', // v1.38: perfiles de las mesadas (barras con cortes)
+  TAPA_MESADA: 'tapaMesada', // v1.38: tapa de las mesadas (m²)
+  ESTANTE_MESADA: 'estanteMesada', // v1.38: estantes bajo mesada (m²)
   ZANCA: 'zanca',
   APOYO_ESCALON: 'apoyoEscalon',
   COLUMNA_ESCALERA: 'columnaEscalera',

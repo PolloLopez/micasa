@@ -30,6 +30,7 @@ import { generarGrada } from './grada.js';
 import { generarMontaje } from './montaje.js';
 import { aplicarEdicion } from './edicionPiezas.js';
 import { piezasDeAgregadas } from './piezasAgregadas.js';
+import { generarMesadas } from './interiores.js';
 import { aplicarUniones, completarUniones } from './uniones.js';
 import { completarEjes, marcasDelModulo, lineasCada, subdividir, unirPilotines } from './ejes.js';
 
@@ -776,6 +777,7 @@ export function listarPiezas(e) {
     ...(e.grada?.piezas ?? []),
     ...(e.montaje?.piezas ?? []),
     ...(e.agregadas ?? []), // v1.16: duplicadas a mano
+    ...(e.mesadas ?? []).flatMap((m) => m.piezas), // v1.38: estructura de las mesadas
   ];
 }
 
@@ -800,6 +802,7 @@ function transformarPiezas(e, cambiar) {
     grada: e.grada ? { ...e.grada, piezas: t(e.grada.piezas) } : null,
     montaje: e.montaje ? { ...e.montaje, piezas: t(e.montaje.piezas) } : null,
     agregadas: t(e.agregadas ?? []),
+    mesadas: (e.mesadas ?? []).map((m) => ({ ...m, piezas: t(m.piezas) })), // v1.38
   };
 }
 
@@ -882,6 +885,7 @@ export function generarEstructura(params, aberturas, catalogo = null) {
     paredes,
     entrepiso,
     agregadas: piezasDeAgregadas(params.piezasAgregadas), // v1.16: duplicadas a mano
+    mesadas: generarMesadas(params), // v1.38: estructura, revestimiento, tapa y estantes
     superficies: {
       piso: planta.largoU * planta.largoV,
       piso2: entrepiso ? entrepiso.largoU * entrepiso.largoV : 0,
@@ -921,7 +925,13 @@ const CAMPO_DE_TIPO = {
   solera: 'perfilMarcos', 'marco-piso': 'perfilMarcos',
 };
 function marcarPerfilesDePared(e, params) {
+  const mesadas = new Map((params.mesadas ?? []).map((m) => [String(m.id), m]));
   return transformarPiezas(e, (p) => {
+    // v1.38: la pieza de una mesada lleva el perfil de su mesada (también después de editarla a mano).
+    if (p.tipo === 'mesada') {
+      const m = mesadas.get(p.id.split(':')[1]);
+      return m?.perfil ? { ...p, perfilPared: m.perfil, ladoPared: m.nombre, mesada: m.id } : { ...p, mesada: m?.id };
+    }
     const campo = CAMPO_DE_TIPO[p.tipo];
     if (!campo) return p;
     // El marco de piso está en el grupo 'piso'; su pared sale del id (marco-piso:A).

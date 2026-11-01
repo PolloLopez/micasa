@@ -48,6 +48,7 @@ import { ESCALERA_INICIAL } from './escalera.js';
 import { completarTerreno } from './terreno.js';
 import { completarUniones } from './uniones.js';
 import { completarEjes, completarPilotin } from './ejes.js';
+import { MESADA_NUEVA } from './interiores.js';
 import { completarSol } from './sol.js';
 import { GRADA_INICIAL } from './grada.js';
 import { MONTAJE_INICIAL } from './montaje.js';
@@ -105,6 +106,9 @@ export function migrarParams(params) {
   nuevos.uniones = completarUniones(nuevos.uniones);
   nuevos.pilotin = completarPilotin(nuevos.pilotin); // v1.36: redondo de 30 cm (como se dibujaba)
   nuevos.ejes = completarEjes(nuevos.ejes); // v1.36: sin modulación
+  // v1.38: mesadas y muebles (los proyectos de antes, sin ninguno).
+  nuevos.mesadas = Array.isArray(nuevos.mesadas) ? nuevos.mesadas.map((m) => ({ ...MESADA_NUEVA, ...m, huecos: Array.isArray(m?.huecos) ? m.huecos : [] })) : [];
+  nuevos.muebles = Array.isArray(nuevos.muebles) ? nuevos.muebles : [];
   nuevos.sol = completarSol(nuevos.sol); // v1.37: Mercedes // v1.33: con descuentos en los cruces (lo correcto)
   nuevos.piezasEditadas ??= {}; // v1.8
   nuevos.piezasAgregadas ??= []; // v1.16: piezas duplicadas a mano
@@ -251,6 +255,7 @@ const RENGLONES_QUE_COPIAN = {
   [INSUMO.BORDE_PISO]: INSUMO.MARCO, // v1.28: antes el borde de piso iba con las soleras
   [INSUMO.BORDE_TECHO]: INSUMO.VIGA_TECHO, // v1.28
   [INSUMO.COLUMNA_ENTREPISO]: INSUMO.COLUMNA, // v1.28: antes iban con las columnas
+  [INSUMO.ESTRUCTURA_MESADA]: INSUMO.MONTAJE_MARCO, // v1.38: el mismo caño 40x40 de fábrica
 };
 
 /** Un accesorio guardado (v1.29): se conserva si tiene id; los textos se recortan y la cantidad se valida. */

@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.38.0] - 2026-11-01
+### Agregado
+- **Mesadas** (Paredes y aberturas → Mesadas): contra una pared, medidas como las aberturas (desde la esquina vista
+  desde afuera); largo, profundidad, alto y espesor de tapa. **Estructura** con el perfil que elijas de tu lista
+  (fondo al piso, frente, travesaños, montantes cada X), **revestimiento** de tu lista al frente y a los costados
+  (cada costado se puede dejar sin placa si da contra una pared), **estantes**, **zócalo para el pie** (retirado, con
+  patas) y **huecos bajo mesada** (heladera, lavarropas: sin estructura ni placa al frente). Va al 3D (capas
+  "Estructura de mesadas" y "Tapas, placas y estantes"), al presupuesto (estructura en barras con cortes, tapa y
+  estantes en m², placas con los paños de siempre) y se puede editar pieza por pieza.
+- **Muebles y electrodomésticos** (módulo): cama, mesa, silla, sillón, escritorio, placard, heladera, cocina,
+  lavarropas, inodoro, plato de ducha u otro, con las medidas que cargues, material (madera, blanco, acero, tela,
+  negro), distancia al lateral izquierdo y al frente, giro de a 90° y nivel. Avisa si se sale de la planta. No suman al
+  presupuesto.
+### Cambiado
+- **Sol más fuerte**: la luz del sol arranca al 150 % y se regula de 50 % a 300 % en el panel ☀ Sol.
+
 ## [1.37.0] - 2026-10-31
 ### Agregado
 - **Sol** (módulo nuevo, botón "☀ Sol" en el 3D): luz del sol del día y la hora que elijas, con **sombras**;

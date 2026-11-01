@@ -23,11 +23,17 @@
   POR CARA de la lista de revestimientos (Durlock común, verde para húmedos, cementicia…) con placas y recortes.
   Ubicación con medidas: paralelo a una pared, a X m de ella, desde Y m de la esquina, largo; alto hasta el techo,
   hasta el piso 2 o una medida. Puede llevar puerta (las aberturas de siempre). En 3D y planta.
-- 🔴 [ ] **Mesada**: estructura (perfiles de la lista) contra una pared; largo, profundidad, alto (0,90 de fábrica);
-  Durlock al frente y costados; tapa aparte (granito, madera… m² o pieza); huecos bajo mesada (heladera, lavarropas,
-  bacha) sin estructura al frente; estantes interiores; zócalo para el pie (retirado).
-- 🟢 [ ] **Muebles** (módulo): formas por tipo + materiales; foto del frente pegada en su cara; fotos guardadas en
-  este navegador (achicadas), no viajan en el link.
+- ✅ **Mesada** (v1.38.0): estructura (perfil de la lista) contra una pared; largo, profundidad, alto; revestimiento
+  de la lista al frente y costados; tapa y estantes en m²; huecos bajo mesada sin estructura al frente; zócalo
+  retirado con patas. En 3D, presupuesto y diagrama de cortes.
+  - 🟡 [ ] Validar con el herrero cómo arma la estructura (fondo al piso, patas del zócalo, travesaños arriba y abajo).
+  - 🟢 [ ] Mesadas en los planos (planta y vista de frente acotada).
+  - 🟢 [ ] Mesada en L (dos tramos unidos en la esquina); bacha (hueco en la tapa).
+- ✅ **Muebles** (módulo, v1.38.0): por tipo con medidas a mano, material, distancias, giro y nivel; aviso si se
+  sale de la planta.
+  - 🟢 [ ] Foto del frente pegada en su cara; fotos guardadas en este navegador (achicadas), no viajan en el link.
+  - 🟢 [ ] Muebles en el plano de planta; mover con el mouse en el 3D.
+- ✅ **Sol más fuerte** (v1.38.0): intensidad regulable (50–300 %, 150 % de fábrica).
 
 ## Uniones y marcos (v1.33.0, pedido de Leandro 27/10)
 - ✅ Fajas cortadas en los vanos; uniones en red con jerarquía y luz; perfil propio del marco de cada abertura.

@@ -105,6 +105,10 @@ export const PARAMS_INICIALES = {
 
   // v1.33: cómo se unen las piezas que se cruzan (ver motor/uniones.js). 'red' = se descuenta el perfil entero.
   uniones: structuredClone(UNIONES_INICIALES),
+
+  // v1.38: interiores (ver motor/interiores.js). Mesadas con estructura y revestimiento; muebles para dimensionar.
+  mesadas: [],
+  muebles: [],
 };
 
 export const ABERTURAS_INICIALES = [

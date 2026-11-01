@@ -27,6 +27,8 @@ import BarraPestanas from './componentes/BarraPestanas.jsx';
 import PanelEscalera from './componentes/PanelEscalera.jsx';
 import PanelTerreno from './componentes/PanelTerreno.jsx';
 import TarjetaUniones from './componentes/TarjetaUniones.jsx';
+import PanelMesadas from './componentes/PanelMesadas.jsx';
+import PanelMuebles from './componentes/PanelMuebles.jsx';
 import { OPCIONES_PISO } from './motor/uniones.js';
 import { PILOTINES_CON_MODULO } from './motor/ejes.js';
 import { implantacion as calcularImplantacion } from './motor/terreno.js';
@@ -298,6 +300,7 @@ export default function App() {
   // v1.32: la casa en su terreno (distancias, avisos) y el pedido para que el 3D muestre todo el lote.
   // Módulo Terreno (se puede apagar por instalación, ver modulos.js): apagado, no se muestra nada (los datos quedan).
   const moduloTerreno = moduloActivo('terreno');
+  const moduloMuebles = moduloActivo('muebles'); // v1.38
   const implantacion = useMemo(() => (moduloTerreno ? calcularImplantacion(params) : null), [params, moduloTerreno]);
   const [pedidoVerTerreno, setPedidoVerTerreno] = useState(0);
   const verTerreno = () => {
@@ -1329,6 +1332,12 @@ export default function App() {
               );
             })}
           </Tarjeta>
+
+          {/* v1.38: interiores. Las mesadas van al presupuesto; los muebles son para dimensionar. */}
+          <PanelMesadas params={params} unidad={unidad} cambiar={cambiar} paneles={paneles}
+            perfiles={perfilesDeLista(catalogoConPrecios)} generadas={estructura.mesadas}
+            perfilGeneral={catalogoResuelto.find((i) => i.id === INSUMO.ESTRUCTURA_MESADA)?.perfil ?? ''} />
+          {moduloMuebles && <PanelMuebles params={params} unidad={unidad} cambiar={cambiar} />}
 
           </section>
           )}

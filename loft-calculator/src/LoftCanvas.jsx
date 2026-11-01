@@ -21,7 +21,8 @@ import { hayDialogoAbierto } from './componentes/useDialogo.js';
 import { useEstadoGuardado } from './hooks/useEstadoGuardado.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { LADOS } from './motor/constantes.js';
-import { CAPAS, AYUDAS, GRUPOS_LEYENDA, CAPAS_TERRENO, capaDelProyecto } from './capas.js';
+import { CAPAS, AYUDAS, GRUPOS_LEYENDA, CAPAS_TERRENO, CAPAS_MESADAS, CAPAS_MUEBLES, capaDelProyecto } from './capas.js';
+import { losaGruesa, dibujarMueble } from './interiores3d.js';
 import { posicionAbertura, listarPiezas } from './motor/estructura.js';
 import { geometriaLados, nombreLado } from './motor/geometria.js';
 import { describirPieza } from './descripcionPiezas.js';
@@ -76,6 +77,7 @@ const ESTILO_PIEZA = {
   'mont-pata': { capa: 'montaje', seccion: 0.06 },
   'mont-marco': { capa: 'montaje', seccion: 0.05 },
   'mont-travesano': { capa: 'montaje', seccion: 0.045 },
+  mesada: { capa: 'mesadas', seccion: 0.035 }, // v1.38
 };
 
 /**
@@ -90,6 +92,7 @@ const INSUMO_POR_TIPO = {
   'grada-zanca': INSUMO.GRADA_ZANCA, 'grada-parante': INSUMO.GRADA_PARANTE, 'grada-apoyo': INSUMO.GRADA_APOYO,
   'grada-viga': INSUMO.GRADA_VIGA, 'grada-union': INSUMO.GRADA_UNION,
   'mont-pata': INSUMO.MONTAJE_PATA, 'mont-marco': INSUMO.MONTAJE_MARCO, 'mont-travesano': INSUMO.MONTAJE_MARCO,
+  mesada: INSUMO.ESTRUCTURA_MESADA, // v1.38: con el grosor del caño elegido
 };
 
 /** Grosor con el que se dibuja una pieza: el de su caño (catálogo) o el fijo de su tipo. */
@@ -162,7 +165,7 @@ const OPACIDADES = [
 ];
 
 /** Capas de hierro (todas menos superficies y madera): comparten la opacidad "Hierros". */
-const CAPAS_SUPERFICIE = ['paneles', 'osb', 'aberturas', 'chapa', 'escalones', 'zapatas']; // zapatas: hormigón, no hierro
+const CAPAS_SUPERFICIE = ['paneles', 'osb', 'aberturas', 'chapa', 'escalones', 'zapatas', 'tapasMesada', 'muebles']; // zapatas: hormigón, no hierro
 const CAPAS_HIERRO = Object.keys(CAPAS).filter((c) => !CAPAS_SUPERFICIE.includes(c));
 
 /** Opacidad de un material: 1 = sólido (tapa lo de atrás); menos = se ve a través. */
@@ -459,6 +462,32 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
       // Las esquinas del techo ya están arriba de las correas; embutido baja entre las vigas.
       dibujar(e.techo.esquinas, e.techo.panel, [0, 1, 0], tipoTecho?.ubicacion === 'eje' ? -0.13 : (tipoTecho?.espesor ?? 50) / 2000);
     }
+  }
+
+  // v1.38: mesadas (tapa, placas del revestimiento y estantes) y muebles.
+  if (capas.tapasMesada && grupoVisible('mesada')) {
+    (e.mesadas ?? []).forEach((m) => {
+      const { tapa, frente, costados, zocalo, estantes, espesorTapa } = m.dibujo;
+      if (espesorTapa > 0) grupo.add(losaGruesa(tapa, espesorTapa, materiales.tapasMesada));
+      estantes.forEach((esq) => grupo.add(losaGruesa(esq, 0.018, materiales.escalones, false)));
+      if (!m.panel) return; // sin revestimiento: se ve la estructura
+      const mats = materialesPanel.get(m.panel);
+      const [ax, az] = m.ejes.adentro;
+      const [lx, lz] = m.ejes.alongo;
+      // Cada placa corrida 1 cm hacia afuera de los perfiles, con su cara de color mirando afuera.
+      const placa = (esquinas, haciaAfuera) => {
+        const d = haciaAfuera.map((c) => c * 0.01);
+        const movidas = esquinas.map((q) => [q[0] + d[0], q[1], q[2] + d[2]]);
+        grupo.add(mats ? panelDosCaras(movidas, mats, haciaAfuera) : cuadrilatero(movidas, materiales.paneles));
+      };
+      frente.forEach((esq) => placa(esq, [ax, 0, az]));
+      zocalo.forEach((esq) => placa(esq, [ax, 0, az]));
+      // Costados: el izquierdo mira hacia la izquierda de la mesada, el derecho hacia la derecha.
+      costados.forEach(({ signo, esquinas }) => placa(esquinas, [signo * lx, 0, signo * lz]));
+    });
+  }
+  if (capas.muebles && moduloActivo('muebles') && params.tipoProyecto === 'construccion') {
+    (params.muebles ?? []).forEach((mueble) => grupo.add(dibujarMueble(params, mueble)));
   }
 
   // Juntas de los paneles (v1.16): dónde termina cada tira o placa, para acomodar las aberturas.
@@ -1000,12 +1029,16 @@ export default function LoftCanvas({
   // Se abre con "☀ Sol": luz del sol del día y la hora elegidos, con sombras. Es de la sesión (no se guarda en
   // el proyecto); el lugar (latitud, longitud, huso) y el norte sí son del proyecto.
   const moduloSol = moduloActivo('sol') && params.tipoProyecto === 'construccion';
+  // v1.38: la leyenda muestra Interiores solo si la obra tiene mesadas o muebles.
+  const hayMesadas = params.tipoProyecto === 'construccion' && (params.mesadas?.length ?? 0) > 0;
+  const hayMuebles = moduloActivo('muebles') && params.tipoProyecto === 'construccion' && (params.muebles?.length ?? 0) > 0;
   const hoy = new Date();
   const [sol, setSol] = useState(() => ({
     activo: false,
     fecha: `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`,
     hora: 10,
     animando: false,
+    intensidad: 1.5, // v1.38: qué tanto pega el sol (1 = el de antes; Leandro lo quería más fuerte)
   }));
   const cambiarSol = (cambios) => setSol((prev) => ({ ...prev, ...cambios }));
   const lugar = completarSol(params.sol);
@@ -1031,6 +1064,9 @@ export default function LoftCanvas({
     }
     const alto = Math.max(0, Math.sin((posSol.altura * Math.PI) / 180));
     ambiente.intensity = posSol.altura > 0 ? 0.35 + 0.3 * alto : 0.18; // de noche, casi a oscuras
+    // v1.38: intensidad elegible; al amanecer y al atardecer el sol pega menos y más cálido.
+    luzSol.intensity = 2.2 * sol.intensidad * (0.45 + 0.55 * alto);
+    luzSol.color.setHSL(0.11, 1, 0.5 + 0.45 * Math.min(1, alto * 2.5));
     const tamanio = Math.max(params.largo, params.ancho, conTerreno ? Math.max(params.terreno.frente, params.terreno.fondo) : 0) + 10;
     const lejos = tamanio * 1.5;
     luzSol.position.set(haciaSol[0] * lejos, haciaSol[1] * lejos, haciaSol[2] * lejos);
@@ -1039,7 +1075,7 @@ export default function LoftCanvas({
     cam.left = -tamanio; cam.right = tamanio; cam.top = tamanio; cam.bottom = -tamanio;
     cam.near = 0.5; cam.far = lejos * 2.5;
     cam.updateProjectionMatrix();
-  }, [solPrendido, posSol.altura, haciaSol[0], haciaSol[1], haciaSol[2], conTerreno, params.largo, params.ancho, params.terreno]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [solPrendido, posSol.altura, haciaSol[0], haciaSol[1], haciaSol[2], conTerreno, params.largo, params.ancho, params.terreno, sol.intensidad]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Qué tira sombra y qué la recibe (después de cada redibujo). Las aberturas no tiran: por ahí entra el sol.
   useEffect(() => {
@@ -1184,7 +1220,7 @@ export default function LoftCanvas({
     const capa = CAPAS[clave];
     const nombre = capa?.nombre ?? AYUDAS[clave].nombre;
     const conColor = capa && !capa.colorPorTipo;
-    const titulo = capa?.colorPorTipo ? 'Superficies; el color es el de cada tipo de panel' : AYUDAS[clave]?.titulo;
+    const titulo = capa?.titulo ?? (capa?.colorPorTipo ? 'Superficies; el color es el de cada tipo de panel' : AYUDAS[clave]?.titulo);
     return (
       <span key={clave} className={`capa${capas[clave] ? '' : ' apagada'}`}>
         <input type="checkbox" checked={capas[clave]} onChange={() => alternarCapa(clave)} aria-label={`Mostrar ${nombre}`} />
@@ -1340,7 +1376,9 @@ export default function LoftCanvas({
         {GRUPOS_LEYENDA.map(({ titulo, capas: clavesGrupo }) => {
           // La capa Terreno solo si el módulo está prendido y la obra tiene terreno (v1.32).
           const visibles = clavesGrupo.filter((clave) => capaDelProyecto(clave, tipoProyecto)
-            && (!(CAPAS_TERRENO.includes(clave) || clave === 'etiquetasTerreno') || obraConTerreno));
+            && (!(CAPAS_TERRENO.includes(clave) || clave === 'etiquetasTerreno') || obraConTerreno)
+            && (!CAPAS_MESADAS.includes(clave) || hayMesadas) // v1.38: solo si hay
+            && (!CAPAS_MUEBLES.includes(clave) || hayMuebles));
           if (visibles.length === 0) return null;
           return (
             <span key={titulo} className="capas-paneles grupo-capas" role="group" aria-label={titulo}>

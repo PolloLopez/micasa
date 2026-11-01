@@ -36,6 +36,7 @@ export const INSUMO_DE_TIPO = {
   'grada-zanca': INSUMO.GRADA_ZANCA, 'grada-parante': INSUMO.GRADA_PARANTE, 'grada-apoyo': INSUMO.GRADA_APOYO,
   'grada-viga': INSUMO.GRADA_VIGA, 'grada-union': INSUMO.GRADA_UNION,
   'mont-pata': INSUMO.MONTAJE_PATA, 'mont-marco': INSUMO.MONTAJE_MARCO, 'mont-travesano': INSUMO.MONTAJE_MARCO,
+  mesada: INSUMO.ESTRUCTURA_MESADA, // v1.38
 };
 
 /** Renglón de una pieza: el que se le asignó a mano o el de su tipo. */

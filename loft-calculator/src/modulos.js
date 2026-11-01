@@ -27,12 +27,18 @@ export const MODULOS = {
     descripcion: 'Luz del sol de un día y una hora, sombras, animación del día y por qué aberturas entra.',
     desde: '1.37.0',
   },
+  muebles: {
+    nombre: 'Muebles',
+    descripcion: 'Muebles y electrodomésticos con medidas cargadas a mano, para ver cómo entran en el 3D.',
+    desde: '1.38.0',
+  },
 };
 
 // 👉 Lo que va prendido en esta publicación (pollolopez.github.io/micasa).
 const ACTIVOS_EN_ESTA_INSTALACION = {
   terreno: true,
   sol: true,
+  muebles: true,
 };
 
 const entorno = typeof import.meta !== 'undefined' ? import.meta.env ?? {} : {};

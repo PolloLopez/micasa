@@ -16,6 +16,7 @@ import { revisarAgregadas } from './piezasAgregadas.js';
 import { validarTerreno } from './terreno.js';
 import { validarUniones } from './uniones.js';
 import { validarEjes, validarPilotin } from './ejes.js';
+import { validarMesada, validarMueble } from './interiores.js';
 import { validarSol } from './sol.js';
 import { CAMPOS_CON_CANTIDAD, MAXIMO_CANTIDAD } from './cantidades.js';
 
@@ -97,6 +98,15 @@ export function validarParametros(params) {
   if (params.pilotin !== undefined) Object.entries(validarPilotin(params.pilotin)).forEach(([c, e]) => anotar(c, e));
   if (params.ejes !== undefined) Object.entries(validarEjes(params.ejes)).forEach(([c, e]) => anotar(c, e));
   if (params.sol !== undefined) Object.entries(validarSol(params.sol)).forEach(([c, e]) => anotar(c, e)); // v1.37
+  // v1.38: mesadas y muebles (un error por cada uno, con su id: 'mesadas.3', 'muebles.7').
+  if (params.mesadas !== undefined) {
+    if (!Array.isArray(params.mesadas)) anotar('mesadas', 'Lista inválida');
+    else params.mesadas.forEach((m) => anotar(`mesadas.${m?.id}`, validarMesada(m ?? {}, params)));
+  }
+  if (params.muebles !== undefined) {
+    if (!Array.isArray(params.muebles)) anotar('muebles', 'Lista inválida');
+    else params.muebles.forEach((m) => anotar(`muebles.${m?.id}`, validarMueble(m ?? {}, params)));
+  }
   // v1.35: zapatas.
   if (params.zapata !== undefined) {
     const z = params.zapata;

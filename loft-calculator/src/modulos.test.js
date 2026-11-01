@@ -4,9 +4,9 @@ import { MODULOS, configDeModulos, moduloActivo, modulosActivos } from './modulo
 
 describe('módulos por instalación', () => {
   it('lo prendido en el archivo, menos lo que se apaga al compilar', () => {
-    expect(configDeModulos({ terreno: true, sol: true }, [])).toEqual({ terreno: true, sol: true });
-    expect(configDeModulos({ terreno: true, sol: true }, ['terreno'])).toEqual({ terreno: false, sol: true });
-    expect(configDeModulos({}, [])).toEqual({ terreno: false, sol: false }); // lo que no está en el archivo, apagado
+    expect(configDeModulos({ terreno: true, sol: true, muebles: true }, [])).toEqual({ terreno: true, sol: true, muebles: true });
+    expect(configDeModulos({ terreno: true, sol: true, muebles: true }, ['terreno', 'muebles'])).toEqual({ terreno: false, sol: true, muebles: false });
+    expect(configDeModulos({}, [])).toEqual({ terreno: false, sol: false, muebles: false }); // lo que no está en el archivo, apagado
   });
 
   it('moduloActivo es el único que decide; un módulo que no existe nunca está prendido', () => {

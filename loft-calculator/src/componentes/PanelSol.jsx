@@ -49,6 +49,12 @@ export default function PanelSol({ estado, onCambiar, info, sinTerreno, orientac
             onChange={(e) => onCambiar({ hora: Number(e.target.value) / 60, animando: false })} />
         </label>
       </div>
+      {/* v1.38: qué tan fuerte pega el sol (de 50 % a 300 %). */}
+      <label className="hora-sol">
+        <span>☀ {Math.round(estado.intensidad * 100)} %</span>
+        <input type="range" min="50" max="300" step="10" value={Math.round(estado.intensidad * 100)} aria-label="Intensidad del sol"
+          onChange={(e) => onCambiar({ intensidad: Number(e.target.value) / 100 })} />
+      </label>
       <p className="dato-sol">
         {deNoche
           ? `De noche · sale ${hhmm(info.salida)}, se pone ${hhmm(info.puesta)}`

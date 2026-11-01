@@ -78,6 +78,10 @@ export const CATALOGO_FIJO = [
   { id: INSUMO.GRADA_BULON, categoria: 'unidad', nombre: 'Bulones de unión de módulos', perfil: 'Bulón 3/8" x 2 1/2" c/tuerca y arandela', unidad: 'u', largoBarra: null, precio: 900 },
   { id: INSUMO.GRADA_TORNILLO, categoria: 'unidad', nombre: 'Tornillos de tablones', perfil: 'Bulón carrocero 5/16" x 3"', unidad: 'u', largoBarra: null, precio: 600 },
   { id: INSUMO.GRADA_TABLON, categoria: 'metro', nombre: 'Tablones de grada', perfil: 'Madera 2" x 10"', unidad: 'm', largoBarra: null, precio: 8000 },
+  // v1.38: mesadas al final, así los perfiles de fábrica conservan su número (renglones solo si la obra tiene alguna).
+  { id: INSUMO.ESTRUCTURA_MESADA, categoria: 'perfil', nombre: 'Estructura de mesadas', perfil: 'Caño estructural 40x40x1.6', unidad: 'barra', largoBarra: 6, precio: 15000 },
+  { id: INSUMO.TAPA_MESADA, categoria: 'placa', nombre: 'Tapas de mesada', perfil: 'Granito 2 cm', unidad: 'm²', largoBarra: null, precio: 150000 },
+  { id: INSUMO.ESTANTE_MESADA, categoria: 'placa', nombre: 'Estantes bajo mesada', perfil: 'Melamina 18 mm', unidad: 'm²', largoBarra: null, precio: 30000 },
 ];
 
 /** Renglones que solo se usan en un proyecto de grada. */
@@ -169,6 +173,8 @@ function panosPorRevestimiento(estructura) {
     sumar(p.panel, { ...pano, donde: `lado ${p.lado}` });
     sumar(p.panelInterior, { ...pano, donde: `lado ${p.lado} (interior)` });
   });
+  // v1.38: frente, costados y zócalo de cada mesada, con el revestimiento elegido para esa mesada.
+  (estructura.mesadas ?? []).forEach((m) => m.panos.forEach((pano) => sumar(m.panel, pano)));
   const t = estructura.techo;
   sumar(t.panel, { largo: t.largo, h1: t.largoFaldon, h2: t.largoFaldon, neto: t.superficie, donde: 'techo' });
   return panos;
@@ -323,6 +329,17 @@ function calcularRenglones(estructura, catalogo, excedenteBarras) {
       `${n} zapatas de ${lado.toFixed(2)} x ${lado.toFixed(2)} x ${alto.toFixed(2)} m`));
     items.push(itemSimple(insumo(INSUMO.EXCAVACION), m3(n * lado * lado * profundidad),
       `${n} pozos de ${lado.toFixed(2)} x ${lado.toFixed(2)} m, ${profundidad.toFixed(2)} m de profundidad`));
+  }
+  // v1.38: mesadas: estructura (barras con cortes, o un renglón por perfil elegido), tapa y estantes en m².
+  const mesadas = e.mesadas ?? [];
+  if (mesadas.length > 0 || reasignadas.some((p) => p.insumo === INSUMO.ESTRUCTURA_MESADA)) {
+    const m2 = (v) => (v > 0 ? Math.ceil(v * 100 - 1e-9) / 100 : 0); // hacia arriba al 0,01 m²
+    const nombres = mesadas.map((m) => m.nombre).join(', ');
+    items.push(perfil(INSUMO.ESTRUCTURA_MESADA, mesadas.flatMap((m) => m.piezas)));
+    const tapa = mesadas.reduce((acc, m) => acc + m.tapa.m2, 0);
+    items.push(itemSimple(insumo(INSUMO.TAPA_MESADA), m2(tapa), tapa ? `${nombres}: ${mesadas.map((m) => `${m.tapa.largo.toFixed(2)} x ${m.tapa.profundidad.toFixed(2)} m`).join(' + ')}` : 'no lleva'));
+    const estantes = mesadas.reduce((acc, m) => acc + m.estantesM2, 0);
+    if (estantes > 0) items.push(itemSimple(insumo(INSUMO.ESTANTE_MESADA), m2(estantes), `${estantes.toFixed(2)} m² de estantes`));
   }
   // v1.29: accesorios con cantidad cargada (tornillería, electrodos, selladores…).
   catalogo.filter((i) => i.categoria === 'accesorio' && i.cantidad > 0)
