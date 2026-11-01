@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.38.1] - 2026-11-01
+### Agregado
+- **Etiquetas de mesadas y muebles** en el 3D, como las de paredes y aberturas: el nombre es el cartel. Cada mesada y
+  cada mueble tiene su casilla "Etiqueta en el 3D", y en Capas → Etiquetas hay "Mesadas" y "Muebles" (con todo/nada,
+  para sacarlas todas juntas). Los proyectos de la v1.38.0 quedan con las etiquetas prendidas.
+
 ## [1.38.0] - 2026-11-01
 ### Agregado
 - **Mesadas** (Paredes y aberturas → Mesadas): contra una pared, medidas como las aberturas (desde la esquina vista

@@ -23,6 +23,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { LADOS } from './motor/constantes.js';
 import { CAPAS, AYUDAS, GRUPOS_LEYENDA, CAPAS_TERRENO, CAPAS_MESADAS, CAPAS_MUEBLES, capaDelProyecto } from './capas.js';
 import { losaGruesa, dibujarMueble } from './interiores3d.js';
+import { ubicarMueble } from './motor/interiores.js';
 import { posicionAbertura, listarPiezas } from './motor/estructura.js';
 import { geometriaLados, nombreLado } from './motor/geometria.js';
 import { describirPieza } from './descripcionPiezas.js';
@@ -489,6 +490,23 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
   if (capas.muebles && moduloActivo('muebles') && params.tipoProyecto === 'construccion') {
     (params.muebles ?? []).forEach((mueble) => grupo.add(dibujarMueble(params, mueble)));
   }
+  // v1.38.1: carteles con el nombre (como paredes y aberturas): por capa "Etiquetas" y por cada uno en su ficha.
+  if (capas.etiquetasMesadas && (capas.mesadas || capas.tapasMesada) && grupoVisible('mesada')) {
+    (e.mesadas ?? []).filter((m) => m.mostrarEtiqueta && m.nombre.trim()).forEach((m) => {
+      const t = m.dibujo.tapa; // arriba de la tapa, en el medio
+      const cartelito = cartelChico(m.nombre.trim(), 'rgba(124,58,237,0.9)');
+      cartelito.position.set((t[0][0] + t[2][0]) / 2, t[0][1] + 0.3, (t[0][2] + t[2][2]) / 2);
+      grupo.add(cartelito);
+    });
+  }
+  if (capas.etiquetasMuebles && capas.muebles && moduloActivo('muebles') && params.tipoProyecto === 'construccion') {
+    (params.muebles ?? []).filter((m) => m.mostrarEtiqueta !== false && m.nombre.trim()).forEach((m) => {
+      const { centro, y } = ubicarMueble(params, m);
+      const cartelito = cartelChico(m.nombre.trim(), 'rgba(161,98,7,0.9)');
+      cartelito.position.set(centro[0], y + m.alto + 0.3, centro[1]);
+      grupo.add(cartelito);
+    });
+  }
 
   // Juntas de los paneles (v1.16): dónde termina cada tira o placa, para acomodar las aberturas.
   if (capas.paneles && capas.juntas) {
@@ -779,6 +797,8 @@ export default function LoftCanvas({
     juntas: true, // líneas de las tiras/placas de los paneles (v1.16)
     etiquetasAberturas: true, // número de cada abertura (v1.16)
     etiquetasParedes: true, // v1.33.1: Frente, Lateral…
+    etiquetasMesadas: true, // v1.38.1
+    etiquetasMuebles: true,
     etiquetasTerreno: true, // v1.33.1: línea municipal, calle, N, pozo…
     cotas: false, // v1.28: largo, ancho y altos (en el PDF se pueden pedir aunque estén apagadas)
     medidasFijas: true, // v1.28: las medidas fijadas con 📌

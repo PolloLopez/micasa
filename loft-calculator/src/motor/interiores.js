@@ -47,6 +47,7 @@ export const MESADA_NUEVA = {
   retiroZocalo: 0.06, // cuánto se mete el zócalo respecto del frente
   estantes: 1, // estantes por tramo (0 = sin)
   huecos: [], // [{ desde, ancho, nombre }] medidos desde la punta izquierda de la mesada (vista de frente)
+  mostrarEtiqueta: true, // v1.38.1: cartel con el nombre en el 3D (como paredes y aberturas)
 };
 
 /** Una mesada nueva con un id libre. */
@@ -159,6 +160,7 @@ export function generarMesada(params, m) {
     (_, k) => abajo + ((k + 1) * altoFrente) / (m.estantes + 1)) })) : [];
   return {
     id: m.id, nombre: m.nombre, piezas, panos, panel: m.revestimiento,
+    mostrarEtiqueta: m.mostrarEtiqueta !== false,
     ejes: { alongo, adentro }, // para el 3D: hacia dónde mira cada placa
     tapa: { m2: m.largo * prof, largo: m.largo, profundidad: prof, espesor: m.espesorTapa },
     estantesM2: estantes.reduce((acc, e) => acc + (e.hasta - e.desde) * (prof - 0.02) * e.alturas.length, 0),
@@ -198,6 +200,7 @@ export function validarMesada(m, params) {
   if (m.nivel === 'piso2' && !(params.anchoEntrepiso > 0)) return 'No hay entrepiso';
   if (!['piso', 'piso2'].includes(m.nivel)) return 'Elegí planta baja o piso 2';
   if (typeof m.nombre !== 'string' || m.nombre.length > 40) return 'El nombre puede tener hasta 40 letras';
+  if (m.mostrarEtiqueta !== undefined && typeof m.mostrarEtiqueta !== 'boolean') return 'Valor inválido';
   for (const h of m.huecos ?? []) {
     if (!num(h.desde, 0, m.largo) || !num(h.ancho, 0.1, m.largo) || h.desde + h.ancho > m.largo + 0.001) return 'Un hueco no entra en la mesada';
   }
@@ -239,6 +242,7 @@ export function muebleNuevo(tipo, muebles, id) {
     id, tipo, nombre: iguales ? `${t.nombre} ${iguales + 1}` : t.nombre, nivel: 'piso',
     ancho: t.ancho, profundidad: t.profundidad, alto: t.alto, material: t.material,
     distanciaFrente: 0.5 + iguales * 0.3, distanciaIzquierda: 0.5 + iguales * 0.3, giro: 0,
+    mostrarEtiqueta: true, // v1.38.1: cartel con el nombre en el 3D
   };
 }
 
@@ -271,6 +275,7 @@ export function validarMueble(m, params) {
   if (!['piso', 'piso2'].includes(m.nivel)) return 'Elegí planta baja o piso 2';
   if (m.nivel === 'piso2' && !(params.anchoEntrepiso > 0)) return 'No hay entrepiso';
   if (typeof m.nombre !== 'string' || m.nombre.length > 40) return 'El nombre puede tener hasta 40 letras';
+  if (m.mostrarEtiqueta !== undefined && typeof m.mostrarEtiqueta !== 'boolean') return 'Valor inválido';
   return null;
 }
 

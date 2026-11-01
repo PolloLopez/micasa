@@ -69,8 +69,18 @@ function Mesada({ m, i, params, unidad, cambiar, onQuitar, paneles, perfiles, pe
         <small>{nombreLado(m.lado, params.ladoFrente)} · {f2(m.largo)} x {f2(m.profundidad)} m</small>
         <button type="button" className="btn-del" onClick={onQuitar} aria-label={`Quitar ${m.nombre}`} title="Quitar">✕</button>
       </header>
+      {/* v1.38.1: el nombre es el cartel del 3D (como paredes y aberturas); se puede sacar uno por uno. */}
+      <div className="etiqueta-pared">
+        <label className="capa">
+          <input type="checkbox" checked={m.mostrarEtiqueta !== false}
+            aria-label={`Mostrar la etiqueta de ${m.nombre || 'la mesada'} en el 3D`}
+            onChange={(e) => cambiar(`${ruta}.mostrarEtiqueta`)(e.target.checked)} />
+          Etiqueta en el 3D
+        </label>
+        <input type="text" className="perfil" maxLength={40} value={m.nombre} aria-label="Nombre"
+          onChange={(e) => cambiar(`${ruta}.nombre`)(e.target.value)} />
+      </div>
       <div className="grid-params">
-        <CampoTexto etiqueta="Nombre" valor={m.nombre} onCambio={cambiar(`${ruta}.nombre`)} />
         <CampoSelect etiqueta="Contra la pared" valor={m.lado}
           opciones={LADOS.map((l) => [l, `${nombreLado(l, params.ladoFrente)} (${l})`])} onCambio={cambiar(`${ruta}.lado`)} />
         {conEntrepiso && (

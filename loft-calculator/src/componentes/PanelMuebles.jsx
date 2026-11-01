@@ -8,7 +8,7 @@
 // (medido desde el eje de la pared). No van al presupuesto.
 // ==========================================================
 
-import { useId, useState } from 'react';
+import { useState } from 'react';
 import Tarjeta from './Tarjeta.jsx';
 import CampoNumero from './CampoNumero.jsx';
 import CampoSelect from './CampoSelect.jsx';
@@ -20,7 +20,6 @@ const GIROS = [[0, 'Sin girar'], [90, '90°'], [180, '180° (de espaldas)'], [27
 
 /** Un mueble: medidas, material y dónde está. */
 function Mueble({ m, i, params, unidad, cambiar, onQuitar }) {
-  const idNombre = useId();
   const ruta = `muebles.${i}`;
   const medida = (campo, etiqueta) => (
     <CampoNumero etiqueta={etiqueta} unidad={unidad} valor={m[campo]} onCambio={cambiar(`${ruta}.${campo}`)} />
@@ -35,11 +34,18 @@ function Mueble({ m, i, params, unidad, cambiar, onQuitar }) {
         <small>{m.nombre !== tipo.nombre ? tipo.nombre : ''} {f2(m.ancho)} x {f2(m.profundidad)} x {f2(m.alto)} m</small>
         <button type="button" className="btn-del" onClick={onQuitar} aria-label={`Quitar ${m.nombre}`} title="Quitar">✕</button>
       </header>
+      {/* v1.38.1: el nombre es el cartel del 3D (como paredes y aberturas); se puede sacar uno por uno. */}
+      <div className="etiqueta-pared">
+        <label className="capa">
+          <input type="checkbox" checked={m.mostrarEtiqueta !== false}
+            aria-label={`Mostrar la etiqueta de ${m.nombre || 'el mueble'} en el 3D`}
+            onChange={(e) => cambiar(`${ruta}.mostrarEtiqueta`)(e.target.checked)} />
+          Etiqueta en el 3D
+        </label>
+        <input type="text" className="perfil" maxLength={40} value={m.nombre} aria-label="Nombre"
+          onChange={(e) => cambiar(`${ruta}.nombre`)(e.target.value)} />
+      </div>
       <div className="grid-params">
-        <div className="group">
-          <label htmlFor={idNombre}>Nombre</label>
-          <input id={idNombre} type="text" value={m.nombre} maxLength={40} onChange={(e) => cambiar(`${ruta}.nombre`)(e.target.value)} />
-        </div>
         {medida('ancho', 'Ancho')}
         {medida('profundidad', 'Profundidad')}
         {medida('alto', 'Alto')}

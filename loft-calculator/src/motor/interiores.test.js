@@ -209,3 +209,20 @@ describe('muebles', () => {
     expect(presupuesto({ ...P, muebles: [muebleNuevo('heladera', [], 1)] }).total).toBe(presupuesto(P).total);
   });
 });
+
+describe('etiquetas de mesadas y muebles (v1.38.1)', () => {
+  it('nacen con etiqueta; se puede sacar una por una', () => {
+    expect(generarMesada(P, mesada()).mostrarEtiqueta).toBe(true);
+    expect(generarMesada(P, mesada({ mostrarEtiqueta: false })).mostrarEtiqueta).toBe(false);
+    expect(muebleNuevo('mesa', [], 1).mostrarEtiqueta).toBe(true);
+  });
+
+  it('los proyectos de la v1.38.0 quedan con etiqueta; un valor raro no se guarda', () => {
+    const { mostrarEtiqueta, ...sinEtiqueta } = muebleNuevo('silla', [], 1);
+    expect(mostrarEtiqueta).toBe(true);
+    expect(migrarParams({ ...P, muebles: [sinEtiqueta] }).muebles[0].mostrarEtiqueta).toBe(true);
+    expect(migrarParams({ ...P, mesadas: [{ id: 2 }] }).mesadas[0].mostrarEtiqueta).toBe(true);
+    expect(validarMueble({ ...sinEtiqueta, mostrarEtiqueta: 'si' }, P)).toBe('Valor inválido');
+    expect(validarMesada(mesada({ mostrarEtiqueta: 1 }), P)).toBe('Valor inválido');
+  });
+});

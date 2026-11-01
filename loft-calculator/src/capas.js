@@ -32,8 +32,8 @@ export const CAPAS = {
 };
 
 /** Capas de interiores (v1.38): se muestran en la leyenda solo si la obra tiene mesadas (las dos primeras) o muebles. */
-export const CAPAS_MESADAS = ['mesadas', 'tapasMesada'];
-export const CAPAS_MUEBLES = ['muebles'];
+export const CAPAS_MESADAS = ['mesadas', 'tapasMesada', 'etiquetasMesadas'];
+export const CAPAS_MUEBLES = ['muebles', 'etiquetasMuebles'];
 
 /** Capas que se muestran en la leyenda de un proyecto de grada (el resto no tiene piezas). */
 export const CAPAS_GRADA = ['grada', 'escalones'];
@@ -54,12 +54,12 @@ export const CAPAS_TERRENO = ['terrenoLote', 'terrenoCalle', 'terrenoRetiros', '
 export const GRUPOS_LEYENDA = [
   { titulo: 'Estructura', capas: ['pilotines', 'zapatas', 'columnas', 'marcos', 'piso', 'piso2', 'transversales', 'correas', 'techo', 'escalera', 'grada', 'montaje'] },
   { titulo: 'Superficies', capas: ['paneles', 'osb', 'aberturas', 'escalones', 'chapa'] },
-  { titulo: 'Interiores', capas: [...CAPAS_MESADAS, ...CAPAS_MUEBLES] }, // v1.38
+  { titulo: 'Interiores', capas: ['mesadas', 'tapasMesada', 'muebles'] }, // v1.38
   { titulo: 'Ayudas', capas: ['juntas', 'cotas', 'medidasFijas'] },
   // v1.34.3: cada parte del terreno por separado (solo si la obra tiene terreno).
   { titulo: 'Terreno', capas: CAPAS_TERRENO },
   // v1.33.1: todos los carteles juntos, para sacarlos con "nada" (fotos limpias, PDF).
-  { titulo: 'Etiquetas', capas: ['etiquetasParedes', 'etiquetasAberturas', 'etiquetasTerreno'] },
+  { titulo: 'Etiquetas', capas: ['etiquetasParedes', 'etiquetasAberturas', 'etiquetasMesadas', 'etiquetasMuebles', 'etiquetasTerreno'] },
 ];
 
 /** Ayudas del visor: se prenden y apagan como capas, pero no tienen color. */
@@ -67,6 +67,8 @@ export const AYUDAS = {
   juntas: { nombre: 'Juntas de paneles', titulo: 'Dónde termina cada tira o placa: para acomodar las aberturas' },
   etiquetasParedes: { nombre: 'Paredes', titulo: 'Frente, Lateral… (cada pared puede tener su texto en Paredes)' },
   etiquetasAberturas: { nombre: 'Aberturas', titulo: 'El número o la etiqueta de cada puerta y ventana' },
+  etiquetasMesadas: { nombre: 'Mesadas', titulo: 'El nombre de cada mesada (cada una se puede sacar en su ficha)' }, // v1.38.1
+  etiquetasMuebles: { nombre: 'Muebles', titulo: 'El nombre de cada mueble (cada uno se puede sacar en su ficha)' },
   etiquetasTerreno: { nombre: 'Terreno', titulo: 'Línea municipal, calle, norte y lo que cargaste en el terreno' },
   cotas: { nombre: 'Cotas generales', titulo: 'Largo, ancho y altos de la obra (v1.28)' },
   medidasFijas: { nombre: 'Medidas fijadas', titulo: 'Las medidas que dejaste fijas con 📏 Medir → 📌 (v1.28)' },
