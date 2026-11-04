@@ -37,9 +37,9 @@
 - ✅ Capas en pestañas, una sección a la vez, sin tapar el 3D (v1.38.2).
 - 🗺️ **Pedido de Leandro 04/11** (orden acordado: muebles → mesada → tabiques):
   - ✅ v1.39.0 Muebles: pared de referencia, distancias y alto libre calculados, lavarropas frontal/superior, hornallas, vanitory.
-  - 🔴 [ ] v1.40 Mesada en L o U (tramos por esquina, una tapa); huecos con o sin tapa (lavarropas frontal / cocina) y
-    con o sin zócalo, con el electrodoméstico adentro; bachas de cocina en la mesada (simple/doble, cortan la tapa,
-    renglón "Bachas" en el presupuesto).
+  - ✅ v1.40.0 Mesada en L o U, huecos con/sin tapa y sobre zócalo con el electrodoméstico adentro, bachas en la mesada.
+    - 🟡 [ ] Validar con el herrero la esquina de la L/U (el frente tapado del principal va sin solera de abajo ni zócalo).
+    - 🟢 [ ] Bacha bajo mesada vs. apoyada; anafe y horno empotrados como huecos.
   - 🔴 [ ] v1.41 Tabiques de Durlock (baño y antebaño): desde una pared, perpendicular o paralelo; largo y alto (techo,
     piso 2 o medida); estructura y revestimiento por cara de las listas; puerta.
 - ✅ Etiquetas de mesadas y muebles en el 3D, apagables una por una y por capa (v1.38.1).

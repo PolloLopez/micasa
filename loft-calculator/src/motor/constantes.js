@@ -47,6 +47,8 @@ export const INSUMO = {
   ESTRUCTURA_MESADA: 'estructuraMesada', // v1.38: perfiles de las mesadas (barras con cortes)
   TAPA_MESADA: 'tapaMesada', // v1.38: tapa de las mesadas (m²)
   ESTANTE_MESADA: 'estanteMesada', // v1.38: estantes bajo mesada (m²)
+  BACHA_SIMPLE: 'bachaSimple', // v1.40: bachas de cocina en la mesada (u)
+  BACHA_DOBLE: 'bachaDoble',
   ZANCA: 'zanca',
   APOYO_ESCALON: 'apoyoEscalon',
   COLUMNA_ESCALERA: 'columnaEscalera',

@@ -50,10 +50,15 @@ export const MESADA_NUEVA = {
   zocalo: 0.1, // alto del zócalo para el pie (0 = sin)
   retiroZocalo: 0.06, // cuánto se mete el zócalo respecto del frente
   estantes: 1, // estantes por tramo (0 = sin)
-  huecos: [], // [{ desde, ancho, nombre }] medidos desde la punta izquierda de la mesada (vista de frente)
+  huecos: [], // [{ tramo, desde, ancho, nombre, tapa, conZocalo, electro, cargaFrontal }] desde la punta izquierda de su tramo (vista de frente)
   mostrarEtiqueta: true, // v1.38.1: cartel con el nombre en el 3D (como paredes y aberturas)
   colorTapa: '', // v1.38.2: color propio de la tapa ('' = el de la capa "Tapas, placas y estantes")
   colorEstantes: '', // v1.38.2: color propio de los estantes ('' = el de la madera)
+  // v1.40: forma (recta, L o U) y el largo de los tramos que siguen por las paredes de al lado.
+  forma: 'recta',
+  largoIzquierdo: 1.2,
+  largoDerecho: 1.2,
+  bachas: [], // [{ tramo, desde, ancho, profundidad, doble }]
 };
 
 /** Una mesada nueva con un id libre. */
@@ -64,34 +69,109 @@ export function mesadaNueva(mesadas, id) {
 /** Altura del piso terminado de un nivel. */
 const alturaDelPiso = (params, nivel) => params.elevacion + (nivel === 'piso2' ? (params.alturaPiso2 ?? ALTURA_PISO_2) : 0) + ALTO_PISO;
 
+/** v1.40: formas de la mesada. "Izquierda" y "derecha" = mirándola de frente, desde adentro de la casa. */
+export const FORMAS_MESADA = [
+  ['recta', 'Recta'],
+  ['L-izquierda', 'En L (sigue por la pared de la izquierda)'],
+  ['L-derecha', 'En L (sigue por la pared de la derecha)'],
+  ['U', 'En U (sigue por las dos)'],
+];
+const giraIzquierda = (m) => m.forma === 'L-izquierda' || m.forma === 'U';
+const giraDerecha = (m) => m.forma === 'L-derecha' || m.forma === 'U';
+
+/** v1.40: lo que puede ir en un hueco bajo mesada (se dibuja adentro, con las medidas del hueco). */
+export const ELECTROS_HUECO = [['', 'Nada (vacío)'], ['heladera', 'Heladera'], ['cocina', 'Cocina'], ['lavarropas', 'Lavarropas'], ['otro', 'Otro mueble']];
+/** Con qué arranca un hueco según lo que va adentro: la cocina (hornallas) y la heladera sin tapa; el lavarropas con tapa. */
+export const TAPA_SEGUN_ELECTRO = { '': true, heladera: false, cocina: false, lavarropas: true, otro: true };
+
+/** v1.40: bachas de cocina en la tapa. */
+export const BACHA_NUEVA = { tramo: 'principal', desde: 0.8, ancho: 0.52, profundidad: 0.37, doble: false };
+export const HUECO_NUEVO = { tramo: 'principal', desde: 0, ancho: 0.6, nombre: 'Hueco', tapa: true, conZocalo: false, electro: '' };
+
+/** Nombre de cada tramo para mostrar. */
+export const NOMBRE_TRAMO = { principal: 'principal', izquierdo: 'de la izquierda', derecho: 'de la derecha' };
+
 /**
- * Dónde está la mesada: punta izquierda del fondo (contra la pared), dirección a lo largo y hacia adentro.
+ * Los tramos rectos de una mesada: el principal (contra su pared) y, en L o U, los que siguen por las paredes de
+ * al lado. Cada uno: { clave, lado, inicio (desde la punta 1 de su pared, al eje), largo, costados, esquinas }.
+ *   - En L hacia un lado, el principal llega hasta la cara de adentro de esa pared (la distancia a la esquina no se usa);
+ *     en U ocupa toda la pared.
+ *   - Cada tramo que sigue arranca DESPUÉS de la profundidad del principal: el cuadrado de la esquina es del principal.
+ *     Su largo cargado (`largoIzquierdo` / `largoDerecho`) se mide desde la cara de adentro de la pared principal.
+ *   - `esquinas`: el pedazo del frente del principal que queda tapado por el tramo que sigue (sin placa ni zócalo).
+ */
+export function tramosDeMesada(params, m) {
+  const i = LADOS.indexOf(m.lado);
+  const largoPared = largoLado(m.lado, params);
+  const prof = m.profundidad;
+  let largo = m.largo;
+  let inicio;
+  if (m.forma === 'U') {
+    inicio = MEDIA_PARED;
+    largo = largoPared - 2 * MEDIA_PARED;
+  } else if (giraIzquierda(m)) {
+    inicio = largoPared - MEDIA_PARED - largo; // la punta izquierda (vista de adentro) es la del lado de p2
+  } else if (giraDerecha(m)) {
+    inicio = MEDIA_PARED;
+  } else {
+    inicio = m.ladoReferencia === 'izquierda' ? m.desde : largoPared - m.desde - largo;
+  }
+  const tramos = [{
+    clave: 'principal', lado: m.lado, inicio, largo,
+    costadoIzquierdo: giraIzquierda(m) ? false : m.costadoIzquierdo,
+    costadoDerecho: giraDerecha(m) ? false : m.costadoDerecho,
+    esquinas: [...(giraIzquierda(m) ? [{ desde: 0, ancho: prof }] : []), ...(giraDerecha(m) ? [{ desde: largo - prof, ancho: prof }] : [])],
+  }];
+  if (giraIzquierda(m)) {
+    // Sigue por la pared siguiente (su punta 1 es la esquina); la punta que toca al principal es su derecha.
+    tramos.push({ clave: 'izquierdo', lado: LADOS[(i + 1) % 4], inicio: MEDIA_PARED + prof, largo: m.largoIzquierdo - prof,
+      costadoIzquierdo: m.costadoIzquierdo, costadoDerecho: false, esquinas: [] });
+  }
+  if (giraDerecha(m)) {
+    // Sigue por la pared anterior (su punta 2 es la esquina); la punta que toca al principal es su izquierda.
+    const lado = LADOS[(i + 3) % 4];
+    tramos.push({ clave: 'derecho', lado, inicio: largoLado(lado, params) - MEDIA_PARED - m.largoDerecho, largo: m.largoDerecho - prof,
+      costadoIzquierdo: false, costadoDerecho: m.costadoDerecho, esquinas: [] });
+  }
+  return tramos;
+}
+
+/** Punta izquierda del fondo de un tramo (vista de frente), dirección a lo largo, hacia adentro y altura del piso. */
+function ubicarTramo(params, { lado, inicio, largo }, nivel) {
+  const geo = geometriaLados(params)[lado];
+  const adentro = haciaAdentro(geo);
+  const alongo = [-geo.direccion[0], -geo.direccion[1]]; // hacia la derecha mirándola de frente
+  // Vista desde adentro, la pared se recorre al revés que desde afuera: la punta izquierda es la de p1 + inicio + largo.
+  const d = inicio + largo;
+  const origen = [geo.p1[0] + geo.direccion[0] * d + adentro[0] * MEDIA_PARED, geo.p1[1] + geo.direccion[1] * d + adentro[1] * MEDIA_PARED];
+  return { origen, alongo, adentro, y: alturaDelPiso(params, nivel) };
+}
+
+/**
+ * Dónde está la mesada (su tramo principal): punta izquierda del fondo, dirección a lo largo y hacia adentro.
  * "Izquierda" de la mesada = mirándola de frente (desde adentro de la casa).
  */
 export function ubicarMesada(params, m) {
-  const geo = geometriaLados(params)[m.lado];
-  const largoPared = largoLado(m.lado, params);
-  const inicio = m.ladoReferencia === 'izquierda' ? m.desde : largoPared - m.desde - m.largo; // sobre la pared (desde p1)
-  // Vista desde adentro, la pared se recorre al revés que desde afuera: la punta izquierda es la de p1 + inicio + largo.
-  const adentro = haciaAdentro(geo);
-  const alongo = [-geo.direccion[0], -geo.direccion[1]]; // hacia la derecha mirándola de frente
-  const puntoP1 = (d) => [geo.p1[0] + geo.direccion[0] * d, geo.p1[1] + geo.direccion[1] * d];
-  const enEje = puntoP1(inicio + m.largo);
-  const origen = [enEje[0] + adentro[0] * MEDIA_PARED, enEje[1] + adentro[1] * MEDIA_PARED];
-  return { origen, alongo, adentro, y: alturaDelPiso(params, m.nivel), inicio, largoPared };
+  const principal = tramosDeMesada(params, m)[0];
+  return { ...ubicarTramo(params, principal, m.nivel), inicio: principal.inicio, largoPared: largoLado(m.lado, params) };
 }
 
-/** Tramos del frente sin huecos: [[desde, hasta]] desde la punta izquierda. */
-export function tramosDelFrente(m) {
-  const huecos = [...(m.huecos ?? [])].sort((a, b) => a.desde - b.desde);
+/** Lo que queda de [0, largo] sacando unos huecos ({ desde, ancho }): [[desde, hasta]]. */
+function sinHuecos(largo, huecos) {
+  const ordenados = [...huecos].sort((a, b) => a.desde - b.desde);
   const tramos = [];
   let x = 0;
-  huecos.forEach((h) => {
+  ordenados.forEach((h) => {
     if (h.desde > x + 0.01) tramos.push([x, h.desde]);
     x = Math.max(x, h.desde + h.ancho);
   });
-  if (x < m.largo - 0.01) tramos.push([x, m.largo]);
+  if (x < largo - 0.01) tramos.push([x, largo]);
   return tramos;
+}
+
+/** Tramos del frente sin huecos: [[desde, hasta]] desde la punta izquierda (de una mesada recta). */
+export function tramosDelFrente(m) {
+  return sinHuecos(m.largo, m.huecos ?? []);
 }
 
 /** Posiciones de montantes en un tramo: las puntas y parejos a no más de la separación. */
@@ -100,88 +180,156 @@ function montantesDe([a, b], separacion) {
   return Array.from({ length: n + 1 }, (_, i) => a + ((b - a) * i) / n);
 }
 
+const unicos = (lista) => [...new Set(lista.map((x) => Number(x.toFixed(4))))].sort((a, b) => a - b);
+
 /**
- * Piezas y superficies de una mesada.
- * Estructura (vista de frente, x desde la punta izquierda, z desde la pared hacia adentro):
+ * Un pedazo recto de mesada con estructura propia (una mesada recta, o un tramo de una L/U, o lo que queda entre
+ * dos huecos sin tapa). x va de 0 a `largo` desde su punta izquierda.
+ * Estructura (vista de frente, z desde la pared hacia adentro):
  *   - fondo, contra la pared: solera en el piso y solera arriba (bajo la tapa), con montantes del piso a la tapa;
- *   - frente: solera arriba entera; abajo (a la altura del zócalo) solo en los tramos sin hueco, con montantes
- *     en esos tramos y en los bordes de cada hueco (ahí va la placa y la puerta del bajo mesada);
- *   - travesaños de frente a fondo: arriba en cada montante (sostienen la tapa) y abajo fuera de los huecos;
- *   - con zócalo: una solera en el piso retirada del frente y una pata corta en cada montante del frente
- *     (ahí se atornilla la placa del zócalo).
- * En un hueco (heladera, lavarropas) no hay solera de abajo ni zócalo.
+ *   - frente: solera arriba entera; abajo (a la altura del zócalo) en los tramos con base, con montantes
+ *     en los tramos con frente y en los bordes de cada hueco (ahí va la placa y la puerta del bajo mesada);
+ *   - travesaños de frente a fondo: arriba en cada montante (sostienen la tapa) y abajo donde hay base;
+ *   - con zócalo: una solera en el piso retirada del frente y una pata corta en cada montante con base.
+ * Un hueco con tapa no lleva frente; si además es "sobre zócalo", la base (zócalo y solera de abajo) sigue por debajo
+ * y el electrodoméstico apoya arriba de ella.
  */
-export function generarMesada(params, m) {
-  const { origen, alongo, adentro, y } = ubicarMesada(params, m);
-  const p = (x, z, h) => [origen[0] + alongo[0] * x + adentro[0] * z, y + h, origen[1] + alongo[1] * x + adentro[1] * z];
+function generarSegmento(params, m, s) {
+  const { p, largo, huecos, prefijo, donde } = s;
   const arriba = m.alto - m.espesorTapa; // la estructura termina abajo de la tapa
   const abajo = m.zocalo > 0 ? m.zocalo : 0; // el frente arranca arriba del zócalo
   const prof = m.profundidad;
   const zZocalo = prof - m.retiroZocalo;
-  const base = `mesada:${m.id}`;
   const grupos = ['mesada'];
   const extra = { ...(m.perfil ? { perfilPared: m.perfil, ladoPared: m.nombre } : {}), mesada: m.id };
-  const pz = (id, desde, hasta) => ({ ...pieza(`${base}:${id}`, 'mesada', grupos, desde, hasta), ...extra });
+  const pz = (id, desde, hasta) => ({ ...pieza(`${prefijo}:${id}`, 'mesada', grupos, desde, hasta), ...extra });
   const piezas = [];
-  const tramos = tramosDelFrente(m);
-  const enTramo = (x) => tramos.some(([a, b]) => x >= a - 0.005 && x <= b + 0.005);
-  const unicos = (lista) => [...new Set(lista.map((x) => Number(x.toFixed(4))))].sort((a, b) => a - b);
+  const conFrente = sinHuecos(largo, huecos); // donde va la placa del frente
+  const conBase = sinHuecos(largo, huecos.filter((h) => !(h.conZocalo && m.zocalo > 0))); // donde va zócalo y solera de abajo
+  const en = (tramos) => (x) => tramos.some(([a, b]) => x >= a - 0.005 && x <= b + 0.005);
+  const enBase = en(conBase);
 
-  // Montantes del frente: los de cada tramo, los bordes de los huecos y las dos puntas (siempre).
-  const xsFrente = unicos([0, m.largo, ...tramos.flatMap((t) => montantesDe(t, m.separacionMontantes)),
-    ...(m.huecos ?? []).flatMap((h) => [h.desde, h.desde + h.ancho]).filter((x) => x > 0.005 && x < m.largo - 0.005)]);
+  // Montantes del frente: los de cada tramo con frente, los bordes de los huecos y las dos puntas (siempre).
+  const xsFrente = unicos([0, largo, ...conFrente.flatMap((t) => montantesDe(t, m.separacionMontantes)),
+    ...huecos.flatMap((h) => [h.desde, h.desde + h.ancho]).filter((x) => x > 0.005 && x < largo - 0.005)]);
   // Montantes del fondo: parejos y, además, enfrente de cada montante del frente (para los travesaños).
-  const xsFondo = unicos([...montantesDe([0, m.largo], m.separacionMontantes), ...xsFrente]);
+  const xsFondo = unicos([...montantesDe([0, largo], m.separacionMontantes), ...xsFrente]);
 
-  // Fondo (contra la pared).
-  piezas.push(pz('fondo-abajo', p(0, 0, 0), p(m.largo, 0, 0)));
-  piezas.push(pz('fondo-arriba', p(0, 0, arriba), p(m.largo, 0, arriba)));
+  piezas.push(pz('fondo-abajo', p(0, 0, 0), p(largo, 0, 0)));
+  piezas.push(pz('fondo-arriba', p(0, 0, arriba), p(largo, 0, arriba)));
   xsFondo.forEach((x) => piezas.push(pz(`fondo-mont:${cm(x)}`, p(x, 0, 0), p(x, 0, arriba))));
-  // Frente.
-  piezas.push(pz('frente-arriba', p(0, prof, arriba), p(m.largo, prof, arriba)));
-  tramos.forEach(([a, b], i) => piezas.push(pz(`frente-abajo:${i}`, p(a, prof, abajo), p(b, prof, abajo))));
-  // En un tramo el montante apoya en la solera de abajo; dentro de un hueco (ej. una punta) baja hasta el piso.
-  xsFrente.forEach((x) => piezas.push(pz(`frente-mont:${cm(x)}`, p(x, prof, enTramo(x) ? abajo : 0), p(x, prof, arriba))));
-  // Travesaños de frente a fondo.
+  piezas.push(pz('frente-arriba', p(0, prof, arriba), p(largo, prof, arriba)));
+  conBase.forEach(([a, b], i) => piezas.push(pz(`frente-abajo:${i}`, p(a, prof, abajo), p(b, prof, abajo))));
+  // Con base el montante apoya en la solera de abajo; si no (dentro de un hueco, ej. una punta), baja hasta el piso.
+  xsFrente.forEach((x) => piezas.push(pz(`frente-mont:${cm(x)}`, p(x, prof, enBase(x) ? abajo : 0), p(x, prof, arriba))));
   xsFondo.forEach((x) => piezas.push(pz(`trav-arriba:${cm(x)}`, p(x, 0, arriba), p(x, prof, arriba))));
-  xsFrente.filter(enTramo).forEach((x) => piezas.push(pz(`trav-abajo:${cm(x)}`, p(x, 0, abajo), p(x, prof, abajo))));
-  // Zócalo: solera en el piso (retirada) y patas cortas hasta los travesaños de abajo.
+  xsFrente.filter(enBase).forEach((x) => piezas.push(pz(`trav-abajo:${cm(x)}`, p(x, 0, abajo), p(x, prof, abajo))));
   if (m.zocalo > 0) {
-    tramos.forEach(([a, b], i) => piezas.push(pz(`zocalo:${i}`, p(a, zZocalo, 0), p(b, zZocalo, 0))));
-    xsFrente.filter(enTramo).forEach((x) => piezas.push(pz(`pata:${cm(x)}`, p(x, zZocalo, 0), p(x, zZocalo, abajo))));
+    conBase.forEach(([a, b], i) => piezas.push(pz(`zocalo:${i}`, p(a, zZocalo, 0), p(b, zZocalo, 0))));
+    xsFrente.filter(enBase).forEach((x) => piezas.push(pz(`pata:${cm(x)}`, p(x, zZocalo, 0), p(x, zZocalo, abajo))));
   }
 
   // Superficies.
   const altoFrente = arriba - abajo; // la placa del frente va del zócalo a la tapa
-  const largoTramos = tramos.reduce((acc, [a, b]) => acc + (b - a), 0);
+  const suma = (tramos) => tramos.reduce((acc, [a, b]) => acc + (b - a), 0);
   const panos = [];
   if (m.revestimiento) {
-    panos.push({ largo: m.largo, h1: altoFrente, h2: altoFrente, neto: largoTramos * altoFrente, donde: `${m.nombre} (frente)`,
-      huecos: (m.huecos ?? []).map((h) => ({ desde: h.desde, hasta: h.desde + h.ancho, abajo: 0, arriba: altoFrente })) });
-    if (m.costadoIzquierdo) panos.push({ largo: prof, h1: m.alto - m.espesorTapa, h2: m.alto - m.espesorTapa, neto: prof * (m.alto - m.espesorTapa), donde: `${m.nombre} (costado izq.)` });
-    if (m.costadoDerecho) panos.push({ largo: prof, h1: m.alto - m.espesorTapa, h2: m.alto - m.espesorTapa, neto: prof * (m.alto - m.espesorTapa), donde: `${m.nombre} (costado der.)` });
-    if (m.zocalo > 0) panos.push({ largo: largoTramos, h1: m.zocalo, h2: m.zocalo, neto: largoTramos * m.zocalo, donde: `${m.nombre} (zócalo)` });
+    panos.push({ largo, h1: altoFrente, h2: altoFrente, neto: suma(conFrente) * altoFrente, donde: `${donde} (frente)`,
+      huecos: huecos.map((h) => ({ desde: h.desde, hasta: h.desde + h.ancho, abajo: 0, arriba: altoFrente })) });
+    if (s.costadoIzquierdo) panos.push({ largo: prof, h1: arriba, h2: arriba, neto: prof * arriba, donde: `${donde} (costado izq.)` });
+    if (s.costadoDerecho) panos.push({ largo: prof, h1: arriba, h2: arriba, neto: prof * arriba, donde: `${donde} (costado der.)` });
+    if (m.zocalo > 0) panos.push({ largo: suma(conBase), h1: m.zocalo, h2: m.zocalo, neto: suma(conBase) * m.zocalo, donde: `${donde} (zócalo)` });
   }
-  const estantes = m.estantes > 0 ? tramos.map(([a, b]) => ({ desde: a, hasta: b, alturas: Array.from({ length: m.estantes },
+  const estantes = m.estantes > 0 ? conFrente.map(([a, b]) => ({ desde: a, hasta: b, alturas: Array.from({ length: m.estantes },
     (_, k) => abajo + ((k + 1) * altoFrente) / (m.estantes + 1)) })) : [];
+  const adentro3 = [s.adentro[0], 0, s.adentro[1]];
+  const alongo3 = [s.alongo[0], 0, s.alongo[1]];
+  const placa = (esquinas, afuera) => ({ esquinas, afuera });
   return {
-    id: m.id, nombre: m.nombre, piezas, panos, panel: m.revestimiento,
+    piezas, panos,
+    tapaM2: largo * prof,
+    estantesM2: estantes.reduce((acc, e) => acc + (e.hasta - e.desde) * (prof - 0.02) * e.alturas.length, 0),
+    tapa: [p(0, 0, arriba), p(largo, 0, arriba), p(largo, prof + 0.02, arriba), p(0, prof + 0.02, arriba)].map((q) => [q[0], q[1] + m.espesorTapa, q[2]]),
+    placas: [
+      ...conFrente.map(([a, b]) => placa([p(a, prof, abajo), p(b, prof, abajo), p(b, prof, arriba), p(a, prof, arriba)], adentro3)),
+      ...(m.zocalo > 0 ? conBase.map(([a, b]) => placa([p(a, zZocalo, 0), p(b, zZocalo, 0), p(b, zZocalo, m.zocalo), p(a, zZocalo, m.zocalo)], adentro3)) : []),
+      ...(s.costadoIzquierdo ? [placa([p(0, 0, 0), p(0, prof, 0), p(0, prof, arriba), p(0, 0, arriba)], alongo3.map((c) => -c))] : []),
+      ...(s.costadoDerecho ? [placa([p(largo, 0, 0), p(largo, prof, 0), p(largo, prof, arriba), p(largo, 0, arriba)], alongo3)] : []),
+    ],
+    estantes: estantes.flatMap((e) => e.alturas.map((h) => [p(e.desde, 0.01, h), p(e.hasta, 0.01, h), p(e.hasta, prof - 0.01, h), p(e.desde, prof - 0.01, h)])),
+  };
+}
+
+/**
+ * Piezas y superficies de una mesada (recta, en L o en U), con sus huecos, bachas y electrodomésticos.
+ * Cada tramo se parte en los huecos SIN tapa (cocina, heladera): ahí no hay estructura y los dos pedazos llevan
+ * costado revestido. Los huecos CON tapa (lavarropas de carga frontal) siguen bajo la tapa.
+ */
+export function generarMesada(params, m) {
+  const prof = m.profundidad;
+  const arriba = m.alto - m.espesorTapa;
+  const res = { piezas: [], panos: [], tapaM2: 0, estantesM2: 0, tapas: [], placas: [], estantes: [] };
+  const bachas = [];
+  const electros = [];
+  tramosDeMesada(params, m).forEach((tramo) => {
+    const { origen, alongo, adentro, y } = ubicarTramo(params, tramo, m.nivel);
+    const pTramo = (x, z, h) => [origen[0] + alongo[0] * x + adentro[0] * z, y + h, origen[1] + alongo[1] * x + adentro[1] * z];
+    const huecos = (m.huecos ?? []).filter((h) => (h.tramo ?? 'principal') === tramo.clave);
+    const sinTapa = huecos.filter((h) => h.tapa === false);
+    const conTapa = [...huecos.filter((h) => h.tapa !== false), ...tramo.esquinas.map((e) => ({ ...e, esquina: true }))];
+    const nombreTramo = tramo.clave === 'principal' ? m.nombre : `${m.nombre} ${NOMBRE_TRAMO[tramo.clave]}`;
+    sinHuecos(tramo.largo, sinTapa).forEach(([a, b], k) => {
+      const corta = (x) => (x > 0.005 && x < tramo.largo - 0.005); // el borde es un corte por un hueco sin tapa
+      const clave = { principal: 'p', izquierdo: 'izq', derecho: 'der' }[tramo.clave];
+      const prefijo = tramo.clave === 'principal' && k === 0 ? `mesada:${m.id}` : `mesada:${m.id}:${clave}${k}`;
+      const seg = generarSegmento(params, m, {
+        p: (x, z, h) => pTramo(a + x, z, h), largo: b - a, prefijo, alongo, adentro,
+        donde: k === 0 ? nombreTramo : `${nombreTramo} ${k + 1}`,
+        huecos: conTapa.filter((h) => h.desde < b - 0.005 && h.desde + h.ancho > a + 0.005)
+          .map((h) => ({ ...h, desde: Math.max(0, h.desde - a), ancho: Math.min(b, h.desde + h.ancho) - Math.max(a, h.desde) })),
+        costadoIzquierdo: corta(a) ? true : tramo.costadoIzquierdo,
+        costadoDerecho: corta(b) ? true : tramo.costadoDerecho,
+      });
+      res.piezas.push(...seg.piezas);
+      res.panos.push(...seg.panos);
+      res.tapaM2 += seg.tapaM2;
+      res.estantesM2 += seg.estantesM2;
+      res.tapas.push(seg.tapa);
+      res.placas.push(...seg.placas);
+      res.estantes.push(...seg.estantes);
+    });
+    // Bachas: un rectángulo en la tapa (centrado en la profundidad); la tapa pierde ese pedazo.
+    (m.bachas ?? []).filter((b) => (b.tramo ?? 'principal') === tramo.clave).forEach((b) => {
+      const z0 = (prof - b.profundidad) / 2;
+      bachas.push({ doble: b.doble === true, m2: b.ancho * b.profundidad,
+        esquinas: [pTramo(b.desde, z0, m.alto), pTramo(b.desde + b.ancho, z0, m.alto), pTramo(b.desde + b.ancho, z0 + b.profundidad, m.alto), pTramo(b.desde, z0 + b.profundidad, m.alto)],
+        grifo: pTramo(b.desde + b.ancho / 2, Math.max(0.04, z0 - 0.05), m.alto) });
+    });
+    // Electrodomésticos en los huecos: del ancho del hueco, al ras del frente, mirando hacia adentro de la casa.
+    huecos.filter((h) => h.electro && TIPOS_MUEBLE[h.electro]).forEach((h) => {
+      const t = TIPOS_MUEBLE[h.electro];
+      const profE = Math.min(t.profundidad, prof);
+      const sube = h.conZocalo && m.zocalo > 0 ? m.zocalo : 0;
+      // Con tapa arriba: si no entra debajo de la estructura de la tapa, se avisa cuánto pasa (se dibuja igual).
+      const alto = t.alto;
+      const pasaDeAlto = h.tapa === false ? 0 : Math.max(0, sube + alto - arriba);
+      const c = pTramo(h.desde + h.ancho / 2, prof - profE / 2, 0);
+      electros.push({ tipo: h.electro, nombre: h.nombre, ancho: Math.max(0.05, h.ancho - 0.02), profundidad: profE, alto,
+        material: t.material, cargaFrontal: h.cargaFrontal !== false, pasaDeAlto,
+        centro: [c[0], c[2]], y: c[1] + sube, angulo: Math.atan2(adentro[0], adentro[1]) });
+    });
+  });
+  const bachasM2 = bachas.reduce((acc, b) => acc + b.m2, 0);
+  return {
+    id: m.id, nombre: m.nombre, piezas: res.piezas, panos: res.panos, panel: m.revestimiento,
     mostrarEtiqueta: m.mostrarEtiqueta !== false,
     colorTapa: m.colorTapa || '', colorEstantes: m.colorEstantes || '', // v1.38.2
-    ejes: { alongo, adentro }, // para el 3D: hacia dónde mira cada placa
-    tapa: { m2: m.largo * prof, largo: m.largo, profundidad: prof, espesor: m.espesorTapa },
-    estantesM2: estantes.reduce((acc, e) => acc + (e.hasta - e.desde) * (prof - 0.02) * e.alturas.length, 0),
-    // Para el 3D: cada superficie como 4 esquinas.
-    dibujo: {
-      tapa: [p(0, 0, arriba), p(m.largo, 0, arriba), p(m.largo, prof + 0.02, arriba), p(0, prof + 0.02, arriba)].map((q) => [q[0], q[1] + m.espesorTapa, q[2]]),
-      frente: tramos.map(([a, b]) => [p(a, prof, abajo), p(b, prof, abajo), p(b, prof, arriba), p(a, prof, arriba)]),
-      // signo: hacia dónde mira la placa a lo largo de la mesada (-1 = el costado izquierdo, +1 = el derecho).
-      costados: [m.costadoIzquierdo && { signo: -1, esquinas: [p(0, 0, 0), p(0, prof, 0), p(0, prof, arriba), p(0, 0, arriba)] },
-        m.costadoDerecho && { signo: 1, esquinas: [p(m.largo, 0, 0), p(m.largo, prof, 0), p(m.largo, prof, arriba), p(m.largo, 0, arriba)] }].filter(Boolean),
-      zocalo: m.zocalo > 0 ? tramos.map(([a, b]) => [p(a, zZocalo, 0), p(b, zZocalo, 0), p(b, zZocalo, m.zocalo), p(a, zZocalo, m.zocalo)]) : [],
-      estantes: estantes.flatMap((e) => e.alturas.map((h) => [p(e.desde, 0.01, h), p(e.hasta, 0.01, h), p(e.hasta, prof - 0.01, h), p(e.desde, prof - 0.01, h)])),
-      espesorTapa: m.espesorTapa,
-    },
+    tapa: { m2: Math.max(0, res.tapaM2 - bachasM2), espesor: m.espesorTapa, tramos: res.tapas.length },
+    estantesM2: res.estantesM2,
+    bachas: { simples: bachas.filter((b) => !b.doble).length, dobles: bachas.filter((b) => b.doble).length },
+    electros,
+    // Para el 3D: cada superficie como 4 esquinas; las placas con hacia dónde miran.
+    dibujo: { tapas: res.tapas, placas: res.placas, estantes: res.estantes, bachas, espesorTapa: m.espesorTapa },
   };
 }
 
@@ -191,10 +339,11 @@ export function generarMesadas(params) {
   return (params.mesadas ?? []).map((m) => generarMesada(params, m));
 }
 
-/** Errores de carga de una mesada (que entre en su pared y en su profundidad). */
+/** Errores de carga de una mesada (que entre en sus paredes, huecos y bachas en sus tramos). */
 export function validarMesada(m, params) {
   if (!LADOS.includes(m.lado)) return 'Elegí una pared';
   const num = (v, min, max) => Number.isFinite(v) && v >= min && v <= max;
+  if (!FORMAS_MESADA.some(([f]) => f === (m.forma ?? 'recta'))) return 'Elegí la forma';
   if (!num(m.largo, 0.3, 20)) return 'El largo va de 0,30 a 20 m';
   if (!num(m.profundidad, 0.2, 1.5)) return 'La profundidad va de 0,20 a 1,50 m';
   if (!num(m.alto, 0.3, 1.5)) return 'El alto va de 0,30 a 1,50 m';
@@ -203,14 +352,39 @@ export function validarMesada(m, params) {
   if (!num(m.zocalo, 0, 0.3) || !num(m.retiroZocalo, 0, 0.2)) return 'El zócalo va de 0 a 30 cm (retiro hasta 20 cm)';
   if (!Number.isInteger(m.estantes) || m.estantes < 0 || m.estantes > 5) return 'Estantes: de 0 a 5';
   if (!num(m.desde, 0, 50)) return 'La distancia a la esquina no puede ser negativa';
-  if (m.desde + m.largo > largoLado(m.lado, params) + 0.001) return 'La mesada no entra en esa pared';
+  const forma = m.forma ?? 'recta';
+  const interior = (lado) => largoLado(lado, params) - 2 * MEDIA_PARED;
+  const i = LADOS.indexOf(m.lado);
+  if (forma === 'recta' && m.desde + m.largo > largoLado(m.lado, params) + 0.001) return 'La mesada no entra en esa pared';
+  if ((forma === 'L-izquierda' || forma === 'L-derecha') && m.largo > interior(m.lado) + 0.001) return 'La mesada no entra en esa pared';
+  if (giraIzquierda(m) && (!num(m.largoIzquierdo, m.profundidad + 0.3, 50) || m.largoIzquierdo > interior(LADOS[(i + 1) % 4]) + 0.001)) {
+    return `El tramo de la izquierda va de ${(m.profundidad + 0.3).toFixed(2)} m al largo de esa pared`;
+  }
+  if (giraDerecha(m) && (!num(m.largoDerecho, m.profundidad + 0.3, 50) || m.largoDerecho > interior(LADOS[(i + 3) % 4]) + 0.001)) {
+    return `El tramo de la derecha va de ${(m.profundidad + 0.3).toFixed(2)} m al largo de esa pared`;
+  }
   if (m.nivel === 'piso2' && !(params.anchoEntrepiso > 0)) return 'No hay entrepiso';
   if (!['piso', 'piso2'].includes(m.nivel)) return 'Elegí planta baja o piso 2';
   if (typeof m.nombre !== 'string' || m.nombre.length > 40) return 'El nombre puede tener hasta 40 letras';
   if (m.mostrarEtiqueta !== undefined && typeof m.mostrarEtiqueta !== 'boolean') return 'Valor inválido';
   if (!colorOpcional(m.colorTapa) || !colorOpcional(m.colorEstantes)) return 'Color inválido';
+  // Largo de cada tramo (huecos y bachas se miden en su tramo, desde su punta izquierda).
+  const largos = Object.fromEntries(tramosDeMesada(params, { ...m, forma }).map((t) => [t.clave, t.largo]));
   for (const h of m.huecos ?? []) {
-    if (!num(h.desde, 0, m.largo) || !num(h.ancho, 0.1, m.largo) || h.desde + h.ancho > m.largo + 0.001) return 'Un hueco no entra en la mesada';
+    const largo = largos[h.tramo ?? 'principal'];
+    if (largo === undefined) return 'Un hueco está en un tramo que esta mesada no tiene';
+    if (!num(h.desde, 0, largo) || !num(h.ancho, 0.1, largo) || h.desde + h.ancho > largo + 0.001) return 'Un hueco no entra en su tramo';
+    if (h.electro !== undefined && !ELECTROS_HUECO.some(([e]) => e === h.electro)) return 'Electrodoméstico desconocido';
+    if (['tapa', 'conZocalo', 'cargaFrontal'].some((c) => h[c] !== undefined && typeof h[c] !== 'boolean')) return 'Valor inválido';
+  }
+  for (const b of m.bachas ?? []) {
+    const largo = largos[b.tramo ?? 'principal'];
+    if (largo === undefined) return 'Una bacha está en un tramo que esta mesada no tiene';
+    if (!num(b.ancho, 0.2, 2) || !num(b.profundidad, 0.2, m.profundidad - 0.06)) return 'La bacha va de 0,20 m y deja 3 cm de tapa adelante y atrás';
+    if (!num(b.desde, 0, largo) || b.desde + b.ancho > largo + 0.001) return 'Una bacha no entra en su tramo';
+    const sobreHueco = (m.huecos ?? []).some((h) => (h.tramo ?? 'principal') === (b.tramo ?? 'principal') && h.tapa === false
+      && b.desde < h.desde + h.ancho - 0.001 && b.desde + b.ancho > h.desde + 0.001);
+    if (sobreHueco) return 'Una bacha cae sobre un hueco sin tapa';
   }
   return null;
 }

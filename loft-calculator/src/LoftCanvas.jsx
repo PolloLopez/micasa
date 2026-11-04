@@ -23,7 +23,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { LADOS } from './motor/constantes.js';
 import { CAPAS, AYUDAS, GRUPOS_LEYENDA, CAPAS_TERRENO, CAPAS_MESADAS, CAPAS_MUEBLES, COLORES_INICIALES, capaDelProyecto } from './capas.js';
 import SelectorColor from './componentes/SelectorColor.jsx';
-import { losaGruesa, dibujarMueble, materialDeColor } from './interiores3d.js';
+import { losaGruesa, dibujarMueble, dibujarMuebleEn, materialDeColor } from './interiores3d.js';
 import { ubicarMueble } from './motor/interiores.js';
 import { posicionAbertura, listarPiezas } from './motor/estructura.js';
 import { geometriaLados, nombreLado } from './motor/geometria.js';
@@ -469,27 +469,39 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
   // v1.38: mesadas (tapa, placas del revestimiento y estantes) y muebles.
   if (capas.tapasMesada && grupoVisible('mesada')) {
     (e.mesadas ?? []).forEach((m) => {
-      const { tapa, frente, costados, zocalo, estantes, espesorTapa } = m.dibujo;
+      const { tapas, placas, estantes, bachas, espesorTapa } = m.dibujo;
       // v1.38.2: cada mesada puede tener su color de tapa y de estantes ('' = el de la capa).
       const matTapa = m.colorTapa ? materialDeColor(m.colorTapa, { metal: 0.1, aspereza: 0.35 }) : materiales.tapasMesada;
       const matEstantes = m.colorEstantes ? materialDeColor(m.colorEstantes) : materiales.escalones;
-      if (espesorTapa > 0) grupo.add(losaGruesa(tapa, espesorTapa, matTapa));
+      if (espesorTapa > 0) tapas.forEach((tapa) => grupo.add(losaGruesa(tapa, espesorTapa, matTapa)));
       estantes.forEach((esq) => grupo.add(losaGruesa(esq, 0.018, matEstantes, false)));
+      // v1.40: bachas (acero oscuro sobre la tapa; la doble con su división) y su grifo.
+      bachas.forEach((b) => {
+        const matBacha = materialDeColor('#334155', { metal: 0.7, aspereza: 0.25 });
+        if (b.doble) {
+          const [a, bb, c, d] = b.esquinas;
+          const medio = (p, q, t) => p.map((v, i) => v + (q[i] - v) * t);
+          grupo.add(losaGruesa([a, medio(a, bb, 0.48), medio(d, c, 0.48), d], 0.006, matBacha, false));
+          grupo.add(losaGruesa([medio(a, bb, 0.52), bb, c, medio(d, c, 0.52)], 0.006, matBacha, false));
+        } else {
+          grupo.add(losaGruesa(b.esquinas, 0.006, matBacha, false));
+        }
+        const grifo = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.25, 12), materialDeColor('#cbd5e1', { metal: 0.8, aspereza: 0.25 }));
+        grifo.position.set(b.grifo[0], b.grifo[1] + 0.125, b.grifo[2]);
+        grupo.add(grifo);
+      });
       if (!m.panel) return; // sin revestimiento: se ve la estructura
       const mats = materialesPanel.get(m.panel);
-      const [ax, az] = m.ejes.adentro;
-      const [lx, lz] = m.ejes.alongo;
       // Cada placa corrida 1 cm hacia afuera de los perfiles, con su cara de color mirando afuera.
-      const placa = (esquinas, haciaAfuera) => {
-        const d = haciaAfuera.map((c) => c * 0.01);
-        const movidas = esquinas.map((q) => [q[0] + d[0], q[1], q[2] + d[2]]);
-        grupo.add(mats ? panelDosCaras(movidas, mats, haciaAfuera) : cuadrilatero(movidas, materiales.paneles));
-      };
-      frente.forEach((esq) => placa(esq, [ax, 0, az]));
-      zocalo.forEach((esq) => placa(esq, [ax, 0, az]));
-      // Costados: el izquierdo mira hacia la izquierda de la mesada, el derecho hacia la derecha.
-      costados.forEach(({ signo, esquinas }) => placa(esquinas, [signo * lx, 0, signo * lz]));
+      placas.forEach(({ esquinas, afuera }) => {
+        const movidas = esquinas.map((q) => [q[0] + afuera[0] * 0.01, q[1], q[2] + afuera[2] * 0.01]);
+        grupo.add(mats ? panelDosCaras(movidas, mats, afuera) : cuadrilatero(movidas, materiales.paneles));
+      });
     });
+  }
+  // v1.40: los electrodomésticos de los huecos de las mesadas (van con la capa Muebles).
+  if (capas.muebles !== false && moduloActivo('muebles') && grupoVisible('mesada')) {
+    (e.mesadas ?? []).forEach((m) => m.electros.forEach((el) => grupo.add(dibujarMuebleEn(el, el.centro, el.angulo, el.y))));
   }
   if (capas.muebles && moduloActivo('muebles') && params.tipoProyecto === 'construccion') {
     (params.muebles ?? []).forEach((mueble) => grupo.add(dibujarMueble(params, mueble)));
@@ -497,7 +509,7 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
   // v1.38.1: carteles con el nombre (como paredes y aberturas): por capa "Etiquetas" y por cada uno en su ficha.
   if (capas.etiquetasMesadas && (capas.mesadas || capas.tapasMesada) && grupoVisible('mesada')) {
     (e.mesadas ?? []).filter((m) => m.mostrarEtiqueta && m.nombre.trim()).forEach((m) => {
-      const t = m.dibujo.tapa; // arriba de la tapa, en el medio
+      const t = m.dibujo.tapas[0]; // arriba de la primera tapa, en el medio
       const cartelito = cartelChico(m.nombre.trim(), 'rgba(124,58,237,0.9)');
       cartelito.position.set((t[0][0] + t[2][0]) / 2, t[0][1] + 0.3, (t[0][2] + t[2][2]) / 2);
       grupo.add(cartelito);
@@ -1055,7 +1067,8 @@ export default function LoftCanvas({
   const moduloSol = moduloActivo('sol') && params.tipoProyecto === 'construccion';
   // v1.38: la leyenda muestra Interiores solo si la obra tiene mesadas o muebles.
   const hayMesadas = params.tipoProyecto === 'construccion' && (params.mesadas?.length ?? 0) > 0;
-  const hayMuebles = moduloActivo('muebles') && params.tipoProyecto === 'construccion' && (params.muebles?.length ?? 0) > 0;
+  const hayMuebles = moduloActivo('muebles') && params.tipoProyecto === 'construccion'
+    && ((params.muebles?.length ?? 0) > 0 || (params.mesadas ?? []).some((m) => (m.huecos ?? []).some((h) => h.electro))); // v1.40: o electros en huecos
   const hoy = new Date();
   const [sol, setSol] = useState(() => ({
     activo: false,

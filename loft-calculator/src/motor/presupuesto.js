@@ -82,6 +82,9 @@ export const CATALOGO_FIJO = [
   { id: INSUMO.ESTRUCTURA_MESADA, categoria: 'perfil', nombre: 'Estructura de mesadas', perfil: 'Caño estructural 40x40x1.6', unidad: 'barra', largoBarra: 6, precio: 15000 },
   { id: INSUMO.TAPA_MESADA, categoria: 'placa', nombre: 'Tapas de mesada', perfil: 'Granito 2 cm', unidad: 'm²', largoBarra: null, precio: 150000 },
   { id: INSUMO.ESTANTE_MESADA, categoria: 'placa', nombre: 'Estantes bajo mesada', perfil: 'Melamina 18 mm', unidad: 'm²', largoBarra: null, precio: 30000 },
+  // v1.40: bachas de cocina (renglones solo si hay).
+  { id: INSUMO.BACHA_SIMPLE, categoria: 'unidad', nombre: 'Bachas simples', perfil: 'Bacha de acero inoxidable 52 x 37 cm', unidad: 'u', largoBarra: null, precio: 60000 },
+  { id: INSUMO.BACHA_DOBLE, categoria: 'unidad', nombre: 'Bachas dobles', perfil: 'Bacha doble de acero inoxidable 76 x 37 cm', unidad: 'u', largoBarra: null, precio: 110000 },
 ];
 
 /** Renglones que solo se usan en un proyecto de grada. */
@@ -337,9 +340,14 @@ function calcularRenglones(estructura, catalogo, excedenteBarras) {
     const nombres = mesadas.map((m) => m.nombre).join(', ');
     items.push(perfil(INSUMO.ESTRUCTURA_MESADA, mesadas.flatMap((m) => m.piezas)));
     const tapa = mesadas.reduce((acc, m) => acc + m.tapa.m2, 0);
-    items.push(itemSimple(insumo(INSUMO.TAPA_MESADA), m2(tapa), tapa ? `${nombres}: ${mesadas.map((m) => `${m.tapa.largo.toFixed(2)} x ${m.tapa.profundidad.toFixed(2)} m`).join(' + ')}` : 'no lleva'));
+    // v1.40: la tapa ya descuenta el hueco de las bachas y los huecos sin tapa (cocina, heladera).
+    items.push(itemSimple(insumo(INSUMO.TAPA_MESADA), m2(tapa), tapa ? `${nombres}: ${mesadas.map((m) => `${m.tapa.m2.toFixed(2)} m²${m.tapa.tramos > 1 ? ` en ${m.tapa.tramos} piezas` : ''}`).join(' + ')}` : 'no lleva'));
     const estantes = mesadas.reduce((acc, m) => acc + m.estantesM2, 0);
     if (estantes > 0) items.push(itemSimple(insumo(INSUMO.ESTANTE_MESADA), m2(estantes), `${estantes.toFixed(2)} m² de estantes`));
+    const simples = mesadas.reduce((acc, m) => acc + m.bachas.simples, 0);
+    const dobles = mesadas.reduce((acc, m) => acc + m.bachas.dobles, 0);
+    if (simples > 0) items.push(itemSimple(insumo(INSUMO.BACHA_SIMPLE), simples, 'en las mesadas'));
+    if (dobles > 0) items.push(itemSimple(insumo(INSUMO.BACHA_DOBLE), dobles, 'en las mesadas'));
   }
   // v1.29: accesorios con cantidad cargada (tornillería, electrodos, selladores…).
   catalogo.filter((i) => i.categoria === 'accesorio' && i.cantidad > 0)

@@ -759,3 +759,6 @@ kbd {
 .campo-color .etiqueta-campo { font-size: 0.8rem; color: var(--texto-suave); }
 .campo-color .muestra { width: 32px; height: 32px; }
 .fila-colores { display: flex; gap: 10px; align-items: center; }
+
+/* v1.40: huecos con sus casillas debajo */
+.fila-hueco-v2 { border-top: 1px dashed var(--borde); padding-top: 4px; margin-bottom: 4px; }

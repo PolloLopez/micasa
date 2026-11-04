@@ -157,6 +157,14 @@ function cajasDe(forma, ancho, alto, prof, mat, opciones = {}) {
 /** Un mueble armado y ubicado (Group con sus cajas). */
 export function dibujarMueble(params, mueble) {
   const { centro, angulo, y } = ubicarMueble(params, mueble);
+  return dibujarMuebleEn(mueble, centro, angulo, y);
+}
+
+/**
+ * v1.40: un mueble en un lugar dado (centro [x, z], ángulo y altura del piso). Lo usan los muebles sueltos y los
+ * electrodomésticos de los huecos de las mesadas. `mueble`: { tipo, ancho, profundidad, alto, material, color?, cargaFrontal? }
+ */
+export function dibujarMuebleEn(mueble, centro, angulo, y) {
   const forma = TIPOS_MUEBLE[mueble.tipo]?.forma ?? 'caja';
   // v1.38.2: con color propio, el mismo brillo de su material pero de ese color.
   const base = MATERIALES_MUEBLE[mueble.material] ?? MATERIALES_MUEBLE.madera;

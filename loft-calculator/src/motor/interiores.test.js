@@ -7,7 +7,7 @@ import { validarParametros } from './validacion.js';
 import { PARAMS_INICIALES as P, ABERTURAS_INICIALES } from './parametrosIniciales.js';
 import { INSUMO } from './constantes.js';
 import {
-  MESADA_NUEVA, mesadaNueva, colorDelMueble, generarMesada, tramosDelFrente, ubicarMesada, validarMesada,
+  MESADA_NUEVA, mesadaNueva, colorDelMueble, tramosDeMesada, HUECO_NUEVO, generarMesada, tramosDelFrente, ubicarMesada, validarMesada,
   muebleNuevo, ubicarMueble, validarMueble, muebleFueraDeLaPlanta, distanciasDelMueble, libreArribaDelMueble,
 } from './interiores.js';
 
@@ -147,7 +147,7 @@ describe('mesadas: carga', () => {
   it('valida medidas, que entre en la pared y los huecos', () => {
     expect(validarMesada(mesada(), P)).toBeNull();
     expect(validarMesada(mesada({ desde: 6 }), P)).toBe('La mesada no entra en esa pared');
-    expect(validarMesada(mesada({ huecos: [{ desde: 2, ancho: 0.7 }] }), P)).toBe('Un hueco no entra en la mesada');
+    expect(validarMesada(mesada({ huecos: [{ desde: 2, ancho: 0.7 }] }), P)).toBe('Un hueco no entra en su tramo');
     expect(validarMesada(mesada({ profundidad: 0.1 }), P)).toMatch(/profundidad/);
     expect(validarParametros(conMesadas(mesada({ desde: 6 })))['mesadas.1']).toBe('La mesada no entra en esa pared');
     expect(validarParametros(conMesadas(mesada()))).toEqual({});
@@ -291,5 +291,91 @@ describe('colores propios (v1.38.2)', () => {
     const { color, ...viejo } = muebleNuevo('cama1', [], 1);
     expect(color).toBe('');
     expect(migrarParams({ ...P, muebles: [viejo] }).muebles[0].color).toBe('');
+  });
+});
+
+describe('mesadas en L y en U, huecos y bachas (v1.40)', () => {
+  // Pared C (fondo): vista de adentro, la izquierda es el lateral D (x = -3,75) y la derecha el B (x = 3,75).
+  const dentro = (piezas, eje, min, max) => piezas.every((p) => [p.desde, p.hasta].every((q) => q[eje] > min - 1e-6 && q[eje] < max + 1e-6));
+  const hueco = (cambios) => ({ ...HUECO_NUEVO, ...cambios });
+
+  it('en L hacia la izquierda: el principal llega a la pared de la izquierda y el otro tramo sigue por ella', () => {
+    const m = mesada({ forma: 'L-izquierda', largoIzquierdo: 1.5, revestimiento: 'panelMuros' });
+    const tramos = tramosDeMesada(P, m);
+    expect(tramos.map((t) => [t.clave, t.lado])).toEqual([['principal', 'C'], ['izquierdo', 'D']]);
+    const g = generarMesada(P, m);
+    const principal = g.piezas.filter((p) => !p.id.includes(':izq'));
+    const otro = g.piezas.filter((p) => p.id.includes(':izq'));
+    expect(dentro(principal, 0, -3.69, -1.29)).toBe(true); // de la cara del lateral D (-3,69) a 2,40 m
+    expect(dentro(otro, 0, -3.69, -3.09)).toBe(true); // contra el lateral D, 60 cm de profundidad
+    expect(dentro(otro, 2, -1.59, -0.69)).toBe(true); // arranca después de la profundidad del principal, hasta 1,50 m
+    expect(g.tapa.m2).toBeCloseTo(2.4 * 0.6 + 0.9 * 0.6, 6);
+    // Costados: el principal solo a la derecha; el otro tramo solo en su punta libre (su izquierda).
+    expect(g.panos.filter((p) => p.donde.includes('costado')).map((p) => p.donde)).toEqual(['Mesada 1 (costado der.)', 'Mesada 1 de la izquierda (costado izq.)']);
+    // El pedazo del frente del principal tapado por el otro tramo no lleva placa.
+    expect(g.panos.find((p) => p.donde === 'Mesada 1 (frente)').neto).toBeCloseTo((2.4 - 0.6) * (0.9 - 0.03 - 0.1), 6);
+  });
+
+  it('en U ocupa toda la pared principal y sigue por las dos', () => {
+    const m = mesada({ forma: 'U', largoIzquierdo: 1.2, largoDerecho: 1.8 });
+    const tramos = tramosDeMesada(P, m);
+    expect(tramos.map((t) => [t.clave, t.lado, Number(t.largo.toFixed(2))])).toEqual([['principal', 'C', 7.38], ['izquierdo', 'D', 0.6], ['derecho', 'B', 1.2]]);
+    expect(validarMesada(m, P)).toBeNull();
+    expect(validarMesada({ ...m, largoDerecho: 4.5 }, P)).toMatch(/tramo de la derecha/);
+    expect(validarMesada({ ...m, largoIzquierdo: 0.7 }, P)).toMatch(/tramo de la izquierda/);
+  });
+
+  it('un hueco SIN tapa (cocina) parte la mesada: sin estructura ni tapa ahí y costados revestidos a los dos lados', () => {
+    const m = mesada({ revestimiento: 'panelMuros', huecos: [hueco({ desde: 1, ancho: 0.6, tapa: false, electro: 'cocina', nombre: 'Cocina' })] });
+    const g = generarMesada(P, m);
+    expect(g.tapa.m2).toBeCloseTo((2.4 - 0.6) * 0.6, 6);
+    expect(g.tapa.tramos).toBe(2);
+    expect(g.piezas.some((p) => p.id.startsWith('mesada:1:p1:'))).toBe(true);
+    // Ninguna pieza dentro del hueco (x de 0,85 + 1 a 0,85 + 1,6).
+    expect(g.piezas.every((p) => [p.desde[0], p.hasta[0]].every((x) => x < 1.85 + 1e-6) || [p.desde[0], p.hasta[0]].every((x) => x > 2.45 - 1e-6))).toBe(true);
+    expect(g.panos.filter((p) => p.donde.includes('costado'))).toHaveLength(4);
+    // La cocina va en el hueco, del ancho del hueco, mirando hacia adentro de la casa.
+    expect(g.electros).toHaveLength(1);
+    expect(g.electros[0]).toMatchObject({ tipo: 'cocina', alto: 0.85, pasaDeAlto: 0 });
+    expect(g.electros[0].ancho).toBeCloseTo(0.58, 6);
+    expect(g.electros[0].centro[0]).toBeCloseTo(0.85 + 1.3, 6);
+    expect(g.electros[0].angulo).toBeCloseTo(0, 6); // adentro de la pared C = +z: sin girar
+  });
+
+  it('un hueco CON tapa sobre zócalo: la base sigue por debajo y el lavarropas apoya arriba (avisa si no entra)', () => {
+    const m = mesada({ huecos: [hueco({ desde: 1, ancho: 0.6, conZocalo: true, electro: 'lavarropas' })] });
+    const g = generarMesada(P, m);
+    expect(g.piezas.filter((p) => p.id.includes(':zocalo:'))).toHaveLength(1); // un solo zócalo de punta a punta
+    expect(g.tapa.m2).toBeCloseTo(2.4 * 0.6, 6);
+    const lav = g.electros[0];
+    expect(lav.y).toBeCloseTo(P.elevacion + 0.09 + 0.1, 6);
+    expect(lav.pasaDeAlto).toBeCloseTo(0.1 + 0.85 - 0.87, 6); // 85 cm sobre 10 de zócalo, bajo una estructura a 87
+    expect(lav.cargaFrontal).toBe(true);
+    // Sin zócalo debajo, el lavarropas va al piso y entra.
+    expect(generarMesada(P, mesada({ huecos: [hueco({ desde: 1, ancho: 0.6, electro: 'lavarropas' })] })).electros[0].pasaDeAlto).toBe(0);
+  });
+
+  it('bachas: cortan la tapa y van al presupuesto (simple o doble)', () => {
+    const conBachas = mesada({ bachas: [{ tramo: 'principal', desde: 0.2, ancho: 0.52, profundidad: 0.37, doble: false },
+      { tramo: 'principal', desde: 1.2, ancho: 0.76, profundidad: 0.37, doble: true }] });
+    const g = generarMesada(P, conBachas);
+    expect(g.tapa.m2).toBeCloseTo(2.4 * 0.6 - 0.52 * 0.37 - 0.76 * 0.37, 6);
+    expect(g.bachas).toEqual({ simples: 1, dobles: 1 });
+    expect(renglon(conMesadas(conBachas), INSUMO.BACHA_SIMPLE).cantidad).toBe(1);
+    expect(renglon(conMesadas(conBachas), INSUMO.BACHA_DOBLE).cantidad).toBe(1);
+    expect(validarMesada(conBachas, P)).toBeNull();
+    const sobreCocina = { ...conBachas, huecos: [hueco({ desde: 0, ancho: 0.6, tapa: false })] };
+    expect(validarMesada(sobreCocina, P)).toBe('Una bacha cae sobre un hueco sin tapa');
+    expect(validarMesada(mesada({ bachas: [{ tramo: 'izquierdo', desde: 0, ancho: 0.5, profundidad: 0.37 }] }), P)).toMatch(/tramo que esta mesada no tiene/);
+  });
+
+  it('huecos y bachas de la v1.38 se completan (con tapa, sin zócalo, en el tramo principal)', () => {
+    const vieja = { ...mesada(), huecos: [{ desde: 1, ancho: 0.7, nombre: 'Heladera' }] };
+    delete vieja.forma; delete vieja.bachas;
+    const migrada = migrarParams(conMesadas(vieja)).mesadas[0];
+    expect(migrada).toMatchObject({ forma: 'recta', bachas: [] });
+    expect(migrada.huecos[0]).toMatchObject({ tramo: 'principal', tapa: true, conZocalo: false, electro: '', nombre: 'Heladera' });
+    // Y queda igual que antes.
+    expect(generarMesada(P, migrada).piezas.map((p) => p.id)).toEqual(generarMesada(P, { ...mesada(), huecos: [{ desde: 1, ancho: 0.7 }] }).piezas.map((p) => p.id));
   });
 });

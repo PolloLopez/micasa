@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.40.0] - 2026-11-04
+### Agregado
+- **Mesada en L o en U**: en "Forma" elegís recta, L (sigue por la pared de la izquierda o de la derecha) o U. El
+  tramo principal llega hasta la esquina (en U ocupa toda la pared) y cada tramo que sigue tiene su largo, medido
+  desde la cara de adentro de la pared principal. Misma altura, profundidad, perfil y revestimiento; la esquina es del
+  tramo principal y su frente tapado no lleva placa.
+- **Huecos con o sin tapa, sobre zócalo y con el electrodoméstico adentro**: cada hueco elige en qué tramo va, qué
+  lleva (heladera, cocina, lavarropas u otro), si la tapa sigue por arriba (lavarropas de carga frontal) o se corta
+  (cocina con hornallas, heladera: ahí no hay estructura y los costados se revisten) y si la base del zócalo sigue
+  por debajo. El electrodoméstico se dibuja en el hueco y avisa si no entra bajo la tapa.
+- **Bachas de cocina** en la mesada (simple o doble, posición y medida): cortan la tapa (menos m²) y suman los
+  renglones "Bachas simples" / "Bachas dobles" al presupuesto. No pueden caer sobre un hueco sin tapa.
+
 ## [1.39.0] - 2026-11-04
 ### Agregado
 - **Muebles: desde qué pared se mide**. Elegís lateral izquierdo o derecho y frente o fondo; la distancia va de la

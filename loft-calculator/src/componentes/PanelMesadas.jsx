@@ -17,7 +17,7 @@ import SelectorPerfil from './SelectorPerfil.jsx';
 import SelectorColor from './SelectorColor.jsx';
 import { LADOS } from '../motor/constantes.js';
 import { nombreLado, largoLado } from '../motor/geometria.js';
-import { mesadaNueva, tramosDelFrente } from '../motor/interiores.js';
+import { mesadaNueva, tramosDeMesada, FORMAS_MESADA, NOMBRE_TRAMO, ELECTROS_HUECO, TAPA_SEGUN_ELECTRO, HUECO_NUEVO, BACHA_NUEVA } from '../motor/interiores.js';
 
 const f2 = (n) => n.toFixed(2).replace('.', ',');
 
@@ -41,7 +41,7 @@ function Casilla({ texto, valor, onCambio }) {
   );
 }
 
-/** Una mesada: dónde va, medidas, estructura, revestimiento y huecos. */
+/** Una mesada: forma, dónde va, medidas, estructura, revestimiento, huecos y bachas. */
 function Mesada({ m, i, params, unidad, cambiar, onQuitar, paneles, perfiles, perfilGeneral, generada, colores }) {
   const ruta = `mesadas.${i}`;
   const medida = (campo, etiqueta) => (
@@ -49,25 +49,36 @@ function Mesada({ m, i, params, unidad, cambiar, onQuitar, paneles, perfiles, pe
   );
   const conEntrepiso = params.anchoEntrepiso > 0;
   const largoPared = largoLado(m.lado, params);
+  const forma = m.forma ?? 'recta';
+  const i0 = LADOS.indexOf(m.lado);
+  // v1.40: los tramos (principal y los que siguen por las paredes de al lado), con su largo.
+  const tramos = tramosDeMesada(params, { ...m, forma });
+  const largoDe = (clave) => tramos.find((t) => t.clave === clave)?.largo ?? 0;
+  const opcionesTramo = tramos.map((t) => [t.clave, `Tramo ${NOMBRE_TRAMO[t.clave]}`]);
 
-  // Hueco nuevo: a continuación del último, de 60 cm (o lo que entre).
-  const agregarHueco = () => {
-    const fin = Math.max(0, ...m.huecos.map((h) => h.desde + h.ancho));
-    const ancho = Math.min(0.6, m.largo);
-    const desde = Math.min(fin, m.largo - ancho);
-    return cambiar(`${ruta}.huecos`)([...m.huecos, { desde, ancho, nombre: `Hueco ${m.huecos.length + 1}` }]);
+  // Hueco o bacha nuevos: a continuación del último del tramo principal (o lo que entre).
+  const siguiente = (lista, ancho) => {
+    const fin = Math.max(0, ...lista.filter((x) => (x.tramo ?? 'principal') === 'principal').map((x) => x.desde + x.ancho));
+    return Math.max(0, Math.min(fin, largoDe('principal') - ancho));
   };
-  const quitarHueco = (k) => cambiar(`${ruta}.huecos`)(m.huecos.filter((_, j) => j !== k));
+  const agregarHueco = () => {
+    const ancho = Math.min(0.6, largoDe('principal'));
+    return cambiar(`${ruta}.huecos`)([...m.huecos, { ...HUECO_NUEVO, desde: siguiente(m.huecos, ancho), ancho, nombre: `Hueco ${m.huecos.length + 1}` }]);
+  };
+  const agregarBacha = () => cambiar(`${ruta}.bachas`)([...(m.bachas ?? []), { ...BACHA_NUEVA, desde: siguiente(m.bachas ?? [], BACHA_NUEVA.ancho) }]);
+  const quitar = (lista, k) => cambiar(`${ruta}.${lista}`)(m[lista].filter((_, j) => j !== k));
+  // Al elegir lo que va en el hueco, la tapa arranca como corresponde (cocina y heladera sin tapa, lavarropas con tapa).
+  const elegirElectro = (k, electro) => cambiar(`${ruta}.huecos.${k}`)({ ...m.huecos[k], electro, tapa: TAPA_SEGUN_ELECTRO[electro] });
 
-  const tramos = tramosDelFrente(m);
   const metros = generada ? generada.piezas.reduce((acc, p) => acc + p.largo, 0) : 0;
   const m2Placa = generada ? generada.panos.reduce((acc, p) => acc + p.neto, 0) : 0;
+  const altos = (generada?.electros ?? []).filter((el) => el.pasaDeAlto > 0.001);
 
   return (
     <section className="elemento-terreno mesada">
       <header>
         <strong>{m.nombre}</strong>
-        <small>{nombreLado(m.lado, params.ladoFrente)} · {f2(m.largo)} x {f2(m.profundidad)} m</small>
+        <small>{nombreLado(m.lado, params.ladoFrente)} · {FORMAS_MESADA.find(([f]) => f === forma)[1].split(' (')[0]} · {f2(largoDe('principal'))} x {f2(m.profundidad)} m</small>
         <button type="button" className="btn-del" onClick={onQuitar} aria-label={`Quitar ${m.nombre}`} title="Quitar">✕</button>
       </header>
       {/* v1.38.1: el nombre es el cartel del 3D (como paredes y aberturas); se puede sacar uno por uno. */}
@@ -82,22 +93,32 @@ function Mesada({ m, i, params, unidad, cambiar, onQuitar, paneles, perfiles, pe
           onChange={(e) => cambiar(`${ruta}.nombre`)(e.target.value)} />
       </div>
       <div className="grid-params">
+        <CampoSelect etiqueta="Forma" valor={forma} opciones={FORMAS_MESADA} onCambio={cambiar(`${ruta}.forma`)} />
         <CampoSelect etiqueta="Contra la pared" valor={m.lado}
           opciones={LADOS.map((l) => [l, `${nombreLado(l, params.ladoFrente)} (${l})`])} onCambio={cambiar(`${ruta}.lado`)} />
         {conEntrepiso && (
           <CampoSelect etiqueta="Nivel" valor={m.nivel} opciones={[['piso', 'Planta baja'], ['piso2', 'Piso 2 (entrepiso)']]}
             onCambio={cambiar(`${ruta}.nivel`)} />
         )}
-        <CampoSelect etiqueta="Medida desde la esquina" valor={m.ladoReferencia}
-          opciones={[['izquierda', 'Izquierda (vista desde afuera)'], ['derecha', 'Derecha (vista desde afuera)']]}
-          onCambio={cambiar(`${ruta}.ladoReferencia`)} />
-        {medida('desde', 'Distancia a la esquina')}
-        {medida('largo', 'Largo')}
+        {/* Recta: se ubica desde una esquina. En L arranca en la esquina donde gira; en U ocupa toda la pared. */}
+        {forma === 'recta' && (<>
+          <CampoSelect etiqueta="Medida desde la esquina" valor={m.ladoReferencia}
+            opciones={[['izquierda', 'Izquierda (vista desde afuera)'], ['derecha', 'Derecha (vista desde afuera)']]}
+            onCambio={cambiar(`${ruta}.ladoReferencia`)} />
+          {medida('desde', 'Distancia a la esquina')}
+        </>)}
+        {forma !== 'U' && medida('largo', forma === 'recta' ? 'Largo' : 'Largo del tramo principal')}
+        {(forma === 'L-izquierda' || forma === 'U') && medida('largoIzquierdo', `Tramo de la izquierda (${nombreLado(LADOS[(i0 + 1) % 4], params.ladoFrente)})`)}
+        {(forma === 'L-derecha' || forma === 'U') && medida('largoDerecho', `Tramo de la derecha (${nombreLado(LADOS[(i0 + 3) % 4], params.ladoFrente)})`)}
         {medida('profundidad', 'Profundidad')}
         {medida('alto', 'Alto (con la tapa)')}
         {medida('espesorTapa', 'Espesor de la tapa')}
       </div>
-      <p className="nota">La pared mide {f2(largoPared)} m: quedan {f2(Math.max(0, largoPared - m.desde - m.largo))} m del otro lado.</p>
+      <p className="nota">
+        {forma === 'recta' && `La pared mide ${f2(largoPared)} m: quedan ${f2(Math.max(0, largoPared - m.desde - m.largo))} m del otro lado. `}
+        {forma === 'U' && `El tramo principal ocupa toda la pared por dentro: ${f2(largoDe('principal'))} m. `}
+        {forma !== 'recta' && 'Los tramos que siguen se miden desde la cara de adentro de la pared principal (con la esquina).'}
+      </p>
 
       <h4 className="subtitulo-pared">Estructura y revestimiento</h4>
       <div className="grid-params">
@@ -129,29 +150,68 @@ function Mesada({ m, i, params, unidad, cambiar, onQuitar, paneles, perfiles, pe
       </div>
       {m.revestimiento && (
         <div className="fila-casillas">
+          {/* En L o U, el costado del lado que gira es la punta libre del tramo que sigue. */}
           <Casilla texto="Revestir el costado izquierdo" valor={m.costadoIzquierdo} onCambio={cambiar(`${ruta}.costadoIzquierdo`)} />
           <Casilla texto="Revestir el costado derecho" valor={m.costadoDerecho} onCambio={cambiar(`${ruta}.costadoDerecho`)} />
         </div>
       )}
 
       <h4 className="subtitulo-pared">Huecos bajo mesada</h4>
-      <p className="nota">Sin estructura ni placa al frente (heladera, lavarropas, bacha). Se miden desde la punta izquierda de la mesada, mirándola de frente.</p>
-      {m.huecos.map((h, k) => (
-        <div key={k} className="grid-params fila-hueco">
-          <CampoTexto etiqueta="Hueco" valor={h.nombre ?? ''} onCambio={cambiar(`${ruta}.huecos.${k}.nombre`)} />
-          <CampoNumero etiqueta="Desde la punta izq." unidad={unidad} valor={h.desde} onCambio={cambiar(`${ruta}.huecos.${k}.desde`)} />
-          <CampoNumero etiqueta="Ancho" unidad={unidad} valor={h.ancho} onCambio={cambiar(`${ruta}.huecos.${k}.ancho`)} />
-          <button type="button" className="btn-del" onClick={() => quitarHueco(k)} aria-label={`Quitar ${h.nombre || 'el hueco'}`} title="Quitar">✕</button>
-        </div>
-      ))}
+      <p className="nota">
+        Se miden desde la punta izquierda de su tramo, mirándolo de frente. <strong>Con tapa</strong>: la tapa sigue por
+        arriba (lavarropas de carga frontal). <strong>Sin tapa</strong>: ahí se corta la mesada (cocina, heladera).
+        <strong> Sobre zócalo</strong>: la base sigue por debajo y el electrodoméstico apoya arriba.
+      </p>
+      {m.huecos.map((h, k) => {
+        const rutaH = `${ruta}.huecos.${k}`;
+        return (
+          <div key={k} className="fila-hueco-v2">
+            <div className="grid-params fila-hueco">
+              <CampoTexto etiqueta="Hueco" valor={h.nombre ?? ''} onCambio={cambiar(`${rutaH}.nombre`)} />
+              {tramos.length > 1 && <CampoSelect etiqueta="Tramo" valor={h.tramo ?? 'principal'} opciones={opcionesTramo} onCambio={cambiar(`${rutaH}.tramo`)} />}
+              <CampoNumero etiqueta="Desde la punta izq." unidad={unidad} valor={h.desde} onCambio={cambiar(`${rutaH}.desde`)} />
+              <CampoNumero etiqueta="Ancho" unidad={unidad} valor={h.ancho} onCambio={cambiar(`${rutaH}.ancho`)} />
+              <CampoSelect etiqueta="Adentro va" valor={h.electro ?? ''} opciones={ELECTROS_HUECO} onCambio={(v) => elegirElectro(k, v)} />
+              <button type="button" className="btn-del" onClick={() => quitar('huecos', k)} aria-label={`Quitar ${h.nombre || 'el hueco'}`} title="Quitar">✕</button>
+            </div>
+            <div className="fila-casillas">
+              <Casilla texto="Con tapa arriba" valor={h.tapa !== false} onCambio={cambiar(`${rutaH}.tapa`)} />
+              {m.zocalo > 0 && <Casilla texto="Sobre zócalo" valor={h.conZocalo === true} onCambio={cambiar(`${rutaH}.conZocalo`)} />}
+              {h.electro === 'lavarropas' && <Casilla texto="Carga frontal" valor={h.cargaFrontal !== false} onCambio={cambiar(`${rutaH}.cargaFrontal`)} />}
+            </div>
+          </div>
+        );
+      })}
       <button type="button" className="btn-sec" onClick={agregarHueco}>+ Hueco</button>
+      {altos.map((el) => (
+        <p key={el.nombre} className="aviso-mueble" role="status">⚠ {el.nombre || 'Un electrodoméstico'} no entra debajo de la tapa: pasa {f2(el.pasaDeAlto)} m (sacale la tapa o el zócalo, o subí la mesada).</p>
+      ))}
+
+      <h4 className="subtitulo-pared">Bachas</h4>
+      <p className="nota">Cortan la tapa (menos m²) y suman su renglón al presupuesto. Desde la punta izquierda de su tramo.</p>
+      {(m.bachas ?? []).map((b, k) => {
+        const rutaB = `${ruta}.bachas.${k}`;
+        return (
+          <div key={k} className="grid-params fila-hueco">
+            {tramos.length > 1 && <CampoSelect etiqueta="Tramo" valor={b.tramo ?? 'principal'} opciones={opcionesTramo} onCambio={cambiar(`${rutaB}.tramo`)} />}
+            <CampoNumero etiqueta="Desde la punta izq." unidad={unidad} valor={b.desde} onCambio={cambiar(`${rutaB}.desde`)} />
+            <CampoNumero etiqueta="Ancho de la bacha" unidad={unidad} valor={b.ancho} onCambio={cambiar(`${rutaB}.ancho`)} />
+            <CampoNumero etiqueta="Fondo de la bacha" unidad={unidad} valor={b.profundidad} onCambio={cambiar(`${rutaB}.profundidad`)} />
+            <Casilla texto="Doble" valor={b.doble === true}
+              onCambio={(doble) => cambiar(rutaB)({ ...b, doble, ancho: doble && b.ancho < 0.7 ? 0.76 : !doble && b.ancho > 0.7 ? 0.52 : b.ancho })} />
+            <button type="button" className="btn-del" onClick={() => quitar('bachas', k)} aria-label={`Quitar la bacha ${k + 1}`} title="Quitar">✕</button>
+          </div>
+        );
+      })}
+      <button type="button" className="btn-sec" onClick={agregarBacha}>+ Bacha</button>
 
       {generada && (
         <p className="nota resumen-mesada" role="status">
           {generada.piezas.length} piezas ({f2(metros)} m de perfil) · tapa {f2(generada.tapa.m2)} m²
+          {generada.tapa.tramos > 1 ? ` en ${generada.tapa.tramos} piezas` : ''}
           {m2Placa > 0 ? ` · ${f2(m2Placa)} m² de placa` : ''}
           {generada.estantesM2 > 0 ? ` · ${f2(generada.estantesM2)} m² de estantes` : ''}
-          {m.huecos.length > 0 ? ` · ${tramos.length} ${tramos.length === 1 ? 'tramo' : 'tramos'} con frente` : ''}
+          {generada.bachas.simples + generada.bachas.dobles > 0 ? ` · ${generada.bachas.simples + generada.bachas.dobles} bacha(s)` : ''}
         </p>
       )}
     </section>
