@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.39.0] - 2026-11-04
+### Agregado
+- **Muebles: desde qué pared se mide**. Elegís lateral izquierdo o derecho y frente o fondo; la distancia va de la
+  cara de adentro de esa pared al borde del mueble. Debajo se calculan solas las **distancias a las otras dos
+  paredes** y lo **libre arriba** (hasta la estructura del techo, o hasta los tirantes del piso 2 si el mueble está
+  debajo del entrepiso), con aviso si no entra de alto.
+- **Lavarropas de carga frontal** (puerta redonda al frente) o superior (tapa redonda arriba).
+- **Cocina con hornallas** arriba y la puerta del horno.
+- **Vanitory** (tipo nuevo): mueble con su bacha y el grifo.
+### Cambiado
+- Los muebles se miden desde la cara de adentro de las paredes (antes desde el eje). Los guardados se convierten
+  solos y quedan en el mismo lugar.
+
 ## [1.38.2] - 2026-11-01
 ### Agregado
 - **Color propio por mueble** (al lado del material; ↺ vuelve al del material) y **color de tapa y de estantes por

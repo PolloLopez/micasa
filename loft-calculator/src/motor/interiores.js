@@ -18,7 +18,7 @@
 // se puede girar de a 90°. No va al presupuesto (es para dimensionar).
 // ==========================================================
 
-import { geometriaLados, largoLado } from './geometria.js';
+import { geometriaLados, largoLado, alturaEn, tramoEntrepiso } from './geometria.js';
 import { haciaAdentro, pieza } from './segmentos.js';
 import { LADOS, ALTURA_PISO_2 } from './constantes.js';
 
@@ -227,8 +227,9 @@ export const TIPOS_MUEBLE = {
   escritorio: { nombre: 'Escritorio', ancho: 1.2, profundidad: 0.6, alto: 0.75, material: 'madera', forma: 'mesa' },
   placard: { nombre: 'Placard', ancho: 1.5, profundidad: 0.6, alto: 2.1, material: 'madera', forma: 'placard' },
   heladera: { nombre: 'Heladera', ancho: 0.7, profundidad: 0.7, alto: 1.8, material: 'blanco', forma: 'electro' },
-  cocina: { nombre: 'Cocina', ancho: 0.56, profundidad: 0.6, alto: 0.85, material: 'acero', forma: 'electro' },
-  lavarropas: { nombre: 'Lavarropas', ancho: 0.6, profundidad: 0.6, alto: 0.85, material: 'blanco', forma: 'electro' },
+  cocina: { nombre: 'Cocina', ancho: 0.56, profundidad: 0.6, alto: 0.85, material: 'acero', forma: 'cocina' }, // v1.39: con hornallas
+  lavarropas: { nombre: 'Lavarropas', ancho: 0.6, profundidad: 0.6, alto: 0.85, material: 'blanco', forma: 'lavarropas' }, // v1.39: carga frontal o superior
+  vanitory: { nombre: 'Vanitory', ancho: 0.6, profundidad: 0.45, alto: 0.85, material: 'blanco', forma: 'vanitory' }, // v1.39: con bacha
   inodoro: { nombre: 'Inodoro', ancho: 0.4, profundidad: 0.65, alto: 0.75, material: 'blanco', forma: 'inodoro' },
   ducha: { nombre: 'Plato de ducha', ancho: 0.8, profundidad: 0.8, alto: 0.1, material: 'blanco', forma: 'caja' },
   otro: { nombre: 'Otro', ancho: 1, profundidad: 0.6, alto: 0.8, material: 'madera', forma: 'caja' },
@@ -249,29 +250,94 @@ export function muebleNuevo(tipo, muebles, id) {
   return {
     id, tipo, nombre: iguales ? `${t.nombre} ${iguales + 1}` : t.nombre, nivel: 'piso',
     ancho: t.ancho, profundidad: t.profundidad, alto: t.alto, material: t.material,
-    distanciaFrente: 0.5 + iguales * 0.3, distanciaIzquierda: 0.5 + iguales * 0.3, giro: 0,
+    // v1.39: se mide desde la pared que elijas (lateral izquierdo o derecho, frente o fondo), desde su cara de adentro.
+    desdeLateral: 'izquierdo', distanciaLateral: 0.3 + iguales * 0.3,
+    desdeFrente: 'frente', distanciaFrente: 0.3 + iguales * 0.3,
+    giro: 0,
     mostrarEtiqueta: true, // v1.38.1: cartel con el nombre en el 3D
     color: '', // v1.38.2: color propio ('' = el de su material)
+    ...(t.forma === 'lavarropas' ? { cargaFrontal: true } : {}), // v1.39: carga frontal (puerta redonda) o superior
   };
+}
+
+/** Lo que mide la planta POR DENTRO (de cara a cara de la estructura): a lo largo del frente y hacia el fondo. */
+function plantaPorDentro(params) {
+  const frente = largoLado(params.ladoFrente, params);
+  const fondo = largoLado(LADOS[(LADOS.indexOf(params.ladoFrente) + 1) % 4], params);
+  return { ancho: frente - 2 * MEDIA_PARED, fondo: fondo - 2 * MEDIA_PARED };
+}
+
+/** Lo que ocupa en planta (girado 90° o 270°, se cruzan ancho y profundidad). */
+function ocupaEnPlanta(m) {
+  const girado = m.giro === 90 || m.giro === 270;
+  return { anchoPlanta: girado ? m.profundidad : m.ancho, profPlanta: girado ? m.ancho : m.profundidad };
+}
+
+/**
+ * Distancias del mueble a las caras de adentro de las cuatro paredes (izquierda = lateral izquierdo
+ * mirando el frente desde afuera). Las dos que se cargan y las otras dos calculadas.
+ */
+export function distanciasDelMueble(params, m) {
+  const { ancho, fondo } = plantaPorDentro(params);
+  const { anchoPlanta, profPlanta } = ocupaEnPlanta(m);
+  const izquierda = m.desdeLateral === 'derecho' ? ancho - m.distanciaLateral - anchoPlanta : m.distanciaLateral;
+  const frente = m.desdeFrente === 'fondo' ? fondo - m.distanciaFrente - profPlanta : m.distanciaFrente;
+  return { izquierda, derecha: ancho - izquierda - anchoPlanta, frente, fondo: fondo - frente - profPlanta };
 }
 
 /**
  * Dónde va el mueble en el 3D: centro, ángulo y altura del piso.
- * Como en el terreno: distancia al lateral izquierdo (mirando el frente desde afuera) y al frente, hasta su borde.
+ * Con giro 0 su ancho va a lo largo del frente y su frente mira hacia el frente de la casa.
  */
 export function ubicarMueble(params, m) {
   const frente = geometriaLados(params)[params.ladoFrente];
   const derecha = frente.direccion;
   const adentro = haciaAdentro(frente);
-  const girado = m.giro === 90 || m.giro === 270;
-  const anchoPlanta = girado ? m.profundidad : m.ancho; // lo que ocupa a lo largo del frente
-  const profPlanta = girado ? m.ancho : m.profundidad;
-  const u = m.distanciaIzquierda + anchoPlanta / 2;
-  const v = m.distanciaFrente + profPlanta / 2;
+  const { anchoPlanta, profPlanta } = ocupaEnPlanta(m);
+  const d = distanciasDelMueble(params, m);
+  const u = MEDIA_PARED + d.izquierda + anchoPlanta / 2;
+  const v = MEDIA_PARED + d.frente + profPlanta / 2;
   const centro = [frente.p1[0] + derecha[0] * u + adentro[0] * v, frente.p1[1] + derecha[1] * u + adentro[1] * v];
-  // Ángulo para girar el mueble (su "ancho" va a lo largo del frente con giro 0).
   const angulo = Math.atan2(-derecha[1], derecha[0]) + (m.giro * Math.PI) / 180;
   return { centro, angulo, y: alturaDelPiso(params, m.nivel), anchoPlanta, profPlanta };
+}
+
+const ALTO_ENTREPISO = 0.12; // tirantes del piso 2: lo que baja el "techo" de la planta baja bajo el entrepiso
+
+/** ¿El punto (x, z) cae bajo el entrepiso? */
+function bajoElEntrepiso(params, [x, z]) {
+  if (!(params.anchoEntrepiso > 0)) return false;
+  const geo = geometriaLados(params)[params.ladoEntrepiso];
+  const { inicio, largo } = tramoEntrepiso(params);
+  const v = haciaAdentro(geo);
+  const dx = x - geo.p1[0];
+  const dz = z - geo.p1[1];
+  const a = dx * geo.direccion[0] + dz * geo.direccion[1]; // a lo largo de la pared del entrepiso
+  const b = dx * v[0] + dz * v[1]; // hacia adentro
+  return a > inicio - 1e-6 && a < inicio + largo + 1e-6 && b > -1e-6 && b < params.anchoEntrepiso + 1e-6;
+}
+
+/**
+ * Cuánto queda libre arriba del mueble hasta la estructura del techo (o del piso 2, si está debajo del
+ * entrepiso). Se toma la esquina más baja (el techo tiene pendiente).
+ * @returns {{ libre: number, hasta: 'techo' | 'piso2' }}
+ */
+export function libreArribaDelMueble(params, m) {
+  const { centro, angulo } = ubicarMueble(params, m);
+  const piso2 = params.alturaPiso2 ?? ALTURA_PISO_2;
+  const [c, s] = [Math.cos(angulo), Math.sin(angulo)];
+  const [a, p] = [m.ancho, m.profundidad]; // en coordenadas del mueble (el giro lo pone el ángulo)
+  const esquinas = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([sx, sz]) => {
+    const lx = (sx * a) / 2;
+    const lz = (sz * p) / 2;
+    return [centro[0] + lx * c + lz * s, centro[1] - lx * s + lz * c]; // la misma rotación que el 3D
+  });
+  // Para cada esquina: hasta dónde llega y contra qué (el techo o los tirantes del piso 2).
+  const tope = esquinas.map((q) => {
+    if (m.nivel === 'piso2') return { altura: alturaEn(q[0], q[1], params) - piso2, hasta: 'techo' };
+    return bajoElEntrepiso(params, q) ? { altura: piso2 - ALTO_ENTREPISO, hasta: 'piso2' } : { altura: alturaEn(q[0], q[1], params), hasta: 'techo' };
+  }).reduce((menor, t) => (t.altura < menor.altura ? t : menor));
+  return { libre: tope.altura - ALTO_PISO - m.alto, hasta: tope.hasta };
 }
 
 export function validarMueble(m, params) {
@@ -279,7 +345,9 @@ export function validarMueble(m, params) {
   if (!(m.material in MATERIALES_MUEBLE)) return 'Material desconocido';
   const num = (v, min, max) => Number.isFinite(v) && v >= min && v <= max;
   if (!num(m.ancho, 0.05, 10) || !num(m.profundidad, 0.05, 10) || !num(m.alto, 0.02, 4)) return 'Medidas de 5 cm a 10 m (alto hasta 4 m)';
-  if (!num(m.distanciaFrente, -1, 50) || !num(m.distanciaIzquierda, -1, 50)) return 'Distancias inválidas';
+  if (!num(m.distanciaFrente, -1, 50) || !num(m.distanciaLateral, -1, 50)) return 'Distancias inválidas';
+  if (!['izquierdo', 'derecho'].includes(m.desdeLateral) || !['frente', 'fondo'].includes(m.desdeFrente)) return 'Elegí desde qué pared se mide';
+  if (m.cargaFrontal !== undefined && typeof m.cargaFrontal !== 'boolean') return 'Valor inválido';
   if (![0, 90, 180, 270].includes(m.giro)) return 'Giro de 0, 90, 180 o 270°';
   if (!['piso', 'piso2'].includes(m.nivel)) return 'Elegí planta baja o piso 2';
   if (m.nivel === 'piso2' && !(params.anchoEntrepiso > 0)) return 'No hay entrepiso';
@@ -291,9 +359,25 @@ export function validarMueble(m, params) {
 
 /** ¿Se sale de la planta? (aviso, no error: se puede ir acomodando) */
 export function muebleFueraDeLaPlanta(params, m) {
-  const { anchoPlanta, profPlanta } = ubicarMueble(params, m);
-  const frente = largoLado(params.ladoFrente, params);
-  const fondo = largoLado(LADOS[(LADOS.indexOf(params.ladoFrente) + 1) % 4], params);
-  return m.distanciaIzquierda < -0.001 || m.distanciaFrente < -0.001
-    || m.distanciaIzquierda + anchoPlanta > frente + 0.001 || m.distanciaFrente + profPlanta > fondo + 0.001;
+  const d = distanciasDelMueble(params, m);
+  return Object.values(d).some((v) => v < -0.001);
+}
+
+/**
+ * v1.39: completa un mueble guardado. Los de la v1.38 medían desde el EJE del lateral izquierdo y del frente:
+ * pasan a medirse desde la cara de adentro (6 cm menos), así no se mueven.
+ */
+export function completarMueble(m) {
+  const base = { mostrarEtiqueta: true, color: '', ...m };
+  if (base.distanciaLateral === undefined && Number.isFinite(base.distanciaIzquierda)) {
+    const { distanciaIzquierda, ...resto } = base;
+    return completarMueble({ ...resto, desdeLateral: 'izquierdo', distanciaLateral: distanciaIzquierda - MEDIA_PARED,
+      desdeFrente: 'frente', distanciaFrente: (base.distanciaFrente ?? 0) - MEDIA_PARED });
+  }
+  return {
+    ...base,
+    desdeLateral: base.desdeLateral === 'derecho' ? 'derecho' : 'izquierdo',
+    desdeFrente: base.desdeFrente === 'fondo' ? 'fondo' : 'frente',
+    ...(TIPOS_MUEBLE[base.tipo]?.forma === 'lavarropas' ? { cargaFrontal: base.cargaFrontal !== false } : {}),
+  };
 }

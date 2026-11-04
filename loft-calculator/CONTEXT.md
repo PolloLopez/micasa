@@ -139,6 +139,7 @@ valores inválidos.
 | 2026-10-31 | Con modulación, los pilotines usan su propia grilla de fábrica (opciones: cada 2 módulos, cada cruce) | Leandro: un pilotín en cada cruce o bajo cada columna sobredimensiona. |
 | 2026-11-01 | Mesadas en `params.mesadas` (motor/interiores.js): se ubican como las aberturas (pared + distancia a la esquina vista desde afuera) y arrancan en la cara de adentro de la pared (6 cm del eje). Piezas tipo `mesada` en `e.mesadas[].piezas` (pasan por listarPiezas, ediciones y diagrama de cortes; NO por las uniones). Fondo y montantes apoyan en el piso; con zócalo, solera retirada y patas cortas. Huecos sin solera de abajo ni zócalo. Revestimiento con los paños de siempre; tapa y estantes en m². Renglones nuevos al FINAL del catálogo de fábrica (si no, cambia la numeración de los perfiles) | Decisión de Leandro 31/10 (perfil y revestimiento de las listas, huecos, estantes, tapa, zócalo para el pie). |
 | 2026-11-01 | Muebles en `params.muebles` (módulo 'muebles'): se ubican como lo del terreno (distancia al lateral izquierdo y al frente, hasta el borde), giro de a 90°, forma por tipo con cajas simples y color por material; no van al presupuesto | Pedido de Leandro: medidas cargadas a mano. Las fotos del frente quedan para después. |
+| 2026-11-04 | Muebles: `desdeLateral` ('izquierdo'/'derecho') + `distanciaLateral`, `desdeFrente` ('frente'/'fondo') + `distanciaFrente`, medidas desde la CARA DE ADENTRO de la pared (6 cm del eje, como la mesada). `completarMueble` convierte los de v1.38 (distanciaIzquierda al eje) sin moverlos. Lo libre arriba se mide en la esquina más baja: techo (alturaEn) o tirantes del piso 2 (alturaPiso2 − 12 cm) si está bajo el entrepiso | Pedido de Leandro: elegir desde qué pared y que calcule el resto. |
 
 ## Supuestos de obra (en `src/motor/constantes.js`)
 Piso del entrepiso a 2,30 m · merma de corte 3 mm · excedente de barras 1 % (editable; depende del proveedor) · placa OSB 2,44 × 1,22 + 10 % de recortes ·
@@ -214,6 +215,7 @@ techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 
 - 2026-10-23 v1.25.0: proveedores, precios en efectivo/tarjeta por proveedor, comparar presupuestos y "lo más barato de cada material".
 - 2026-10-23 v1.26.0: pestaña Planos (paredes y plantas acotadas, listas de corte, revestimiento), en el PDF y en Excel.
 - 2026-10-25 v1.30.0: link compacto (la mitad) y links cortos en Firebase para ver/editar que guardan los cambios.
+- 2026-11-04 v1.39.0: muebles con pared de referencia (desdeLateral/desdeFrente), distancias y libre arriba calculados, lavarropas frontal/superior, cocina con hornallas, vanitory.
 - 2026-11-01 v1.38.2: colores propios (mueble.color, mesada.colorTapa/colorEstantes; '' = el de fábrica), SelectorColor único y capas en pestañas.
 - 2026-11-01 v1.38.1: etiquetas de mesadas y muebles (mostrarEtiqueta por cada uno + capas etiquetasMesadas/etiquetasMuebles).
 - 2026-11-01 v1.38.0: mesadas (motor/interiores.js, PanelMesadas, interiores3d.js) con estructura, revestimiento, tapa, estantes, huecos y zócalo; muebles (PanelMuebles, módulo); sol más fuerte con intensidad regulable.

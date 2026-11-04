@@ -8,7 +8,7 @@ import { PARAMS_INICIALES as P, ABERTURAS_INICIALES } from './parametrosIniciale
 import { INSUMO } from './constantes.js';
 import {
   MESADA_NUEVA, mesadaNueva, colorDelMueble, generarMesada, tramosDelFrente, ubicarMesada, validarMesada,
-  muebleNuevo, ubicarMueble, validarMueble, muebleFueraDeLaPlanta,
+  muebleNuevo, ubicarMueble, validarMueble, muebleFueraDeLaPlanta, distanciasDelMueble, libreArribaDelMueble,
 } from './interiores.js';
 
 // Mesada de fábrica en la pared C (fondo): x de 0,85 a 3,25 (planta de 7,5 x 4,5).
@@ -172,16 +172,58 @@ describe('muebles', () => {
     expect(muebleNuevo('cama2', [cama], 2).nombre).toBe('Cama 2 plazas 2');
   });
 
-  it('se ubica desde el lateral izquierdo y el frente (frente A: el lateral izquierdo es x = -3,75)', () => {
-    const m = { ...muebleNuevo('mesa', [], 1), distanciaIzquierda: 1, distanciaFrente: 0.5 };
+  it('se mide desde la cara de adentro del lateral y del frente (frente A: lateral izquierdo x = -3,75)', () => {
+    const m = { ...muebleNuevo('mesa', [], 1), distanciaLateral: 1, distanciaFrente: 0.5 };
     const u = ubicarMueble(P, m);
-    expect(u.centro[0]).toBeCloseTo(-3.75 + 1 + 0.7, 6);
-    expect(u.centro[1]).toBeCloseTo(2.25 - 0.5 - 0.4, 6);
+    expect(u.centro[0]).toBeCloseTo(-3.75 + 0.06 + 1 + 0.7, 6);
+    expect(u.centro[1]).toBeCloseTo(2.25 - 0.06 - 0.5 - 0.4, 6);
     expect(u.y).toBeCloseTo(P.elevacion + 0.09, 6);
     // Girado 90°: ocupa al revés en planta.
     const girado = ubicarMueble(P, { ...m, giro: 90 });
     expect([girado.anchoPlanta, girado.profPlanta]).toEqual([0.8, 1.4]);
     expect(girado.angulo - u.angulo).toBeCloseTo(Math.PI / 2, 6);
+  });
+
+  it('desde el lateral derecho y desde el fondo, y calcula las otras dos distancias', () => {
+    const m = { ...muebleNuevo('mesa', [], 1), desdeLateral: 'derecho', distanciaLateral: 0.2, desdeFrente: 'fondo', distanciaFrente: 0.1 };
+    const u = ubicarMueble(P, m);
+    expect(u.centro[0]).toBeCloseTo(3.75 - 0.06 - 0.2 - 0.7, 6);
+    expect(u.centro[1]).toBeCloseTo(-2.25 + 0.06 + 0.1 + 0.4, 6);
+    const d = distanciasDelMueble(P, m);
+    expect(d.derecha).toBeCloseTo(0.2, 6);
+    expect(d.izquierda).toBeCloseTo(7.38 - 0.2 - 1.4, 6); // 7,50 - 2 x 0,06 por dentro
+    expect(d.fondo).toBeCloseTo(0.1, 6);
+    expect(d.frente).toBeCloseTo(4.38 - 0.1 - 0.8, 6);
+  });
+
+  it('calcula lo libre hasta el techo (y hasta el piso 2 si está debajo del entrepiso)', () => {
+    // Pegada al fondo (lado C, el bajo del techo: 4,50 + 0,06 x 10 % en la cara de adentro).
+    const libre = { ...muebleNuevo('mesa', [], 1), desdeLateral: 'derecho', distanciaLateral: 0.3, desdeFrente: 'fondo', distanciaFrente: 0 };
+    expect(libreArribaDelMueble(P, libre).libre).toBeCloseTo(4.5 + 0.006 - 0.09 - 0.75, 6);
+    expect(libreArribaDelMueble(P, libre).hasta).toBe('techo');
+    // Bajo el entrepiso (sobre el lateral izquierdo, 3 m de fondo): hasta los tirantes del piso 2.
+    const abajo = { ...libre, desdeLateral: 'izquierdo' };
+    expect(libreArribaDelMueble(P, abajo)).toEqual({ libre: expect.closeTo(2.3 - 0.12 - 0.09 - 0.75, 6), hasta: 'piso2' });
+    // En el piso 2: del piso 2 al techo.
+    expect(libreArribaDelMueble(P, { ...abajo, nivel: 'piso2' }).libre).toBeCloseTo(4.5 + 0.006 - 2.3 - 0.09 - 0.75, 6);
+  });
+
+  it('lavarropas: de carga frontal de fábrica; vanitory es un tipo más', () => {
+    expect(muebleNuevo('lavarropas', [], 1).cargaFrontal).toBe(true);
+    expect(muebleNuevo('mesa', [], 1)).not.toHaveProperty('cargaFrontal');
+    expect(validarMueble({ ...muebleNuevo('lavarropas', [], 1), cargaFrontal: false }, P)).toBeNull();
+    expect(muebleNuevo('vanitory', [], 1)).toMatchObject({ nombre: 'Vanitory', ancho: 0.6, profundidad: 0.45, alto: 0.85 });
+  });
+
+  it('un mueble de la v1.38 (medido al eje) no se mueve al abrirlo', () => {
+    const viejo = { id: 1, tipo: 'mesa', nombre: 'Mesa', nivel: 'piso', ancho: 1.4, profundidad: 0.8, alto: 0.75, material: 'madera',
+      distanciaFrente: 0.5, distanciaIzquierda: 1, giro: 0, mostrarEtiqueta: true, color: '' };
+    const nuevo = migrarParams({ ...P, muebles: [viejo] }).muebles[0];
+    expect(nuevo).toMatchObject({ desdeLateral: 'izquierdo', desdeFrente: 'frente' });
+    expect(nuevo.distanciaLateral).toBeCloseTo(0.94, 6);
+    expect(nuevo).not.toHaveProperty('distanciaIzquierda');
+    expect(ubicarMueble(P, nuevo).centro[0]).toBeCloseTo(-3.75 + 1 + 0.7, 6); // donde estaba
+    expect(validarMueble(nuevo, P)).toBeNull();
   });
 
   it('en el piso 2 va a la altura del entrepiso', () => {
@@ -192,8 +234,9 @@ describe('muebles', () => {
   it('avisa si se sale de la planta', () => {
     const m = muebleNuevo('placard', [], 1);
     expect(muebleFueraDeLaPlanta(P, m)).toBe(false);
-    expect(muebleFueraDeLaPlanta(P, { ...m, distanciaIzquierda: 7 })).toBe(true);
-    expect(muebleFueraDeLaPlanta(P, { ...m, giro: 90, distanciaFrente: 3.2 })).toBe(true); // 3,2 + 1,5 > 4,5
+    expect(muebleFueraDeLaPlanta(P, { ...m, distanciaLateral: 7 })).toBe(true);
+    expect(muebleFueraDeLaPlanta(P, { ...m, giro: 90, distanciaFrente: 3 })).toBe(true); // 3 + 1,5 > 4,38 por dentro
+    expect(muebleFueraDeLaPlanta(P, { ...m, desdeLateral: 'derecho', distanciaLateral: -0.1 })).toBe(true);
   });
 
   it('valida tipo, material, medidas y giro', () => {

@@ -35,6 +35,13 @@
   - 🟢 [ ] Muebles en el plano de planta; mover con el mouse en el 3D.
   - ✅ Color propio por mueble y color de tapa y estantes por mesada (v1.38.2).
 - ✅ Capas en pestañas, una sección a la vez, sin tapar el 3D (v1.38.2).
+- 🗺️ **Pedido de Leandro 04/11** (orden acordado: muebles → mesada → tabiques):
+  - ✅ v1.39.0 Muebles: pared de referencia, distancias y alto libre calculados, lavarropas frontal/superior, hornallas, vanitory.
+  - 🔴 [ ] v1.40 Mesada en L o U (tramos por esquina, una tapa); huecos con o sin tapa (lavarropas frontal / cocina) y
+    con o sin zócalo, con el electrodoméstico adentro; bachas de cocina en la mesada (simple/doble, cortan la tapa,
+    renglón "Bachas" en el presupuesto).
+  - 🔴 [ ] v1.41 Tabiques de Durlock (baño y antebaño): desde una pared, perpendicular o paralelo; largo y alto (techo,
+    piso 2 o medida); estructura y revestimiento por cara de las listas; puerta.
 - ✅ Etiquetas de mesadas y muebles en el 3D, apagables una por una y por capa (v1.38.1).
 - ✅ **Sol más fuerte** (v1.38.0): intensidad regulable (50–300 %, 150 % de fábrica).
 

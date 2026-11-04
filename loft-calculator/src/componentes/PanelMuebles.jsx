@@ -14,7 +14,7 @@ import CampoNumero from './CampoNumero.jsx';
 import CampoSelect from './CampoSelect.jsx';
 import { nombreLado } from '../motor/geometria.js';
 import SelectorColor from './SelectorColor.jsx';
-import { TIPOS_MUEBLE, MATERIALES_MUEBLE, muebleNuevo, muebleFueraDeLaPlanta, colorDelMueble } from '../motor/interiores.js';
+import { TIPOS_MUEBLE, MATERIALES_MUEBLE, muebleNuevo, muebleFueraDeLaPlanta, colorDelMueble, distanciasDelMueble, libreArribaDelMueble } from '../motor/interiores.js';
 
 const f2 = (n) => n.toFixed(2).replace('.', ',');
 const GIROS = [[0, 'Sin girar'], [90, '90°'], [180, '180° (de espaldas)'], [270, '270°']];
@@ -27,6 +27,11 @@ function Mueble({ m, i, params, unidad, cambiar, onQuitar }) {
   );
   const tipo = TIPOS_MUEBLE[m.tipo];
   const fuera = muebleFueraDeLaPlanta(params, m);
+  // v1.39: las dos distancias que no se cargan y lo libre arriba, calculados.
+  const d = distanciasDelMueble(params, m);
+  const otraLateral = m.desdeLateral === 'izquierdo' ? d.derecha : d.izquierda;
+  const otraFrente = m.desdeFrente === 'frente' ? d.fondo : d.frente;
+  const { libre, hasta } = libreArribaDelMueble(params, m);
   return (
     <section className="elemento-terreno mueble">
       <header>
@@ -58,8 +63,13 @@ function Mueble({ m, i, params, unidad, cambiar, onQuitar }) {
           <SelectorColor valor={m.color} porDefecto={MATERIALES_MUEBLE[m.material]?.color ?? '#a16207'} nombre={m.nombre || 'el mueble'}
             onCambio={cambiar(`${ruta}.color`)} onRestablecer={() => cambiar(`${ruta}.color`)('')} />
         </div>
-        {medida('distanciaIzquierda', 'Al lateral izquierdo')}
-        {medida('distanciaFrente', 'Al frente')}
+        {/* v1.39: desde qué pared se mide (su cara de adentro) y la distancia; las otras dos se calculan abajo. */}
+        <CampoSelect etiqueta="Medido desde el" valor={m.desdeLateral}
+          opciones={[['izquierdo', 'Lateral izquierdo'], ['derecho', 'Lateral derecho']]} onCambio={cambiar(`${ruta}.desdeLateral`)} />
+        {medida('distanciaLateral', `Distancia al lateral ${m.desdeLateral}`)}
+        <CampoSelect etiqueta="y desde el" valor={m.desdeFrente}
+          opciones={[['frente', 'Frente'], ['fondo', 'Fondo']]} onCambio={cambiar(`${ruta}.desdeFrente`)} />
+        {medida('distanciaFrente', `Distancia al ${m.desdeFrente}`)}
         <CampoSelect etiqueta="Giro" valor={String(m.giro)} opciones={GIROS.map(([g, t]) => [String(g), t])}
           onCambio={(v) => cambiar(`${ruta}.giro`)(Number(v))} />
         {params.anchoEntrepiso > 0 && (
@@ -67,7 +77,19 @@ function Mueble({ m, i, params, unidad, cambiar, onQuitar }) {
             onCambio={cambiar(`${ruta}.nivel`)} />
         )}
       </div>
+      {tipo.forma === 'lavarropas' && (
+        <label className="casilla-opcional">
+          <input type="checkbox" checked={m.cargaFrontal !== false} onChange={(e) => cambiar(`${ruta}.cargaFrontal`)(e.target.checked)} />
+          Carga frontal (sin tildar: carga superior)
+        </label>
+      )}
+      <p className="nota distancias-mueble" role="status">
+        Quedan <strong>{f2(otraLateral)} m</strong> al lateral {m.desdeLateral === 'izquierdo' ? 'derecho' : 'izquierdo'},
+        {' '}<strong>{f2(otraFrente)} m</strong> al {m.desdeFrente === 'frente' ? 'fondo' : 'frente'} y
+        {' '}<strong>{f2(libre)} m</strong> libres arriba (hasta {hasta === 'piso2' ? 'los tirantes del piso 2' : 'la estructura del techo'}).
+      </p>
       {fuera && <p className="aviso-mueble" role="status">⚠ Se sale de la planta: acomodá las distancias o el giro.</p>}
+      {!fuera && libre < 0 && <p className="aviso-mueble" role="status">⚠ No entra de alto: pasa {f2(-libre)} m.</p>}
     </section>
   );
 }
@@ -85,9 +107,9 @@ export default function PanelMuebles({ params, unidad, cambiar }) {
   return (
     <Tarjeta id="muebles" titulo={`Muebles y electrodomésticos (${muebles.length})`}>
       <p className="nota">
-        Para ver cómo entran (no van al presupuesto). Se miden parado afuera mirando el {frente}: desde el eje de la
-        pared del <strong>lateral izquierdo</strong> y desde el del <strong>{frente}</strong> hasta el borde del mueble.
-        Sin girar, el mueble mira hacia el {frente}.
+        Para ver cómo entran (no van al presupuesto). Elegí desde qué pared medís (laterales vistos desde afuera,
+        mirando el {frente}): la distancia va de la cara de adentro de la pared al borde del mueble. Las otras
+        distancias y lo libre arriba se calculan solos. Sin girar, el mueble mira hacia el {frente}.
       </p>
       <div className="fila-agregar-mueble">
         <CampoSelect etiqueta="Mueble a agregar" valor={tipoNuevo} opciones={Object.entries(TIPOS_MUEBLE).map(([clave, t]) => [clave, t.nombre])}
