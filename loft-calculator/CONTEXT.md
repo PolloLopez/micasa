@@ -219,6 +219,7 @@ techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 
 - 2026-10-23 v1.25.0: proveedores, precios en efectivo/tarjeta por proveedor, comparar presupuestos y "lo más barato de cada material".
 - 2026-10-23 v1.26.0: pestaña Planos (paredes y plantas acotadas, listas de corte, revestimiento), en el PDF y en Excel.
 - 2026-10-25 v1.30.0: link compacto (la mitad) y links cortos en Firebase para ver/editar que guardan los cambios.
+- 2026-11-05 v1.41.1: mesada hasta la esquina o la cara de un tabique (limitesSobrePared, ajustarMesada), aviso si atraviesa un tabique; huecos y bachas acompañan a la punta izquierda.
 - 2026-11-04 v1.41.0: tabiques (motor/tabiques.js, PanelTabiques) con puerta de abrir/granero; mesada L/U libre (tramos desde las puntas, lomo revestible, estantes en el esquinero); cajones de cama; 3D con doble clic = centro de giro y zoom al mouse.
 - 2026-11-04 v1.40.0: mesada recta/L/U (tramosDeMesada), huecos con tapa/sin tapa/sobre zócalo y electrodoméstico, bachas (renglones bachaSimple/bachaDoble).
 - 2026-11-04 v1.39.0: muebles con pared de referencia (desdeLateral/desdeFrente), distancias y libre arriba calculados, lavarropas frontal/superior, cocina con hornallas, vanitory.

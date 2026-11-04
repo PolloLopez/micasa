@@ -17,7 +17,7 @@ import SelectorPerfil from './SelectorPerfil.jsx';
 import SelectorColor from './SelectorColor.jsx';
 import { LADOS } from '../motor/constantes.js';
 import { nombreLado, largoLado } from '../motor/geometria.js';
-import { mesadaNueva, tramosDeMesada, FORMAS_MESADA, NOMBRE_TRAMO, ELECTROS_HUECO, TAPA_SEGUN_ELECTRO, HUECO_NUEVO, BACHA_NUEVA, mesadaALaEsquina } from '../motor/interiores.js';
+import { mesadaNueva, tramosDeMesada, FORMAS_MESADA, NOMBRE_TRAMO, ELECTROS_HUECO, TAPA_SEGUN_ELECTRO, HUECO_NUEVO, BACHA_NUEVA, ajustarMesada, limitesDeMesada, tabiquesQueCruzaLaMesada } from '../motor/interiores.js';
 
 const f2 = (n) => n.toFixed(2).replace('.', ',');
 
@@ -50,7 +50,6 @@ function Mesada({ m, i, params, unidad, cambiar, onQuitar, paneles, perfiles, pe
   const conEntrepiso = params.anchoEntrepiso > 0;
   const largoPared = largoLado(m.lado, params);
   const forma = m.forma ?? 'recta';
-  const i0 = LADOS.indexOf(m.lado);
   // v1.40: los tramos (principal y los que siguen por las paredes de al lado), con su largo.
   const tramos = tramosDeMesada(params, { ...m, forma });
   const largoDe = (clave) => tramos.find((t) => t.clave === clave)?.largo ?? 0;
@@ -70,6 +69,10 @@ function Mesada({ m, i, params, unidad, cambiar, onQuitar, paneles, perfiles, pe
   // Al elegir lo que va en el hueco, la tapa arranca como corresponde (cocina y heladera sin tapa, lavarropas con tapa).
   const elegirElectro = (k, electro) => cambiar(`${ruta}.huecos.${k}`)({ ...m.huecos[k], electro, tapa: TAPA_SEGUN_ELECTRO[electro] });
 
+  // v1.41.1: hasta dónde puede llegar cada punta (esquinas y tabiques) y si atraviesa algún tabique.
+  const limites = limitesDeMesada(params, m);
+  const [avisoLimite, setAvisoLimite] = useState(null); // si el ajuste no se puede guardar, se dice por qué
+  const cruza = tabiquesQueCruzaLaMesada(params, m);
   const metros = generada ? generada.piezas.reduce((acc, p) => acc + p.largo, 0) : 0;
   const m2Placa = generada ? generada.panos.reduce((acc, p) => acc + p.neto, 0) : 0;
   const altos = (generada?.electros ?? []).filter((el) => el.pasaDeAlto > 0.001);
@@ -116,13 +119,25 @@ function Mesada({ m, i, params, unidad, cambiar, onQuitar, paneles, perfiles, pe
         La pared mide {f2(largoPared)} m: quedan {f2(Math.max(0, largoPared - m.desde - m.largo))} m del otro lado.
         {forma !== 'recta' && ' Los tramos que siguen salen derechos desde las puntas y se miden desde la cara de adentro de la pared principal (con la esquina).'}
       </p>
-      {/* Atajos: pegar la punta a la pared de al lado (las distancias quedan a la cara de adentro de esa pared). */}
+      {/* v1.41.1: llevar las puntas hasta lo que la limita: la esquina o la cara de un tabique de esa pared. */}
       <div className="fila-casillas">
-        <button type="button" className="btn-mini" onClick={() => cambiar(ruta)({ ...m, ...mesadaALaEsquina(m, 'izquierda') })}
-          title={`Contra ${nombreLado(LADOS[(i0 + 1) % 4], params.ladoFrente)}`}>⇤ Pegar a la esquina izquierda</button>
-        <button type="button" className="btn-mini" onClick={() => cambiar(ruta)({ ...m, ...mesadaALaEsquina(m, 'derecha') })}
-          title={`Contra ${nombreLado(LADOS[(i0 + 3) % 4], params.ladoFrente)}`}>Pegar a la esquina derecha ⇥</button>
+        {limites.izquierda && (
+          <button type="button" className="btn-mini" onClick={() => setAvisoLimite(cambiar(ruta)(ajustarMesada(params, m, 'izquierda')))}
+            title="La punta izquierda (vista de adentro) hasta ahí; la otra queda donde está">⇤ Hasta {limites.izquierda.nombre}</button>
+        )}
+        {limites.izquierda && limites.derecha && (
+          <button type="button" className="btn-mini" onClick={() => setAvisoLimite(cambiar(ruta)(ajustarMesada(params, m, 'ambas')))}
+            title="Ocupa todo el espacio entre los dos límites">↔ Entre {limites.derecha.nombre} y {limites.izquierda.nombre}</button>
+        )}
+        {limites.derecha && (
+          <button type="button" className="btn-mini" onClick={() => setAvisoLimite(cambiar(ruta)(ajustarMesada(params, m, 'derecha')))}
+            title="La punta derecha (vista de adentro) hasta ahí; la otra queda donde está">Hasta {limites.derecha.nombre} ⇥</button>
+        )}
       </div>
+      {avisoLimite && <p className="error" role="alert">{avisoLimite}</p>}
+      {cruza.length > 0 && (
+        <p className="aviso-mueble" role="status">⚠ La mesada atraviesa {cruza.join(' y ')}: usá los botones de arriba para que termine contra el tabique.</p>
+      )}
 
       <h4 className="subtitulo-pared">Estructura y revestimiento</h4>
       <div className="grid-params">

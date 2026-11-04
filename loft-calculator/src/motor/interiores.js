@@ -21,6 +21,7 @@
 import { geometriaLados, largoLado, alturaEn, tramoEntrepiso } from './geometria.js';
 import { haciaAdentro, pieza } from './segmentos.js';
 import { LADOS, ALTURA_PISO_2 } from './constantes.js';
+import { limitesSobrePared } from './tabiques.js';
 
 const ALTO_PISO = 0.09; // el piso terminado está un poco arriba de la estructura (OSB)
 const MEDIA_PARED = 0.06; // la mesada arranca en la cara de adentro de los perfiles de la pared, no en su eje
@@ -152,6 +153,55 @@ function ubicarTramo(params, { origen, alongo, adentro }, nivel) {
  */
 export function mesadaALaEsquina(m, punta) {
   return punta === 'izquierda' ? { ladoReferencia: 'derecha', desde: MEDIA_PARED } : { ladoReferencia: 'izquierda', desde: MEDIA_PARED };
+}
+
+/** Dónde está el tramo principal sobre su pared: [desde, hasta] medidos desde la punta 1 de la pared (al eje). */
+function rangoSobrePared(params, m) {
+  const largoPared = largoLado(m.lado, params);
+  const inicio = m.ladoReferencia === 'izquierda' ? m.desde : largoPared - m.desde - m.largo;
+  return [inicio, inicio + m.largo];
+}
+
+/**
+ * v1.41.1: los límites más cercanos a cada punta de la mesada (vista de adentro): esquinas o caras de tabiques.
+ * La punta izquierda de adentro es la de mayor distancia a la punta 1 de la pared.
+ * @returns {{ izquierda: { d, nombre } | null, derecha: { d, nombre } | null }}
+ */
+export function limitesDeMesada(params, m) {
+  const [a, b] = rangoSobrePared(params, m);
+  const centro = (a + b) / 2;
+  const limites = limitesSobrePared(params, m.lado, m.nivel);
+  return { izquierda: limites.find((l) => l.d > centro + 1e-6) ?? null, derecha: [...limites].reverse().find((l) => l.d < centro - 1e-6) ?? null };
+}
+
+/**
+ * Lleva una punta (o las dos) de la mesada hasta su límite: 'izquierda', 'derecha' o 'ambas'. Conserva desde qué esquina
+ * se mide. Devuelve la mesada cambiada (para pasarla a cambiar(), que la valida).
+ */
+export function ajustarMesada(params, m, hacia) {
+  const largoPared = largoLado(m.lado, params);
+  let [a, b] = rangoSobrePared(params, m);
+  const { izquierda, derecha } = limitesDeMesada(params, m);
+  if (hacia !== 'derecha' && izquierda) b = izquierda.d;
+  if (hacia !== 'izquierda' && derecha) a = derecha.d;
+  const largo = Number((b - a).toFixed(4));
+  const desde = Number((m.ladoReferencia === 'izquierda' ? a : largoPared - b).toFixed(4));
+  // Los huecos y bachas del tramo principal se miden desde su punta izquierda (la de mayor distancia): si esa punta se
+  // corre, se corren con ella para quedar en el mismo lugar. Los que quedan afuera del nuevo largo se sacan.
+  const corrimiento = rangoSobrePared(params, m)[1] - b;
+  const acomodar = (lista) => (lista ?? []).map((x) => ((x.tramo ?? 'principal') === 'principal'
+    ? { ...x, desde: Number((x.desde - corrimiento).toFixed(4)) } : x))
+    .filter((x) => (x.tramo ?? 'principal') !== 'principal' || (x.desde > -1e-3 && x.desde + x.ancho < largo + 1e-3));
+  return { ...m, desde, largo, huecos: acomodar(m.huecos), bachas: acomodar(m.bachas) };
+}
+
+/** Tabiques que la mesada atraviesa (su eje cae dentro del tramo principal). */
+export function tabiquesQueCruzaLaMesada(params, m) {
+  const [a, b] = rangoSobrePared(params, m);
+  const vistos = new Map();
+  limitesSobrePared(params, m.lado, m.nivel).filter((l) => l.tabique !== undefined && l.eje > a + 1e-3 && l.eje < b - 1e-3)
+    .forEach((l) => vistos.set(l.tabique, l.nombre));
+  return [...vistos.values()];
 }
 
 /**

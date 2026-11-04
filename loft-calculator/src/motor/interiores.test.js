@@ -7,7 +7,7 @@ import { validarParametros } from './validacion.js';
 import { PARAMS_INICIALES as P, ABERTURAS_INICIALES } from './parametrosIniciales.js';
 import { INSUMO } from './constantes.js';
 import {
-  MESADA_NUEVA, mesadaNueva, colorDelMueble, tramosDeMesada, HUECO_NUEVO, mesadaALaEsquina, generarMesada, tramosDelFrente, ubicarMesada, validarMesada,
+  MESADA_NUEVA, mesadaNueva, colorDelMueble, tramosDeMesada, HUECO_NUEVO, mesadaALaEsquina, ajustarMesada, limitesDeMesada, tabiquesQueCruzaLaMesada, generarMesada, tramosDelFrente, ubicarMesada, validarMesada,
   muebleNuevo, ubicarMueble, validarMueble, muebleFueraDeLaPlanta, distanciasDelMueble, libreArribaDelMueble, paredHacia, cajonesQueChocan,
 } from './interiores.js';
 
@@ -430,5 +430,53 @@ describe('cajones de la cama (v1.40.1)', () => {
     expect(choques[0]).toMatchObject({ lado: 'izquierda', pared: 'izquierda' });
     expect(choques[0].falta).toBeCloseTo(0.2, 6);
     expect(cajonesQueChocan(P, { ...cama, distanciaLateral: 0.5 })).toEqual([]);
+  });
+});
+
+describe('mesada contra un tabique (v1.41.1, el caso de Leandro)', () => {
+  // Pared B (4,50 m). Tabique perpendicular a 1,25 m de la esquina derecha; la mesada ocupaba toda la pared.
+  const tabique = { id: 1, nombre: 'Tabique 1', lado: 'B', ladoReferencia: 'derecha', desde: 1.25, orientacion: 'perpendicular', nivel: 'piso' };
+  const params = { ...P, tabiques: [tabique] };
+  const larga = mesada({ lado: 'B', ladoReferencia: 'derecha', desde: 0.06, largo: 4.38 });
+
+  it('avisa que la mesada atraviesa el tabique y encuentra los límites de cada punta', () => {
+    expect(tabiquesQueCruzaLaMesada(params, larga)).toEqual(['Tabique 1']);
+    const { izquierda, derecha } = limitesDeMesada(params, larga);
+    expect(izquierda).toMatchObject({ nombre: 'Tabique 1' });
+    expect(izquierda.d).toBeCloseTo(3.2, 6); // 4,50 - 1,25 - 0,05 (cara del tabique)
+    expect(derecha).toMatchObject({ nombre: 'la esquina' });
+  });
+
+  it('la lleva hasta el tabique sin moverla de la esquina', () => {
+    const ajustada = ajustarMesada(params, larga, 'izquierda');
+    expect(ajustada.largo).toBeCloseTo(3.14, 6);
+    expect(ajustada.desde).toBeCloseTo(1.3, 6); // medida desde la esquina derecha, como estaba
+    expect(tabiquesQueCruzaLaMesada(params, ajustada)).toEqual([]);
+    expect(validarMesada(ajustada, params)).toBeNull();
+  });
+
+  it('los huecos y bachas quedan en el mismo lugar al correr la punta izquierda (el proyecto real de Leandro)', () => {
+    const conCosas = { ...larga, forma: 'U', largoIzquierdo: 1.2, largoDerecho: 1.5,
+      huecos: [{ ...HUECO_NUEVO, desde: 2.15, ancho: 0.72, nombre: 'cocina' }],
+      bachas: [{ tramo: 'principal', desde: 3.1, ancho: 0.6, profundidad: 0.4, doble: false }] };
+    const ajustada = ajustarMesada(params, conCosas, 'izquierda');
+    expect(ajustada.huecos[0].desde).toBeCloseTo(2.15 - 1.24, 6); // la punta izquierda se corrió 1,24 m
+    expect(ajustada.bachas[0].desde).toBeCloseTo(3.1 - 1.24, 6);
+    expect(validarMesada(ajustada, params)).toBeNull();
+    // Lo que cae del lado del tabique que se saca, se quita.
+    const conUnaDeMas = { ...conCosas, huecos: [...conCosas.huecos, { ...HUECO_NUEVO, desde: 0.2, ancho: 0.6 }] };
+    expect(ajustarMesada(params, conUnaDeMas, 'izquierda').huecos).toHaveLength(1);
+  });
+
+  it('del otro lado del tabique, ocupa entre el tabique y la esquina', () => {
+    const delOtroLado = mesada({ lado: 'B', ladoReferencia: 'derecha', desde: 0.5, largo: 0.5 }); // centro a 0,75 de la esquina derecha
+    const ajustada = ajustarMesada(params, delOtroLado, 'ambas');
+    expect(ajustada.desde).toBeCloseTo(0.06, 6);
+    expect(ajustada.largo).toBeCloseTo(1.25 - 0.05 - 0.06, 6);
+  });
+
+  it('los tabiques paralelos y los de otra pared no limitan', () => {
+    const otros = { ...P, tabiques: [{ ...tabique, orientacion: 'paralelo' }, { ...tabique, id: 2, lado: 'D' }] };
+    expect(tabiquesQueCruzaLaMesada(otros, larga)).toEqual([]);
   });
 });

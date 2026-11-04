@@ -23,6 +23,25 @@ const ALTO_PISO = 0.09; // piso terminado sobre la estructura (como mesadas y mu
 const MEDIA_PARED = 0.06; // cara de adentro de la pared
 const ALTO_ENTREPISO = 0.12; // tirantes del piso 2
 
+/** Medio espesor de un tabique terminado (montante de 70 mm + una placa), para apoyar cosas contra su cara. */
+export const MEDIO_ESPESOR_TABIQUE = 0.05;
+
+/**
+ * v1.41.1: lo que limita una pared por dentro: sus dos esquinas (cara de adentro de la pared de al lado) y las dos
+ * caras de cada tabique que sale de ella (perpendicular, del mismo nivel). Distancias desde la punta 1 de la pared.
+ * @returns {{ d: number, nombre: string }[]} ordenados
+ */
+export function limitesSobrePared(params, lado, nivel = 'piso') {
+  const largo = largoLado(lado, params);
+  const limites = [{ d: MEDIA_PARED, nombre: 'la esquina' }, { d: largo - MEDIA_PARED, nombre: 'la esquina' }];
+  (params.tabiques ?? []).filter((t) => t.lado === lado && t.orientacion === 'perpendicular' && (t.nivel ?? 'piso') === nivel)
+    .forEach((t) => {
+      const d = t.ladoReferencia === 'izquierda' ? t.desde : largo - t.desde;
+      limites.push({ d: d - MEDIO_ESPESOR_TABIQUE, nombre: t.nombre, tabique: t.id, eje: d }, { d: d + MEDIO_ESPESOR_TABIQUE, nombre: t.nombre, tabique: t.id, eje: d });
+    });
+  return limites.sort((a, b) => a.d - b.d);
+}
+
 export const TIPOS_PUERTA = [['ninguna', 'Sin puerta'], ['abatir', 'De abrir'], ['granero', 'Corrediza (granero)']];
 export const PUERTA_NUEVA = { tipo: 'ninguna', desde: 0.1, ancho: 0.7, alto: 2.0, cara: 'B' };
 

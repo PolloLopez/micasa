@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.41.1] - 2026-11-05
+### Corregido
+- **La mesada ya no tiene que atravesar el tabique del baño.** Los botones de la mesada ahora llevan cada punta hasta lo
+  que la limita en esa pared: la esquina o la cara de un tabique ("⇤ Hasta Tabique 1", "↔ Entre la esquina y Tabique 1",
+  "Hasta la esquina ⇥"). Si la mesada atraviesa un tabique, avisa.
+- Al correr una punta, los huecos y las bachas quedan en el mismo lugar (antes el ajuste se rechazaba sin avisar porque
+  una bacha dejaba de entrar). Si un ajuste no se puede guardar, ahora dice por qué.
+
 ## [1.41.0] - 2026-11-04
 ### Agregado
 - **Tabiques de Durlock** (Paredes y aberturas → Tabiques), para el baño, el antebaño y el cerramiento de la ducha:
