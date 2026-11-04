@@ -109,6 +109,7 @@ export const PARAMS_INICIALES = {
   // v1.38: interiores (ver motor/interiores.js). Mesadas con estructura y revestimiento; muebles para dimensionar.
   mesadas: [],
   muebles: [],
+  tabiques: [], // v1.41: divisiones de Durlock (ver motor/tabiques.js)
 };
 
 export const ABERTURAS_INICIALES = [

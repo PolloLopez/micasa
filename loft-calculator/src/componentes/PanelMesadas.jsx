@@ -17,7 +17,7 @@ import SelectorPerfil from './SelectorPerfil.jsx';
 import SelectorColor from './SelectorColor.jsx';
 import { LADOS } from '../motor/constantes.js';
 import { nombreLado, largoLado } from '../motor/geometria.js';
-import { mesadaNueva, tramosDeMesada, FORMAS_MESADA, NOMBRE_TRAMO, ELECTROS_HUECO, TAPA_SEGUN_ELECTRO, HUECO_NUEVO, BACHA_NUEVA } from '../motor/interiores.js';
+import { mesadaNueva, tramosDeMesada, FORMAS_MESADA, NOMBRE_TRAMO, ELECTROS_HUECO, TAPA_SEGUN_ELECTRO, HUECO_NUEVO, BACHA_NUEVA, mesadaALaEsquina } from '../motor/interiores.js';
 
 const f2 = (n) => n.toFixed(2).replace('.', ',');
 
@@ -100,25 +100,29 @@ function Mesada({ m, i, params, unidad, cambiar, onQuitar, paneles, perfiles, pe
           <CampoSelect etiqueta="Nivel" valor={m.nivel} opciones={[['piso', 'Planta baja'], ['piso2', 'Piso 2 (entrepiso)']]}
             onCambio={cambiar(`${ruta}.nivel`)} />
         )}
-        {/* Recta: se ubica desde una esquina. En L arranca en la esquina donde gira; en U ocupa toda la pared. */}
-        {forma === 'recta' && (<>
-          <CampoSelect etiqueta="Medida desde la esquina" valor={m.ladoReferencia}
-            opciones={[['izquierda', 'Izquierda (vista desde afuera)'], ['derecha', 'Derecha (vista desde afuera)']]}
-            onCambio={cambiar(`${ruta}.ladoReferencia`)} />
-          {medida('desde', 'Distancia a la esquina')}
-        </>)}
-        {forma !== 'U' && medida('largo', forma === 'recta' ? 'Largo' : 'Largo del tramo principal')}
-        {(forma === 'L-izquierda' || forma === 'U') && medida('largoIzquierdo', `Tramo de la izquierda (${nombreLado(LADOS[(i0 + 1) % 4], params.ladoFrente)})`)}
-        {(forma === 'L-derecha' || forma === 'U') && medida('largoDerecho', `Tramo de la derecha (${nombreLado(LADOS[(i0 + 3) % 4], params.ladoFrente)})`)}
+        {/* v1.40.1: en todas las formas se ubica desde una esquina y con el largo que quieras (el límite puede ser un tabique). */}
+        <CampoSelect etiqueta="Medida desde la esquina" valor={m.ladoReferencia}
+          opciones={[['izquierda', 'Izquierda (vista desde afuera)'], ['derecha', 'Derecha (vista desde afuera)']]}
+          onCambio={cambiar(`${ruta}.ladoReferencia`)} />
+        {medida('desde', 'Distancia a la esquina')}
+        {medida('largo', forma === 'recta' ? 'Largo' : 'Largo del tramo principal')}
+        {(forma === 'L-izquierda' || forma === 'U') && medida('largoIzquierdo', 'Tramo de la izquierda')}
+        {(forma === 'L-derecha' || forma === 'U') && medida('largoDerecho', 'Tramo de la derecha')}
         {medida('profundidad', 'Profundidad')}
         {medida('alto', 'Alto (con la tapa)')}
         {medida('espesorTapa', 'Espesor de la tapa')}
       </div>
       <p className="nota">
-        {forma === 'recta' && `La pared mide ${f2(largoPared)} m: quedan ${f2(Math.max(0, largoPared - m.desde - m.largo))} m del otro lado. `}
-        {forma === 'U' && `El tramo principal ocupa toda la pared por dentro: ${f2(largoDe('principal'))} m. `}
-        {forma !== 'recta' && 'Los tramos que siguen se miden desde la cara de adentro de la pared principal (con la esquina).'}
+        La pared mide {f2(largoPared)} m: quedan {f2(Math.max(0, largoPared - m.desde - m.largo))} m del otro lado.
+        {forma !== 'recta' && ' Los tramos que siguen salen derechos desde las puntas y se miden desde la cara de adentro de la pared principal (con la esquina).'}
       </p>
+      {/* Atajos: pegar la punta a la pared de al lado (las distancias quedan a la cara de adentro de esa pared). */}
+      <div className="fila-casillas">
+        <button type="button" className="btn-mini" onClick={() => cambiar(ruta)({ ...m, ...mesadaALaEsquina(m, 'izquierda') })}
+          title={`Contra ${nombreLado(LADOS[(i0 + 1) % 4], params.ladoFrente)}`}>⇤ Pegar a la esquina izquierda</button>
+        <button type="button" className="btn-mini" onClick={() => cambiar(ruta)({ ...m, ...mesadaALaEsquina(m, 'derecha') })}
+          title={`Contra ${nombreLado(LADOS[(i0 + 3) % 4], params.ladoFrente)}`}>Pegar a la esquina derecha ⇥</button>
+      </div>
 
       <h4 className="subtitulo-pared">Estructura y revestimiento</h4>
       <div className="grid-params">
@@ -153,6 +157,9 @@ function Mesada({ m, i, params, unidad, cambiar, onQuitar, paneles, perfiles, pe
           {/* En L o U, el costado del lado que gira es la punta libre del tramo que sigue. */}
           <Casilla texto="Revestir el costado izquierdo" valor={m.costadoIzquierdo} onCambio={cambiar(`${ruta}.costadoIzquierdo`)} />
           <Casilla texto="Revestir el costado derecho" valor={m.costadoDerecho} onCambio={cambiar(`${ruta}.costadoDerecho`)} />
+          {/* v1.40.1: el lomo de un tramo que sigue, si no da contra una pared (península). */}
+          {(forma === 'L-izquierda' || forma === 'U') && <Casilla texto="Revestir el lomo del tramo izquierdo" valor={m.fondoIzquierdo === true} onCambio={cambiar(`${ruta}.fondoIzquierdo`)} />}
+          {(forma === 'L-derecha' || forma === 'U') && <Casilla texto="Revestir el lomo del tramo derecho" valor={m.fondoDerecho === true} onCambio={cambiar(`${ruta}.fondoDerecho`)} />}
         </div>
       )}
 

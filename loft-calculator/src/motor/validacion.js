@@ -17,6 +17,7 @@ import { validarTerreno } from './terreno.js';
 import { validarUniones } from './uniones.js';
 import { validarEjes, validarPilotin } from './ejes.js';
 import { validarMesada, validarMueble } from './interiores.js';
+import { validarTabique } from './tabiques.js';
 import { validarSol } from './sol.js';
 import { CAMPOS_CON_CANTIDAD, MAXIMO_CANTIDAD } from './cantidades.js';
 
@@ -102,6 +103,10 @@ export function validarParametros(params) {
   if (params.mesadas !== undefined) {
     if (!Array.isArray(params.mesadas)) anotar('mesadas', 'Lista inválida');
     else params.mesadas.forEach((m) => anotar(`mesadas.${m?.id}`, validarMesada(m ?? {}, params)));
+  }
+  if (params.tabiques !== undefined) { // v1.41
+    if (!Array.isArray(params.tabiques)) anotar('tabiques', 'Lista inválida');
+    else params.tabiques.forEach((t) => anotar(`tabiques.${t?.id}`, validarTabique(t ?? {}, params)));
   }
   if (params.muebles !== undefined) {
     if (!Array.isArray(params.muebles)) anotar('muebles', 'Lista inválida');

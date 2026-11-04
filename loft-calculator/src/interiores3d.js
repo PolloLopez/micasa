@@ -42,6 +42,8 @@ function materiales() {
     materialesMuebles.vidrio = new THREE.MeshStandardMaterial({ color: '#334155', metalness: 0.3, roughness: 0.15 });
     materialesMuebles.loza = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.25 });
     materialesMuebles.metal = new THREE.MeshStandardMaterial({ color: '#94a3b8', metalness: 0.8, roughness: 0.3 });
+    // v1.40.1: el lugar que ocupan los cajones abiertos (amarillo transparente, no tapa nada).
+    materialesMuebles.sombra = new THREE.MeshStandardMaterial({ color: '#facc15', transparent: true, opacity: 0.28, depthWrite: false });
   }
   return materialesMuebles;
 }
@@ -70,7 +72,31 @@ function cajasDe(forma, ancho, alto, prof, mat, opciones = {}) {
     case 'cama': {
       const base = alto * 0.55;
       const colchon = alto - base;
+      // v1.40.1: cajones (dos por costado, uno o dos a los pies): el frente marcado y, abiertos, el lugar que ocupan.
+      const cajones = [];
+      const abre = opciones.aperturaCajones ?? 0.4;
+      const altoCajon = base * 0.75;
+      const yCajon = base * 0.45;
+      const z0 = -prof / 2 + 0.12; // lejos de la cabecera
+      const z1 = prof / 2 - 0.04;
+      [['cajonesIzquierda', -1], ['cajonesDerecha', 1]].filter(([c]) => opciones[c]).forEach(([, lado]) => {
+        const largo = (z1 - z0) / 2;
+        [0, 1].forEach((k) => {
+          const zc = z0 + largo * (k + 0.5);
+          cajones.push([0.01, altoCajon, largo - 0.03, lado * (ancho / 2 + 0.005), yCajon, zc, m.detalle]);
+          cajones.push([abre, altoCajon, largo - 0.03, lado * (ancho / 2 + abre / 2), yCajon, zc, m.sombra]);
+        });
+      });
+      if (opciones.cajonesPies) {
+        const n = ancho > 1.1 ? 2 : 1;
+        const largo = (ancho - 0.08) / n;
+        Array.from({ length: n }, (_, k) => -ancho / 2 + 0.04 + largo * (k + 0.5)).forEach((xc) => {
+          cajones.push([largo - 0.03, altoCajon, 0.01, xc, yCajon, prof / 2 + 0.005, m.detalle]);
+          cajones.push([largo - 0.03, altoCajon, abre, xc, yCajon, prof / 2 + abre / 2, m.sombra]);
+        });
+      }
       return [
+        ...cajones,
         [ancho, base, prof, 0, base / 2, 0, mat],
         [ancho - 0.04, colchon, prof - 0.06, 0, base + colchon / 2, 0.02, m.colchon],
         // Respaldo (cabecera) atrás, más alto que la cama.
@@ -183,6 +209,7 @@ export function dibujarMuebleEn(mueble, centro, angulo, y) {
     if (!(a > 0 && h > 0 && p > 0)) return;
     const caja = new THREE.Mesh(new THREE.BoxGeometry(a, h, p), material);
     caja.position.set(x, yy, z);
+    if (material === materiales().sombra) caja.userData.sinSombra = true; // los cajones abiertos no tiran sombra
     grupo.add(caja);
   });
   grupo.position.set(centro[0], y, centro[1]);

@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.41.0] - 2026-11-04
+### Agregado
+- **Tabiques de Durlock** (Paredes y aberturas → Tabiques), para el baño, el antebaño y el cerramiento de la ducha:
+  desde una pared, saliendo de ella (perpendicular) o al lado (paralelo, a X m), a una distancia de la esquina como las
+  aberturas; largo y alto hasta el techo (sigue la pendiente), hasta el piso 2 o una medida. Estructura con un perfil
+  de tu lista (soleras, montantes cada X, jambas, dintel y montantes cortos sobre la puerta), placa POR CARA de tus
+  revestimientos y **puerta de abrir o corrediza tipo granero** (con riel, del lado que elijas). Va al 3D (capas
+  "Estructura de tabiques" y "Placas y puertas de tabiques"), al presupuesto (estructura en barras con cortes, placas
+  y las puertas) y se puede editar pieza por pieza.
+- **Cajones de la cama** a la izquierda, a la derecha y a los pies (mirando desde los pies), con cuánto salen
+  abiertos: se ven sombreados en el 3D y avisa si chocan con una pared.
+- **3D**: doble clic sobre algo = girar alrededor de ese punto; la rueda acerca hacia donde está el mouse.
+### Cambiado
+- **Mesada en L o U con el largo que quieras**: ya no se pega sí o sí a la pared entera; se ubica con la distancia a la
+  esquina (botones "Pegar a la esquina izquierda/derecha") y los tramos que siguen salen derechos desde las puntas
+  aunque no haya pared (el límite puede ser un tabique). Si un tramo queda suelto, su lomo se puede revestir. Las L/U
+  guardadas no se mueven.
+### Corregido
+- Los estantes ahora también van en el esquinero de la L/U.
+
 ## [1.40.0] - 2026-11-04
 ### Agregado
 - **Mesada en L o en U**: en "Forma" elegís recta, L (sigue por la pared de la izquierda o de la derecha) o U. El

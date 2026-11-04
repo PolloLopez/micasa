@@ -21,7 +21,7 @@ import { hayDialogoAbierto } from './componentes/useDialogo.js';
 import { useEstadoGuardado } from './hooks/useEstadoGuardado.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { LADOS } from './motor/constantes.js';
-import { CAPAS, AYUDAS, GRUPOS_LEYENDA, CAPAS_TERRENO, CAPAS_MESADAS, CAPAS_MUEBLES, COLORES_INICIALES, capaDelProyecto } from './capas.js';
+import { CAPAS, AYUDAS, GRUPOS_LEYENDA, CAPAS_TERRENO, CAPAS_MESADAS, CAPAS_MUEBLES, CAPAS_TABIQUES, COLORES_INICIALES, capaDelProyecto } from './capas.js';
 import SelectorColor from './componentes/SelectorColor.jsx';
 import { losaGruesa, dibujarMueble, dibujarMuebleEn, materialDeColor } from './interiores3d.js';
 import { ubicarMueble } from './motor/interiores.js';
@@ -80,6 +80,7 @@ const ESTILO_PIEZA = {
   'mont-marco': { capa: 'montaje', seccion: 0.05 },
   'mont-travesano': { capa: 'montaje', seccion: 0.045 },
   mesada: { capa: 'mesadas', seccion: 0.035 }, // v1.38
+  tabique: { capa: 'tabiques', seccion: 0.04 }, // v1.41
 };
 
 /**
@@ -95,6 +96,7 @@ const INSUMO_POR_TIPO = {
   'grada-viga': INSUMO.GRADA_VIGA, 'grada-union': INSUMO.GRADA_UNION,
   'mont-pata': INSUMO.MONTAJE_PATA, 'mont-marco': INSUMO.MONTAJE_MARCO, 'mont-travesano': INSUMO.MONTAJE_MARCO,
   mesada: INSUMO.ESTRUCTURA_MESADA, // v1.38: con el grosor del caño elegido
+  tabique: INSUMO.ESTRUCTURA_TABIQUE, // v1.41
 };
 
 /** Grosor con el que se dibuja una pieza: el de su caño (catálogo) o el fijo de su tipo. */
@@ -167,7 +169,7 @@ const OPACIDADES = [
 ];
 
 /** Capas de hierro (todas menos superficies y madera): comparten la opacidad "Hierros". */
-const CAPAS_SUPERFICIE = ['paneles', 'osb', 'aberturas', 'chapa', 'escalones', 'zapatas', 'tapasMesada', 'muebles']; // zapatas: hormigón, no hierro
+const CAPAS_SUPERFICIE = ['paneles', 'osb', 'aberturas', 'chapa', 'escalones', 'zapatas', 'tapasMesada', 'muebles', 'placasTabiques']; // zapatas: hormigón, no hierro
 const CAPAS_HIERRO = Object.keys(CAPAS).filter((c) => !CAPAS_SUPERFICIE.includes(c));
 
 /** Opacidad de un material: 1 = sólido (tapa lo de atrás); menos = se ve a través. */
@@ -499,6 +501,44 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
       });
     });
   }
+  // v1.41: tabiques: placas de cada cara (con el hueco de la puerta) y la puerta (de abrir o granero con su riel).
+  if (capas.placasTabiques && grupoVisible('tabique')) {
+    (e.tabiques ?? []).forEach((t) => {
+      const { esquinas, normal, huecos, puerta } = t.dibujo;
+      [['revestimientoA', -1], ['revestimientoB', 1]].forEach(([campo, signo]) => {
+        const idPanel = t.dibujo[campo];
+        if (!idPanel) return;
+        const afuera = normal.map((c) => c * signo);
+        const corrida = esquinas.map((q) => [q[0] + afuera[0] * 0.045, q[1], q[2] + afuera[2] * 0.045]); // afuera de los montantes
+        const mats = materialesPanel.get(idPanel) ?? materiales.paneles;
+        grupo.add(huecos.length ? panelConHuecos(corrida, huecos, 0, mats, afuera) : (mats.exterior ? panelDosCaras(corrida, mats, afuera) : cuadrilatero(corrida, mats)));
+      });
+      if (!puerta) return;
+      const [a, b, , d] = puerta.esquinas;
+      const ancho = Math.hypot(b[0] - a[0], b[2] - a[2]);
+      const alto = d[1] - a[1];
+      const giro = Math.atan2(-puerta.direccion[2], puerta.direccion[0]);
+      const hoja = new THREE.Mesh(new THREE.BoxGeometry(ancho + (puerta.tipo === 'granero' ? 0.1 : -0.01), alto + (puerta.tipo === 'granero' ? 0.04 : -0.01), 0.04), materiales.placasTabiques);
+      // De abrir: en el vano. Granero: del lado elegido, por fuera de la placa, colgada de su riel.
+      const corre = puerta.tipo === 'granero' ? puerta.cara * 0.09 : 0;
+      hoja.position.set((a[0] + b[0]) / 2 + normal[0] * corre, a[1] + alto / 2, (a[2] + b[2]) / 2 + normal[2] * corre);
+      hoja.rotation.y = giro;
+      grupo.add(hoja);
+      if (puerta.tipo === 'granero') {
+        const riel = new THREE.Mesh(new THREE.BoxGeometry(ancho * 2 + 0.1, 0.03, 0.03), materialDeColor('#1f2937', { metal: 0.7, aspereza: 0.3 }));
+        riel.position.set((a[0] + b[0]) / 2 + puerta.direccion[0] * ancho / 2 + normal[0] * corre, a[1] + alto + 0.06, (a[2] + b[2]) / 2 + puerta.direccion[2] * ancho / 2 + normal[2] * corre);
+        riel.rotation.y = giro;
+        grupo.add(riel);
+      }
+    });
+  }
+  if (capas.etiquetasTabiques && (capas.tabiques || capas.placasTabiques) && grupoVisible('tabique')) {
+    (e.tabiques ?? []).filter((t) => t.mostrarEtiqueta && t.nombre.trim()).forEach((t) => {
+      const cartelito = cartelChico(t.nombre.trim(), 'rgba(2,132,199,0.9)');
+      cartelito.position.set(t.dibujo.centroArriba[0], t.dibujo.centroArriba[1] + 0.3, t.dibujo.centroArriba[2]);
+      grupo.add(cartelito);
+    });
+  }
   // v1.40: los electrodomésticos de los huecos de las mesadas (van con la capa Muebles).
   if (capas.muebles !== false && moduloActivo('muebles') && grupoVisible('mesada')) {
     (e.mesadas ?? []).forEach((m) => m.electros.forEach((el) => grupo.add(dibujarMuebleEn(el, el.centro, el.angulo, el.y))));
@@ -814,6 +854,7 @@ export default function LoftCanvas({
     etiquetasAberturas: true, // número de cada abertura (v1.16)
     etiquetasParedes: true, // v1.33.1: Frente, Lateral…
     etiquetasMesadas: true, // v1.38.1
+    etiquetasTabiques: true, // v1.41
     etiquetasMuebles: true,
     etiquetasTerreno: true, // v1.33.1: línea municipal, calle, N, pozo…
     cotas: false, // v1.28: largo, ancho y altos (en el PDF se pueden pedir aunque estén apagadas)
@@ -841,6 +882,9 @@ export default function LoftCanvas({
     controles.enableDamping = true; // movimiento suave
     controles.dampingFactor = 0.05;
     controles.autoRotateSpeed = 2;
+    // v1.40.1: la rueda acerca hacia donde está el mouse (no siempre al centro) y el doble clic elige el punto
+    // alrededor del cual se gira (antes giraba siempre alrededor del medio de la obra).
+    controles.zoomToCursor = true;
 
     const ambiente = new THREE.AmbientLight(0xffffff, 0.85);
     escena.add(ambiente);
@@ -933,6 +977,33 @@ export default function LoftCanvas({
     renderer.domElement.addEventListener('pointerdown', alApretar);
     renderer.domElement.addEventListener('pointerup', alSoltar);
 
+    // v1.40.1: doble clic sobre algo = girar alrededor de ese punto (el centro se corre suave, en ~0,3 s).
+    let animacionCentro = null;
+    const alDobleClic = (ev) => {
+      const caja = renderer.domElement.getBoundingClientRect();
+      const punto = new THREE.Vector2(((ev.clientX - caja.left) / caja.width) * 2 - 1, -((ev.clientY - caja.top) / caja.height) * 2 + 1);
+      rayo.setFromCamera(punto, camara);
+      const tocado = rayo.intersectObjects(grupo.children, true).find((i) => i.object.isMesh);
+      if (!tocado) return;
+      // Los dos clics del doble clic no son para seleccionar: se deshace la selección que hicieron.
+      setSeleccionada(null);
+      setAberturaSeleccionada(null);
+      const desde = controles.target.clone();
+      const hasta = tocado.point.clone();
+      const inicio = performance.now();
+      cancelAnimationFrame(animacionCentro);
+      const paso = () => {
+        const t = Math.min(1, (performance.now() - inicio) / 300);
+        const nuevo = desde.clone().lerp(hasta, t);
+        camara.position.add(nuevo.clone().sub(controles.target)); // la cámara acompaña: no salta la vista
+        controles.target.copy(nuevo);
+        controles.update();
+        if (t < 1) animacionCentro = requestAnimationFrame(paso);
+      };
+      paso();
+    };
+    renderer.domElement.addEventListener('dblclick', alDobleClic);
+
     // v1.28: fotos para el PDF, con fondo blanco y sin grilla: la vista actual y, si se piden,
     // las vistas fijas (frente, lateral, arriba) con cámara ortográfica. Se dibuja y se lee en el
     // mismo momento (WebGL borra el lienzo después de mostrarlo).
@@ -981,6 +1052,8 @@ export default function LoftCanvas({
       vaciarTerreno(grupoTerreno);
       renderer.domElement.removeEventListener('pointerdown', alApretar);
       renderer.domElement.removeEventListener('pointerup', alSoltar);
+      renderer.domElement.removeEventListener('dblclick', alDobleClic);
+      cancelAnimationFrame(animacionCentro);
       observador.disconnect();
       controles.dispose();
       vaciarGrupo(grupo);
@@ -1067,6 +1140,7 @@ export default function LoftCanvas({
   const moduloSol = moduloActivo('sol') && params.tipoProyecto === 'construccion';
   // v1.38: la leyenda muestra Interiores solo si la obra tiene mesadas o muebles.
   const hayMesadas = params.tipoProyecto === 'construccion' && (params.mesadas?.length ?? 0) > 0;
+  const hayTabiques = params.tipoProyecto === 'construccion' && (params.tabiques?.length ?? 0) > 0; // v1.41
   const hayMuebles = moduloActivo('muebles') && params.tipoProyecto === 'construccion'
     && ((params.muebles?.length ?? 0) > 0 || (params.mesadas ?? []).some((m) => (m.huecos ?? []).some((h) => h.electro))); // v1.40: o electros en huecos
   const hoy = new Date();
@@ -1120,7 +1194,7 @@ export default function LoftCanvas({
     if (!visor) return;
     [visor.grupo, visor.grupoTerreno].forEach((g) => g.traverse((obj) => {
       if (!obj.isMesh) return;
-      obj.castShadow = solPrendido && !obj.userData.idAbertura;
+      obj.castShadow = solPrendido && !obj.userData.idAbertura && !obj.userData.sinSombra;
       obj.receiveShadow = solPrendido;
     }));
   });
@@ -1290,7 +1364,8 @@ export default function LoftCanvas({
       const visibles = clavesGrupo.filter((clave) => capaDelProyecto(clave, tipoProyecto)
         && (!(CAPAS_TERRENO.includes(clave) || clave === 'etiquetasTerreno') || obraConTerreno)
         && (!CAPAS_MESADAS.includes(clave) || hayMesadas)
-        && (!CAPAS_MUEBLES.includes(clave) || hayMuebles));
+        && (!CAPAS_MUEBLES.includes(clave) || hayMuebles)
+        && (!CAPAS_TABIQUES.includes(clave) || hayTabiques));
       return visibles.length === 0 ? null
         : { titulo, contenido: visibles.map((clave) => casillaCapa(clave)), todoNada: (valor) => ponerCapas(visibles, valor) };
     }).filter(Boolean),
@@ -1355,7 +1430,7 @@ export default function LoftCanvas({
         <span className="ctrl-tip">
           {avisoVisor ?? (midiendo
             ? 'Tocá dos hierros o dos puntos. Entre dos columnas mide de eje a eje. Esc para salir.'
-            : 'Arrastrá para orbitar · rueda para zoom · clic en un hierro o una abertura para seleccionarlo · Ctrl+C / Ctrl+V copia y pega')}
+            : 'Arrastrá para girar · botón derecho para mover · rueda para acercar al mouse · doble clic: girar alrededor de ese punto · clic en un hierro o una abertura para seleccionarlo · Ctrl+C / Ctrl+V')}
         </span>
         {/* v1.27: qué se está resaltando (al pasar el mouse o fijado con 👁). */}
         {cartelResaltado && (

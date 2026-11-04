@@ -84,6 +84,10 @@ export const CATALOGO_FIJO = [
   { id: INSUMO.ESTANTE_MESADA, categoria: 'placa', nombre: 'Estantes bajo mesada', perfil: 'Melamina 18 mm', unidad: 'm²', largoBarra: null, precio: 30000 },
   // v1.40: bachas de cocina (renglones solo si hay).
   { id: INSUMO.BACHA_SIMPLE, categoria: 'unidad', nombre: 'Bachas simples', perfil: 'Bacha de acero inoxidable 52 x 37 cm', unidad: 'u', largoBarra: null, precio: 60000 },
+  // v1.41: tabiques (renglones solo si hay).
+  { id: INSUMO.ESTRUCTURA_TABIQUE, categoria: 'perfil', nombre: 'Estructura de tabiques', perfil: 'Montante PGC 70 x 0.9', unidad: 'barra', largoBarra: 2.6, precio: 9000 },
+  { id: INSUMO.PUERTA_PLACA, categoria: 'unidad', nombre: 'Puertas de abrir', perfil: 'Puerta placa con marco', unidad: 'u', largoBarra: null, precio: 120000 },
+  { id: INSUMO.PUERTA_GRANERO, categoria: 'unidad', nombre: 'Puertas granero', perfil: 'Puerta corrediza tipo granero con riel', unidad: 'u', largoBarra: null, precio: 220000 },
   { id: INSUMO.BACHA_DOBLE, categoria: 'unidad', nombre: 'Bachas dobles', perfil: 'Bacha doble de acero inoxidable 76 x 37 cm', unidad: 'u', largoBarra: null, precio: 110000 },
 ];
 
@@ -178,6 +182,8 @@ function panosPorRevestimiento(estructura) {
   });
   // v1.38: frente, costados y zócalo de cada mesada, con el revestimiento elegido para esa mesada.
   (estructura.mesadas ?? []).forEach((m) => m.panos.forEach((pano) => sumar(m.panel, pano)));
+  // v1.41: cada cara de cada tabique con su revestimiento.
+  (estructura.tabiques ?? []).forEach((t) => t.panos.forEach(({ panel, ...pano }) => sumar(panel, pano)));
   const t = estructura.techo;
   sumar(t.panel, { largo: t.largo, h1: t.largoFaldon, h2: t.largoFaldon, neto: t.superficie, donde: 'techo' });
   return panos;
@@ -348,6 +354,14 @@ function calcularRenglones(estructura, catalogo, excedenteBarras) {
     const dobles = mesadas.reduce((acc, m) => acc + m.bachas.dobles, 0);
     if (simples > 0) items.push(itemSimple(insumo(INSUMO.BACHA_SIMPLE), simples, 'en las mesadas'));
     if (dobles > 0) items.push(itemSimple(insumo(INSUMO.BACHA_DOBLE), dobles, 'en las mesadas'));
+  }
+  // v1.41: tabiques: estructura en barras (o un renglón por perfil elegido) y puertas.
+  const tabiques = e.tabiques ?? [];
+  if (tabiques.length > 0 || reasignadas.some((p) => p.insumo === INSUMO.ESTRUCTURA_TABIQUE)) {
+    items.push(perfil(INSUMO.ESTRUCTURA_TABIQUE, tabiques.flatMap((t) => t.piezas)));
+    const puertas = (tipo) => tabiques.filter((t) => t.puerta === tipo);
+    if (puertas('abatir').length) items.push(itemSimple(insumo(INSUMO.PUERTA_PLACA), puertas('abatir').length, puertas('abatir').map((t) => t.nombre).join(', ')));
+    if (puertas('granero').length) items.push(itemSimple(insumo(INSUMO.PUERTA_GRANERO), puertas('granero').length, puertas('granero').map((t) => t.nombre).join(', ')));
   }
   // v1.29: accesorios con cantidad cargada (tornillería, electrodos, selladores…).
   catalogo.filter((i) => i.categoria === 'accesorio' && i.cantidad > 0)

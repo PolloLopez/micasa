@@ -7,8 +7,8 @@ import { validarParametros } from './validacion.js';
 import { PARAMS_INICIALES as P, ABERTURAS_INICIALES } from './parametrosIniciales.js';
 import { INSUMO } from './constantes.js';
 import {
-  MESADA_NUEVA, mesadaNueva, colorDelMueble, tramosDeMesada, HUECO_NUEVO, generarMesada, tramosDelFrente, ubicarMesada, validarMesada,
-  muebleNuevo, ubicarMueble, validarMueble, muebleFueraDeLaPlanta, distanciasDelMueble, libreArribaDelMueble,
+  MESADA_NUEVA, mesadaNueva, colorDelMueble, tramosDeMesada, HUECO_NUEVO, mesadaALaEsquina, generarMesada, tramosDelFrente, ubicarMesada, validarMesada,
+  muebleNuevo, ubicarMueble, validarMueble, muebleFueraDeLaPlanta, distanciasDelMueble, libreArribaDelMueble, paredHacia, cajonesQueChocan,
 } from './interiores.js';
 
 // Mesada de fábrica en la pared C (fondo): x de 0,85 a 3,25 (planta de 7,5 x 4,5).
@@ -300,9 +300,9 @@ describe('mesadas en L y en U, huecos y bachas (v1.40)', () => {
   const hueco = (cambios) => ({ ...HUECO_NUEVO, ...cambios });
 
   it('en L hacia la izquierda: el principal llega a la pared de la izquierda y el otro tramo sigue por ella', () => {
-    const m = mesada({ forma: 'L-izquierda', largoIzquierdo: 1.5, revestimiento: 'panelMuros' });
+    const m = mesada({ forma: 'L-izquierda', largoIzquierdo: 1.5, revestimiento: 'panelMuros', ...mesadaALaEsquina({}, 'izquierda') });
     const tramos = tramosDeMesada(P, m);
-    expect(tramos.map((t) => [t.clave, t.lado])).toEqual([['principal', 'C'], ['izquierdo', 'D']]);
+    expect(tramos.map((t) => t.clave)).toEqual(['principal', 'izquierdo']);
     const g = generarMesada(P, m);
     const principal = g.piezas.filter((p) => !p.id.includes(':izq'));
     const otro = g.piezas.filter((p) => p.id.includes(':izq'));
@@ -316,13 +316,40 @@ describe('mesadas en L y en U, huecos y bachas (v1.40)', () => {
     expect(g.panos.find((p) => p.donde === 'Mesada 1 (frente)').neto).toBeCloseTo((2.4 - 0.6) * (0.9 - 0.03 - 0.1), 6);
   });
 
-  it('en U ocupa toda la pared principal y sigue por las dos', () => {
-    const m = mesada({ forma: 'U', largoIzquierdo: 1.2, largoDerecho: 1.8 });
+  it('en U, del largo que quieras: los tramos salen derechos desde las puntas (aunque no haya pared)', () => {
+    // Mesada de 3 m a 1 m de la esquina derecha (vista de afuera): punta derecha de adentro en x = 3,75 - 1 = 2,75.
+    const m = mesada({ forma: 'U', largo: 3, desde: 1, largoIzquierdo: 1.2, largoDerecho: 1.8, fondoDerecho: true, revestimiento: 'panelMuros' });
     const tramos = tramosDeMesada(P, m);
-    expect(tramos.map((t) => [t.clave, t.lado, Number(t.largo.toFixed(2))])).toEqual([['principal', 'C', 7.38], ['izquierdo', 'D', 0.6], ['derecho', 'B', 1.2]]);
+    expect(tramos.map((t) => [t.clave, Number(t.largo.toFixed(2))])).toEqual([['principal', 3], ['izquierdo', 0.6], ['derecho', 1.2]]);
+    const g = generarMesada(P, m);
+    const derecho = g.piezas.filter((p) => p.id.includes(':der'));
+    expect(dentro(derecho, 0, 2.75 - 0.6, 2.75)).toBe(true); // sale de la punta derecha hacia adentro
+    expect(dentro(derecho, 2, -2.19 + 0.6, -2.19 + 1.8)).toBe(true);
+    const izquierdo = g.piezas.filter((p) => p.id.includes(':izq'));
+    expect(dentro(izquierdo, 0, -0.25, -0.25 + 0.6)).toBe(true); // la punta izquierda está en 2,75 - 3
+    // El lomo del tramo de la derecha (suelto) se reviste si se pide; el de la izquierda no.
+    expect(g.panos.filter((p) => p.donde.includes('lomo')).map((p) => p.donde)).toEqual(['Mesada 1 de la derecha (lomo)']);
     expect(validarMesada(m, P)).toBeNull();
-    expect(validarMesada({ ...m, largoDerecho: 4.5 }, P)).toMatch(/tramo de la derecha/);
     expect(validarMesada({ ...m, largoIzquierdo: 0.7 }, P)).toMatch(/tramo de la izquierda/);
+  });
+
+  it('los estantes entran también en el esquinero', () => {
+    const recta = generarMesada(P, mesada({ largo: 2.4 }));
+    const enL = generarMesada(P, mesada({ largo: 2.4, forma: 'L-derecha', largoDerecho: 1.2 }));
+    // El principal tiene el mismo estante que una recta (el esquinero no se pierde) y el otro tramo, el suyo.
+    expect(enL.estantesM2).toBeCloseTo(recta.estantesM2 + 0.6 * 0.58, 6);
+  });
+
+  it('una L/U de la v1.40.0 (pegada a la esquina) no se mueve al abrirla', () => {
+    const vieja = { ...mesada({ forma: 'L-izquierda', largo: 2.4, desde: 0.5, largoIzquierdo: 1.5 }) };
+    delete vieja.ubicacionLibre;
+    const migrada = migrarParams(conMesadas(vieja)).mesadas[0];
+    expect(migrada).toMatchObject({ ubicacionLibre: true, ladoReferencia: 'derecha' });
+    expect(migrada.desde).toBeCloseTo(0.06, 6);
+    expect(ubicarMesada(P, migrada).origen[0]).toBeCloseTo(-3.69, 6); // sigue contra el lateral izquierdo
+    const u = { ...mesada({ forma: 'U' }) };
+    delete u.ubicacionLibre;
+    expect(migrarParams(conMesadas(u)).mesadas[0].largo).toBeCloseTo(7.38, 6);
   });
 
   it('un hueco SIN tapa (cocina) parte la mesada: sin estructura ni tapa ahí y costados revestidos a los dos lados', () => {
@@ -377,5 +404,31 @@ describe('mesadas en L y en U, huecos y bachas (v1.40)', () => {
     expect(migrada.huecos[0]).toMatchObject({ tramo: 'principal', tapa: true, conZocalo: false, electro: '', nombre: 'Heladera' });
     // Y queda igual que antes.
     expect(generarMesada(P, migrada).piezas.map((p) => p.id)).toEqual(generarMesada(P, { ...mesada(), huecos: [{ desde: 1, ancho: 0.7 }] }).piezas.map((p) => p.id));
+  });
+});
+
+describe('cajones de la cama (v1.40.1)', () => {
+  it('la cama nace sin cajones y con 40 cm de apertura; otros muebles no tienen cajones', () => {
+    expect(muebleNuevo('cama2', [], 1)).toMatchObject({ cajonesIzquierda: false, cajonesDerecha: false, cajonesPies: false, aperturaCajones: 0.4 });
+    expect(muebleNuevo('mesa', [], 1)).not.toHaveProperty('cajonesPies');
+    expect(validarMueble({ ...muebleNuevo('cama2', [], 1), aperturaCajones: 2 }, P)).toMatch(/cajones abren/);
+  });
+
+  it('cada lado de la cama da a una pared según el giro (derecha e izquierda mirando desde los pies)', () => {
+    const cama = muebleNuevo('cama2', [], 1);
+    expect(['izquierda', 'derecha', 'pies'].map((l) => paredHacia(cama, l))).toEqual(['izquierda', 'derecha', 'frente']);
+    expect(['izquierda', 'derecha', 'pies'].map((l) => paredHacia({ ...cama, giro: 90 }, l))).toEqual(['frente', 'fondo', 'derecha']);
+    expect(['izquierda', 'derecha', 'pies'].map((l) => paredHacia({ ...cama, giro: 180 }, l))).toEqual(['derecha', 'izquierda', 'fondo']);
+  });
+
+  it('avisa qué cajones abiertos chocan con una pared y cuánto falta', () => {
+    // Cabecera contra el fondo, a 0,2 m del lateral izquierdo: los cajones de la izquierda (40 cm) chocan.
+    const cama = { ...muebleNuevo('cama2', [], 1), cajonesIzquierda: true, cajonesDerecha: true, cajonesPies: true,
+      desdeLateral: 'izquierdo', distanciaLateral: 0.2, desdeFrente: 'fondo', distanciaFrente: 0 };
+    const choques = cajonesQueChocan(P, cama);
+    expect(choques).toHaveLength(1);
+    expect(choques[0]).toMatchObject({ lado: 'izquierda', pared: 'izquierda' });
+    expect(choques[0].falta).toBeCloseTo(0.2, 6);
+    expect(cajonesQueChocan(P, { ...cama, distanciaLateral: 0.5 })).toEqual([]);
   });
 });

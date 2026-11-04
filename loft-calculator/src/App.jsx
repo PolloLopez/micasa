@@ -29,6 +29,7 @@ import PanelTerreno from './componentes/PanelTerreno.jsx';
 import TarjetaUniones from './componentes/TarjetaUniones.jsx';
 import PanelMesadas from './componentes/PanelMesadas.jsx';
 import PanelMuebles from './componentes/PanelMuebles.jsx';
+import PanelTabiques from './componentes/PanelTabiques.jsx';
 import { OPCIONES_PISO } from './motor/uniones.js';
 import { PILOTINES_CON_MODULO } from './motor/ejes.js';
 import { implantacion as calcularImplantacion } from './motor/terreno.js';
@@ -1337,6 +1338,10 @@ export default function App() {
           <PanelMesadas params={params} unidad={unidad} cambiar={cambiar} paneles={paneles}
             perfiles={perfilesDeLista(catalogoConPrecios)} generadas={estructura.mesadas}
             perfilGeneral={catalogoResuelto.find((i) => i.id === INSUMO.ESTRUCTURA_MESADA)?.perfil ?? ''} colores={colores} />
+          {/* v1.41: tabiques de Durlock (baño, antebaño, ducha) con puerta. */}
+          <PanelTabiques params={params} unidad={unidad} cambiar={cambiar} paneles={paneles}
+            perfiles={perfilesDeLista(catalogoConPrecios)} generados={estructura.tabiques}
+            perfilGeneral={catalogoResuelto.find((i) => i.id === INSUMO.ESTRUCTURA_TABIQUE)?.perfil ?? ''} />
           {moduloMuebles && <PanelMuebles params={params} unidad={unidad} cambiar={cambiar} />}
 
           </section>

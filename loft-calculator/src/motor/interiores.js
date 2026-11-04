@@ -59,6 +59,10 @@ export const MESADA_NUEVA = {
   largoIzquierdo: 1.2,
   largoDerecho: 1.2,
   bachas: [], // [{ tramo, desde, ancho, profundidad, doble }]
+  // v1.40.1: revestir el lomo de los tramos que siguen (si no dan contra una pared, ej. una península).
+  fondoIzquierdo: false,
+  fondoDerecho: false,
+  ubicacionLibre: true, // v1.40.1: la L/U se ubica con la distancia a la esquina (ver completarMesada)
 };
 
 /** Una mesada nueva con un id libre. */
@@ -92,59 +96,78 @@ export const HUECO_NUEVO = { tramo: 'principal', desde: 0, ancho: 0.6, nombre: '
 export const NOMBRE_TRAMO = { principal: 'principal', izquierdo: 'de la izquierda', derecho: 'de la derecha' };
 
 /**
- * Los tramos rectos de una mesada: el principal (contra su pared) y, en L o U, los que siguen por las paredes de
- * al lado. Cada uno: { clave, lado, inicio (desde la punta 1 de su pared, al eje), largo, costados, esquinas }.
- *   - En L hacia un lado, el principal llega hasta la cara de adentro de esa pared (la distancia a la esquina no se usa);
- *     en U ocupa toda la pared.
- *   - Cada tramo que sigue arranca DESPUÉS de la profundidad del principal: el cuadrado de la esquina es del principal.
- *     Su largo cargado (`largoIzquierdo` / `largoDerecho`) se mide desde la cara de adentro de la pared principal.
+ * Los tramos rectos de una mesada: el principal (contra su pared, donde lo ubiques y del largo que quieras) y, en L o U,
+ * los que salen derechos desde sus puntas hacia adentro de la casa (v1.40.1: antes la L/U se pegaba sí o sí a las
+ * esquinas). Si la punta está en la esquina, el tramo que sigue queda contra la pared de al lado; si no (ej. el límite
+ * es un tabique), queda suelto y su lomo se puede revestir.
+ * Cada tramo: { clave, origen (punta izquierda del fondo), alongo (hacia su derecha), adentro (hacia su frente), largo,
+ * costados, fondoRevestido, esquinas }.
+ *   - El cuadrado de la esquina es del principal; el tramo que sigue arranca después de su profundidad. Su largo cargado
+ *     (`largoIzquierdo` / `largoDerecho`) se mide desde la cara de adentro de la pared principal.
  *   - `esquinas`: el pedazo del frente del principal que queda tapado por el tramo que sigue (sin placa ni zócalo).
  */
 export function tramosDeMesada(params, m) {
-  const i = LADOS.indexOf(m.lado);
+  const geo = geometriaLados(params)[m.lado];
   const largoPared = largoLado(m.lado, params);
   const prof = m.profundidad;
-  let largo = m.largo;
-  let inicio;
-  if (m.forma === 'U') {
-    inicio = MEDIA_PARED;
-    largo = largoPared - 2 * MEDIA_PARED;
-  } else if (giraIzquierda(m)) {
-    inicio = largoPared - MEDIA_PARED - largo; // la punta izquierda (vista de adentro) es la del lado de p2
-  } else if (giraDerecha(m)) {
-    inicio = MEDIA_PARED;
-  } else {
-    inicio = m.ladoReferencia === 'izquierda' ? m.desde : largoPared - m.desde - largo;
-  }
-  const tramos = [{
-    clave: 'principal', lado: m.lado, inicio, largo,
-    costadoIzquierdo: giraIzquierda(m) ? false : m.costadoIzquierdo,
-    costadoDerecho: giraDerecha(m) ? false : m.costadoDerecho,
-    esquinas: [...(giraIzquierda(m) ? [{ desde: 0, ancho: prof }] : []), ...(giraDerecha(m) ? [{ desde: largo - prof, ancho: prof }] : [])],
-  }];
-  if (giraIzquierda(m)) {
-    // Sigue por la pared siguiente (su punta 1 es la esquina); la punta que toca al principal es su derecha.
-    tramos.push({ clave: 'izquierdo', lado: LADOS[(i + 1) % 4], inicio: MEDIA_PARED + prof, largo: m.largoIzquierdo - prof,
-      costadoIzquierdo: m.costadoIzquierdo, costadoDerecho: false, esquinas: [] });
-  }
-  if (giraDerecha(m)) {
-    // Sigue por la pared anterior (su punta 2 es la esquina); la punta que toca al principal es su izquierda.
-    const lado = LADOS[(i + 3) % 4];
-    tramos.push({ clave: 'derecho', lado, inicio: largoLado(lado, params) - MEDIA_PARED - m.largoDerecho, largo: m.largoDerecho - prof,
-      costadoIzquierdo: false, costadoDerecho: m.costadoDerecho, esquinas: [] });
-  }
-  return tramos;
-}
-
-/** Punta izquierda del fondo de un tramo (vista de frente), dirección a lo largo, hacia adentro y altura del piso. */
-function ubicarTramo(params, { lado, inicio, largo }, nivel) {
-  const geo = geometriaLados(params)[lado];
+  const largo = m.largo;
+  const inicio = m.ladoReferencia === 'izquierda' ? m.desde : largoPared - m.desde - largo; // sobre la pared (desde p1)
   const adentro = haciaAdentro(geo);
   const alongo = [-geo.direccion[0], -geo.direccion[1]]; // hacia la derecha mirándola de frente
   // Vista desde adentro, la pared se recorre al revés que desde afuera: la punta izquierda es la de p1 + inicio + largo.
   const d = inicio + largo;
   const origen = [geo.p1[0] + geo.direccion[0] * d + adentro[0] * MEDIA_PARED, geo.p1[1] + geo.direccion[1] * d + adentro[1] * MEDIA_PARED];
+  const punto = (x, z) => [origen[0] + alongo[0] * x + adentro[0] * z, origen[1] + alongo[1] * x + adentro[1] * z];
+  const tramos = [{
+    clave: 'principal', origen, alongo, adentro, largo, inicio,
+    costadoIzquierdo: giraIzquierda(m) ? false : m.costadoIzquierdo,
+    costadoDerecho: giraDerecha(m) ? false : m.costadoDerecho,
+    fondoRevestido: false, // contra la pared
+    esquinas: [...(giraIzquierda(m) ? [{ desde: 0, ancho: prof }] : []), ...(giraDerecha(m) ? [{ desde: largo - prof, ancho: prof }] : [])],
+  }];
+  if (giraIzquierda(m)) {
+    // Sale desde la punta izquierda: su lomo es la línea de esa punta, su frente mira a la derecha del principal y
+    // su punta derecha (la que toca al principal) da a la esquina.
+    tramos.push({ clave: 'izquierdo', origen: punto(0, m.largoIzquierdo), alongo: [-adentro[0], -adentro[1]], adentro: alongo,
+      largo: m.largoIzquierdo - prof, costadoIzquierdo: m.costadoIzquierdo, costadoDerecho: false,
+      fondoRevestido: m.fondoIzquierdo === true, esquinas: [] });
+  }
+  if (giraDerecha(m)) {
+    // Sale desde la punta derecha: su punta izquierda (la que toca al principal) da a la esquina.
+    tramos.push({ clave: 'derecho', origen: punto(largo, prof), alongo: adentro, adentro: [-alongo[0], -alongo[1]],
+      largo: m.largoDerecho - prof, costadoIzquierdo: false, costadoDerecho: m.costadoDerecho,
+      fondoRevestido: m.fondoDerecho === true, esquinas: [] });
+  }
+  return tramos;
+}
+
+/** Punta izquierda del fondo de un tramo (vista de frente), dirección a lo largo, hacia adentro y altura del piso. */
+function ubicarTramo(params, { origen, alongo, adentro }, nivel) {
   return { origen, alongo, adentro, y: alturaDelPiso(params, nivel) };
+}
+
+/**
+ * v1.40.1: distancia a la esquina (vista desde afuera) para que la punta izquierda o derecha de la mesada (vista de
+ * adentro) quede contra la pared de al lado. La izquierda de adentro es la derecha de afuera.
+ */
+export function mesadaALaEsquina(m, punta) {
+  return punta === 'izquierda' ? { ladoReferencia: 'derecha', desde: MEDIA_PARED } : { ladoReferencia: 'izquierda', desde: MEDIA_PARED };
+}
+
+/**
+ * v1.40.1: las mesadas en L/U de la v1.40.0 iban pegadas a las esquinas (la distancia a la esquina no se usaba y la U
+ * ocupaba toda la pared). Se pasan a la ubicación libre sin que se muevan.
+ */
+export function completarMesada(m, params) {
+  const base = { ...MESADA_NUEVA, ...m,
+    huecos: Array.isArray(m?.huecos) ? m.huecos.map((h) => ({ ...HUECO_NUEVO, ...h })) : [],
+    bachas: Array.isArray(m?.bachas) ? m.bachas.map((b) => ({ ...BACHA_NUEVA, ...b })) : [] };
+  if (m?.ubicacionLibre === true || base.forma === 'recta') return { ...base, ubicacionLibre: true };
+  if (base.forma === 'U') {
+    const largo = LADOS.includes(base.lado) && params ? largoLado(base.lado, params) - 2 * MEDIA_PARED : base.largo;
+    return { ...base, ...mesadaALaEsquina(base, 'derecha'), largo, ubicacionLibre: true };
+  }
+  return { ...base, ...mesadaALaEsquina(base, base.forma === 'L-izquierda' ? 'izquierda' : 'derecha'), ubicacionLibre: true };
 }
 
 /**
@@ -239,8 +262,11 @@ function generarSegmento(params, m, s) {
     if (s.costadoIzquierdo) panos.push({ largo: prof, h1: arriba, h2: arriba, neto: prof * arriba, donde: `${donde} (costado izq.)` });
     if (s.costadoDerecho) panos.push({ largo: prof, h1: arriba, h2: arriba, neto: prof * arriba, donde: `${donde} (costado der.)` });
     if (m.zocalo > 0) panos.push({ largo: suma(conBase), h1: m.zocalo, h2: m.zocalo, neto: suma(conBase) * m.zocalo, donde: `${donde} (zócalo)` });
+    if (s.fondoRevestido) panos.push({ largo, h1: arriba, h2: arriba, neto: largo * arriba, donde: `${donde} (lomo)` });
   }
-  const estantes = m.estantes > 0 ? conFrente.map(([a, b]) => ({ desde: a, hasta: b, alturas: Array.from({ length: m.estantes },
+  // v1.40.1: los estantes también entran en el esquinero (el pedazo tapado por el tramo que sigue).
+  const conEstantes = sinHuecos(largo, huecos.filter((h) => !h.esquina));
+  const estantes = m.estantes > 0 ? conEstantes.map(([a, b]) => ({ desde: a, hasta: b, alturas: Array.from({ length: m.estantes },
     (_, k) => abajo + ((k + 1) * altoFrente) / (m.estantes + 1)) })) : [];
   const adentro3 = [s.adentro[0], 0, s.adentro[1]];
   const alongo3 = [s.alongo[0], 0, s.alongo[1]];
@@ -255,6 +281,7 @@ function generarSegmento(params, m, s) {
       ...(m.zocalo > 0 ? conBase.map(([a, b]) => placa([p(a, zZocalo, 0), p(b, zZocalo, 0), p(b, zZocalo, m.zocalo), p(a, zZocalo, m.zocalo)], adentro3)) : []),
       ...(s.costadoIzquierdo ? [placa([p(0, 0, 0), p(0, prof, 0), p(0, prof, arriba), p(0, 0, arriba)], alongo3.map((c) => -c))] : []),
       ...(s.costadoDerecho ? [placa([p(largo, 0, 0), p(largo, prof, 0), p(largo, prof, arriba), p(largo, 0, arriba)], alongo3)] : []),
+      ...(s.fondoRevestido ? [placa([p(0, 0, 0), p(largo, 0, 0), p(largo, 0, arriba), p(0, 0, arriba)], adentro3.map((c) => -c))] : []),
     ],
     estantes: estantes.flatMap((e) => e.alturas.map((h) => [p(e.desde, 0.01, h), p(e.hasta, 0.01, h), p(e.hasta, prof - 0.01, h), p(e.desde, prof - 0.01, h)])),
   };
@@ -289,6 +316,7 @@ export function generarMesada(params, m) {
           .map((h) => ({ ...h, desde: Math.max(0, h.desde - a), ancho: Math.min(b, h.desde + h.ancho) - Math.max(a, h.desde) })),
         costadoIzquierdo: corta(a) ? true : tramo.costadoIzquierdo,
         costadoDerecho: corta(b) ? true : tramo.costadoDerecho,
+        fondoRevestido: tramo.fondoRevestido,
       });
       res.piezas.push(...seg.piezas);
       res.panos.push(...seg.panos);
@@ -353,16 +381,10 @@ export function validarMesada(m, params) {
   if (!Number.isInteger(m.estantes) || m.estantes < 0 || m.estantes > 5) return 'Estantes: de 0 a 5';
   if (!num(m.desde, 0, 50)) return 'La distancia a la esquina no puede ser negativa';
   const forma = m.forma ?? 'recta';
-  const interior = (lado) => largoLado(lado, params) - 2 * MEDIA_PARED;
-  const i = LADOS.indexOf(m.lado);
-  if (forma === 'recta' && m.desde + m.largo > largoLado(m.lado, params) + 0.001) return 'La mesada no entra en esa pared';
-  if ((forma === 'L-izquierda' || forma === 'L-derecha') && m.largo > interior(m.lado) + 0.001) return 'La mesada no entra en esa pared';
-  if (giraIzquierda(m) && (!num(m.largoIzquierdo, m.profundidad + 0.3, 50) || m.largoIzquierdo > interior(LADOS[(i + 1) % 4]) + 0.001)) {
-    return `El tramo de la izquierda va de ${(m.profundidad + 0.3).toFixed(2)} m al largo de esa pared`;
-  }
-  if (giraDerecha(m) && (!num(m.largoDerecho, m.profundidad + 0.3, 50) || m.largoDerecho > interior(LADOS[(i + 3) % 4]) + 0.001)) {
-    return `El tramo de la derecha va de ${(m.profundidad + 0.3).toFixed(2)} m al largo de esa pared`;
-  }
+  if (m.desde + m.largo > largoLado(m.lado, params) + 0.001) return 'La mesada no entra en esa pared';
+  if (giraIzquierda(m) && !num(m.largoIzquierdo, m.profundidad + 0.3, 20)) return `El tramo de la izquierda va de ${(m.profundidad + 0.3).toFixed(2)} a 20 m`;
+  if (giraDerecha(m) && !num(m.largoDerecho, m.profundidad + 0.3, 20)) return `El tramo de la derecha va de ${(m.profundidad + 0.3).toFixed(2)} a 20 m`;
+  if (['fondoIzquierdo', 'fondoDerecho'].some((c) => m[c] !== undefined && typeof m[c] !== 'boolean')) return 'Valor inválido';
   if (m.nivel === 'piso2' && !(params.anchoEntrepiso > 0)) return 'No hay entrepiso';
   if (!['piso', 'piso2'].includes(m.nivel)) return 'Elegí planta baja o piso 2';
   if (typeof m.nombre !== 'string' || m.nombre.length > 40) return 'El nombre puede tener hasta 40 letras';
@@ -431,7 +453,37 @@ export function muebleNuevo(tipo, muebles, id) {
     mostrarEtiqueta: true, // v1.38.1: cartel con el nombre en el 3D
     color: '', // v1.38.2: color propio ('' = el de su material)
     ...(t.forma === 'lavarropas' ? { cargaFrontal: true } : {}), // v1.39: carga frontal (puerta redonda) o superior
+    ...(t.forma === 'cama' ? { ...CAJONES_CAMA } : {}), // v1.40.1: cajones a los costados y a los pies
   };
+}
+
+/**
+ * v1.40.1: cajones de la cama. Izquierda y derecha = mirando la cama desde los pies. `aperturaCajones` = cuánto salen
+ * abiertos (se dibuja sombreado y se avisa si chocan con una pared).
+ */
+export const CAJONES_CAMA = { cajonesIzquierda: false, cajonesDerecha: false, cajonesPies: false, aperturaCajones: 0.4 };
+
+// Hacia qué pared mira cada lado del mueble según el giro (0, 90, 180, 270): su derecha (+x) y sus pies / frente (+z).
+const DERECHA_SEGUN_GIRO = ['derecha', 'fondo', 'izquierda', 'frente'];
+const FRENTE_SEGUN_GIRO = ['frente', 'derecha', 'fondo', 'izquierda'];
+const OPUESTA = { derecha: 'izquierda', izquierda: 'derecha', frente: 'fondo', fondo: 'frente' };
+
+/** Pared de la casa (izquierda, derecha, frente, fondo) hacia la que da un lado del mueble ('derecha', 'izquierda', 'pies'). */
+export function paredHacia(m, lado) {
+  const k = ((m.giro ?? 0) / 90) % 4;
+  if (lado === 'derecha') return DERECHA_SEGUN_GIRO[k];
+  if (lado === 'izquierda') return OPUESTA[DERECHA_SEGUN_GIRO[k]];
+  return FRENTE_SEGUN_GIRO[k]; // pies
+}
+
+/** Cajones abiertos que chocan con una pared: [{ lado, pared, falta }]. */
+export function cajonesQueChocan(params, m) {
+  if (TIPOS_MUEBLE[m.tipo]?.forma !== 'cama') return [];
+  const d = distanciasDelMueble(params, m);
+  return [['izquierda', m.cajonesIzquierda], ['derecha', m.cajonesDerecha], ['pies', m.cajonesPies]]
+    .filter(([, tiene]) => tiene)
+    .map(([lado]) => ({ lado, pared: paredHacia(m, lado), falta: m.aperturaCajones - d[paredHacia(m, lado)] }))
+    .filter((c) => c.falta > 0.001);
 }
 
 /** Lo que mide la planta POR DENTRO (de cara a cara de la estructura): a lo largo del frente y hacia el fondo. */
@@ -522,6 +574,8 @@ export function validarMueble(m, params) {
   if (!num(m.distanciaFrente, -1, 50) || !num(m.distanciaLateral, -1, 50)) return 'Distancias inválidas';
   if (!['izquierdo', 'derecho'].includes(m.desdeLateral) || !['frente', 'fondo'].includes(m.desdeFrente)) return 'Elegí desde qué pared se mide';
   if (m.cargaFrontal !== undefined && typeof m.cargaFrontal !== 'boolean') return 'Valor inválido';
+  if (['cajonesIzquierda', 'cajonesDerecha', 'cajonesPies'].some((c) => m[c] !== undefined && typeof m[c] !== 'boolean')) return 'Valor inválido';
+  if (m.aperturaCajones !== undefined && !num(m.aperturaCajones, 0.05, 1.5)) return 'Los cajones abren de 5 cm a 1,50 m';
   if (![0, 90, 180, 270].includes(m.giro)) return 'Giro de 0, 90, 180 o 270°';
   if (!['piso', 'piso2'].includes(m.nivel)) return 'Elegí planta baja o piso 2';
   if (m.nivel === 'piso2' && !(params.anchoEntrepiso > 0)) return 'No hay entrepiso';
@@ -553,5 +607,6 @@ export function completarMueble(m) {
     desdeLateral: base.desdeLateral === 'derecho' ? 'derecho' : 'izquierdo',
     desdeFrente: base.desdeFrente === 'fondo' ? 'fondo' : 'frente',
     ...(TIPOS_MUEBLE[base.tipo]?.forma === 'lavarropas' ? { cargaFrontal: base.cargaFrontal !== false } : {}),
+    ...(TIPOS_MUEBLE[base.tipo]?.forma === 'cama' ? { ...CAJONES_CAMA, ...base } : {}), // v1.40.1: sin cajones
   };
 }

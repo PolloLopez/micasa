@@ -48,7 +48,8 @@ import { ESCALERA_INICIAL } from './escalera.js';
 import { completarTerreno } from './terreno.js';
 import { completarUniones } from './uniones.js';
 import { completarEjes, completarPilotin } from './ejes.js';
-import { MESADA_NUEVA, HUECO_NUEVO, BACHA_NUEVA, completarMueble } from './interiores.js';
+import { completarMesada, completarMueble } from './interiores.js';
+import { completarTabique } from './tabiques.js';
 import { completarSol } from './sol.js';
 import { GRADA_INICIAL } from './grada.js';
 import { MONTAJE_INICIAL } from './montaje.js';
@@ -107,10 +108,9 @@ export function migrarParams(params) {
   nuevos.pilotin = completarPilotin(nuevos.pilotin); // v1.36: redondo de 30 cm (como se dibujaba)
   nuevos.ejes = completarEjes(nuevos.ejes); // v1.36: sin modulación
   // v1.38: mesadas y muebles (los proyectos de antes, sin ninguno).
-  nuevos.mesadas = Array.isArray(nuevos.mesadas) ? nuevos.mesadas.map((m) => ({ ...MESADA_NUEVA, ...m,
-    // v1.40: huecos con tramo, tapa y zócalo (los de antes: con tapa, sin zócalo, vacíos) y bachas.
-    huecos: Array.isArray(m?.huecos) ? m.huecos.map((h) => ({ ...HUECO_NUEVO, ...h })) : [],
-    bachas: Array.isArray(m?.bachas) ? m.bachas.map((b) => ({ ...BACHA_NUEVA, ...b })) : [] })) : [];
+  // v1.38 / v1.40: mesadas completas (huecos, bachas) y las L/U de la v1.40.0 pasadas a la ubicación libre (v1.40.1).
+  nuevos.mesadas = Array.isArray(nuevos.mesadas) ? nuevos.mesadas.map((m) => completarMesada(m, nuevos)) : [];
+  nuevos.tabiques = Array.isArray(nuevos.tabiques) ? nuevos.tabiques.map(completarTabique) : []; // v1.41
   nuevos.muebles = Array.isArray(nuevos.muebles) ? nuevos.muebles.map(completarMueble) : []; // v1.38.1: con cartel
   nuevos.sol = completarSol(nuevos.sol); // v1.37: Mercedes // v1.33: con descuentos en los cruces (lo correcto)
   nuevos.piezasEditadas ??= {}; // v1.8

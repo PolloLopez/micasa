@@ -40,8 +40,12 @@
   - ✅ v1.40.0 Mesada en L o U, huecos con/sin tapa y sobre zócalo con el electrodoméstico adentro, bachas en la mesada.
     - 🟡 [ ] Validar con el herrero la esquina de la L/U (el frente tapado del principal va sin solera de abajo ni zócalo).
     - 🟢 [ ] Bacha bajo mesada vs. apoyada; anafe y horno empotrados como huecos.
-  - 🔴 [ ] v1.41 Tabiques de Durlock (baño y antebaño): desde una pared, perpendicular o paralelo; largo y alto (techo,
-    piso 2 o medida); estructura y revestimiento por cara de las listas; puerta.
+  - ✅ v1.41.0 Tabiques de Durlock con puerta de abrir o granero; mesada L/U de largo libre; cajones de cama; doble clic
+    para el centro de giro del 3D.
+    - 🟡 [ ] Validar con el herrero/durlero: montantes cortos sobre la puerta, dintel simple y barras de 2,60 m.
+    - 🟢 [ ] Tabiques en los planos (planta); unir tabiques entre sí en L (hoy cada uno es recto).
+    - 🟢 [ ] Cerramiento de ducha de vidrio (hoy es un tabique de placa con puerta).
+    - 🟢 [ ] Puertas de abrir dibujadas entreabiertas con su barrido.
 - ✅ Etiquetas de mesadas y muebles en el 3D, apagables una por una y por capa (v1.38.1).
 - ✅ **Sol más fuerte** (v1.38.0): intensidad regulable (50–300 %, 150 % de fábrica).
 

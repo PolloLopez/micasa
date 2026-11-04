@@ -29,11 +29,15 @@ export const CAPAS = {
   mesadas: { nombre: 'Estructura de mesadas', color: '#a78bfa' }, // hierros de las mesadas
   tapasMesada: { nombre: 'Tapas, placas y estantes', color: '#57534e' }, // el color es el de la tapa (granito); las placas, el de su revestimiento
   muebles: { nombre: 'Muebles', color: '#a16207', colorPorTipo: true, titulo: 'El color es el material de cada mueble' },
+  // v1.41: tabiques (solo si la obra tiene alguno).
+  tabiques: { nombre: 'Estructura de tabiques', color: '#38bdf8' },
+  placasTabiques: { nombre: 'Placas y puertas de tabiques', color: '#92400e', titulo: 'Las placas van con el color de su revestimiento; el color de la casilla es el de las puertas' },
 };
 
 /** Capas de interiores (v1.38): se muestran en la leyenda solo si la obra tiene mesadas (las dos primeras) o muebles. */
 export const CAPAS_MESADAS = ['mesadas', 'tapasMesada', 'etiquetasMesadas'];
 export const CAPAS_MUEBLES = ['muebles', 'etiquetasMuebles'];
+export const CAPAS_TABIQUES = ['tabiques', 'placasTabiques', 'etiquetasTabiques']; // v1.41
 
 /** Capas que se muestran en la leyenda de un proyecto de grada (el resto no tiene piezas). */
 export const CAPAS_GRADA = ['grada', 'escalones'];
@@ -54,12 +58,12 @@ export const CAPAS_TERRENO = ['terrenoLote', 'terrenoCalle', 'terrenoRetiros', '
 export const GRUPOS_LEYENDA = [
   { titulo: 'Estructura', capas: ['pilotines', 'zapatas', 'columnas', 'marcos', 'piso', 'piso2', 'transversales', 'correas', 'techo', 'escalera', 'grada', 'montaje'] },
   { titulo: 'Superficies', capas: ['paneles', 'osb', 'aberturas', 'escalones', 'chapa'] },
-  { titulo: 'Interiores', capas: ['mesadas', 'tapasMesada', 'muebles'] }, // v1.38
+  { titulo: 'Interiores', capas: ['mesadas', 'tapasMesada', 'tabiques', 'placasTabiques', 'muebles'] }, // v1.38 (v1.41: tabiques)
   { titulo: 'Ayudas', capas: ['juntas', 'cotas', 'medidasFijas'] },
   // v1.34.3: cada parte del terreno por separado (solo si la obra tiene terreno).
   { titulo: 'Terreno', capas: CAPAS_TERRENO },
   // v1.33.1: todos los carteles juntos, para sacarlos con "nada" (fotos limpias, PDF).
-  { titulo: 'Etiquetas', capas: ['etiquetasParedes', 'etiquetasAberturas', 'etiquetasMesadas', 'etiquetasMuebles', 'etiquetasTerreno'] },
+  { titulo: 'Etiquetas', capas: ['etiquetasParedes', 'etiquetasAberturas', 'etiquetasMesadas', 'etiquetasTabiques', 'etiquetasMuebles', 'etiquetasTerreno'] },
 ];
 
 /** Ayudas del visor: se prenden y apagan como capas, pero no tienen color. */
@@ -68,6 +72,7 @@ export const AYUDAS = {
   etiquetasParedes: { nombre: 'Paredes', titulo: 'Frente, Lateral… (cada pared puede tener su texto en Paredes)' },
   etiquetasAberturas: { nombre: 'Aberturas', titulo: 'El número o la etiqueta de cada puerta y ventana' },
   etiquetasMesadas: { nombre: 'Mesadas', titulo: 'El nombre de cada mesada (cada una se puede sacar en su ficha)' }, // v1.38.1
+  etiquetasTabiques: { nombre: 'Tabiques', titulo: 'El nombre de cada tabique (cada uno se puede sacar en su ficha)' }, // v1.41
   etiquetasMuebles: { nombre: 'Muebles', titulo: 'El nombre de cada mueble (cada uno se puede sacar en su ficha)' },
   etiquetasTerreno: { nombre: 'Terreno', titulo: 'Línea municipal, calle, norte y lo que cargaste en el terreno' },
   cotas: { nombre: 'Cotas generales', titulo: 'Largo, ancho y altos de la obra (v1.28)' },

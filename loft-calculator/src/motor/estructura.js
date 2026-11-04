@@ -31,6 +31,7 @@ import { generarMontaje } from './montaje.js';
 import { aplicarEdicion } from './edicionPiezas.js';
 import { piezasDeAgregadas } from './piezasAgregadas.js';
 import { generarMesadas } from './interiores.js';
+import { generarTabiques } from './tabiques.js';
 import { aplicarUniones, completarUniones } from './uniones.js';
 import { completarEjes, marcasDelModulo, lineasCada, subdividir, unirPilotines } from './ejes.js';
 
@@ -778,6 +779,7 @@ export function listarPiezas(e) {
     ...(e.montaje?.piezas ?? []),
     ...(e.agregadas ?? []), // v1.16: duplicadas a mano
     ...(e.mesadas ?? []).flatMap((m) => m.piezas), // v1.38: estructura de las mesadas
+    ...(e.tabiques ?? []).flatMap((t) => t.piezas), // v1.41: estructura de los tabiques
   ];
 }
 
@@ -803,6 +805,7 @@ function transformarPiezas(e, cambiar) {
     montaje: e.montaje ? { ...e.montaje, piezas: t(e.montaje.piezas) } : null,
     agregadas: t(e.agregadas ?? []),
     mesadas: (e.mesadas ?? []).map((m) => ({ ...m, piezas: t(m.piezas) })), // v1.38
+    tabiques: (e.tabiques ?? []).map((x) => ({ ...x, piezas: t(x.piezas) })), // v1.41
   };
 }
 
@@ -886,6 +889,7 @@ export function generarEstructura(params, aberturas, catalogo = null) {
     entrepiso,
     agregadas: piezasDeAgregadas(params.piezasAgregadas), // v1.16: duplicadas a mano
     mesadas: generarMesadas(params), // v1.38: estructura, revestimiento, tapa y estantes
+    tabiques: generarTabiques(params), // v1.41: divisiones de Durlock con puerta
     superficies: {
       piso: planta.largoU * planta.largoV,
       piso2: entrepiso ? entrepiso.largoU * entrepiso.largoV : 0,
@@ -928,6 +932,10 @@ function marcarPerfilesDePared(e, params) {
   const mesadas = new Map((params.mesadas ?? []).map((m) => [String(m.id), m]));
   return transformarPiezas(e, (p) => {
     // v1.38: la pieza de una mesada lleva el perfil de su mesada (también después de editarla a mano).
+    if (p.tipo === 'tabique') { // v1.41: el perfil elegido para ese tabique
+      const t = (params.tabiques ?? []).find((x) => String(x.id) === p.id.split(':')[1]);
+      return t?.perfil ? { ...p, perfilPared: t.perfil, ladoPared: t.nombre, tabique: t.id } : { ...p, tabique: t?.id };
+    }
     if (p.tipo === 'mesada') {
       const m = mesadas.get(p.id.split(':')[1]);
       return m?.perfil ? { ...p, perfilPared: m.perfil, ladoPared: m.nombre, mesada: m.id } : { ...p, mesada: m?.id };

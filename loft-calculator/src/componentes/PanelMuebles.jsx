@@ -14,7 +14,7 @@ import CampoNumero from './CampoNumero.jsx';
 import CampoSelect from './CampoSelect.jsx';
 import { nombreLado } from '../motor/geometria.js';
 import SelectorColor from './SelectorColor.jsx';
-import { TIPOS_MUEBLE, MATERIALES_MUEBLE, muebleNuevo, muebleFueraDeLaPlanta, colorDelMueble, distanciasDelMueble, libreArribaDelMueble } from '../motor/interiores.js';
+import { TIPOS_MUEBLE, MATERIALES_MUEBLE, muebleNuevo, muebleFueraDeLaPlanta, colorDelMueble, distanciasDelMueble, libreArribaDelMueble, cajonesQueChocan } from '../motor/interiores.js';
 
 const f2 = (n) => n.toFixed(2).replace('.', ',');
 const GIROS = [[0, 'Sin girar'], [90, '90°'], [180, '180° (de espaldas)'], [270, '270°']];
@@ -32,6 +32,7 @@ function Mueble({ m, i, params, unidad, cambiar, onQuitar }) {
   const otraLateral = m.desdeLateral === 'izquierdo' ? d.derecha : d.izquierda;
   const otraFrente = m.desdeFrente === 'frente' ? d.fondo : d.frente;
   const { libre, hasta } = libreArribaDelMueble(params, m);
+  const choques = cajonesQueChocan(params, m);
   return (
     <section className="elemento-terreno mueble">
       <header>
@@ -83,6 +84,23 @@ function Mueble({ m, i, params, unidad, cambiar, onQuitar }) {
           Carga frontal (sin tildar: carga superior)
         </label>
       )}
+      {tipo.forma === 'cama' && (<>
+        {/* v1.40.1: cajones (izquierda y derecha mirando la cama desde los pies) y cuánto salen abiertos. */}
+        <div className="fila-casillas">
+          {[['cajonesIzquierda', 'Cajones a la izquierda'], ['cajonesDerecha', 'Cajones a la derecha'], ['cajonesPies', 'Cajones a los pies']].map(([campo, texto]) => (
+            <label key={campo} className="casilla-opcional">
+              <input type="checkbox" checked={m[campo] === true} onChange={(e) => cambiar(`${ruta}.${campo}`)(e.target.checked)} /> {texto}
+            </label>
+          ))}
+        </div>
+        {(m.cajonesIzquierda || m.cajonesDerecha || m.cajonesPies) && (
+          <div className="grid-params">{medida('aperturaCajones', 'Cajones abiertos salen')}</div>
+        )}
+        <p className="nota">Izquierda y derecha mirando la cama desde los pies. Abiertos se ven sombreados en el 3D.</p>
+        {choques.map((c) => (
+          <p key={c.lado} className="aviso-mueble" role="status">⚠ Los cajones {c.lado === 'pies' ? 'de los pies' : `de la ${c.lado}`} chocan con la pared ({c.pared}): faltan {f2(c.falta)} m.</p>
+        ))}
+      </>)}
       <p className="nota distancias-mueble" role="status">
         Quedan <strong>{f2(otraLateral)} m</strong> al lateral {m.desdeLateral === 'izquierdo' ? 'derecho' : 'izquierdo'},
         {' '}<strong>{f2(otraFrente)} m</strong> al {m.desdeFrente === 'frente' ? 'fondo' : 'frente'} y
