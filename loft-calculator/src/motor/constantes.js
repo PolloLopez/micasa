@@ -55,6 +55,7 @@ export const INSUMO = {
   TIRANTE_MADERA: 'tiranteMadera', // v1.42.1: tirantes de madera de planta baja (m)
   TIRANTE_MADERA_2: 'tiranteMadera2', // v1.42.1: tirantes de madera del entrepiso (m)
   MACHIMBRE: 'machimbre', // v1.42.1: machimbre clavado sobre los tirantes (m²)
+  BORDE_PISO_2: 'bordePiso2', // v1.43.1: borde del entrepiso con su propio perfil (antes compartía el de planta baja)
   ZANCA: 'zanca',
   APOYO_ESCALON: 'apoyoEscalon',
   COLUMNA_ESCALERA: 'columnaEscalera',

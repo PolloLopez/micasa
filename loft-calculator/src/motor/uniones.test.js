@@ -111,7 +111,7 @@ describe('perfil propio del marco de cada abertura', () => {
 describe('datos de las uniones', () => {
   it('los proyectos viejos pasan a la red; se valida la luz', () => {
     const { uniones, ...viejo } = P;
-    const deFabrica = { solerasColumnas: 'soleras', columnasFajas: 'columnas', montantesFajas: 'montantes', bordesTirantes: 'bordes', tirantesTransversales: 'tirantes' };
+    const deFabrica = { solerasColumnas: 'soleras', columnasFajas: 'columnas', montantesFajas: 'montantes', bordesTirantes: 'bordes', tirantesTransversales: 'tirantes', tirantesTransversales2: 'tirantes' };
     expect(migrarParams(viejo).uniones).toEqual({ modo: 'red', luz: 0, enteras: deFabrica });
     expect(completarUniones({ modo: 'eje', luz: 0.002, enteras: { columnasFajas: 'fajas', otra: 'x' } }))
       .toEqual({ modo: 'eje', luz: 0.002, enteras: { ...deFabrica, columnasFajas: 'fajas' } });

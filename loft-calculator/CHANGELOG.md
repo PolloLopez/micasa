@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.43.1] - 2026-11-10
+### Cambiado
+- **La planta baja y el entrepiso se arman cada uno a su manera**: "Tirantes y transversales" ahora es por piso (por
+  ejemplo, planta baja todo perfil C en el mismo plano y el altillo con tirantes de madera apoyados sobre los C). Al
+  pasar los tirantes de un piso a madera, ese piso pasa solo a "apoyados" (se puede cambiar); el otro no se toca.
+- **Borde del piso 2 con su propio perfil** ("Bordes de piso 2"): antes compartía el de planta baja. Los catálogos de
+  antes lo arrancan con el mismo perfil y precio que tenía el borde de planta baja.
+- Los tirantes de madera apoyados suben según su propio alto (5", unos 12,7 cm).
+
 ## [1.43.0] - 2026-11-10
 ### Agregado
 - **Lugar que necesita la puerta** de cada mueble: elegís cómo abre (una hoja con bisagra a la izquierda o a la

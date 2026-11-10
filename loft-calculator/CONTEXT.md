@@ -147,6 +147,7 @@ valores inválidos.
 | 2026-11-10 | Exportación por partes: cada renglón de perfil se clasifica por su insumo (`parteDeRenglon`: pisos, entrepiso, techo, interiores; el resto = paredes, incluidos los marcos de aberturas, que van siempre). Con todas las partes, las barras son las de la lista de materiales (cortes compartidos); sacando alguna, se re-optimizan solo las piezas que quedan. Las opciones nuevas se completan sobre lo guardado (`completarOpcionesImpresion`) | Leandro: a quien cotiza los paneles exteriores le interesan las paredes y la estructura de las aberturas, no el baño, la cocina ni el altillo. |
 | 2026-11-10 | Pisos de madera: `tirantesPiso(2)` 'hierro'/'madera' marca los tirantes con `madera: true` (en marcarPerfilesDePared, después de las uniones); salen de su renglón de perfil y van por metro a TIRANTE_MADERA(_2); `cubiertaPiso(2)` 'osb'/'machimbre' reparte la superficie entre OSB (placas) y MACHIMBRE (m²) | Leandro: altillo con perfiles C y tirantes de madera con machimbre clavado; "mejorá ambos" = los dos pisos. |
 | 2026-11-10 | Foco desde el 3D: LoftCanvas avisa lo elegido (`onElegir`), `focoDe` lo traduce a { pestana, tarjeta, item } y un contexto abre Tarjeta / FichaPlegable / pared SIN tocar su estado guardado (al soltar, vuelve solo) | Pedido de Leandro: abrirse al elegir en el 3D y volver a cerrarse al terminar. |
+| 2026-11-10 | Piso 2 independiente: `tirantesTransversales2` (si falta, copia la forma de planta baja: los proyectos de antes no cambian); `apoyarTirantes` recibe los niveles apoyados; BORDE_PISO_2 con su renglón (copia en cadena: borde piso 2 → borde de piso → soleras) | Leandro: planta baja todo perfil C y planta alta con tirante de madera. |
 
 ## Supuestos de obra (en `src/motor/constantes.js`)
 Piso del entrepiso a 2,30 m · merma de corte 3 mm · excedente de barras 1 % (editable; depende del proveedor) · placa OSB 2,44 × 1,22 + 10 % de recortes ·
@@ -222,6 +223,7 @@ techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 
 - 2026-10-23 v1.25.0: proveedores, precios en efectivo/tarjeta por proveedor, comparar presupuestos y "lo más barato de cada material".
 - 2026-10-23 v1.26.0: pestaña Planos (paredes y plantas acotadas, listas de corte, revestimiento), en el PDF y en Excel.
 - 2026-10-25 v1.30.0: link compacto (la mitad) y links cortos en Firebase para ver/editar que guardan los cambios.
+- 2026-11-10 v1.43.1: forma de tirantes/transversales por piso (uniones.enteras.tirantesTransversales2) y borde del piso 2 aparte (INSUMO.BORDE_PISO_2).
 - 2026-11-10 v1.43.0: puertas de muebles con su margen (margenDePuerta, puertaQueChoca), copero, alacena y elevación; pisos con tirantes de madera y machimbre; fichas plegables y foco desde el 3D (componentes/contextoFoco.js, FichaPlegable).
 - 2026-11-10 v1.42.0: exportación por partes (solo planos, para quien cotiza paneles), lista de caños y de aberturas (proyecto/listasDePlanos.js) en el PDF y el Excel.
 - 2026-11-05 v1.41.1: mesada hasta la esquina o la cara de un tabique (limitesSobrePared, ajustarMesada), aviso si atraviesa un tabique; huecos y bachas acompañan a la punta izquierda.

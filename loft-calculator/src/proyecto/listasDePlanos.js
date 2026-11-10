@@ -18,7 +18,7 @@ const redondear = (n, d = 2) => Number(n.toFixed(d));
  */
 const PARTE_DE_INSUMO = {
   [INSUMO.PISO]: 'pisos', [INSUMO.TRANSVERSAL_PISO]: 'pisos', [INSUMO.BORDE_PISO]: 'pisos',
-  [INSUMO.PISO_2]: 'entrepiso', [INSUMO.TRANSVERSAL_PISO_2]: 'entrepiso', [INSUMO.VIGA_CIERRE]: 'entrepiso',
+  [INSUMO.PISO_2]: 'entrepiso', [INSUMO.BORDE_PISO_2]: 'entrepiso', [INSUMO.TRANSVERSAL_PISO_2]: 'entrepiso', [INSUMO.VIGA_CIERRE]: 'entrepiso',
   [INSUMO.COLUMNA_ENTREPISO]: 'entrepiso', [INSUMO.ZANCA]: 'entrepiso', [INSUMO.APOYO_ESCALON]: 'entrepiso', [INSUMO.COLUMNA_ESCALERA]: 'entrepiso',
   [INSUMO.VIGA_TECHO]: 'techo', [INSUMO.CORREA_TECHO]: 'techo', [INSUMO.BORDE_TECHO]: 'techo',
   [INSUMO.ESTRUCTURA_MESADA]: 'interiores', [INSUMO.ESTRUCTURA_TABIQUE]: 'interiores',

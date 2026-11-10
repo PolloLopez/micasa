@@ -240,7 +240,10 @@ export function normalizarCatalogo(catalogo) {
   const { usos, perfiles } = armarListaDePerfiles(paraLista, perfilesGuardados);
   const conPerfil = fijos.map((i) => {
     if (esNuevo(i.id)) {
-      const original = usos.find((u) => u.id === RENGLONES_QUE_COPIAN[i.id]);
+      // v1.43.1: si el renglón del que copia también es nuevo, se sigue la cadena (borde piso 2 → borde de piso → soleras).
+      let fuente = RENGLONES_QUE_COPIAN[i.id];
+      while (esNuevo(fuente) && RENGLONES_QUE_COPIAN[fuente]) fuente = RENGLONES_QUE_COPIAN[fuente];
+      const original = usos.find((u) => u.id === fuente);
       return { ...i, perfil: original?.perfil ?? i.perfil, precio: original?.precio ?? i.precio, largoBarra: original?.largoBarra ?? i.largoBarra, perfilId: original?.perfilId ?? null };
     }
     return usos.find((u) => u.id === i.id) ?? i;
@@ -259,6 +262,7 @@ export function normalizarCatalogo(catalogo) {
 const RENGLONES_QUE_COPIAN = {
   [INSUMO.COLUMNA_ESQUINA]: INSUMO.COLUMNA, // v1.22
   [INSUMO.BORDE_PISO]: INSUMO.MARCO, // v1.28: antes el borde de piso iba con las soleras
+  [INSUMO.BORDE_PISO_2]: INSUMO.BORDE_PISO, // v1.43.1: antes el borde del piso 2 iba con el de planta baja
   [INSUMO.BORDE_TECHO]: INSUMO.VIGA_TECHO, // v1.28
   [INSUMO.COLUMNA_ENTREPISO]: INSUMO.COLUMNA, // v1.28: antes iban con las columnas
   [INSUMO.ESTRUCTURA_MESADA]: INSUMO.MONTAJE_MARCO, // v1.38: el mismo caño 40x40 de fábrica

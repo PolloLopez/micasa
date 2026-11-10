@@ -14,8 +14,9 @@ describe('bordes de piso aparte de las soleras', () => {
 
   it('Soleras: solo las de arriba de las paredes; Bordes de piso: marcos de planta baja y entrepiso', () => {
     expect(renglon(r, INSUMO.MARCO).largosPiezas).toHaveLength(e.marcos.filter((p) => p.tipo === 'solera').length);
-    expect(renglon(r, INSUMO.BORDE_PISO).largosPiezas)
-      .toHaveLength(e.marcos.filter((p) => p.tipo === 'marco-piso' || p.tipo === 'marco-piso2').length);
+    // v1.43.1: el borde del piso 2 tiene su renglón (antes iba con el de planta baja).
+    expect(renglon(r, INSUMO.BORDE_PISO).largosPiezas).toHaveLength(e.marcos.filter((p) => p.tipo === 'marco-piso').length);
+    expect(renglon(r, INSUMO.BORDE_PISO_2).largosPiezas).toHaveLength(e.marcos.filter((p) => p.tipo === 'marco-piso2').length);
   });
 
   it('cada uno con su perfil: borde 80x80, interior C 80x40 (el caso de Leandro)', () => {

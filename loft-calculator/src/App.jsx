@@ -361,6 +361,15 @@ export default function App() {
    * mensaje de error (y no guarda); si está bien, guarda y devuelve null.
    */
   const cambiar = (ruta) => (valor) => aplicarSiValido(conValor(params, ruta, valor), ruta);
+  /**
+   * v1.43.1: tirantes de hierro o madera de un piso ('' = planta baja, '2' = piso 2). Pasando a madera, ese piso arma
+   * los tirantes apoyados sobre los transversales de perfil C (lo normal con madera); el otro piso no cambia.
+   */
+  const cambiarTirantes = (piso, material) => {
+    let nuevos = conValor(params, `tirantesPiso${piso}`, material);
+    if (material === 'madera') nuevos = conValor(nuevos, `uniones.enteras.tirantesTransversales${piso}`, 'apoyados');
+    return aplicarSiValido(nuevos, `tirantesPiso${piso}`);
+  };
 
   /** Valida unos parámetros nuevos y, si están bien, los deja. Devuelve el error (para el campo `ruta`) o null. */
   const aplicarSiValido = (nuevos, ruta) => {
@@ -1036,13 +1045,13 @@ export default function App() {
             {/* v1.42.1: tirantes de hierro o de madera (sobre las transversales de perfil C) y cubierta. */}
             <div className="grid-params">
               <CampoSelect etiqueta="Tirantes" valor={params.tirantesPiso ?? 'hierro'}
-                opciones={[['hierro', 'De hierro (perfil)'], ['madera', 'De madera']]} onCambio={cambiar('tirantesPiso')} />
+                opciones={[['hierro', 'De hierro (perfil)'], ['madera', 'De madera']]} onCambio={(v) => cambiarTirantes('', v)} />
               <CampoSelect etiqueta="Cubierta" valor={params.cubiertaPiso ?? 'osb'}
                 opciones={[['osb', 'Placas OSB'], ['machimbre', 'Machimbre clavado']]} onCambio={cambiar('cubiertaPiso')} />
             </div>
             {/* v1.28: borde e interior con perfiles propios (y cada sentido el suyo). */}
             <div className="grid-params grid-perfiles-pared">
-              {selectorPerfilDe(INSUMO.BORDE_PISO, 'Borde (los dos pisos)')}
+              {selectorPerfilDe(INSUMO.BORDE_PISO, 'Borde')}
               {params.tirantesPiso !== 'madera' && selectorPerfilDe(INSUMO.PISO, 'Tirantes (interior)')}
               {params.separacionTransversalesPiso > 0 || cantidadDe(params, 'separacionTransversalesPiso') > 0
                 ? selectorPerfilDe(INSUMO.TRANSVERSAL_PISO, 'Transversales') : null}
@@ -1086,18 +1095,23 @@ export default function App() {
               <div className="grid-params">
                 {/* v1.42.1: el altillo con perfiles C y tirantes de madera con machimbre clavado. */}
                 <CampoSelect etiqueta="Tirantes del piso 2" valor={params.tirantesPiso2 ?? 'hierro'}
-                  opciones={[['hierro', 'De hierro (perfil)'], ['madera', 'De madera']]} onCambio={cambiar('tirantesPiso2')} />
+                  opciones={[['hierro', 'De hierro (perfil)'], ['madera', 'De madera']]} onCambio={(v) => cambiarTirantes('2', v)} />
+                {/* v1.43.1: el piso 2 se arma aparte de la planta baja. */}
+                <CampoSelect etiqueta="Tirantes y transversales (piso 2)" valor={params.uniones?.enteras?.tirantesTransversales2 ?? 'tirantes'}
+                  opciones={OPCIONES_PISO[1][2]} onCambio={cambiar('uniones.enteras.tirantesTransversales2')} />
                 <CampoSelect etiqueta="Cubierta del piso 2" valor={params.cubiertaPiso2 ?? 'osb'}
                   opciones={[['osb', 'Placas OSB'], ['machimbre', 'Machimbre clavado']]} onCambio={cambiar('cubiertaPiso2')} />
               </div>
             )}
             {(params.tirantesPiso === 'madera' || (params.anchoEntrepiso > 0 && params.tirantesPiso2 === 'madera')) && (
-              <p className="nota">Con tirantes de madera, la estructura de perfil C son las transversales (y el borde); conviene
-                elegir "tirantes apoyados sobre las transversales" arriba. La madera va al presupuesto por metro (Materiales → Tirantes de madera).</p>
+              <p className="nota">Con tirantes de madera, la estructura de perfil C son las transversales y el borde, y los tirantes
+                van apoyados arriba (se elige solo al pasar a madera; se puede cambiar). La madera va al presupuesto por metro
+                (Materiales → Tirantes de madera).</p>
             )}
             {params.anchoEntrepiso > 0 && (
               <div className="grid-params grid-perfiles-pared">
                 {selectorPerfilDe(INSUMO.COLUMNA_ENTREPISO, 'Columnas del entrepiso')}
+                {selectorPerfilDe(INSUMO.BORDE_PISO_2, 'Borde del piso 2')}
                 {params.tirantesPiso2 !== 'madera' && selectorPerfilDe(INSUMO.PISO_2, 'Tirantes piso 2 (interior)')}
                 {params.separacionTransversalesPiso2 > 0 || cantidadDe(params, 'separacionTransversalesPiso2') > 0
                   ? selectorPerfilDe(INSUMO.TRANSVERSAL_PISO_2, 'Transversales piso 2') : null}

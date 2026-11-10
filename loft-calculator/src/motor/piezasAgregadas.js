@@ -26,7 +26,7 @@ export const INSUMO_DE_TIPO = {
   'columna-entrepiso': INSUMO.COLUMNA_ENTREPISO, // v1.28
   montante: INSUMO.MONTANTE, 'montante-dintel': INSUMO.MONTANTE, 'montante-antepecho': INSUMO.MONTANTE,
   dintel: INSUMO.MARCO_ABERTURA, jamba: INSUMO.MARCO_ABERTURA, alfeizar: INSUMO.MARCO_ABERTURA, travesano: INSUMO.MARCO_ABERTURA,
-  'marco-piso': INSUMO.BORDE_PISO, solera: INSUMO.MARCO, 'marco-piso2': INSUMO.BORDE_PISO, // v1.28: borde de piso aparte
+  'marco-piso': INSUMO.BORDE_PISO, solera: INSUMO.MARCO, 'marco-piso2': INSUMO.BORDE_PISO_2, // v1.28: borde de piso aparte; v1.43.1: el del piso 2, el suyo
   'viga-cierre': INSUMO.VIGA_CIERRE, 'viga-apoyo': INSUMO.VIGA_CIERRE, // v1.28: la de apoyo va con las de cierre
   piso: INSUMO.PISO, 'transv-piso': INSUMO.TRANSVERSAL_PISO,
   piso2: INSUMO.PISO_2, 'transv-piso2': INSUMO.TRANSVERSAL_PISO_2,

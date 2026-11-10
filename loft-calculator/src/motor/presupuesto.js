@@ -92,6 +92,8 @@ export const CATALOGO_FIJO = [
   { id: INSUMO.TIRANTE_MADERA, categoria: 'metro', nombre: 'Tirantes de madera (planta baja)', perfil: 'Tirante de pino 2" x 6"', unidad: 'm', largoBarra: null, precio: 6000 },
   { id: INSUMO.TIRANTE_MADERA_2, categoria: 'metro', nombre: 'Tirantes de madera (entrepiso)', perfil: 'Tirante de pino 2" x 5"', unidad: 'm', largoBarra: null, precio: 5000 },
   { id: INSUMO.MACHIMBRE, categoria: 'placa', nombre: 'Machimbre', perfil: 'Machimbre de pino 1/2"', unidad: 'm²', largoBarra: null, precio: 18000 },
+  // v1.43.1: borde del entrepiso aparte del de planta baja (al final: no cambia la numeración de los perfiles).
+  { id: INSUMO.BORDE_PISO_2, categoria: 'perfil', nombre: 'Bordes de piso 2', perfil: 'Perfil C 120x50x2.0', unidad: 'barra', largoBarra: 6, precio: 35000 },
   { id: INSUMO.BACHA_DOBLE, categoria: 'unidad', nombre: 'Bachas dobles', perfil: 'Bacha doble de acero inoxidable 76 x 37 cm', unidad: 'u', largoBarra: null, precio: 110000 },
 ];
 
@@ -267,7 +269,7 @@ function calcularRenglones(estructura, catalogo, excedenteBarras) {
     perfil(INSUMO.COLUMNA, e.columnas.filter((p) => !p.esquina && p.tipo !== 'columna-entrepiso')),
     perfil(INSUMO.COLUMNA_ESQUINA, e.columnas.filter((p) => p.esquina)), // v1.22
     perfil(INSUMO.MARCO, e.marcos.filter((p) => p.tipo === 'solera')),
-    perfil(INSUMO.BORDE_PISO, e.marcos.filter((p) => p.tipo === 'marco-piso' || p.tipo === 'marco-piso2')), // v1.28
+    perfil(INSUMO.BORDE_PISO, e.marcos.filter((p) => p.tipo === 'marco-piso')), // v1.28
     perfil(INSUMO.PISO, e.piso.tirantes.filter((p) => !p.madera)), // v1.42.1: los de madera van aparte (por metro)
     perfil(INSUMO.TRANSVERSAL_PISO, e.piso.transversales),
     perfil(INSUMO.PISO_2, e.piso2.tirantes.filter((p) => !p.madera)),
@@ -277,6 +279,11 @@ function calcularRenglones(estructura, catalogo, excedenteBarras) {
     perfil(INSUMO.CORREA_TECHO, e.techo.correas),
   ];
 
+  // v1.43.1: bordes del piso 2 con su perfil (renglón solo si hay entrepiso), justo después de los de planta baja.
+  const bordes2 = e.marcos.filter((p) => p.tipo === 'marco-piso2');
+  if (bordes2.length > 0 || reasignadas.some((p) => p.insumo === INSUMO.BORDE_PISO_2)) {
+    items.splice(items.findIndex((i) => i.id === INSUMO.BORDE_PISO) + 1, 0, perfil(INSUMO.BORDE_PISO_2, bordes2));
+  }
   // Columnas del entrepiso (v1.28): renglón solo si las hay. Va después de las columnas de esquina.
   const columnasEntrepiso = e.columnas.filter((p) => p.tipo === 'columna-entrepiso');
   if (columnasEntrepiso.length > 0 || reasignadas.some((p) => p.insumo === INSUMO.COLUMNA_ENTREPISO)) {
