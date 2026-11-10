@@ -7,6 +7,7 @@
 // ==========================================================
 
 import { useEffect, useRef } from 'react';
+import { SOLO_PLANOS } from '../proyecto/opcionesImpresion.js';
 
 /** Las partes, agrupadas como se ven en la ventana. `soloPdf`: no existen en el Excel. */
 const GRUPOS = [
@@ -19,7 +20,13 @@ const GRUPOS = [
     ],
   },
   { titulo: 'Datos', partes: [['resumen', 'Datos de la obra'], ['presupuesto', 'Presupuesto'], ['cortes', 'Cómo cortar cada barra']] },
-  { titulo: 'Planos', partes: [['paredes', 'Paredes acotadas (las 4 juntas)'], ['plantas', 'Piso, entrepiso y techo']] },
+  { titulo: 'Planos', partes: [['paredes', 'Paredes acotadas (las 4 juntas)'], ['plantas', 'Piso, entrepiso y techo'],
+    // v1.42: las listas que acompañan a los planos.
+    ['listaCanos', 'Caños y perfiles: tipo, barras y dónde va cada uno'], ['listaAberturas', 'Aberturas: tipo, medidas y ubicación']] },
+  // v1.42: qué partes de la obra van en los planos y en los caños (ej. quien cotiza los paneles exteriores solo quiere
+  // las paredes con la estructura de las aberturas: sin pisos, altillo ni divisiones interiores). Las paredes van siempre.
+  { titulo: 'Partes de la obra (planos y caños)', partes: [['partePisos', 'Piso de planta baja'], ['parteEntrepiso', 'Entrepiso (altillo) y escalera'],
+    ['parteTecho', 'Techo'], ['parteInteriores', 'Divisiones interiores (tabiques y mesadas)']], nota: 'Las paredes con la estructura de las aberturas van siempre.' },
   { titulo: 'Además', partes: [['formularios', 'Todos los formularios (como antes: muchas hojas)', true]] },
 ];
 
@@ -30,10 +37,10 @@ export default function DialogoImprimir({ opciones, onCambiar, cantidadMedidas, 
     if (ventana && !ventana.open) ventana.showModal();
   }, []);
 
-  const algoParaPdf = Object.entries(opciones).some(([k, v]) => v && k !== 'cotas');
-  const algoParaExcel = ['resumen', 'presupuesto', 'cortes', 'paredes', 'plantas', 'medidas'].some((k) => opciones[k]);
+  const algoParaPdf = Object.entries(opciones).some(([k, v]) => v && k !== 'cotas' && !k.startsWith('parte'));
+  const algoParaExcel = ['resumen', 'presupuesto', 'cortes', 'paredes', 'plantas', 'medidas', 'listaCanos', 'listaAberturas'].some((k) => opciones[k]);
   const deshabilitada = (clave) => (clave === 'medidas' && cantidadMedidas === 0)
-    || (!esConstruccion && ['paredes', 'plantas', 'cotas', 'vistasFijas'].includes(clave));
+    || (!esConstruccion && ['paredes', 'plantas', 'cotas', 'vistasFijas', 'listaAberturas'].includes(clave));
 
   return (
     <dialog ref={ventanaRef} className="dialogo dialogo-imprimir no-print" aria-labelledby="imprimir-titulo"
@@ -41,9 +48,18 @@ export default function DialogoImprimir({ opciones, onCambiar, cantidadMedidas, 
       onClick={(e) => e.target === ventanaRef.current && onCerrar()}>
       <h2 id="imprimir-titulo">Imprimir o exportar</h2>
       <p className="nota">Elegí qué sale. Con lo de siempre entra en 2 o 3 hojas A4.</p>
+      {/* v1.42: atajo para sacar solo los planos (paredes, plantas, caños y aberturas). */}
+      <div className="fila-casillas">
+        <button type="button" className="btn-mini" onClick={() => onCambiar({ ...SOLO_PLANOS })}>Solo planos</button>
+        <button type="button" className="btn-mini" title="Paredes con sus aberturas, sin pisos, altillo, techo ni divisiones"
+          onClick={() => onCambiar({ ...SOLO_PLANOS, plantas: false, partePisos: false, parteEntrepiso: false, parteTecho: false, parteInteriores: false })}>
+          Para quien cotiza paneles</button>
+        <button type="button" className="btn-mini" onClick={() => onCambiar(Object.fromEntries(Object.keys(opciones).map((k) => [k, k !== 'formularios'])))}>Todo</button>
+      </div>
       {GRUPOS.map((g) => (
         <fieldset key={g.titulo} className="grupo-imprimir">
           <legend>{g.titulo}</legend>
+          {g.nota && <p className="nota">{g.nota}</p>}
           {g.partes.map(([clave, texto, soloPdf]) => (
             <label key={clave} className="casilla-opcional">
               <input type="checkbox" checked={opciones[clave] && !deshabilitada(clave)} disabled={deshabilitada(clave)}

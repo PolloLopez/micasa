@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.42.0] - 2026-11-10
+### Agregado
+- **Exportar solo los planos**: en "Imprimir / Exportar", el atajo **Solo planos** deja las paredes, las plantas y sus
+  listas (sin 3D ni presupuesto). Ya no sale una hoja con el título solo: el nombre va arriba de la primera hoja que sale.
+- **Caños y perfiles** con los planos (PDF y Excel, hoja "Caños"): cuántas barras de cada perfil (tipo, medidas,
+  espesor, largo de barra y peso) y dónde va cada uno (piezas y metros).
+- **Aberturas** con los planos (PDF y Excel, hoja "Aberturas"): número, tipo, pared, ancho, alto, antepecho y a qué
+  distancia de qué esquina está.
+- **Partes de la obra** para elegir qué va en los planos y en los caños: piso, entrepiso (altillo) y escalera, techo,
+  divisiones interiores. Las paredes con la estructura de las aberturas van siempre. Atajo **Para quien cotiza
+  paneles**: solo paredes, caños de las paredes y aberturas. Sacando partes, las barras se vuelven a calcular solo con
+  lo que queda.
+
 ## [1.41.1] - 2026-11-05
 ### Corregido
 - **La mesada ya no tiene que atravesar el tabique del baño.** Los botones de la mesada ahora llevan cada punta hasta lo

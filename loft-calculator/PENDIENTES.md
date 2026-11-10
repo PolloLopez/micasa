@@ -49,6 +49,11 @@
 - ✅ Etiquetas de mesadas y muebles en el 3D, apagables una por una y por capa (v1.38.1).
 - ✅ **Sol más fuerte** (v1.38.0): intensidad regulable (50–300 %, 150 % de fábrica).
 
+## Exportación (v1.42.0, pedido de Leandro 10/11)
+- ✅ Solo planos; caños y perfiles (tipo, barras, dónde va); aberturas; partes de la obra y atajo "para quien cotiza paneles".
+- 🟢 [ ] Tabiques y mesadas dibujados en las plantas (hoy solo en la lista de caños).
+- 🟢 [ ] Guardar "perfiles de exportación" con nombre (ej. "Panelero", "Herrero", "Cliente").
+
 ## Uniones y marcos (v1.33.0, pedido de Leandro 27/10)
 - ✅ Fajas cortadas en los vanos; uniones en red con jerarquía y luz; perfil propio del marco de cada abertura.
 - 🟡 [ ] Validar con el herrero la "medida vista" que se descuenta (ala del C, ancho del caño rectangular) y la jerarquía.

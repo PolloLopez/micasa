@@ -51,7 +51,7 @@ import Planos from './componentes/Planos.jsx';
 import { todasLasVistas } from './motor/planos.js';
 import { libroDeObra } from './proyecto/exportarExcel.js';
 import { resumenDeObra } from './proyecto/resumenObra.js';
-import { OPCIONES_IMPRESION_INICIALES, opcionesImpresionValidas } from './proyecto/opcionesImpresion.js';
+import { OPCIONES_IMPRESION_INICIALES, opcionesImpresionValidas, completarOpcionesImpresion } from './proyecto/opcionesImpresion.js';
 import DialogoImprimir from './componentes/DialogoImprimir.jsx';
 import HojasImpresion from './componentes/HojasImpresion.jsx';
 import { flushSync } from 'react-dom';
@@ -147,7 +147,7 @@ export default function App() {
     (o) => ({ ...OPACIDADES_INICIALES, ...o }));
   // v1.28: imprimir y exportar. capturaRef = función de LoftCanvas que saca las fotos del 3D.
   const capturaRef = useRef(null);
-  const [opcionesImpresion, setOpcionesImpresion] = useEstadoGuardado('impresion', OPCIONES_IMPRESION_INICIALES, opcionesImpresionValidas);
+  const [opcionesImpresion, setOpcionesImpresion] = useEstadoGuardado('impresion', OPCIONES_IMPRESION_INICIALES, opcionesImpresionValidas, completarOpcionesImpresion);
   const [dialogoImprimir, setDialogoImprimir] = useState(false);
   const [capturas, setCapturas] = useState(null); // fotos del 3D para las hojas del PDF
   const [medidasFijas, setMedidasFijas] = useState([]); // las de LoftCanvas, en texto (para el PDF y el Excel)
@@ -715,7 +715,7 @@ export default function App() {
     const bytes = libroDeObra({
       nombre: nombreProyecto, params, vistas, items, total, gruposCortes,
       proveedor: nombreProveedor, pago: textoPago, resumen, medidas: medidasFijas,
-      plan: proveedores.length > 1 ? planCompra : null, materiales: listaMateriales,
+      plan: proveedores.length > 1 ? planCompra : null, materiales: listaMateriales, aberturas: aberturasValidas,
     }, opcionesImpresion);
     const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const enlace = document.createElement('a');
@@ -1382,7 +1382,7 @@ export default function App() {
         subtitulo={`${new Date().toLocaleDateString('es-AR')} · ${nombreProveedor ? `${nombreProveedor} ${textoPago}` : textoPago} · Pollo Calculator v${VERSION_APP}`}
         leyenda3D={cartelResaltado ? `Resaltado en rosa — ${cartelResaltado.replace(' (fijado)', '')}` : null}
         resumen={resumen} items={items} total={total} gruposCortes={gruposCortes} vistas={vistas} params={params}
-        plan={proveedores.length > 1 ? planCompra : null} materiales={listaMateriales} implantacion={implantacion} />
+        plan={proveedores.length > 1 ? planCompra : null} materiales={listaMateriales} implantacion={implantacion} aberturas={aberturasValidas} />
     </div>
     </ContextoResaltado>
   );

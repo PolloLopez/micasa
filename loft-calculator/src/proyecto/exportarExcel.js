@@ -13,6 +13,7 @@
 import { crearXlsx } from './xlsx.js';
 import { nombreLado } from '../motor/geometria.js';
 import { NOMBRE_PLANTA } from '../motor/planos.js';
+import { listaDePerfiles, listaDeAberturas, resumenDeAberturas, plantasElegidas } from './listasDePlanos.js';
 import { agruparBarras } from './cortesAgrupados.js';
 
 const m = (n) => Math.round(n * 100) / 100; // metros con 2 decimales
@@ -51,7 +52,7 @@ function filasDePared(v, params) {
 }
 
 /** Qué partes van, si no se dice (el Excel completo). */
-export const PARTES_EXCEL = { resumen: true, medidas: true, presupuesto: true, cortes: true, paredes: true, plantas: true };
+export const PARTES_EXCEL = { resumen: true, medidas: true, presupuesto: true, cortes: true, paredes: true, plantas: true, listaCanos: true, listaAberturas: true };
 
 /**
  * Hojas del libro (v1.28: pocas hojas, como el PDF): "Obra" (datos, medidas y presupuesto),
@@ -59,7 +60,7 @@ export const PARTES_EXCEL = { resumen: true, medidas: true, presupuesto: true, c
  * @param {object} datos { nombre, params, vistas: { paredes, plantas }, items, total, gruposCortes, proveedor, pago, resumen, medidas }
  * @param {object} partes { resumen, medidas, presupuesto, cortes, paredes, plantas } (true = va)
  */
-export function hojasDeObra({ nombre, params, vistas, items, total, gruposCortes = [], proveedor = '', pago = '', resumen = [], medidas = [], plan = null, materiales = [] }, partes = PARTES_EXCEL) {
+export function hojasDeObra({ nombre, params, vistas, items, total, gruposCortes = [], proveedor = '', pago = '', resumen = [], medidas = [], plan = null, materiales = [], aberturas = [] }, partes = PARTES_EXCEL) {
   const fecha = new Date().toLocaleDateString('es-AR');
   const hojas = [];
 
@@ -117,15 +118,46 @@ export function hojasDeObra({ nombre, params, vistas, items, total, gruposCortes
     });
   }
 
-  if (partes.plantas && vistas.plantas.length) {
+  const plantas = plantasElegidas(vistas.plantas, partes); // v1.42: solo las partes elegidas
+  if (partes.plantas && plantas.length) {
     hojas.push({
       nombre: 'Plantas',
       anchos: [28, 32, 12, 10, 12],
-      filas: vistas.plantas.flatMap((p) => [
+      filas: plantas.flatMap((p) => [
         { negrita: true, celdas: [`${NOMBRE_PLANTA[p.nivel]} — vista desde arriba`, `${m(p.largo)} x ${m(p.ancho)} m`] },
         ...filasDePiezas(p.lista),
         [],
       ]),
+    });
+  }
+
+  // v1.42: caños y perfiles (para comprar y dónde va cada uno) y aberturas, como en el PDF.
+  if (partes.listaCanos) {
+    const { compra, usos } = listaDePerfiles(items, materiales, partes);
+    if (compra.length) {
+      hojas.push({
+        nombre: 'Caños',
+        anchos: [44, 40, 10, 12, 10],
+        filas: [
+          { negrita: true, celdas: ['Perfil', 'Tipo, medidas y espesor', 'Barras', 'Largo de barra (m)', 'Peso (kg)'] },
+          ...compra.map((c) => [c.perfil, c.ficha, c.barras, c.largoBarra, c.kilos ?? '']),
+          [],
+          { negrita: true, celdas: ['Dónde va', 'Perfil', 'Piezas', 'Metros'] },
+          ...usos.map((u) => [u.parte, u.perfil, u.piezas, u.metros]),
+        ],
+      });
+    }
+  }
+  if (partes.listaAberturas && params.tipoProyecto === 'construccion' && aberturas.length) {
+    const lista = listaDeAberturas(aberturas, params);
+    hojas.push({
+      nombre: 'Aberturas',
+      anchos: [5, 26, 24, 10, 10, 12, 36],
+      filas: [
+        { negrita: true, celdas: [`Aberturas: ${resumenDeAberturas(lista)}`] },
+        { negrita: true, celdas: ['#', 'Tipo', 'Pared', 'Ancho (m)', 'Alto (m)', 'Antepecho (m)', 'Dónde (vista desde afuera)'] },
+        ...lista.map((x) => [x.numero, x.etiqueta ? `${x.tipo} · ${x.etiqueta}` : x.tipo, x.pared, x.ancho, x.alto, x.antepecho, x.ubicacion]),
+      ],
     });
   }
 

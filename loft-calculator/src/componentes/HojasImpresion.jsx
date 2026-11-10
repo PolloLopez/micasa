@@ -16,6 +16,7 @@ import { cantidadPedida } from '../motor/proveedores.js';
 import { PlanoDePared, PlanoDePlanta } from './Planos.jsx';
 import PlanoImplantacion from './PlanoImplantacion.jsx';
 import { agruparBarras, textoBarra } from '../proyecto/cortesAgrupados.js';
+import { listaDePerfiles, listaDeAberturas, resumenDeAberturas, plantasElegidas } from '../proyecto/listasDePlanos.js';
 
 const pesos = (n) => n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
 
@@ -58,19 +59,82 @@ function CortesCompactos({ grupos }) {
   );
 }
 
+/** v1.42: caños y perfiles (para comprar y dónde va cada uno) y aberturas, con los planos. */
+function ListasDePlanos({ perfiles, aberturas }) {
+  return (
+    <>
+      {perfiles && perfiles.compra.length > 0 && (
+        <>
+          <h2>Caños y perfiles</h2>
+          <table className="tabla-impresion">
+            <thead><tr><th>Perfil</th><th>Tipo, medidas y espesor</th><th className="num">Barras</th><th className="num">Largo de barra</th><th className="num">Peso</th></tr></thead>
+            <tbody>
+              {perfiles.compra.map((c) => (
+                <tr key={c.perfil + c.largoBarra}><td>{c.perfil}</td><td>{c.ficha}</td><td className="num">{c.barras}</td><td className="num">{c.largoBarra} m</td><td className="num">{c.kilos ? `${c.kilos} kg` : ''}</td></tr>
+              ))}
+            </tbody>
+          </table>
+          <table className="tabla-impresion">
+            <thead><tr><th>Dónde va</th><th>Perfil</th><th className="num">Piezas</th><th className="num">Metros</th></tr></thead>
+            <tbody>
+              {perfiles.usos.map((u) => (
+                <tr key={u.parte + u.perfil}><td>{u.parte}</td><td>{u.perfil}</td><td className="num">{u.piezas}</td><td className="num">{u.metros.toFixed(2)} m</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
+      {aberturas && aberturas.length > 0 && (
+        <>
+          <h2>Aberturas ({resumenDeAberturas(aberturas)})</h2>
+          <table className="tabla-impresion">
+            <thead><tr><th>#</th><th>Tipo</th><th>Pared</th><th className="num">Ancho</th><th className="num">Alto</th><th className="num">Antepecho</th><th>Dónde (vista desde afuera)</th></tr></thead>
+            <tbody>
+              {aberturas.map((a) => (
+                <tr key={a.numero}>
+                  <td>{a.numero}</td><td>{a.tipo}{a.etiqueta ? ` · ${a.etiqueta}` : ''}</td><td>{a.pared}</td>
+                  <td className="num">{a.ancho.toFixed(2)} m</td><td className="num">{a.alto.toFixed(2)} m</td><td className="num">{a.antepecho.toFixed(2)} m</td>
+                  <td>{a.ubicacion}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
+    </>
+  );
+}
+
 export default function HojasImpresion({
   opciones, capturas, nombre, subtitulo, leyenda3D, resumen, items, total, gruposCortes, vistas, params, plan = null, materiales = [], implantacion = null,
+  aberturas = [],
 }) {
   const fotos = capturas ?? { actual: null, fijas: [], medidas: [] };
   const conParedes = opciones.paredes && vistas.paredes.length > 0;
-  const conPlantas = opciones.plantas && vistas.plantas.length > 0;
+  // v1.42: solo las plantas de las partes elegidas (ej. sin entrepiso para quien cotiza los paneles).
+  const plantas = plantasElegidas(vistas.plantas, opciones);
+  const conPlantas = opciones.plantas && plantas.length > 0;
+  // v1.42: caños y aberturas con los planos.
+  const perfiles = opciones.listaCanos ? listaDePerfiles(items, materiales, opciones) : null;
+  const listaAberturas = opciones.listaAberturas && params.tipoProyecto === 'construccion' ? listaDeAberturas(aberturas, params) : [];
+  const conListas = (perfiles && perfiles.compra.length > 0) || listaAberturas.length > 0;
+  // v1.42: la hoja 1 (3D y datos) sale solo si tiene algo; si no, el nombre va arriba de la primera hoja que salga
+  // (con "solo planos" ya no sale una hoja con el título solo).
+  const conHoja1 = (opciones.vista3D && fotos.actual) || (opciones.vistasFijas && fotos.fijas.length > 0)
+    || (opciones.medidas && fotos.medidas.length > 0) || (opciones.resumen && resumen.length > 0);
+  const conHoja2 = opciones.presupuesto || conPlantas;
+  const primera = conHoja1 ? 1 : conHoja2 ? 2 : conParedes ? 3 : conListas ? 4 : 5;
+  const cabecera = (
+    <header className="cabecera-impresion">
+      <h1>🐤 {nombre || 'Proyecto sin nombre'}</h1>
+      <p>{subtitulo}</p>
+    </header>
+  );
   return (
     <div className="hojas-impresion solo-impresion">
+      {conHoja1 && (
       <section className="hoja-impresion">
-        <header className="cabecera-impresion">
-          <h1>🐤 {nombre || 'Proyecto sin nombre'}</h1>
-          <p>{subtitulo}</p>
-        </header>
+        {cabecera}
 
         {opciones.vista3D && fotos.actual && (
           <figure className="foto-3d">
@@ -98,9 +162,11 @@ export default function HojasImpresion({
           </>
         )}
       </section>
+      )}
 
-      {(opciones.presupuesto || conPlantas) && (
+      {conHoja2 && (
         <section className="hoja-impresion">
+          {primera === 2 && cabecera}
           {opciones.presupuesto && (
             <>
               {/* v1.31.0: primero la lista de materiales (todo, sin proveedor). */}
@@ -153,7 +219,7 @@ export default function HojasImpresion({
             <div className="bloque-plantas">
               <h2>Plantas (vistas desde arriba)</h2>
               <div className="grilla-planos grilla-plantas">
-                {vistas.plantas.map((p) => <div key={p.nivel} className="plano-impresion"><PlanoDePlanta vista={p} /></div>)}
+                {plantas.map((p) => <div key={p.nivel} className="plano-impresion"><PlanoDePlanta vista={p} /></div>)}
               </div>
             </div>
           )}
@@ -162,6 +228,7 @@ export default function HojasImpresion({
 
       {conParedes && (
         <section className="hoja-impresion">
+          {primera === 3 && cabecera}
           <h2>Paredes (vistas desde afuera)</h2>
           <div className="grilla-planos">
             {vistas.paredes.map((v) => <div key={v.lado} className="plano-impresion"><PlanoDePared vista={v} params={params} /></div>)}
@@ -169,8 +236,16 @@ export default function HojasImpresion({
         </section>
       )}
 
+      {conListas && (
+        <section className="hoja-impresion">
+          {primera === 4 && cabecera}
+          <ListasDePlanos perfiles={perfiles} aberturas={listaAberturas} />
+        </section>
+      )}
+
       {opciones.cortes && gruposCortes.length > 0 && (
         <section className="hoja-impresion hoja-cortes">
+          {primera === 5 && cabecera}
           <h2>Cómo cortar cada barra</h2>
           <CortesCompactos grupos={gruposCortes} />
         </section>
