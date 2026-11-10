@@ -11,6 +11,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import LoftCanvas from './LoftCanvas.jsx';
+import { ContextoFoco, focoDe } from './componentes/contextoFoco.js';
 import CampoNumero from './componentes/CampoNumero.jsx';
 import CampoOpcional from './componentes/CampoOpcional.jsx';
 import CampoSeparacion from './componentes/CampoSeparacion.jsx';
@@ -297,6 +298,18 @@ export default function App() {
     setVistaMovil('datos');
     setPestanaGuardada(clave);
   };
+  // v1.42.1: lo elegido en el 3D abre su tarjeta (y su ficha) en la pestaña donde se edita; soltarlo la vuelve a cerrar.
+  const [foco, setFoco] = useState(null);
+  const elegirDesde3D = (elegido) => {
+    const nuevo = focoDe(elegido);
+    setFoco(nuevo);
+    if (nuevo && vistaMovil !== '3d' && pestanas.some((p) => p.clave === nuevo.pestana)) setPestanaGuardada(nuevo.pestana);
+  };
+  // La pared elegida (sus hierros o una abertura) se trae a la vista.
+  useEffect(() => {
+    if (!foco?.item?.startsWith('pared:')) return;
+    document.getElementById(`pared-${foco.item.slice(6)}`)?.parentElement?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
+  }, [foco]);
   const lados = useMemo(() => geometriaLados(params), [params]);
   // v1.32: la casa en su terreno (distancias, avisos) y el pedido para que el 3D muestre todo el lote.
   // Módulo Terreno (se puede apagar por instalación, ver modulos.js): apagado, no se muestra nada (los datos quedan).
@@ -878,6 +891,7 @@ export default function App() {
 
   return (
     <ContextoResaltado value={contextoResaltado}>
+    <ContextoFoco value={foco}>
     <div className={`app${opcionesImpresion.formularios ? '' : ' imprimir-sin-formularios'}`}>
       <header>
         <div className="titulo">
@@ -957,7 +971,7 @@ export default function App() {
           <LoftCanvas params={params} estructura={estructura} aberturas={aberturasValidas} paneles={paneles}
             colores={colores} catalogo={catalogoResuelto} unidad={unidad}
             opacidades={opacidades} onCambiarOpacidad={cambiarOpacidad} capturaRef={capturaRef} onMedidasFijas={setMedidasFijas}
-            onCambiarColor={cambiarColor} onEliminarPieza={eliminarPieza} onEditarPieza={editarPieza}
+            onCambiarColor={cambiarColor} onEliminarPieza={eliminarPieza} onEditarPieza={editarPieza} onElegir={elegirDesde3D}
             onActualizarAbertura={actualizarAbertura} onQuitarAbertura={quitarAbertura}
             onPegarAbertura={pegarAbertura} onDuplicarPieza={duplicarPiezaElegida}
             resaltado={resaltado} cartelResaltado={cartelResaltado}
@@ -1019,10 +1033,17 @@ export default function App() {
               <CampoSelect etiqueta="Tirantes y transversales" valor={params.uniones?.enteras?.tirantesTransversales ?? 'tirantes'}
                 opciones={OPCIONES_PISO[0][2]} onCambio={cambiar('uniones.enteras.tirantesTransversales')} />
             </div>
+            {/* v1.42.1: tirantes de hierro o de madera (sobre las transversales de perfil C) y cubierta. */}
+            <div className="grid-params">
+              <CampoSelect etiqueta="Tirantes" valor={params.tirantesPiso ?? 'hierro'}
+                opciones={[['hierro', 'De hierro (perfil)'], ['madera', 'De madera']]} onCambio={cambiar('tirantesPiso')} />
+              <CampoSelect etiqueta="Cubierta" valor={params.cubiertaPiso ?? 'osb'}
+                opciones={[['osb', 'Placas OSB'], ['machimbre', 'Machimbre clavado']]} onCambio={cambiar('cubiertaPiso')} />
+            </div>
             {/* v1.28: borde e interior con perfiles propios (y cada sentido el suyo). */}
             <div className="grid-params grid-perfiles-pared">
               {selectorPerfilDe(INSUMO.BORDE_PISO, 'Borde (los dos pisos)')}
-              {selectorPerfilDe(INSUMO.PISO, 'Tirantes (interior)')}
+              {params.tirantesPiso !== 'madera' && selectorPerfilDe(INSUMO.PISO, 'Tirantes (interior)')}
               {params.separacionTransversalesPiso > 0 || cantidadDe(params, 'separacionTransversalesPiso') > 0
                 ? selectorPerfilDe(INSUMO.TRANSVERSAL_PISO, 'Transversales') : null}
             </div>
@@ -1062,9 +1083,22 @@ export default function App() {
               </div>
             )}
             {params.anchoEntrepiso > 0 && (
+              <div className="grid-params">
+                {/* v1.42.1: el altillo con perfiles C y tirantes de madera con machimbre clavado. */}
+                <CampoSelect etiqueta="Tirantes del piso 2" valor={params.tirantesPiso2 ?? 'hierro'}
+                  opciones={[['hierro', 'De hierro (perfil)'], ['madera', 'De madera']]} onCambio={cambiar('tirantesPiso2')} />
+                <CampoSelect etiqueta="Cubierta del piso 2" valor={params.cubiertaPiso2 ?? 'osb'}
+                  opciones={[['osb', 'Placas OSB'], ['machimbre', 'Machimbre clavado']]} onCambio={cambiar('cubiertaPiso2')} />
+              </div>
+            )}
+            {(params.tirantesPiso === 'madera' || (params.anchoEntrepiso > 0 && params.tirantesPiso2 === 'madera')) && (
+              <p className="nota">Con tirantes de madera, la estructura de perfil C son las transversales (y el borde); conviene
+                elegir "tirantes apoyados sobre las transversales" arriba. La madera va al presupuesto por metro (Materiales → Tirantes de madera).</p>
+            )}
+            {params.anchoEntrepiso > 0 && (
               <div className="grid-params grid-perfiles-pared">
                 {selectorPerfilDe(INSUMO.COLUMNA_ENTREPISO, 'Columnas del entrepiso')}
-                {selectorPerfilDe(INSUMO.PISO_2, 'Tirantes piso 2 (interior)')}
+                {params.tirantesPiso2 !== 'madera' && selectorPerfilDe(INSUMO.PISO_2, 'Tirantes piso 2 (interior)')}
                 {params.separacionTransversalesPiso2 > 0 || cantidadDe(params, 'separacionTransversalesPiso2') > 0
                   ? selectorPerfilDe(INSUMO.TRANSVERSAL_PISO_2, 'Transversales piso 2') : null}
                 {selectorPerfilDe(INSUMO.VIGA_CIERRE, 'Vigas de cierre y de apoyo')}
@@ -1276,11 +1310,11 @@ export default function App() {
             {LADOS.map((lado) => {
               const [h1, h2] = alturasPared(lados[lado], params);
               return (
-                <ZonaResaltable key={lado} className={`pared ${paredesAbiertas[lado] ? 'abierta' : 'cerrada'}`}
+                <ZonaResaltable key={lado} className={`pared ${paredesAbiertas[lado] || foco?.item === `pared:${lado}` ? 'abierta' : 'cerrada'}${foco?.item === `pared:${lado}` ? ' en-foco' : ''}`}
                   criterio={{ tipo: 'grupo', id: lado, nombre: nombreLado(lado, params.ladoFrente) }}>
                   {/* El título pliega / despliega la pared (aria-expanded para lectores de pantalla); al lado, el 👁. */}
                   <div className="fila-titulo-pared">
-                  <button type="button" className="pared-titulo plegable" aria-expanded={paredesAbiertas[lado]}
+                  <button type="button" className="pared-titulo plegable" aria-expanded={paredesAbiertas[lado] || foco?.item === `pared:${lado}`}
                     aria-controls={`pared-${lado}`} onClick={() => alternarPared(lado)}>
                     <span className="flecha" aria-hidden="true">▸</span>
                     <strong>{nombreLado(lado, params.ladoFrente)}</strong>
@@ -1384,6 +1418,7 @@ export default function App() {
         resumen={resumen} items={items} total={total} gruposCortes={gruposCortes} vistas={vistas} params={params}
         plan={proveedores.length > 1 ? planCompra : null} materiales={listaMateriales} implantacion={implantacion} aberturas={aberturasValidas} />
     </div>
+    </ContextoFoco>
     </ContextoResaltado>
   );
 }

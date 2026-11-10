@@ -393,7 +393,7 @@ export function generarMesada(params, m) {
       const pasaDeAlto = h.tapa === false ? 0 : Math.max(0, sube + alto - arriba);
       const c = pTramo(h.desde + h.ancho / 2, prof - profE / 2, 0);
       electros.push({ tipo: h.electro, nombre: h.nombre, ancho: Math.max(0.05, h.ancho - 0.02), profundidad: profE, alto,
-        material: t.material, cargaFrontal: h.cargaFrontal !== false, pasaDeAlto,
+        material: t.material, cargaFrontal: h.cargaFrontal !== false, pasaDeAlto, puerta: t.puerta ?? 'ninguna', // v1.42.1: con su puerta
         centro: [c[0], c[2]], y: c[1] + sube, angulo: Math.atan2(adentro[0], adentro[1]) });
     });
   });
@@ -471,11 +471,14 @@ export const TIPOS_MUEBLE = {
   silla: { nombre: 'Silla', ancho: 0.45, profundidad: 0.45, alto: 0.9, material: 'madera', forma: 'silla' },
   sillon: { nombre: 'Sillón', ancho: 1.8, profundidad: 0.85, alto: 0.8, material: 'tela', forma: 'sillon' },
   escritorio: { nombre: 'Escritorio', ancho: 1.2, profundidad: 0.6, alto: 0.75, material: 'madera', forma: 'mesa' },
-  placard: { nombre: 'Placard', ancho: 1.5, profundidad: 0.6, alto: 2.1, material: 'madera', forma: 'placard' },
-  heladera: { nombre: 'Heladera', ancho: 0.7, profundidad: 0.7, alto: 1.8, material: 'blanco', forma: 'electro' },
-  cocina: { nombre: 'Cocina', ancho: 0.56, profundidad: 0.6, alto: 0.85, material: 'acero', forma: 'cocina' }, // v1.39: con hornallas
-  lavarropas: { nombre: 'Lavarropas', ancho: 0.6, profundidad: 0.6, alto: 0.85, material: 'blanco', forma: 'lavarropas' }, // v1.39: carga frontal o superior
-  vanitory: { nombre: 'Vanitory', ancho: 0.6, profundidad: 0.45, alto: 0.85, material: 'blanco', forma: 'vanitory' }, // v1.39: con bacha
+  placard: { nombre: 'Placard', ancho: 1.5, profundidad: 0.6, alto: 2.1, material: 'madera', forma: 'placard', puerta: 'dos' },
+  // v1.42.1: copero y alacena (la alacena va colgada: `elevacion` = del piso a su parte de abajo).
+  copero: { nombre: 'Copero', ancho: 0.9, profundidad: 0.4, alto: 1.9, material: 'madera', forma: 'placard', puerta: 'dos' },
+  alacena: { nombre: 'Alacena', ancho: 1.2, profundidad: 0.35, alto: 0.7, material: 'madera', forma: 'placard', puerta: 'dos', elevacion: 1.45 },
+  heladera: { nombre: 'Heladera', ancho: 0.7, profundidad: 0.7, alto: 1.8, material: 'blanco', forma: 'electro', puerta: 'derecha' },
+  cocina: { nombre: 'Cocina', ancho: 0.56, profundidad: 0.6, alto: 0.85, material: 'acero', forma: 'cocina', puerta: 'abajo' }, // v1.39: con hornallas
+  lavarropas: { nombre: 'Lavarropas', ancho: 0.6, profundidad: 0.6, alto: 0.85, material: 'blanco', forma: 'lavarropas', puerta: 'izquierda' }, // v1.39: carga frontal o superior
+  vanitory: { nombre: 'Vanitory', ancho: 0.6, profundidad: 0.45, alto: 0.85, material: 'blanco', forma: 'vanitory', puerta: 'dos' }, // v1.39: con bacha
   inodoro: { nombre: 'Inodoro', ancho: 0.4, profundidad: 0.65, alto: 0.75, material: 'blanco', forma: 'inodoro' },
   ducha: { nombre: 'Plato de ducha', ancho: 0.8, profundidad: 0.8, alto: 0.1, material: 'blanco', forma: 'caja' },
   otro: { nombre: 'Otro', ancho: 1, profundidad: 0.6, alto: 0.8, material: 'madera', forma: 'caja' },
@@ -504,7 +507,39 @@ export function muebleNuevo(tipo, muebles, id) {
     color: '', // v1.38.2: color propio ('' = el de su material)
     ...(t.forma === 'lavarropas' ? { cargaFrontal: true } : {}), // v1.39: carga frontal (puerta redonda) o superior
     ...(t.forma === 'cama' ? { ...CAJONES_CAMA } : {}), // v1.40.1: cajones a los costados y a los pies
+    puerta: t.puerta ?? 'ninguna', // v1.42.1: cómo abre (para ver el lugar que necesita la puerta abierta)
+    elevacion: t.elevacion ?? 0, // v1.42.1: del piso a la parte de abajo del mueble (alacena colgada)
   };
+}
+
+/**
+ * v1.42.1: cómo abre la puerta del mueble. Izquierda / derecha = de qué lado está la bisagra, mirando el mueble de frente.
+ * El margen es lo que hay que dejar libre adelante para abrirla.
+ */
+export const PUERTAS_MUEBLE = [
+  ['ninguna', 'Sin puerta'], ['izquierda', 'Una, bisagra a la izquierda'], ['derecha', 'Una, bisagra a la derecha'],
+  ['dos', 'Dos hojas'], ['abajo', 'Rebatible hacia abajo (horno)'], ['corrediza', 'Corrediza (no necesita lugar)'],
+];
+
+/** Lo que sale hacia adelante la puerta abierta (m): el ancho de la hoja (la del lavarropas, su puerta redonda). */
+export function margenDePuerta(m) {
+  switch (m.puerta) {
+    case 'izquierda': case 'derecha':
+      if (TIPOS_MUEBLE[m.tipo]?.forma === 'lavarropas') return m.cargaFrontal === false ? 0 : Math.min(m.ancho, m.alto) * 0.7;
+      return m.ancho;
+    case 'dos': return m.ancho / 2;
+    case 'abajo': return Math.min(0.5, m.alto * 0.55);
+    default: return 0;
+  }
+}
+
+/** Si la puerta abierta choca con la pared de enfrente: { pared, falta } o null. */
+export function puertaQueChoca(params, m) {
+  const margen = margenDePuerta(m);
+  if (!(margen > 0)) return null;
+  const pared = paredHacia(m, 'pies'); // el frente del mueble
+  const falta = margen - distanciasDelMueble(params, m)[pared];
+  return falta > 0.001 ? { pared, falta, margen } : null;
 }
 
 /**
@@ -575,7 +610,7 @@ export function ubicarMueble(params, m) {
   const v = MEDIA_PARED + d.frente + profPlanta / 2;
   const centro = [frente.p1[0] + derecha[0] * u + adentro[0] * v, frente.p1[1] + derecha[1] * u + adentro[1] * v];
   const angulo = Math.atan2(-derecha[1], derecha[0]) + (m.giro * Math.PI) / 180;
-  return { centro, angulo, y: alturaDelPiso(params, m.nivel), anchoPlanta, profPlanta };
+  return { centro, angulo, y: alturaDelPiso(params, m.nivel) + (m.elevacion ?? 0), anchoPlanta, profPlanta };
 }
 
 const ALTO_ENTREPISO = 0.12; // tirantes del piso 2: lo que baja el "techo" de la planta baja bajo el entrepiso
@@ -613,7 +648,7 @@ export function libreArribaDelMueble(params, m) {
     if (m.nivel === 'piso2') return { altura: alturaEn(q[0], q[1], params) - piso2, hasta: 'techo' };
     return bajoElEntrepiso(params, q) ? { altura: piso2 - ALTO_ENTREPISO, hasta: 'piso2' } : { altura: alturaEn(q[0], q[1], params), hasta: 'techo' };
   }).reduce((menor, t) => (t.altura < menor.altura ? t : menor));
-  return { libre: tope.altura - ALTO_PISO - m.alto, hasta: tope.hasta };
+  return { libre: tope.altura - ALTO_PISO - (m.elevacion ?? 0) - m.alto, hasta: tope.hasta };
 }
 
 export function validarMueble(m, params) {
@@ -626,6 +661,8 @@ export function validarMueble(m, params) {
   if (m.cargaFrontal !== undefined && typeof m.cargaFrontal !== 'boolean') return 'Valor inválido';
   if (['cajonesIzquierda', 'cajonesDerecha', 'cajonesPies'].some((c) => m[c] !== undefined && typeof m[c] !== 'boolean')) return 'Valor inválido';
   if (m.aperturaCajones !== undefined && !num(m.aperturaCajones, 0.05, 1.5)) return 'Los cajones abren de 5 cm a 1,50 m';
+  if (m.puerta !== undefined && !PUERTAS_MUEBLE.some(([v]) => v === m.puerta)) return 'Elegí cómo abre la puerta';
+  if (m.elevacion !== undefined && !num(m.elevacion, 0, 3)) return 'La altura desde el piso va de 0 a 3 m';
   if (![0, 90, 180, 270].includes(m.giro)) return 'Giro de 0, 90, 180 o 270°';
   if (!['piso', 'piso2'].includes(m.nivel)) return 'Elegí planta baja o piso 2';
   if (m.nivel === 'piso2' && !(params.anchoEntrepiso > 0)) return 'No hay entrepiso';
@@ -658,5 +695,8 @@ export function completarMueble(m) {
     desdeFrente: base.desdeFrente === 'fondo' ? 'fondo' : 'frente',
     ...(TIPOS_MUEBLE[base.tipo]?.forma === 'lavarropas' ? { cargaFrontal: base.cargaFrontal !== false } : {}),
     ...(TIPOS_MUEBLE[base.tipo]?.forma === 'cama' ? { ...CAJONES_CAMA, ...base } : {}), // v1.40.1: sin cajones
+    // v1.42.1: los de antes, con la puerta de su tipo y en el piso.
+    puerta: PUERTAS_MUEBLE.some(([v]) => v === base.puerta) ? base.puerta : (TIPOS_MUEBLE[base.tipo]?.puerta ?? 'ninguna'),
+    elevacion: Number.isFinite(base.elevacion) ? base.elevacion : 0,
   };
 }

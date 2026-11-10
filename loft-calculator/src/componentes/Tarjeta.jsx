@@ -11,6 +11,7 @@ import { useId } from 'react';
 import { useEstadoGuardado } from '../hooks/useEstadoGuardado.js';
 import { BotonResaltar } from './Resaltar.jsx';
 import { usePasarParaResaltar } from './contextoResaltado.js';
+import { useEnFoco } from './contextoFoco.js';
 
 const esBooleano = (v) => typeof v === 'boolean';
 
@@ -21,16 +22,19 @@ const esBooleano = (v) => typeof v === 'boolean';
  * @param {object} [resaltar] - v1.27: criterio para resaltar sus piezas en el 3D (ver Resaltar.jsx)
  */
 export default function Tarjeta({ id, titulo, className = '', resaltar = null, children }) {
-  const [abierta, setAbierta] = useEstadoGuardado(`tarjeta.${id}`, true, esBooleano);
+  const [guardada, setAbierta] = useEstadoGuardado(`tarjeta.${id}`, true, esBooleano);
+  // v1.42.1: elegida en el 3D, se abre sola (sin cambiar lo guardado) y vuelve a cerrarse al soltarla.
+  const { enFoco, ref } = useEnFoco({ tarjeta: id });
+  const abierta = guardada || enFoco;
   const idCuerpo = useId();
   const pasar = usePasarParaResaltar(resaltar);
 
   return (
-    <section className={`card ${className}${abierta ? '' : ' cerrada'}`.trim()} {...pasar}>
+    <section ref={ref} className={`card ${className}${abierta ? '' : ' cerrada'}${enFoco ? ' en-foco' : ''}`.trim()} {...pasar}>
       <h2 className={resaltar ? 'con-resaltar' : undefined}>
         {/* aria-expanded: le dice a lectores de pantalla si está abierta o cerrada */}
         <button type="button" className="titulo-tarjeta" aria-expanded={abierta} aria-controls={idCuerpo}
-          onClick={() => setAbierta((a) => !a)}>
+          onClick={() => setAbierta(!abierta)}>
           <span className="flecha" aria-hidden="true">▸</span>
           {titulo}
         </button>

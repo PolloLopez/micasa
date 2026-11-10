@@ -762,3 +762,12 @@ kbd {
 
 /* v1.40: huecos con sus casillas debajo */
 .fila-hueco-v2 { border-top: 1px dashed var(--borde); padding-top: 4px; margin-bottom: 4px; }
+
+/* v1.42.1: fichas plegables (mesadas, tabiques, muebles) y lo elegido en el 3D */
+.ficha-plegable header { display: flex; align-items: center; gap: 8px; }
+.titulo-ficha { flex: 1; display: flex; align-items: center; gap: 8px; background: none; border: none; color: inherit; text-align: left; padding: 2px 0; cursor: pointer; font: inherit; }
+.titulo-ficha small { color: var(--texto-tenue); }
+.titulo-ficha .flecha { display: inline-block; transition: transform 0.15s; }
+.ficha-plegable:not(.cerrada) .titulo-ficha .flecha { transform: rotate(90deg); }
+.ficha-plegable.cerrada { padding-bottom: 4px; }
+.en-foco { outline: 2px solid var(--acento); outline-offset: 2px; }

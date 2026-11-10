@@ -110,6 +110,9 @@ export function migrarParams(params) {
   // v1.38: mesadas y muebles (los proyectos de antes, sin ninguno).
   // v1.38 / v1.40: mesadas completas (huecos, bachas) y las L/U de la v1.40.0 pasadas a la ubicación libre (v1.40.1).
   nuevos.mesadas = Array.isArray(nuevos.mesadas) ? nuevos.mesadas.map((m) => completarMesada(m, nuevos)) : [];
+  // v1.42.1: pisos de antes: tirantes de hierro y OSB.
+  ['tirantesPiso', 'tirantesPiso2'].forEach((c) => { nuevos[c] = nuevos[c] === 'madera' ? 'madera' : 'hierro'; });
+  ['cubiertaPiso', 'cubiertaPiso2'].forEach((c) => { nuevos[c] = nuevos[c] === 'machimbre' ? 'machimbre' : 'osb'; });
   nuevos.tabiques = Array.isArray(nuevos.tabiques) ? nuevos.tabiques.map(completarTabique) : []; // v1.41
   nuevos.muebles = Array.isArray(nuevos.muebles) ? nuevos.muebles.map(completarMueble) : []; // v1.38.1: con cartel
   nuevos.sol = completarSol(nuevos.sol); // v1.37: Mercedes // v1.33: con descuentos en los cruces (lo correcto)

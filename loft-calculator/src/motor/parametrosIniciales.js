@@ -55,6 +55,8 @@ export const PARAMS_INICIALES = {
   separacionPiso2: 0.4,
   separacionTransversalesPiso: 1.5, // 0 = sin transversales (la define el herrero)
   separacionTransversalesPiso2: 1.5,
+  // v1.42.1: tirantes de hierro o de madera (con las transversales de perfil C abajo) y cubierta de OSB o machimbre.
+  tirantesPiso: 'hierro', tirantesPiso2: 'hierro', cubiertaPiso: 'osb', cubiertaPiso2: 'osb',
 
   // Techo a una agua
   caidaTecho: 'C', // cae hacia el fondo si el frente es A

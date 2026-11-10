@@ -13,7 +13,7 @@
 // ==========================================================
 
 import * as THREE from 'three';
-import { MATERIALES_MUEBLE, TIPOS_MUEBLE, ubicarMueble } from './motor/interiores.js';
+import { MATERIALES_MUEBLE, TIPOS_MUEBLE, ubicarMueble, margenDePuerta } from './motor/interiores.js';
 
 /**
  * Placa horizontal con espesor, a partir de sus 4 esquinas (a→b a lo largo, b→c a lo ancho).
@@ -212,6 +212,26 @@ export function dibujarMuebleEn(mueble, centro, angulo, y) {
     if (material === materiales().sombra) caja.userData.sinSombra = true; // los cajones abiertos no tiran sombra
     grupo.add(caja);
   });
+  // v1.42.1: el lugar que necesita la puerta abierta (sombreado, como los cajones de la cama).
+  const margen = margenDePuerta(mueble);
+  if (margen > 0) {
+    const { ancho: a, profundidad: p, alto: h } = mueble;
+    const sombra = (geo, x, yy, z) => {
+      const malla = new THREE.Mesh(geo, materiales().sombra);
+      malla.position.set(x, yy, z);
+      malla.userData.sinSombra = true;
+      grupo.add(malla);
+    };
+    // Hoja que gira sobre una bisagra vertical: un cuarto de círculo adelante, de la altura de la puerta.
+    const altoHoja = TIPOS_MUEBLE[mueble.tipo]?.forma === 'lavarropas' ? h * 0.6 : h;
+    const yHoja = TIPOS_MUEBLE[mueble.tipo]?.forma === 'lavarropas' ? h * 0.45 : h / 2;
+    const hoja = (x, desde) => sombra(new THREE.CylinderGeometry(margen, margen, altoHoja, 20, 1, false, desde, Math.PI / 2), x, yHoja, p / 2);
+    if (mueble.puerta === 'izquierda') hoja(-a / 2, 0);
+    if (mueble.puerta === 'derecha') hoja(a / 2, -Math.PI / 2);
+    if (mueble.puerta === 'dos') { hoja(-a / 2, 0); hoja(a / 2, -Math.PI / 2); }
+    // Rebatible (horno): la puerta abierta queda acostada adelante, abajo.
+    if (mueble.puerta === 'abajo') sombra(new THREE.BoxGeometry(a * 0.8, 0.04, margen), 0, h * 0.18, p / 2 + margen / 2);
+  }
   grupo.position.set(centro[0], y, centro[1]);
   grupo.rotation.y = angulo;
   grupo.userData.idMueble = mueble.id;

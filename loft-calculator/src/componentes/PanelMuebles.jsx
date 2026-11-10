@@ -10,17 +10,18 @@
 
 import { useState } from 'react';
 import Tarjeta from './Tarjeta.jsx';
+import FichaPlegable from './FichaPlegable.jsx';
 import CampoNumero from './CampoNumero.jsx';
 import CampoSelect from './CampoSelect.jsx';
 import { nombreLado } from '../motor/geometria.js';
 import SelectorColor from './SelectorColor.jsx';
-import { TIPOS_MUEBLE, MATERIALES_MUEBLE, muebleNuevo, muebleFueraDeLaPlanta, colorDelMueble, distanciasDelMueble, libreArribaDelMueble, cajonesQueChocan } from '../motor/interiores.js';
+import { TIPOS_MUEBLE, MATERIALES_MUEBLE, muebleNuevo, muebleFueraDeLaPlanta, colorDelMueble, distanciasDelMueble, libreArribaDelMueble, cajonesQueChocan, PUERTAS_MUEBLE, margenDePuerta, puertaQueChoca } from '../motor/interiores.js';
 
 const f2 = (n) => n.toFixed(2).replace('.', ',');
 const GIROS = [[0, 'Sin girar'], [90, '90°'], [180, '180° (de espaldas)'], [270, '270°']];
 
 /** Un mueble: medidas, material y dónde está. */
-function Mueble({ m, i, params, unidad, cambiar, onQuitar }) {
+function Mueble({ m, i, params, unidad, cambiar, onQuitar, abiertaAlInicio }) {
   const ruta = `muebles.${i}`;
   const medida = (campo, etiqueta) => (
     <CampoNumero etiqueta={etiqueta} unidad={unidad} valor={m[campo]} onCambio={cambiar(`${ruta}.${campo}`)} />
@@ -33,14 +34,15 @@ function Mueble({ m, i, params, unidad, cambiar, onQuitar }) {
   const otraFrente = m.desdeFrente === 'frente' ? d.fondo : d.frente;
   const { libre, hasta } = libreArribaDelMueble(params, m);
   const choques = cajonesQueChocan(params, m);
+  const choquePuerta = puertaQueChoca(params, m);
   return (
-    <section className="elemento-terreno mueble">
-      <header>
-        <span className="muestra-elemento" style={{ background: colorDelMueble(m) }} aria-hidden="true" />
-        <strong>{m.nombre || tipo.nombre}</strong>
-        <small>{m.nombre !== tipo.nombre ? tipo.nombre : ''} {f2(m.ancho)} x {f2(m.profundidad)} x {f2(m.alto)} m</small>
-        <button type="button" className="btn-del" onClick={onQuitar} aria-label={`Quitar ${m.nombre}`} title="Quitar">✕</button>
-      </header>
+    <FichaPlegable clave={`mueble:${m.id}`} className="mueble" abiertaAlInicio={abiertaAlInicio}
+      encabezado={<>
+          <span className="muestra-elemento" style={{ background: colorDelMueble(m) }} aria-hidden="true" />
+          <strong>{m.nombre || tipo.nombre}</strong>
+          <small>{m.nombre !== tipo.nombre ? tipo.nombre : ''} {f2(m.ancho)} x {f2(m.profundidad)} x {f2(m.alto)} m</small>
+      </>}
+      acciones={<button type="button" className="btn-del" onClick={onQuitar} aria-label={`Quitar ${m.nombre}`} title="Quitar">✕</button>}>
       {/* v1.38.1: el nombre es el cartel del 3D (como paredes y aberturas); se puede sacar uno por uno. */}
       <div className="etiqueta-pared">
         <label className="capa">
@@ -71,6 +73,9 @@ function Mueble({ m, i, params, unidad, cambiar, onQuitar }) {
         <CampoSelect etiqueta="y desde el" valor={m.desdeFrente}
           opciones={[['frente', 'Frente'], ['fondo', 'Fondo']]} onCambio={cambiar(`${ruta}.desdeFrente`)} />
         {medida('distanciaFrente', `Distancia al ${m.desdeFrente}`)}
+        {/* v1.42.1: cómo abre la puerta (se ve el lugar que necesita) y, para la alacena, a qué altura va colgada. */}
+        <CampoSelect etiqueta="Puerta" valor={m.puerta ?? 'ninguna'} opciones={PUERTAS_MUEBLE} onCambio={cambiar(`${ruta}.puerta`)} />
+        {medida('elevacion', 'Altura desde el piso')}
         <CampoSelect etiqueta="Giro" valor={String(m.giro)} opciones={GIROS.map(([g, t]) => [String(g), t])}
           onCambio={(v) => cambiar(`${ruta}.giro`)(Number(v))} />
         {params.anchoEntrepiso > 0 && (
@@ -106,9 +111,15 @@ function Mueble({ m, i, params, unidad, cambiar, onQuitar }) {
         {' '}<strong>{f2(otraFrente)} m</strong> al {m.desdeFrente === 'frente' ? 'fondo' : 'frente'} y
         {' '}<strong>{f2(libre)} m</strong> libres arriba (hasta {hasta === 'piso2' ? 'los tirantes del piso 2' : 'la estructura del techo'}).
       </p>
+      {margenDePuerta(m) > 0 && !choquePuerta && (
+        <p className="nota" role="status">La puerta abierta necesita {f2(margenDePuerta(m))} m adelante (se ve sombreado en el 3D).</p>
+      )}
+      {choquePuerta && (
+        <p className="aviso-mueble" role="status">⚠ La puerta abierta ({f2(choquePuerta.margen)} m) choca con la pared ({choquePuerta.pared}): faltan {f2(choquePuerta.falta)} m.</p>
+      )}
       {fuera && <p className="aviso-mueble" role="status">⚠ Se sale de la planta: acomodá las distancias o el giro.</p>}
       {!fuera && libre < 0 && <p className="aviso-mueble" role="status">⚠ No entra de alto: pasa {f2(-libre)} m.</p>}
-    </section>
+    </FichaPlegable>
   );
 }
 
@@ -116,8 +127,10 @@ export default function PanelMuebles({ params, unidad, cambiar }) {
   const muebles = params.muebles;
   const [tipoNuevo, setTipoNuevo] = useState('cama2');
   const [aviso, setAviso] = useState(null);
+  const [recien, setRecien] = useState(null); // v1.42.1
   const agregar = () => {
     const id = Math.max(0, ...muebles.map((m) => m.id)) + 1;
+    setRecien(id); // el recién agregado arranca abierto
     setAviso(cambiar('muebles')([...muebles, muebleNuevo(tipoNuevo, muebles, id)]));
   };
   const quitar = (id) => cambiar('muebles')(muebles.filter((m) => m.id !== id));
@@ -137,7 +150,7 @@ export default function PanelMuebles({ params, unidad, cambiar }) {
       {aviso && <p className="error" role="alert">{aviso}</p>}
       {muebles.length === 0 && <p className="vacio">Todavía no hay muebles.</p>}
       {muebles.map((m, i) => (
-        <Mueble key={m.id} m={m} i={i} params={params} unidad={unidad} cambiar={cambiar} onQuitar={() => quitar(m.id)} />
+        <Mueble key={m.id} m={m} i={i} params={params} unidad={unidad} cambiar={cambiar} onQuitar={() => quitar(m.id)} abiertaAlInicio={m.id === recien} />
       ))}
     </Tarjeta>
   );

@@ -9,6 +9,7 @@ import { INSUMO } from './constantes.js';
 import {
   MESADA_NUEVA, mesadaNueva, colorDelMueble, tramosDeMesada, HUECO_NUEVO, mesadaALaEsquina, ajustarMesada, limitesDeMesada, tabiquesQueCruzaLaMesada, generarMesada, tramosDelFrente, ubicarMesada, validarMesada,
   muebleNuevo, ubicarMueble, validarMueble, muebleFueraDeLaPlanta, distanciasDelMueble, libreArribaDelMueble, paredHacia, cajonesQueChocan,
+  margenDePuerta, puertaQueChoca,
 } from './interiores.js';
 
 // Mesada de fábrica en la pared C (fondo): x de 0,85 a 3,25 (planta de 7,5 x 4,5).
@@ -478,5 +479,45 @@ describe('mesada contra un tabique (v1.41.1, el caso de Leandro)', () => {
   it('los tabiques paralelos y los de otra pared no limitan', () => {
     const otros = { ...P, tabiques: [{ ...tabique, orientacion: 'paralelo' }, { ...tabique, id: 2, lado: 'D' }] };
     expect(tabiquesQueCruzaLaMesada(otros, larga)).toEqual([]);
+  });
+});
+
+describe('puertas de los muebles (v1.42.1)', () => {
+  it('cada tipo con su puerta de fábrica; copero y alacena (colgada a 1,45 m)', () => {
+    expect(muebleNuevo('heladera', [], 1).puerta).toBe('derecha');
+    expect(muebleNuevo('placard', [], 1).puerta).toBe('dos');
+    expect(muebleNuevo('mesa', [], 1).puerta).toBe('ninguna');
+    expect(muebleNuevo('copero', [], 1)).toMatchObject({ nombre: 'Copero', puerta: 'dos', elevacion: 0 });
+    const alacena = muebleNuevo('alacena', [], 1);
+    expect(alacena).toMatchObject({ puerta: 'dos', elevacion: 1.45 });
+    expect(ubicarMueble(P, alacena).y).toBeCloseTo(P.elevacion + 0.09 + 1.45, 6);
+  });
+
+  it('el margen de la puerta: la hoja entera, media si son dos, nada si es corrediza o el lavarropas carga arriba', () => {
+    const heladera = muebleNuevo('heladera', [], 1);
+    expect(margenDePuerta(heladera)).toBeCloseTo(0.7, 6);
+    expect(margenDePuerta({ ...muebleNuevo('placard', [], 1) })).toBeCloseTo(0.75, 6);
+    expect(margenDePuerta({ ...heladera, puerta: 'corrediza' })).toBe(0);
+    const lav = muebleNuevo('lavarropas', [], 1);
+    expect(margenDePuerta(lav)).toBeCloseTo(0.42, 6);
+    expect(margenDePuerta({ ...lav, cargaFrontal: false })).toBe(0);
+  });
+
+  it('avisa si la puerta abierta choca con la pared de enfrente (según el giro)', () => {
+    // Heladera mirando al frente, a 0,3 m de él: la puerta de 0,7 m choca, faltan 0,4 m.
+    const h = { ...muebleNuevo('heladera', [], 1), desdeFrente: 'frente', distanciaFrente: 0.3 };
+    // Sin girar, el frente del mueble mira al frente de la casa (pies = frente).
+    const giradaAlFondo = { ...h, giro: 180, desdeFrente: 'fondo', distanciaFrente: 0.3 };
+    expect(puertaQueChoca(P, giradaAlFondo)).toMatchObject({ pared: 'fondo' });
+    expect(puertaQueChoca(P, giradaAlFondo).falta).toBeCloseTo(0.4, 6);
+    expect(puertaQueChoca(P, { ...h, giro: 180, desdeFrente: 'frente', distanciaFrente: 0.3 })).toBeNull();
+    expect(validarMueble({ ...h, puerta: 'rara' }, P)).toMatch(/puerta/);
+    expect(validarMueble({ ...h, elevacion: 4 }, P)).toMatch(/altura desde el piso/);
+  });
+
+  it('los muebles de antes reciben la puerta de su tipo y quedan en el piso', () => {
+    const { puerta, elevacion, ...viejo } = muebleNuevo('heladera', [], 1);
+    expect([puerta, elevacion]).toEqual(['derecha', 0]);
+    expect(migrarParams({ ...P, muebles: [viejo] }).muebles[0]).toMatchObject({ puerta: 'derecha', elevacion: 0 });
   });
 });

@@ -88,6 +88,10 @@ export const CATALOGO_FIJO = [
   { id: INSUMO.ESTRUCTURA_TABIQUE, categoria: 'perfil', nombre: 'Estructura de tabiques', perfil: 'Montante PGC 70 x 0.9', unidad: 'barra', largoBarra: 2.6, precio: 9000 },
   { id: INSUMO.PUERTA_PLACA, categoria: 'unidad', nombre: 'Puertas de abrir', perfil: 'Puerta placa con marco', unidad: 'u', largoBarra: null, precio: 120000 },
   { id: INSUMO.PUERTA_GRANERO, categoria: 'unidad', nombre: 'Puertas granero', perfil: 'Puerta corrediza tipo granero con riel', unidad: 'u', largoBarra: null, precio: 220000 },
+  // v1.42.1: pisos de madera (renglones solo si hay).
+  { id: INSUMO.TIRANTE_MADERA, categoria: 'metro', nombre: 'Tirantes de madera (planta baja)', perfil: 'Tirante de pino 2" x 6"', unidad: 'm', largoBarra: null, precio: 6000 },
+  { id: INSUMO.TIRANTE_MADERA_2, categoria: 'metro', nombre: 'Tirantes de madera (entrepiso)', perfil: 'Tirante de pino 2" x 5"', unidad: 'm', largoBarra: null, precio: 5000 },
+  { id: INSUMO.MACHIMBRE, categoria: 'placa', nombre: 'Machimbre', perfil: 'Machimbre de pino 1/2"', unidad: 'm²', largoBarra: null, precio: 18000 },
   { id: INSUMO.BACHA_DOBLE, categoria: 'unidad', nombre: 'Bachas dobles', perfil: 'Bacha doble de acero inoxidable 76 x 37 cm', unidad: 'u', largoBarra: null, precio: 110000 },
 ];
 
@@ -264,9 +268,9 @@ function calcularRenglones(estructura, catalogo, excedenteBarras) {
     perfil(INSUMO.COLUMNA_ESQUINA, e.columnas.filter((p) => p.esquina)), // v1.22
     perfil(INSUMO.MARCO, e.marcos.filter((p) => p.tipo === 'solera')),
     perfil(INSUMO.BORDE_PISO, e.marcos.filter((p) => p.tipo === 'marco-piso' || p.tipo === 'marco-piso2')), // v1.28
-    perfil(INSUMO.PISO, e.piso.tirantes),
+    perfil(INSUMO.PISO, e.piso.tirantes.filter((p) => !p.madera)), // v1.42.1: los de madera van aparte (por metro)
     perfil(INSUMO.TRANSVERSAL_PISO, e.piso.transversales),
-    perfil(INSUMO.PISO_2, e.piso2.tirantes),
+    perfil(INSUMO.PISO_2, e.piso2.tirantes.filter((p) => !p.madera)),
     perfil(INSUMO.TRANSVERSAL_PISO_2, e.piso2.transversales),
     perfil(INSUMO.CORREA, e.correas),
     perfil(INSUMO.VIGA_TECHO, e.techo.vigas),
@@ -303,13 +307,28 @@ function calcularRenglones(estructura, catalogo, excedenteBarras) {
     items.splice(2, 0, perfil(INSUMO.VIGA_CIERRE, vigasCierre));
   }
 
-  // Placas OSB: superficie / placa, + desperdicio de recortes.
+  // Placas OSB: superficie / placa, + desperdicio de recortes. v1.42.1: solo los pisos con OSB (el resto, machimbre).
   const areaPlaca = PLACA_OSB.largo * PLACA_OSB.ancho;
-  const areaOsb = s.piso + s.piso2;
+  const conOsb = [['piso', e.cubiertas?.piso ?? 'osb', s.piso], ['piso 2', e.cubiertas?.piso2 ?? 'osb', s.piso2]];
+  const areaOsb = conOsb.filter(([, c]) => c === 'osb').reduce((a, [, , m2]) => a + m2, 0);
+  const nombresOsb = conOsb.filter(([, c, m2]) => c === 'osb' && m2 > 0).map(([n]) => n).join(' + ') || 'sin OSB';
   items.push(
-    itemSimple(insumo(INSUMO.OSB), Math.ceil((areaOsb * (1 + DESPERDICIO_PLACAS)) / areaPlaca),
-      `${areaOsb.toFixed(2)} m² (piso + piso 2) + ${DESPERDICIO_PLACAS * 100} % recortes`)
+    itemSimple(insumo(INSUMO.OSB), Math.max(0, Math.ceil((areaOsb * (1 + DESPERDICIO_PLACAS)) / areaPlaca - 1e-9)),
+      areaOsb > 0 ? `${areaOsb.toFixed(2)} m² (${nombresOsb}) + ${DESPERDICIO_PLACAS * 100} % recortes` : 'no lleva')
   );
+  // v1.42.1: machimbre (m² + recortes) y tirantes de madera (metros), solo si algún piso los lleva.
+  const areaMachimbre = conOsb.filter(([, c]) => c === 'machimbre').reduce((a, [, , m2]) => a + m2, 0);
+  if (areaMachimbre > 0) {
+    items.push(itemSimple(insumo(INSUMO.MACHIMBRE), Math.ceil(areaMachimbre * (1 + DESPERDICIO_PLACAS) * 100 - 1e-9) / 100,
+      `${areaMachimbre.toFixed(2)} m² + ${DESPERDICIO_PLACAS * 100} % recortes`));
+  }
+  [[INSUMO.TIRANTE_MADERA, e.piso.tirantes], [INSUMO.TIRANTE_MADERA_2, e.piso2.tirantes]].forEach(([id, tirantes]) => {
+    const madera = tirantes.filter((p) => p.madera);
+    if (!madera.length) return;
+    const metros = madera.reduce((a, p) => a + p.largo, 0);
+    const masLargo = Math.max(...madera.map((p) => p.largo));
+    items.push(itemSimple(insumo(id), Math.ceil(metros * 10 - 1e-9) / 10, `${madera.length} tirantes, el más largo de ${masLargo.toFixed(2)} m`));
+  });
 
   // Paneles: un renglón por tipo, con los m² de las paredes y el techo que lo usan.
   // Revestimientos: según cómo se vende cada tipo (a medida = m² de tiras; estándar = placas).

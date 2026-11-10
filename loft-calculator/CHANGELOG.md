@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.43.0] - 2026-11-10
+### Agregado
+- **Lugar que necesita la puerta** de cada mueble: elegís cómo abre (una hoja con bisagra a la izquierda o a la
+  derecha, dos hojas, rebatible hacia abajo como el horno, corrediza o sin puerta). La puerta abierta se ve sombreada
+  en el 3D, la ficha dice cuánto necesita adelante y avisa si choca con la pared. Heladera, lavarropas, cocina, placard
+  y vanitory arrancan con la suya; también los electrodomésticos de los huecos de la mesada.
+- **Copero y alacena** (tipos nuevos). Todo mueble tiene **altura desde el piso**: la alacena arranca colgada a 1,45 m.
+- **Pisos con tirantes de madera y machimbre**: en cada piso (planta baja y entrepiso/altillo) elegís tirantes de
+  hierro o de madera (las transversales y el borde siguen de perfil C) y cubierta de OSB o machimbre clavado. La madera
+  va al presupuesto por metro ("Tirantes de madera") y el machimbre por m², y se ven de madera en el 3D.
+- **Fichas plegables**: cada mesada, tabique y mueble se pliega tocando su título (la recién agregada arranca abierta).
+- **Del 3D a su tarjeta**: al tocar un hierro, una abertura o un mueble en el 3D, se va a la pestaña donde se edita, se
+  abre su tarjeta (y la pared, mesada, tabique o mueble) y queda a la vista, marcada. Al soltarlo, vuelve a cerrarse
+  lo que estaba cerrado.
+
 ## [1.42.0] - 2026-11-10
 ### Agregado
 - **Exportar solo los planos**: en "Imprimir / Exportar", el atajo **Solo planos** deja las paredes, las plantas y sus

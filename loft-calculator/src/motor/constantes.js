@@ -52,6 +52,9 @@ export const INSUMO = {
   ESTRUCTURA_TABIQUE: 'estructuraTabique', // v1.41: perfiles de los tabiques
   PUERTA_PLACA: 'puertaPlaca', // v1.41: puertas de abrir de los tabiques (u)
   PUERTA_GRANERO: 'puertaGranero', // v1.41: puertas corredizas tipo granero, con riel (u)
+  TIRANTE_MADERA: 'tiranteMadera', // v1.42.1: tirantes de madera de planta baja (m)
+  TIRANTE_MADERA_2: 'tiranteMadera2', // v1.42.1: tirantes de madera del entrepiso (m)
+  MACHIMBRE: 'machimbre', // v1.42.1: machimbre clavado sobre los tirantes (m²)
   ZANCA: 'zanca',
   APOYO_ESCALON: 'apoyoEscalon',
   COLUMNA_ESCALERA: 'columnaEscalera',

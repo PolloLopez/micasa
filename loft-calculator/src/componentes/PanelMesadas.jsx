@@ -11,6 +11,7 @@
 
 import { useId, useState } from 'react';
 import Tarjeta from './Tarjeta.jsx';
+import FichaPlegable from './FichaPlegable.jsx';
 import CampoNumero from './CampoNumero.jsx';
 import CampoSelect from './CampoSelect.jsx';
 import SelectorPerfil from './SelectorPerfil.jsx';
@@ -42,7 +43,7 @@ function Casilla({ texto, valor, onCambio }) {
 }
 
 /** Una mesada: forma, dónde va, medidas, estructura, revestimiento, huecos y bachas. */
-function Mesada({ m, i, params, unidad, cambiar, onQuitar, paneles, perfiles, perfilGeneral, generada, colores }) {
+function Mesada({ m, i, params, unidad, cambiar, onQuitar, paneles, perfiles, perfilGeneral, generada, colores, abiertaAlInicio }) {
   const ruta = `mesadas.${i}`;
   const medida = (campo, etiqueta) => (
     <CampoNumero etiqueta={etiqueta} unidad={unidad} valor={m[campo]} onCambio={cambiar(`${ruta}.${campo}`)} />
@@ -78,12 +79,12 @@ function Mesada({ m, i, params, unidad, cambiar, onQuitar, paneles, perfiles, pe
   const altos = (generada?.electros ?? []).filter((el) => el.pasaDeAlto > 0.001);
 
   return (
-    <section className="elemento-terreno mesada">
-      <header>
-        <strong>{m.nombre}</strong>
-        <small>{nombreLado(m.lado, params.ladoFrente)} · {FORMAS_MESADA.find(([f]) => f === forma)[1].split(' (')[0]} · {f2(largoDe('principal'))} x {f2(m.profundidad)} m</small>
-        <button type="button" className="btn-del" onClick={onQuitar} aria-label={`Quitar ${m.nombre}`} title="Quitar">✕</button>
-      </header>
+    <FichaPlegable clave={`mesada:${m.id}`} className="mesada" abiertaAlInicio={abiertaAlInicio}
+      encabezado={<>
+          <strong>{m.nombre}</strong>
+          <small>{nombreLado(m.lado, params.ladoFrente)} · {FORMAS_MESADA.find(([f]) => f === forma)[1].split(' (')[0]} · {f2(largoDe('principal'))} x {f2(m.profundidad)} m</small>
+      </>}
+      acciones={<button type="button" className="btn-del" onClick={onQuitar} aria-label={`Quitar ${m.nombre}`} title="Quitar">✕</button>}>
       {/* v1.38.1: el nombre es el cartel del 3D (como paredes y aberturas); se puede sacar uno por uno. */}
       <div className="etiqueta-pared">
         <label className="capa">
@@ -236,7 +237,7 @@ function Mesada({ m, i, params, unidad, cambiar, onQuitar, paneles, perfiles, pe
           {generada.bachas.simples + generada.bachas.dobles > 0 ? ` · ${generada.bachas.simples + generada.bachas.dobles} bacha(s)` : ''}
         </p>
       )}
-    </section>
+    </FichaPlegable>
   );
 }
 
@@ -247,8 +248,10 @@ function Mesada({ m, i, params, unidad, cambiar, onQuitar, paneles, perfiles, pe
 export default function PanelMesadas({ params, unidad, cambiar, paneles, perfiles, perfilGeneral, generadas, colores }) {
   const mesadas = params.mesadas;
   const [aviso, setAviso] = useState(null); // si la mesada nueva no entra (pared corta), se dice por qué
+  const [recien, setRecien] = useState(null); // v1.42.1
   const agregar = () => {
     const id = Math.max(0, ...mesadas.map((m) => m.id)) + 1;
+    setRecien(id); // la recién agregada arranca abierta
     setAviso(cambiar('mesadas')([...mesadas, mesadaNueva(mesadas, id)]));
   };
   const quitar = (id) => cambiar('mesadas')(mesadas.filter((m) => m.id !== id));
@@ -261,7 +264,7 @@ export default function PanelMesadas({ params, unidad, cambiar, paneles, perfile
       {mesadas.length === 0 && <p className="vacio">Todavía no hay mesadas.</p>}
       {mesadas.map((m, i) => (
         <Mesada key={m.id} m={m} i={i} params={params} unidad={unidad} cambiar={cambiar} onQuitar={() => quitar(m.id)}
-          paneles={paneles} perfiles={perfiles} perfilGeneral={perfilGeneral} generada={generadas?.find((g) => g.id === m.id)} colores={colores} />
+          paneles={paneles} perfiles={perfiles} perfilGeneral={perfilGeneral} generada={generadas?.find((g) => g.id === m.id)} colores={colores} abiertaAlInicio={m.id === recien} />
       ))}
       <button type="button" className="btn-sec" onClick={agregar}>+ Mesada</button>
       {aviso && <p className="error" role="alert">{aviso}</p>}

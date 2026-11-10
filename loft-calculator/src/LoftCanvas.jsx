@@ -147,6 +147,10 @@ function crearMateriales(colores) {
   transparente(materiales.paneles, 0.16);
   transparente(materiales.aberturas, 0.7);
   transparente(materiales.chapa, 0.55); // se ve la estructura a través de los tanques
+  // v1.42.1: tirantes de madera y machimbre (colores fijos de madera; el machimbre deja ver la estructura).
+  materiales.madera = new THREE.MeshStandardMaterial({ color: '#b7791f', roughness: 0.85 });
+  materiales.machimbre = new THREE.MeshStandardMaterial({ color: '#d6a35c', roughness: 0.8 });
+  transparente(materiales.machimbre, 0.6);
   // Juntas de los paneles (v1.24: con opacidad regulable desde la leyenda).
   materiales.juntas = new THREE.LineBasicMaterial({ color: COLOR_JUNTAS, transparent: true, opacity: 1 });
   // Pieza seleccionada: amarillo que brilla.
@@ -333,8 +337,9 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
     if (!estilo || !capas[capa] || !p.grupos.every(grupoVisible)) return;
     const elegida = p.id === seleccionada;
     const resaltada = !elegida && piezaResaltada(p, resaltado, catalogo); // v1.27
-    const material = elegida ? materiales.seleccion : resaltada ? materiales.resaltado : materiales[capa];
-    const seccion = seccionDe(p, catalogo, estilo);
+    // v1.42.1: los tirantes de madera, de madera (y un poco más gruesos).
+    const material = elegida ? materiales.seleccion : resaltada ? materiales.resaltado : p.madera ? materiales.madera : materiales[capa];
+    const seccion = p.madera ? 0.1 : seccionDe(p, catalogo, estilo);
     const malla = barra(p, elegida ? seccion * 1.6 : resaltada ? seccion * 1.3 : seccion, material);
     if (resaltada) malla.renderOrder = 997; // después de los paneles transparentes
     malla.userData.idPieza = p.id;
@@ -412,12 +417,14 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
   if (capas.osb) {
     const { largo, ancho } = params;
     const y = elevacion + 0.07;
+    // v1.42.1: con machimbre, la cubierta se ve de madera (la capa OSB la prende y apaga igual).
+    const cubierta = (nivel) => (e.cubiertas?.[nivel] === 'machimbre' ? materiales.machimbre : materiales.osb);
     if (grupoVisible('piso')) {
-      grupo.add(cuadrilatero([[-largo / 2, y, -ancho / 2], [largo / 2, y, -ancho / 2], [largo / 2, y, ancho / 2], [-largo / 2, y, ancho / 2]], materiales.osb));
+      grupo.add(cuadrilatero([[-largo / 2, y, -ancho / 2], [largo / 2, y, -ancho / 2], [largo / 2, y, ancho / 2], [-largo / 2, y, ancho / 2]], cubierta('piso')));
     }
     if (e.entrepiso && grupoVisible('piso2')) {
       const y2 = e.entrepiso.y + 0.07;
-      grupo.add(cuadrilatero(e.entrepiso.esquinas.map(([x, z]) => [x, y2, z]), materiales.osb));
+      grupo.add(cuadrilatero(e.entrepiso.esquinas.map(([x, z]) => [x, y2, z]), cubierta('piso2')));
     }
   }
 
@@ -822,7 +829,7 @@ export default function LoftCanvas({
   params, estructura, aberturas, paneles, colores, catalogo, unidad, onCambiarColor, onEliminarPieza, onEditarPieza,
   opacidades, onCambiarOpacidad, capturaRef, onMedidasFijas,
   onActualizarAbertura, onQuitarAbertura, onPegarAbertura, onDuplicarPieza,
-  resaltado = null, cartelResaltado = null, onSoltarResaltado,
+  resaltado = null, cartelResaltado = null, onSoltarResaltado, onElegir,
   pedidoVerTerreno = 0, // v1.32: cada vez que cambia, la cámara muestra todo el lote
   onCambiarParam = null, // v1.37: (ruta, valor) para el norte desde el panel del sol
 }) {
@@ -847,6 +854,7 @@ export default function LoftCanvas({
   const portapapelesRef = useRef(null); // lo copiado con Ctrl+C: { clase: 'abertura' | 'pieza', dato }
   const [avisoVisor, setAvisoVisor] = useState(null); // texto corto ("Copiado: …")
   // Partes visibles: cada pared, el techo y los pisos (con sus hierros).
+  const [muebleElegido, setMuebleElegido] = useState(null); // v1.42.1: el mueble tocado en el 3D (abre su ficha)
   const [gruposVisibles, setGruposVisibles] = useState({ A: true, B: true, C: true, D: true, techo: true, piso: true, piso2: true, escalera: true, grada: true });
   const [capas, setCapas] = useState(() => ({
     ...Object.fromEntries(Object.keys(CAPAS).map((clave) => [clave, true])),
@@ -970,9 +978,12 @@ export default function LoftCanvas({
         return;
       }
 
-      const tocado = tocados.find((i) => i.object.userData.idPieza || i.object.userData.idAbertura);
+      // v1.42.1: también los muebles (el id está en el grupo del mueble, no en cada caja).
+      const idMuebleDe = (obj) => { for (let o = obj; o; o = o.parent) if (o.userData?.idMueble !== undefined) return o.userData.idMueble; return null; };
+      const tocado = tocados.find((i) => i.object.userData.idPieza || i.object.userData.idAbertura || idMuebleDe(i.object) !== null);
       setSeleccionada(tocado?.object.userData.idPieza ?? null);
       setAberturaSeleccionada(tocado?.object.userData.idAbertura ?? null);
+      setMuebleElegido(tocado && !tocado.object.userData.idPieza && !tocado.object.userData.idAbertura ? idMuebleDe(tocado.object) : null);
     };
     renderer.domElement.addEventListener('pointerdown', alApretar);
     renderer.domElement.addEventListener('pointerup', alSoltar);
@@ -1283,6 +1294,7 @@ export default function LoftCanvas({
     const visor = visorRef.current;
     if (!visor) return;
     aplicarOpacidad(visor.materiales.osb, opacidades.osb);
+    aplicarOpacidad(visor.materiales.machimbre, opacidades.osb); // v1.42.1: el machimbre sigue a la opacidad del OSB
     aplicarOpacidad(visor.materiales.paneles, opacidades.paneles);
     CAPAS_HIERRO.forEach((capa) => aplicarOpacidad(visor.materiales[capa], opacidades.hierros));
     aplicarOpacidad(visor.materiales.juntas, opacidades.juntas ?? 1);
@@ -1400,6 +1412,14 @@ export default function LoftCanvas({
   // La pieza seleccionada puede desaparecer (se eliminó o cambió una medida).
   const piezaSeleccionada = seleccionada ? listarPiezas(estructura).find((p) => p.id === seleccionada) : null;
   const aberturaElegida = aberturaSeleccionada ? aberturas.find((op) => op.id === aberturaSeleccionada) : null;
+  // v1.42.1: le avisa a App qué se eligió, para abrir su tarjeta (y cerrarla al soltarlo).
+  const elegidoRef = useRef(onElegir);
+  elegidoRef.current = onElegir;
+  const claveElegido = piezaSeleccionada ? `p:${piezaSeleccionada.id}` : aberturaElegida ? `a:${aberturaElegida.id}` : muebleElegido !== null ? `m:${muebleElegido}` : '';
+  useEffect(() => {
+    elegidoRef.current?.(piezaSeleccionada ? { pieza: piezaSeleccionada } : aberturaElegida ? { abertura: aberturaElegida }
+      : muebleElegido !== null ? { mueble: muebleElegido } : null);
+  }, [claveElegido]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="canvas-box">

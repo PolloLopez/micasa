@@ -10,6 +10,7 @@
 
 import { useState } from 'react';
 import Tarjeta from './Tarjeta.jsx';
+import FichaPlegable from './FichaPlegable.jsx';
 import CampoNumero from './CampoNumero.jsx';
 import CampoSelect from './CampoSelect.jsx';
 import SelectorPerfil from './SelectorPerfil.jsx';
@@ -19,7 +20,7 @@ import { tabiqueNuevo, carasDelTabique, altosDelTabique, TIPOS_PUERTA } from '..
 
 const f2 = (n) => n.toFixed(2).replace('.', ',');
 
-function Tabique({ t, i, params, unidad, cambiar, onQuitar, paneles, perfiles, perfilGeneral, generado }) {
+function Tabique({ t, i, params, unidad, cambiar, onQuitar, paneles, perfiles, perfilGeneral, generado, abiertaAlInicio }) {
   const ruta = `tabiques.${i}`;
   const medida = (campo, etiqueta, base = t, rutaBase = ruta) => (
     <CampoNumero etiqueta={etiqueta} unidad={unidad} valor={base[campo]} onCambio={cambiar(`${rutaBase}.${campo}`)} />
@@ -33,12 +34,12 @@ function Tabique({ t, i, params, unidad, cambiar, onQuitar, paneles, perfiles, p
   const metros = generado ? generado.piezas.reduce((acc, p) => acc + p.largo, 0) : 0;
   const m2 = generado ? generado.panos.reduce((acc, p) => acc + p.neto, 0) : 0;
   return (
-    <section className="elemento-terreno tabique">
-      <header>
-        <strong>{t.nombre}</strong>
-        <small>{t.orientacion === 'paralelo' ? 'Paralelo a' : 'Desde'} {nombreLado(t.lado, params.ladoFrente)} · {f2(t.largo)} m</small>
-        <button type="button" className="btn-del" onClick={onQuitar} aria-label={`Quitar ${t.nombre}`} title="Quitar">✕</button>
-      </header>
+    <FichaPlegable clave={`tabique:${t.id}`} className="tabique" abiertaAlInicio={abiertaAlInicio}
+      encabezado={<>
+          <strong>{t.nombre}</strong>
+          <small>{t.orientacion === 'paralelo' ? 'Paralelo a' : 'Desde'} {nombreLado(t.lado, params.ladoFrente)} · {f2(t.largo)} m</small>
+      </>}
+      acciones={<button type="button" className="btn-del" onClick={onQuitar} aria-label={`Quitar ${t.nombre}`} title="Quitar">✕</button>}>
       <div className="etiqueta-pared">
         <label className="capa">
           <input type="checkbox" checked={t.mostrarEtiqueta !== false} aria-label={`Mostrar la etiqueta de ${t.nombre || 'el tabique'} en el 3D`}
@@ -100,7 +101,7 @@ function Tabique({ t, i, params, unidad, cambiar, onQuitar, paneles, perfiles, p
           {generado.puerta ? ` · puerta ${generado.puerta === 'granero' ? 'granero' : 'de abrir'}` : ''}
         </p>
       )}
-    </section>
+    </FichaPlegable>
   );
 }
 
@@ -111,8 +112,10 @@ function Tabique({ t, i, params, unidad, cambiar, onQuitar, paneles, perfiles, p
 export default function PanelTabiques({ params, unidad, cambiar, paneles, perfiles, perfilGeneral, generados }) {
   const tabiques = params.tabiques;
   const [aviso, setAviso] = useState(null);
+  const [recien, setRecien] = useState(null); // v1.42.1
   const agregar = () => {
     const id = Math.max(0, ...tabiques.map((t) => t.id)) + 1;
+    setRecien(id); // el recién agregado arranca abierto
     setAviso(cambiar('tabiques')([...tabiques, tabiqueNuevo(tabiques, id)]));
   };
   const quitar = (id) => cambiar('tabiques')(tabiques.filter((t) => t.id !== id));
@@ -125,7 +128,7 @@ export default function PanelTabiques({ params, unidad, cambiar, paneles, perfil
       {tabiques.length === 0 && <p className="vacio">Todavía no hay tabiques.</p>}
       {tabiques.map((t, i) => (
         <Tabique key={t.id} t={t} i={i} params={params} unidad={unidad} cambiar={cambiar} onQuitar={() => quitar(t.id)}
-          paneles={paneles} perfiles={perfiles} perfilGeneral={perfilGeneral} generado={generados?.find((g) => g.id === t.id)} />
+          paneles={paneles} perfiles={perfiles} perfilGeneral={perfilGeneral} generado={generados?.find((g) => g.id === t.id)} abiertaAlInicio={t.id === recien} />
       ))}
       <button type="button" className="btn-sec" onClick={agregar}>+ Tabique</button>
       {aviso && <p className="error" role="alert">{aviso}</p>}

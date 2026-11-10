@@ -104,6 +104,9 @@ export function validarParametros(params) {
     if (!Array.isArray(params.mesadas)) anotar('mesadas', 'Lista inválida');
     else params.mesadas.forEach((m) => anotar(`mesadas.${m?.id}`, validarMesada(m ?? {}, params)));
   }
+  // v1.42.1: tirantes de madera y machimbre.
+  ['tirantesPiso', 'tirantesPiso2'].forEach((c) => { if (params[c] !== undefined && !['hierro', 'madera'].includes(params[c])) anotar(c, 'Elegí hierro o madera'); });
+  ['cubiertaPiso', 'cubiertaPiso2'].forEach((c) => { if (params[c] !== undefined && !['osb', 'machimbre'].includes(params[c])) anotar(c, 'Elegí OSB o machimbre'); });
   if (params.tabiques !== undefined) { // v1.41
     if (!Array.isArray(params.tabiques)) anotar('tabiques', 'Lista inválida');
     else params.tabiques.forEach((t) => anotar(`tabiques.${t?.id}`, validarTabique(t ?? {}, params)));

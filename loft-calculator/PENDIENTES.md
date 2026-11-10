@@ -49,6 +49,13 @@
 - ✅ Etiquetas de mesadas y muebles en el 3D, apagables una por una y por capa (v1.38.1).
 - ✅ **Sol más fuerte** (v1.38.0): intensidad regulable (50–300 %, 150 % de fábrica).
 
+## v1.43.0 (pedido de Leandro 10/11)
+- ✅ Puertas de muebles con su margen sombreado y aviso; copero, alacena y altura desde el piso.
+- ✅ Tirantes de madera y machimbre en los dos pisos; fichas plegables; del 3D a su tarjeta.
+  - 🟡 [ ] Validar sección y precio de los tirantes de madera (2" x 6" PB, 2" x 5" altillo) y si se compran por largo comercial (3,05 / 3,66 / 4,27 m).
+  - 🟢 [ ] Separación recomendada de tirantes de madera según la luz (tabla simple).
+  - 🟢 [ ] Seleccionar mesadas/tabiques en el 3D por sus placas (hoy por sus hierros).
+
 ## Exportación (v1.42.0, pedido de Leandro 10/11)
 - ✅ Solo planos; caños y perfiles (tipo, barras, dónde va); aberturas; partes de la obra y atajo "para quien cotiza paneles".
 - 🟢 [ ] Tabiques y mesadas dibujados en las plantas (hoy solo en la lista de caños).

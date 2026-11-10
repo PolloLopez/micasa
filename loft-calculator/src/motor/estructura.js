@@ -890,6 +890,7 @@ export function generarEstructura(params, aberturas, catalogo = null) {
     agregadas: piezasDeAgregadas(params.piezasAgregadas), // v1.16: duplicadas a mano
     mesadas: generarMesadas(params), // v1.38: estructura, revestimiento, tapa y estantes
     tabiques: generarTabiques(params), // v1.41: divisiones de Durlock con puerta
+    cubiertas: { piso: params.cubiertaPiso ?? 'osb', piso2: params.cubiertaPiso2 ?? 'osb' }, // v1.42.1: OSB o machimbre
     superficies: {
       piso: planta.largoU * planta.largoV,
       piso2: entrepiso ? entrepiso.largoU * entrepiso.largoV : 0,
@@ -932,6 +933,8 @@ function marcarPerfilesDePared(e, params) {
   const mesadas = new Map((params.mesadas ?? []).map((m) => [String(m.id), m]));
   return transformarPiezas(e, (p) => {
     // v1.38: la pieza de una mesada lleva el perfil de su mesada (también después de editarla a mano).
+    // v1.42.1: tirantes de madera (van al presupuesto por metro y se dibujan de madera).
+    if ((p.tipo === 'piso' && params.tirantesPiso === 'madera') || (p.tipo === 'piso2' && params.tirantesPiso2 === 'madera')) return { ...p, madera: true };
     if (p.tipo === 'tabique') { // v1.41: el perfil elegido para ese tabique
       const t = (params.tabiques ?? []).find((x) => String(x.id) === p.id.split(':')[1]);
       return t?.perfil ? { ...p, perfilPared: t.perfil, ladoPared: t.nombre, tabique: t.id } : { ...p, tabique: t?.id };
