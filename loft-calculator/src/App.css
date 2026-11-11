@@ -774,3 +774,13 @@ kbd {
 
 /* v1.44: vistas por partes en el PDF (dos por fila) */
 .vistas-partes { grid-template-columns: 1fr 1fr; }
+
+/* v1.46: cierre del presupuesto (mano de obra, imprevistos, ganancia, IVA). */
+.cierre-presupuesto { margin: 0.75rem 0; padding: 0.5rem 0.75rem; border: 1px solid var(--borde, #334155); border-radius: 8px; }
+.cierre-presupuesto > summary { cursor: pointer; }
+.cierre-presupuesto > summary small { color: var(--texto-suave); }
+.tabla-cierre { width: 100%; border-collapse: collapse; margin-top: 0.5rem; }
+.tabla-cierre td { padding: 0.25rem 0.4rem; border-bottom: 1px solid var(--borde, #334155); }
+.tabla-cierre td small { color: var(--texto-suave); }
+.tabla-cierre .subtotal-cierre td { font-weight: 600; }
+.tabla-cierre .fila-total td { font-weight: 700; font-size: 1.05rem; border-bottom: none; }

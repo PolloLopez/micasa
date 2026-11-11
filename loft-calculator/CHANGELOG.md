@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.46.0] - 2026-11-11
+### Agregado
+- **Cierre del presupuesto** (Presupuesto → "Mano de obra, imprevistos, ganancia e IVA"): de los materiales al precio
+  de la obra, en el orden de siempre: materiales + mano de obra = costo directo; + imprevistos % = costo total;
+  + ganancia % = precio sin IVA; + IVA (10,5 % vivienda, 21 % o 27 %) = **precio de la obra**.
+  La mano de obra se carga como un monto, por m² cubierto (planta baja + entrepiso), por kg de hierro o como % de
+  los materiales. El precio sale arriba, en la pestaña, en el PDF y en el Excel. De fábrica todo en 0 (nada cambia).
+
 ## [1.45.1] - 2026-11-11
 ### Agregado
 - **Capas → Estructura → "Lo enterrado"**: apagada, el 3D se corta a nivel del suelo y no se ven los pilotines ni las

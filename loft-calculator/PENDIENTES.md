@@ -55,7 +55,7 @@ Lo que ya está bien: cortes compartidos entre renglones del mismo perfil, merma
 barra por proveedor, flete con "gratis desde", lista de materiales con kilos, plan de compra por proveedor.
 
 ### 🔴 Importante
-- [ ] **El total no es un precio de obra**: suma solo materiales. Faltan mano de obra, consumibles, imprevistos,
+- [x] ✅ v1.46.0 **El total no es un precio de obra**: suma solo materiales. Faltan mano de obra, consumibles, imprevistos,
       margen e IVA (ya estaba en 🟡 Funcionalidad → Presupuesto; lo subo porque el total se lee como "lo que cuesta").
       Propuesta: un bloque de cierre "Materiales + Consumibles + Mano de obra (por kg de hierro, por m² o global)
       + Imprevistos % + Margen % + IVA (opcional) = Total", que salga igual en pantalla, PDF y Excel.

@@ -12,6 +12,7 @@ import CampoSelect from './CampoSelect.jsx';
 import { MAS_BARATO, faltanPrecios, usaPlanDeCompra, textoPedido, cantidadPedida, kilosDeMateriales, textoDeMateriales } from '../motor/proveedores.js';
 import { useEstadoGuardado } from '../hooks/useEstadoGuardado.js';
 import Tarjeta from './Tarjeta.jsx';
+import CierrePresupuesto from './CierrePresupuesto.jsx';
 import { BotonResaltar } from './Resaltar.jsx';
 import { useResaltar, criterioDeRenglon as criterioDe } from './contextoResaltado.js';
 
@@ -321,7 +322,7 @@ function ListaMateriales({ materiales, nombreProyecto }) {
 export default function TablaPresupuesto({
   items, total, gruposCortes = [], proveedores = [], proveedor, pago = 'efectivo', comparacion = [],
   onElegirProveedor, onElegirPago, onCambiarPrecio, plan = null, masBaratoDe = () => null, nombreProyecto = '',
-  materiales = [],
+  materiales = [], cierre = null, resultadoCierre = null, medidasCierre = { m2: 0, kg: 0 }, cambiar = null,
 }) {
   // v1.31.0: la sub-pestaña elegida se recuerda en este navegador.
   const [subpestana, setSubpestana] = useEstadoGuardado('subpestanaPresupuesto', 'materiales',
@@ -341,10 +342,18 @@ export default function TablaPresupuesto({
       {/* v1.31.0: el total de la obra siempre arriba, con la forma de pago (cambia todos los precios). */}
       <div className="resumen-presupuesto">
         <div className="total total-obra">
-          <span>{conPlan ? 'TOTAL DE LA OBRA' : 'TOTAL'}
-            <small>{conPlan ? 'comprando cada material donde conviene, con flete' : nombreProveedor ? `con ${nombreProveedor}` : ''}</small>
-          </span>
-          <span>{pesos(totalObra)}</span>
+          {/* v1.46: con mano de obra, imprevistos, ganancia o IVA, arriba va el precio (los materiales, en la letra chica). */}
+          {resultadoCierre?.conCierre ? (<>
+            <span>PRECIO DE LA OBRA
+              <small>materiales {pesos(totalObra)}{conPlan ? ' (comprando donde conviene, con flete)' : nombreProveedor ? ` con ${nombreProveedor}` : ''} + el cierre de abajo</small>
+            </span>
+            <span>{pesos(resultadoCierre.total)}</span>
+          </>) : (<>
+            <span>{conPlan ? 'TOTAL DE LA OBRA' : 'TOTAL'}
+              <small>{conPlan ? 'comprando cada material donde conviene, con flete' : nombreProveedor ? `con ${nombreProveedor}` : ''}</small>
+            </span>
+            <span>{pesos(totalObra)}</span>
+          </>)}
         </div>
         <div className="datos-resumen">
           {kilos > 0 && <span>≈ {Math.round(kilos).toLocaleString('es-AR')} kg de hierro</span>}
@@ -353,6 +362,10 @@ export default function TablaPresupuesto({
         </div>
         {conPlan && plan.nadieVende.length > 0 && <p className="falta">⚠ Ningún proveedor vende: {plan.nadieVende.join(', ')} (no está en el total).</p>}
       </div>
+
+      {cierre && resultadoCierre && cambiar && (
+        <CierrePresupuesto cierre={cierre} resultado={resultadoCierre} medidas={medidasCierre} cambiar={cambiar} />
+      )}
 
       <BarraSubpestanas activa={subpestana} onElegir={setSubpestana} />
 

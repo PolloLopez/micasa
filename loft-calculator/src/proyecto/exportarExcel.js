@@ -60,7 +60,7 @@ export const PARTES_EXCEL = { resumen: true, medidas: true, presupuesto: true, c
  * @param {object} datos { nombre, params, vistas: { paredes, plantas }, items, total, gruposCortes, proveedor, pago, resumen, medidas }
  * @param {object} partes { resumen, medidas, presupuesto, cortes, paredes, plantas } (true = va)
  */
-export function hojasDeObra({ nombre, params, vistas, items, total, gruposCortes = [], proveedor = '', pago = '', resumen = [], medidas = [], plan = null, materiales = [], aberturas = [] }, partes = PARTES_EXCEL) {
+export function hojasDeObra({ nombre, params, vistas, items, total, gruposCortes = [], proveedor = '', pago = '', resumen = [], medidas = [], plan = null, materiales = [], aberturas = [], cierre = null }, partes = PARTES_EXCEL) {
   const fecha = new Date().toLocaleDateString('es-AR');
   const hojas = [];
 
@@ -102,6 +102,14 @@ export function hojasDeObra({ nombre, params, vistas, items, total, gruposCortes
         obra.push(['  Flete', '', '', '', '', { pesos: c.flete }]);
       });
       if (plan.nadieVende.length) obra.push([`Ningún proveedor vende: ${plan.nadieVende.join(', ')}`]);
+    }
+    // v1.46: de los materiales al precio de la obra (mano de obra, imprevistos, ganancia, IVA).
+    if (cierre?.conCierre) {
+      obra.push([], { negrita: true, celdas: ['Precio de la obra'] },
+        ...cierre.renglones.map((r) => (r.subtotal
+          ? { negrita: true, celdas: [`= ${r.concepto}`, '', '', '', '', { pesos: r.monto }] }
+          : [`${r.clave === 'materiales' ? '' : '+ '}${r.concepto}`, r.detalle, '', '', '', { pesos: r.monto }])),
+        { negrita: true, celdas: ['PRECIO DE LA OBRA', '', '', '', '', { pesos: cierre.total }] });
     }
   }
   if (obra.length > 3) hojas.push({ nombre: 'Obra', anchos: [30, 60, 10, 10, 14, 16], filas: obra });

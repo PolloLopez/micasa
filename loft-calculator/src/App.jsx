@@ -48,7 +48,8 @@ import { generarEstructura, listarPiezas, infoSeparacion } from './motor/estruct
 import { CAMPOS_CON_CANTIDAD, MAXIMO_CANTIDAD, cantidadDe } from './motor/cantidades.js';
 import { calcularPresupuesto, CATALOGO_INICIAL, tiposDePanel } from './motor/presupuesto.js';
 import { resolverCatalogo, PERFIL_NUEVO, perfilesDeLista } from './motor/perfiles.js';
-import { proveedoresDe, aplicarProveedor, faltanPrecios, MAS_BARATO, planDeCompra, masBaratoEn, totalDeLaObra, listaDeMateriales } from './motor/proveedores.js';
+import { proveedoresDe, aplicarProveedor, faltanPrecios, MAS_BARATO, planDeCompra, masBaratoEn, totalDeLaObra, listaDeMateriales, kilosDeMateriales } from './motor/proveedores.js';
+import { cerrarPresupuesto } from './motor/cierre.js';
 import SelectorPerfil from './componentes/SelectorPerfil.jsx';
 import Planos from './componentes/Planos.jsx';
 import { todasLasVistas } from './motor/planos.js';
@@ -268,6 +269,12 @@ export default function App() {
   const totalObra = totalDeLaObra(total, planCompra, proveedores.length);
   // v1.31.0: todos los materiales de la obra, sin proveedor (sub-pestaña Materiales del presupuesto).
   const listaMateriales = useMemo(() => listaDeMateriales(items, resolverCatalogo(catalogo)), [items, catalogo]);
+  // v1.46: cierre: de los materiales al precio de la obra (mano de obra, imprevistos, ganancia e IVA).
+  const medidasCierre = {
+    m2: (estructura.superficies?.piso ?? 0) + (estructura.superficies?.piso2 ?? 0), // m² cubiertos
+    kg: kilosDeMateriales(listaMateriales),
+  };
+  const cierre = cerrarPresupuesto(totalObra, params.cierre, medidasCierre);
   // Catálogo con los precios elegidos (para los desplegables de perfiles y el 3D).
   const catalogoConPrecios = useMemo(() => aplicarProveedor(catalogo, proveedorElegido, formaPago), [catalogo, proveedorElegido, formaPago]);
   const paneles = useMemo(() => tiposDePanel(catalogo), [catalogo]);
@@ -287,7 +294,7 @@ export default function App() {
     { clave: 'estructura', nombre: esGrada ? 'Grada' : esMontaje ? 'Montaje' : 'Estructura', corto: esGrada ? 'Grada' : esMontaje ? 'Montaje' : 'Estruct.' },
     ...(esConstruccion ? [{ clave: 'paredes', nombre: 'Paredes y aberturas', corto: 'Paredes' }] : []),
     { clave: 'materiales', nombre: 'Materiales' },
-    { clave: 'presupuesto', nombre: 'Presupuesto', corto: 'Presup.', detalle: pesosCompletos(totalObra) },
+    { clave: 'presupuesto', nombre: 'Presupuesto', corto: 'Presup.', detalle: pesosCompletos(cierre.total) },
     { clave: 'planos', nombre: 'Planos' }, // v1.26: paredes y plantas acotadas, para imprimir y exportar
   ];
   // Si la guardada no existe en este tipo de proyecto (ej. "Paredes" en una grada), se usa la primera.
@@ -749,7 +756,7 @@ export default function App() {
     const bytes = libroDeObra({
       nombre: nombreProyecto, params, vistas, items, total, gruposCortes,
       proveedor: nombreProveedor, pago: textoPago, resumen, medidas: medidasFijas,
-      plan: proveedores.length > 1 ? planCompra : null, materiales: listaMateriales, aberturas: aberturasValidas,
+      plan: proveedores.length > 1 ? planCompra : null, materiales: listaMateriales, aberturas: aberturasValidas, cierre,
     }, opcionesImpresion);
     const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const enlace = document.createElement('a');
@@ -1431,7 +1438,8 @@ export default function App() {
             proveedores={proveedores} proveedor={proveedorElegido} pago={formaPago} comparacion={comparacion}
             onElegirProveedor={cambiar('proveedorElegido')} onElegirPago={cambiar('formaPago')}
             onCambiarPrecio={(item, valor) => cambiarPrecio(item.perfilId ?? item.id, proveedorElegido, formaPago, valor)}
-            plan={planCompra} nombreProyecto={nombreProyecto} materiales={listaMateriales} masBaratoDe={(item) => masBaratoEn(item, catalogoResuelto, formaPago)} />
+            plan={planCompra} nombreProyecto={nombreProyecto} materiales={listaMateriales} masBaratoDe={(item) => masBaratoEn(item, catalogoResuelto, formaPago)}
+            cierre={params.cierre} resultadoCierre={cierre} medidasCierre={medidasCierre} cambiar={cambiar} />
           </section>
           {/* v1.26: planos de cada pared y planta (en pantalla y en el PDF) + Excel. */}
           <section id="pestana-planos" role="tabpanel" aria-labelledby="boton-planos"
@@ -1445,7 +1453,7 @@ export default function App() {
         subtitulo={`${new Date().toLocaleDateString('es-AR')} · ${nombreProveedor ? `${nombreProveedor} ${textoPago}` : textoPago} · Pollo Calculator v${VERSION_APP}`}
         leyenda3D={cartelResaltado ? `Resaltado en rosa — ${cartelResaltado.replace(' (fijado)', '')}` : null}
         resumen={resumen} items={items} total={total} gruposCortes={gruposCortes} vistas={vistas} params={params}
-        plan={proveedores.length > 1 ? planCompra : null} materiales={listaMateriales} implantacion={implantacion} aberturas={aberturasValidas} />
+        plan={proveedores.length > 1 ? planCompra : null} materiales={listaMateriales} implantacion={implantacion} aberturas={aberturasValidas} cierre={cierre} />
     </div>
     </ContextoFoco>
     </ContextoResaltado>

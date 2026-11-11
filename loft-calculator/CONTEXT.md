@@ -223,6 +223,7 @@ techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 
 - 2026-10-23 v1.25.0: proveedores, precios en efectivo/tarjeta por proveedor, comparar presupuestos y "lo más barato de cada material".
 - 2026-10-23 v1.26.0: pestaña Planos (paredes y plantas acotadas, listas de corte, revestimiento), en el PDF y en Excel.
 - 2026-10-25 v1.30.0: link compacto (la mitad) y links cortos en Firebase para ver/editar que guardan los cambios.
+- 2026-11-11 v1.46.0: cierre del presupuesto (motor/cierre.js, params.cierre): MO + imprevistos sobre costo directo + ganancia sobre costo + IVA sobre precio; pantalla, PDF y Excel usan el mismo resultado.
 - 2026-11-11 v1.45.1: capa "Lo enterrado" (capas.bajoTierra): apagada pone un plano de corte global en el renderer (y ≥ −1,5 cm).
 - 2026-11-11 v1.45.0: personas (motor/personas.js datos; motor/recorrido.js grilla de 10 cm + A* + choques; personas3d.js muñeco articulado y poses), primera persona, paredes que tapan ocultas (ladosQueTapan + userData.ladosPared), mover muebles solo con "✥ Mover".
 - 2026-11-11 v1.44.0: mover/girar muebles desde el 3D (interiores.moverMueble/girarMueble, arrastre sobre plano horizontal en LoftCanvas), modo realista (RoomEnvironment + ACES) y vistas por partes (vistasFijas.vistasPorPartes, opción vistasPartes).

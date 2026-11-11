@@ -17,6 +17,7 @@ import { PlanoDePared, PlanoDePlanta } from './Planos.jsx';
 import PlanoImplantacion from './PlanoImplantacion.jsx';
 import { agruparBarras, textoBarra } from '../proyecto/cortesAgrupados.js';
 import { listaDePerfiles, listaDeAberturas, resumenDeAberturas, plantasElegidas } from '../proyecto/listasDePlanos.js';
+import { TablaCierre } from './CierrePresupuesto.jsx';
 
 const pesos = (n) => n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
 
@@ -107,7 +108,7 @@ function ListasDePlanos({ perfiles, aberturas }) {
 
 export default function HojasImpresion({
   opciones, capturas, nombre, subtitulo, leyenda3D, resumen, items, total, gruposCortes, vistas, params, plan = null, materiales = [], implantacion = null,
-  aberturas = [],
+  aberturas = [], cierre = null,
 }) {
   const fotos = capturas ?? { actual: null, fijas: [], medidas: [] };
   const conParedes = opciones.paredes && vistas.paredes.length > 0;
@@ -207,6 +208,11 @@ export default function HojasImpresion({
                   {plan.nadieVende.length > 0 && <p>Ningún proveedor vende: {plan.nadieVende.join(', ')}.</p>}
                 </div>
               )}
+              {/* v1.46: de los materiales al precio de la obra. */}
+              {cierre?.conCierre && (<>
+                <h2>Precio de la obra</h2>
+                <TablaCierre resultado={cierre} />
+              </>)}
             </>
           )}
           {/* v1.32: implantación (la casa en su lote), con las plantas. */}
