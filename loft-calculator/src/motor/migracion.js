@@ -51,6 +51,7 @@ import { completarEjes, completarPilotin } from './ejes.js';
 import { completarMesada, completarMueble } from './interiores.js';
 import { completarPersona } from './personas.js';
 import { completarCierre } from './cierre.js';
+import { completarSeguimiento } from './seguimiento.js';
 import { completarTabique } from './tabiques.js';
 import { completarSol } from './sol.js';
 import { GRADA_INICIAL } from './grada.js';
@@ -118,6 +119,7 @@ export function migrarParams(params) {
   nuevos.tabiques = Array.isArray(nuevos.tabiques) ? nuevos.tabiques.map(completarTabique) : []; // v1.41
   nuevos.muebles = Array.isArray(nuevos.muebles) ? nuevos.muebles.map(completarMueble) : []; // v1.38.1: con cartel
   nuevos.personas = Array.isArray(nuevos.personas) ? nuevos.personas.map(completarPersona) : []; // v1.45
+  nuevos.seguimiento = completarSeguimiento(nuevos.seguimiento); // v1.47: pagos, contratos y avance
   nuevos.cierre = completarCierre(nuevos.cierre); // v1.46: mano de obra, imprevistos, ganancia e IVA (de fábrica en 0)
   nuevos.sol = completarSol(nuevos.sol); // v1.37: Mercedes // v1.33: con descuentos en los cruces (lo correcto)
   nuevos.piezasEditadas ??= {}; // v1.8

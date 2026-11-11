@@ -50,6 +50,9 @@ import { calcularPresupuesto, CATALOGO_INICIAL, tiposDePanel } from './motor/pre
 import { resolverCatalogo, PERFIL_NUEVO, perfilesDeLista } from './motor/perfiles.js';
 import { proveedoresDe, aplicarProveedor, faltanPrecios, MAS_BARATO, planDeCompra, masBaratoEn, totalDeLaObra, listaDeMateriales, kilosDeMateriales } from './motor/proveedores.js';
 import { cerrarPresupuesto } from './motor/cierre.js';
+import { useSinCambiosSalvo } from './hooks/useSinCambiosSalvo.js';
+import { partesDelPresupuesto, resumenSeguimiento } from './motor/seguimiento.js';
+import PanelSeguimiento from './componentes/PanelSeguimiento.jsx';
 import SelectorPerfil from './componentes/SelectorPerfil.jsx';
 import Planos from './componentes/Planos.jsx';
 import { todasLasVistas } from './motor/planos.js';
@@ -144,6 +147,8 @@ export default function App() {
   const [aberturas, setAberturas] = useEstadoGuardado('aberturas', ABERTURAS_INICIALES, aberturasGuardadasValidas);
   const [catalogo, setCatalogo] = useEstadoGuardado('catalogo', CATALOGO_INICIAL, catalogoGuardadoValido, normalizarCatalogo);
   const params = useMemo(() => conPanelesExistentes(paramsGuardados, catalogo), [paramsGuardados, catalogo]);
+  // v1.47: los mismos params sin el seguimiento: cargar un pago no recalcula la estructura, el presupuesto ni el 3D.
+  const paramsObra = useSinCambiosSalvo(params, ['seguimiento']);
   const [colores, setColores] = useEstadoGuardado('colores', COLORES_INICIALES, coloresValidos, completarColores);
   // Opacidad del 3D (por navegador, como ver u ocultar el 3D): paneles, OSB y hierros.
   // Las guardadas antes de v1.24 no tienen "juntas": se completan con las de fábrica (no se pierden las demás).
@@ -236,7 +241,7 @@ export default function App() {
     [aberturas, params]
   );
   // v1.33: con el catálogo, las piezas que se cruzan se cortan contra la que queda entera (uniones).
-  const estructura = useMemo(() => generarEstructura(params, aberturasValidas, catalogo), [params, aberturasValidas, catalogo]);
+  const estructura = useMemo(() => generarEstructura(paramsObra, aberturasValidas, catalogo), [paramsObra, aberturasValidas, catalogo]);
   const esGrada = params.tipoProyecto === 'grada'; // proyecto de grada: otra pantalla de datos
   const esMontaje = params.tipoProyecto === 'montaje'; // montaje industrial: mesas, tanques...
   const esConstruccion = !esGrada && !esMontaje;
@@ -275,14 +280,21 @@ export default function App() {
     kg: kilosDeMateriales(listaMateriales),
   };
   const cierre = cerrarPresupuesto(totalObra, params.cierre, medidasCierre);
+  // v1.47: lo que dice el presupuesto de cada parte (un rubro por proveedor y la mano de obra), para el seguimiento.
+  const conPlanDeCompra = proveedores.length > 1 && planCompra?.compras?.length > 0;
+  const partesSeguimiento = partesDelPresupuesto({
+    compras: conPlanDeCompra ? planCompra.compras : [], materiales: totalObra, cierre,
+    nombreProveedor: proveedores.find((p) => p.id === proveedorElegido)?.nombre ?? '',
+  });
+  const resumenObra = resumenSeguimiento(params.seguimiento, partesSeguimiento);
   // Catálogo con los precios elegidos (para los desplegables de perfiles y el 3D).
   const catalogoConPrecios = useMemo(() => aplicarProveedor(catalogo, proveedorElegido, formaPago), [catalogo, proveedorElegido, formaPago]);
   const paneles = useMemo(() => tiposDePanel(catalogo), [catalogo]);
   // v1.21: cada uso con el nombre, la barra y el precio de su perfil (para el 3D y el editor de piezas).
   const catalogoResuelto = useMemo(() => resolverCatalogo(catalogoConPrecios), [catalogoConPrecios]);
   // v1.26: cada pared y planta en 2D (pestaña Planos, PDF y Excel).
-  const vistas = useMemo(() => todasLasVistas(estructura, params, catalogoResuelto, aberturasValidas),
-    [estructura, params, catalogoResuelto, aberturasValidas]);
+  const vistas = useMemo(() => todasLasVistas(estructura, paramsObra, catalogoResuelto, aberturasValidas),
+    [estructura, paramsObra, catalogoResuelto, aberturasValidas]);
 
   // --- Pestañas del panel (v1.18) ---
   // La elegida se recuerda por navegador. En el celular hay una más, "3D" (vistaMovil):
@@ -296,6 +308,8 @@ export default function App() {
     { clave: 'materiales', nombre: 'Materiales' },
     { clave: 'presupuesto', nombre: 'Presupuesto', corto: 'Presup.', detalle: pesosCompletos(cierre.total) },
     { clave: 'planos', nombre: 'Planos' }, // v1.26: paredes y plantas acotadas, para imprimir y exportar
+    // v1.47: pagos, contratos y avance de la obra.
+    { clave: 'obra', nombre: 'Obra', corto: 'Obra', detalle: resumenObra.rubros > 0 ? `pagado ${pesosCompletos(resumenObra.pagado)}` : undefined },
   ];
   // Si la guardada no existe en este tipo de proyecto (ej. "Paredes" en una grada), se usa la primera.
   const pestanaActiva = pestanas.some((p) => p.clave === pestanaGuardada && !p.soloMovil) ? pestanaGuardada : 'estructura';
@@ -996,7 +1010,7 @@ export default function App() {
 
       <main className={`layout${ver3D ? '' : ' sin-visor'} movil-${vistaMovil}`}>
         <div className="columna-visor">
-          <LoftCanvas params={params} estructura={estructura} aberturas={aberturasValidas} paneles={paneles}
+          <LoftCanvas params={paramsObra} estructura={estructura} aberturas={aberturasValidas} paneles={paneles}
             colores={colores} catalogo={catalogoResuelto} unidad={unidad}
             opacidades={opacidades} onCambiarOpacidad={cambiarOpacidad} capturaRef={capturaRef} onMedidasFijas={setMedidasFijas}
             onCambiarColor={cambiarColor} onEliminarPieza={eliminarPieza} onEditarPieza={editarPieza} onElegir={elegirDesde3D}
@@ -1445,6 +1459,10 @@ export default function App() {
           <section id="pestana-planos" role="tabpanel" aria-labelledby="boton-planos"
             className={`pestana${pestanaActiva === 'planos' ? '' : ' oculta'}`}>
             <Planos vistas={vistas} params={params} implantacion={implantacion} onExportar={() => setDialogoImprimir(true)} />
+          </section>
+          <section id="pestana-obra" role="tabpanel" aria-labelledby="boton-obra"
+            className={`pestana${pestanaActiva === 'obra' ? '' : ' oculta'}`}>
+            <PanelSeguimiento params={params} partes={partesSeguimiento} precioObra={cierre.total} cambiar={cambiar} />
           </section>
         </div>
       </main>

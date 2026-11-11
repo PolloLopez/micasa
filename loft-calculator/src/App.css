@@ -784,3 +784,21 @@ kbd {
 .tabla-cierre td small { color: var(--texto-suave); }
 .tabla-cierre .subtotal-cierre td { font-weight: 600; }
 .tabla-cierre .fila-total td { font-weight: 700; font-size: 1.05rem; border-bottom: none; }
+
+/* v1.47: seguimiento de la obra (pagos, contratos y avance). */
+.resumen-seguimiento { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.5rem; margin: 0.5rem 0; }
+.resumen-seguimiento > div { display: flex; flex-direction: column; padding: 0.4rem 0.6rem; border: 1px solid var(--borde, #334155); border-radius: 8px; }
+.resumen-seguimiento small { color: var(--texto-suave); }
+.barra-pagado { height: 8px; border-radius: 4px; background: var(--borde, #334155); overflow: hidden; margin: 0.4rem 0; }
+.barra-pagado > span { display: block; height: 100%; background: #22c55e; }
+.chip-estado { font-size: 0.72rem; padding: 0.1rem 0.45rem; border-radius: 999px; margin-right: 0.4rem; background: #475569; color: #fff; }
+.chip-estado.estado-contratado { background: #2563eb; }
+.chip-estado.estado-enCurso { background: #ca8a04; }
+.chip-estado.estado-terminado { background: #16a34a; }
+.lista-pagos { list-style: none; padding: 0; margin: 0.3rem 0; display: flex; flex-direction: column; gap: 0.35rem; }
+.lista-pagos .pago { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: flex-end; padding-bottom: 0.35rem; border-bottom: 1px dashed var(--borde, #334155); }
+.lista-pagos .pago .group { margin: 0; flex: 0 1 8rem; }
+.lista-pagos .pago > input[type=text] { flex: 1 1 12rem; min-width: 0; }
+input[type=date] { color-scheme: dark; }
+.detalle-rubro { width: 100%; margin-top: 0.4rem; }
+.acciones-seguimiento { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; }

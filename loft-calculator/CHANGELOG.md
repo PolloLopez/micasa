@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.47.0] - 2026-11-11
+### Agregado
+- **Pestaña "Obra" (seguimiento)**: lo contratado, lo pagado y lo terminado, por rubro.
+  - "Armar desde el presupuesto" agrega un rubro por proveedor (o uno de materiales) y la mano de obra del cierre; lo
+    presupuestado de esos rubros se actualiza solo si cambian las medidas o los precios. También rubros a mano
+    (electricista, plomero, flete…).
+  - Cada rubro: quién lo hace, estado (pendiente, contratado, en curso, terminado), monto contratado (si se cerró
+    distinto de lo presupuestado), fecha de contrato y de fin, detalle y **pagos parciales** (fecha, monto, medio y
+    nota). Muestra lo pagado, lo que falta y si se pagó de más.
+  - Arriba, el resumen de la obra: presupuestado, contratado, pagado, falta pagar y rubros terminados. La pestaña
+    muestra cuánto va pagado.
+
 ## [1.46.0] - 2026-11-11
 ### Agregado
 - **Cierre del presupuesto** (Presupuesto → "Mano de obra, imprevistos, ganancia e IVA"): de los materiales al precio

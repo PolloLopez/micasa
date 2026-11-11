@@ -49,6 +49,12 @@
 - ✅ Etiquetas de mesadas y muebles en el 3D, apagables una por una y por capa (v1.38.1).
 - ✅ **Sol más fuerte** (v1.38.0): intensidad regulable (50–300 %, 150 % de fábrica).
 
+## v1.47.0 Seguimiento de la obra (pedido de Leandro 11/11)
+- ✅ Rubros con estado, contrato, fechas y pagos parciales; armar desde el presupuesto; resumen de la obra.
+  - 🟡 [ ] Seguimiento en el PDF y en el Excel (hoy solo en pantalla).
+  - 🟢 [ ] Comprobantes (foto o PDF del recibo): necesita dónde guardarlos (Firebase Storage o Django).
+  - 🟢 [ ] Si crece (varias obras, usuarios, comprobantes, historial), pasarlo a la app Django (opción B de Construcción Modular) y escribir el ADR.
+
 ## Revisión de presupuesto y materiales (11/11, pedido de Leandro) — sin cambios aplicados
 Revisado: motor/presupuesto.js, proveedores.js, revestimientos.js, optimizadorCortes.js, TablaPresupuesto y el PDF.
 Lo que ya está bien: cortes compartidos entre renglones del mismo perfil, merma por corte (3 mm), excedente de
