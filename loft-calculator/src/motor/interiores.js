@@ -439,6 +439,7 @@ export function validarMesada(m, params) {
   if (!['piso', 'piso2'].includes(m.nivel)) return 'Elegí planta baja o piso 2';
   if (typeof m.nombre !== 'string' || m.nombre.length > 40) return 'El nombre puede tener hasta 40 letras';
   if (m.mostrarEtiqueta !== undefined && typeof m.mostrarEtiqueta !== 'boolean') return 'Valor inválido';
+  if (m.apoyado !== undefined && typeof m.apoyado !== 'boolean') return 'Valor inválido'; // v1.49
   if (!colorOpcional(m.colorTapa) || !colorOpcional(m.colorEstantes)) return 'Color inválido';
   // Largo de cada tramo (huecos y bachas se miden en su tramo, desde su punta izquierda).
   const largos = Object.fromEntries(tramosDeMesada(params, { ...m, forma }).map((t) => [t.clave, t.largo]));
@@ -487,9 +488,9 @@ export const TIPOS_MUEBLE = {
   // v1.48: electrodomésticos chicos (pedido de Leandro). Los de mesada arrancan apoyados a 0,95 m (alto de mesada) y
   // el televisor colgado a 1 m; la altura se cambia en la ficha.
   televisor: { nombre: 'Televisor', grupo: 'electro', ancho: 1.23, profundidad: 0.06, alto: 0.71, material: 'negro', forma: 'tv', elevacion: 1 },
-  cafetera: { nombre: 'Cafetera', grupo: 'electro', ancho: 0.2, profundidad: 0.25, alto: 0.35, material: 'negro', forma: 'cafetera', elevacion: 0.95 },
-  hornoAire: { nombre: 'Horno de aire (air fryer)', grupo: 'electro', ancho: 0.3, profundidad: 0.35, alto: 0.32, material: 'negro', forma: 'hornoAire', elevacion: 0.95 },
-  maquinaPan: { nombre: 'Máquina de pan', grupo: 'electro', ancho: 0.25, profundidad: 0.35, alto: 0.3, material: 'blanco', forma: 'maquinaPan', elevacion: 0.95 },
+  cafetera: { nombre: 'Cafetera', grupo: 'electro', ancho: 0.2, profundidad: 0.25, alto: 0.35, material: 'negro', apoyable: true, forma: 'cafetera', elevacion: 0.95 },
+  hornoAire: { nombre: 'Horno de aire (air fryer)', grupo: 'electro', ancho: 0.3, profundidad: 0.35, alto: 0.32, material: 'negro', apoyable: true, forma: 'hornoAire', elevacion: 0.95 },
+  maquinaPan: { nombre: 'Máquina de pan', grupo: 'electro', ancho: 0.25, profundidad: 0.35, alto: 0.3, material: 'blanco', apoyable: true, forma: 'maquinaPan', elevacion: 0.95 },
   otro: { nombre: 'Otro', grupo: 'muebles', ancho: 1, profundidad: 0.6, alto: 0.8, material: 'madera', forma: 'caja' },
 };
 
@@ -875,3 +876,83 @@ export function completarMueble(m) {
     elevacion: Number.isFinite(base.elevacion) ? base.elevacion : 0,
   };
 }
+
+// ---------- v1.49: el mueble contra las paredes y lo demás; apoyarlo sobre una mesada ----------
+
+const NOMBRE_PARED = { izquierda: 'el lateral izquierdo', derecha: 'el lateral derecho', frente: 'el frente', fondo: 'el fondo' };
+
+/** ¿Dos rectángulos en planta se pisan? (separación de ejes: alcanza con probar los 4 ejes de los dos) */
+function sePisan(a, b) {
+  const ejes = [a.u, a.v, b.u, b.v];
+  const d = [b.centro[0] - a.centro[0], b.centro[1] - a.centro[1]];
+  const radio = (r, e) => r.mu * Math.abs(r.u[0] * e[0] + r.u[1] * e[1]) + r.mv * Math.abs(r.v[0] * e[0] + r.v[1] * e[1]);
+  return ejes.every((e) => Math.abs(d[0] * e[0] + d[1] * e[1]) < radio(a, e) + radio(b, e) - 0.005);
+}
+
+/** El mueble como rectángulo en planta (centro, ejes y medias medidas) con su alto. */
+function rectanguloDelMueble(params, m) {
+  const { centro, angulo } = ubicarMueble(params, m);
+  const [c, s] = [Math.cos(angulo), Math.sin(angulo)];
+  const e = m.elevacion ?? 0;
+  return { centro, u: [c, -s], v: [s, c], mu: m.ancho / 2, mv: m.profundidad / 2, y0: e, y1: e + m.alto };
+}
+
+/**
+ * v1.49: con qué choca el mueble. `paredes`: por dónde se sale de la planta y cuánto; `con`: nombres de los muebles,
+ * mesadas y tabiques que se pisan con él a la misma altura (lo que está apoyado arriba de otra cosa no choca con ella).
+ * @returns {{ paredes: { pared, nombre, sale }[], con: string[] }}
+ */
+export function choquesDelMueble(params, m) {
+  const d = distanciasDelMueble(params, m);
+  const paredes = Object.entries(d).filter(([, v]) => v < -0.005).map(([pared, v]) => ({ pared, nombre: NOMBRE_PARED[pared], sale: -v }));
+  const yo = rectanguloDelMueble(params, m);
+  const con = obstaculosDelNivel(params, m.nivel ?? 'piso', { sinMueble: m.id })
+    .filter((o) => o.y0 < yo.y1 - 0.01 && o.y1 > yo.y0 + 0.01 && sePisan(yo, o))
+    .map((o) => o.nombre);
+  return { paredes, con: [...new Set(con)] };
+}
+
+/** Texto del aviso ("⚠ Se sale por el fondo 0,35 m · choca con Sillón"), o '' si no choca. */
+export function avisoDeChoques({ paredes, con }) {
+  const f2 = (n) => n.toFixed(2).replace('.', ',');
+  const partes = [
+    ...paredes.map((p) => `se sale por ${p.nombre} ${f2(p.sale)} m`),
+    ...(con.length ? [`choca con ${con.join(', ')}`] : []),
+  ];
+  return partes.length ? `⚠ ${partes.join(' · ').replace(/^./, (l) => l.toUpperCase())}` : '';
+}
+
+/**
+ * v1.49: lo deja adentro de la planta (si entra): corre las distancias negativas a 0. Lo usa el arrastre del 3D, para
+ * que no quede medio sillón afuera. Si no entra de ancho o de fondo, lo deja centrado en ese sentido.
+ */
+export function encerrarEnLaPlanta(params, m) {
+  const { ancho, fondo } = plantaPorDentro(params);
+  const { anchoPlanta, profPlanta } = ocupaEnPlanta(m);
+  const d = distanciasDelMueble(params, m);
+  const acomodar = (desde, hasta, total, ocupa) => {
+    if (ocupa >= total) return (total - ocupa) / 2; // no entra: centrado
+    return Math.min(Math.max(desde, 0), total - ocupa); // la distancia a "desde", entre 0 y lo que sobra
+  };
+  const izquierda = acomodar(d.izquierda, d.derecha, ancho, anchoPlanta);
+  const frente = acomodar(d.frente, d.fondo, fondo, profPlanta);
+  return {
+    ...m,
+    distanciaLateral: redondearCm(m.desdeLateral === 'derecho' ? ancho - izquierda - anchoPlanta : izquierda) + 0, // + 0: sin -0
+    distanciaFrente: redondearCm(m.desdeFrente === 'fondo' ? fondo - frente - profPlanta : frente) + 0,
+  };
+}
+
+/**
+ * v1.49: a qué altura queda apoyado un mueble chico (cafetera, horno de aire…) en el lugar donde está: arriba de la
+ * mesada o del mueble que tenga abajo (el más alto que pise su centro), o en el piso. Los tabiques no cuentan.
+ */
+export function alturaDeApoyo(params, m) {
+  const { centro } = ubicarMueble(params, m);
+  const debajo = obstaculosDelNivel(params, m.nivel ?? 'piso', { sinMueble: m.id })
+    .filter((o) => Number.isFinite(o.y1) && o.y1 < 2.5 && dentro({ ...o, mu: o.mu + 0.005, mv: o.mv + 0.005 }, centro));
+  return redondearCm(Math.max(0, ...debajo.map((o) => o.y1)));
+}
+
+/** ¿El mueble se apoya solo sobre lo que tenga abajo? (los electrodomésticos chicos, de fábrica) */
+export const seApoya = (m) => m.apoyado ?? Boolean(TIPOS_MUEBLE[m.tipo]?.apoyable);

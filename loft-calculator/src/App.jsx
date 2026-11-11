@@ -12,7 +12,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import LoftCanvas from './LoftCanvas.jsx';
 import { ContextoFoco, focoDe } from './componentes/contextoFoco.js';
-import { moverMueble, girarMueble } from './motor/interiores.js';
+import { moverMueble, encerrarEnLaPlanta, alturaDeApoyo, seApoya, girarMueble } from './motor/interiores.js';
 import CampoNumero from './componentes/CampoNumero.jsx';
 import CampoOpcional from './componentes/CampoOpcional.jsx';
 import CampoSeparacion from './componentes/CampoSeparacion.jsx';
@@ -41,7 +41,7 @@ import PanelGrada from './componentes/PanelGrada.jsx';
 import PanelMontaje from './componentes/PanelMontaje.jsx';
 import TablaPresupuesto from './componentes/TablaPresupuesto.jsx';
 import { useEstadoGuardado } from './hooks/useEstadoGuardado.js';
-import { validarParametros, validarAbertura, copiarAbertura, LARGO_MAXIMO_ETIQUETA } from './motor/validacion.js';
+import { validarParametros, validarAbertura, copiarAbertura, moverAbertura, LARGO_MAXIMO_ETIQUETA } from './motor/validacion.js';
 import { esEdicionVacia } from './motor/edicionPiezas.js';
 import { duplicarPieza, PREFIJO_AGREGADA } from './motor/piezasAgregadas.js';
 import { generarEstructura, listarPiezas, infoSeparacion } from './motor/estructura.js';
@@ -334,13 +334,19 @@ export default function App() {
     document.getElementById(`pared-${foco.item.slice(6)}`)?.parentElement?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
   }, [foco]);
   // v1.44: mover y girar muebles desde el 3D (arrastrando, con las flechas o con los botones).
+  // v1.49: desde el 3D el mueble no puede quedar afuera de la planta (se frena en la pared) y, si se apoya solo
+  // (cafetera, horno de aire…), sube o baja a la mesada o el mueble que tenga abajo.
+  const acomodarMueble = (m) => {
+    const adentro = encerrarEnLaPlanta(params, m);
+    return seApoya(adentro) ? { ...adentro, elevacion: alturaDeApoyo(params, adentro) } : adentro;
+  };
   const moverMuebleDesde3D = (id, dx, dz) => {
     const i = params.muebles.findIndex((m) => m.id === id);
-    if (i >= 0) cambiar(`muebles.${i}`)(moverMueble(params, params.muebles[i], dx, dz));
+    if (i >= 0) cambiar(`muebles.${i}`)(acomodarMueble(moverMueble(params, params.muebles[i], dx, dz)));
   };
   const girarMuebleDesde3D = (id, sentido) => {
     const i = params.muebles.findIndex((m) => m.id === id);
-    if (i >= 0) cambiar(`muebles.${i}`)(girarMueble(params.muebles[i], sentido));
+    if (i >= 0) cambiar(`muebles.${i}`)(acomodarMueble(girarMueble(params.muebles[i], sentido)));
   };
   const lados = useMemo(() => geometriaLados(params), [params]);
   // v1.32: la casa en su terreno (distancias, avisos) y el pedido para que el 3D muestre todo el lote.
@@ -521,6 +527,16 @@ export default function App() {
   const actualizarAbertura = (abertura) =>
     setAberturas((prev) => prev.map((op) => (op.id === abertura.id ? abertura : op)));
   const quitarAbertura = (id) => setAberturas((prev) => prev.filter((op) => op.id !== id));
+  /** v1.49: mover una abertura desde el 3D (du por la pared, dv el antepecho). Devuelve el problema si no entra. */
+  const moverAberturaDesde3D = (id, du, dv) => {
+    const op = aberturas.find((x) => x.id === id);
+    if (!op) return null;
+    const nueva = moverAbertura(op, params, du, dv);
+    const error = validarAbertura(nueva, params);
+    if (error) return `No se movió: ${error}`;
+    actualizarAbertura(nueva);
+    return null;
+  };
 
   // --- Piezas eliminadas a mano (se guardan en params.piezasEliminadas) ---
   // Una pieza agregada a mano (agr:…) se saca de su lista; las del motor van a "eliminadas".
@@ -1015,7 +1031,7 @@ export default function App() {
             opacidades={opacidades} onCambiarOpacidad={cambiarOpacidad} capturaRef={capturaRef} onMedidasFijas={setMedidasFijas}
             onCambiarColor={cambiarColor} onEliminarPieza={eliminarPieza} onEditarPieza={editarPieza} onElegir={elegirDesde3D}
             onMoverMueble={moverMuebleDesde3D} onGirarMueble={girarMuebleDesde3D}
-            onActualizarAbertura={actualizarAbertura} onQuitarAbertura={quitarAbertura}
+            onActualizarAbertura={actualizarAbertura} onQuitarAbertura={quitarAbertura} onMoverAbertura={moverAberturaDesde3D}
             onPegarAbertura={pegarAbertura} onDuplicarPieza={duplicarPiezaElegida}
             resaltado={resaltado} cartelResaltado={cartelResaltado}
             onSoltarResaltado={resaltadoFijo ? () => { setResaltadoFijo(null); setResaltadoMouse(null); } : null}

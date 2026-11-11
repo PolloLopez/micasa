@@ -71,6 +71,7 @@ export function crearFigura(persona) {
   };
   const raiz = new THREE.Group();
   raiz.userData.idPersona = persona.id;
+  raiz.rotation.order = 'YXZ'; // v1.49: primero hacia dónde mira, después se acuesta (gira sobre su costado)
   const cadera = articulacion(raiz, [0, m.muslo + m.pantorrilla + m.pie, 0]);
 
   // Pelvis (más ancha en la mujer) y torso, que se inclina desde la cadera.
@@ -190,14 +191,25 @@ export function angulosDePose(pose, fase = 0) {
   if (pose === 'estirarse') {
     return { ...QUIETA, hombroI: -2.75, codoI: -0.1, hombroD: -2.85, codoD: -0.1, torso: -0.06, cabeza: -0.35, puntas: 1 };
   }
+  if (pose === 'sentado') {
+    // v1.49: los muslos para adelante, las piernas para abajo y las manos sobre las rodillas.
+    return { ...QUIETA, ingleI: -1.5, rodillaI: 1.5, ingleD: -1.5, rodillaD: 1.5, torso: -0.08, hombroI: -0.45, codoI: -0.7, hombroD: -0.45, codoD: -0.7 };
+  }
+  if (pose === 'acostado') {
+    // v1.49: derecha (el muñeco entero se acuesta girándolo; ver actualizar), los brazos al costado.
+    return { ...QUIETA, hombroI: 0.1, hombroD: 0.1, codoI: -0.05, codoD: -0.05 };
+  }
   if (pose === 'alcanzar') {
     return { ...QUIETA, hombroD: -1.45, codoD: -0.15, hombroI: 0.1, torso: 0.15, cabeza: 0.15 };
   }
   return { ...QUIETA };
 }
 
-/** Lleva la figura de a poco hacia los ángulos pedidos (`mezcla` de 0 a 1) y apoya los pies en el piso. */
-export function aplicarPose(figura, objetivo, mezcla) {
+/**
+ * Lleva la figura de a poco hacia los ángulos pedidos (`mezcla` de 0 a 1) y apoya los pies en el piso.
+ * `alturaCadera` (v1.49): sentada, la cadera va a la altura del asiento (y no a lo que llegan las piernas).
+ */
+export function aplicarPose(figura, objetivo, mezcla, alturaCadera = null) {
   const { juntas: j, medidas: m } = figura;
   const actual = figura.angulos ?? (figura.angulos = { ...QUIETA });
   Object.keys(objetivo).forEach((k) => { actual[k] += (objetivo[k] - actual[k]) * mezcla; });
@@ -209,7 +221,10 @@ export function aplicarPose(figura, objetivo, mezcla) {
   j.hombroD.rotation.z = -0.25 * Math.min(1, -Math.min(0, actual.hombroD) / 2.7);
   // Alto de la cadera: lo que llega la pierna más estirada (así un pie queda siempre en el piso).
   const alto = (ingle, rodilla) => m.muslo * Math.cos(ingle) + m.pantorrilla * Math.cos(ingle + rodilla) + m.pie;
-  j.cadera.position.y = Math.max(alto(actual.ingleI, actual.rodillaI), alto(actual.ingleD, actual.rodillaD)) + actual.puntas * 0.03 * m.H;
+  const deLasPiernas = Math.max(alto(actual.ingleI, actual.rodillaI), alto(actual.ingleD, actual.rodillaD)) + actual.puntas * 0.03 * m.H;
+  const buscada = alturaCadera ?? deLasPiernas;
+  j.cadera.position.y = alturaCadera === null && figura.sinAsiento !== false ? deLasPiernas : j.cadera.position.y + (buscada - j.cadera.position.y) * mezcla;
+  figura.sinAsiento = alturaCadera === null && Math.abs(j.cadera.position.y - deLasPiernas) < 0.01;
 }
 
 /** A qué altura (desde el piso) están los ojos ahora (agachada, más abajo). */
@@ -315,12 +330,14 @@ export function crearPersonasEnEscena(escena) {
    * Manda a una persona a un punto (caminando por donde se puede). Al llegar mira hacia `mirarA` y hace `accion`
    * ('agacharse', 'estirarse', 'alcanzar' o null). @returns false si no hay forma de llegar
    */
-  function ordenar(id, hasta, { accion = null, mirarA = null } = {}) {
+  function ordenar(id, hasta, { accion = null, mirarA = null, uso = null } = {}) {
     const p = personas.get(id);
     if (!p) return false;
     const camino = buscarCamino(mapaDe(p.datos.nivel), p.pos, hasta);
-    if (camino.length === 0) return false;
-    Object.assign(p, { camino, accion, mirarA, tiempoAccion: 0 });
+    // Si ya está ahí (o al lado), igual hace lo pedido.
+    if (camino.length === 0 && Math.hypot(hasta[0] - p.pos[0], hasta[1] - p.pos[1]) > 0.4) return false;
+    // v1.49: `uso`: sentarse o acostarse al llegar (ver lugarParaUsar); los perros no.
+    Object.assign(p, { camino, accion, mirarA, tiempoAccion: 0, uso: esPerro(p.datos) ? null : uso, usando: null });
     return true;
   }
 
@@ -393,6 +410,7 @@ export function crearPersonasEnEscena(escena) {
         if (perro && p.esperando > 3) { p.camino = []; p.esperando = 0; }
       } else if (manejada && control.avance) {
         p.esperando = 0;
+        p.usando = null; // se levanta
         // Con el teclado: deja lo que estaba haciendo y avanza (deslizándose contra paredes y muebles).
         p.camino = [];
         p.accion = null;
@@ -418,6 +436,13 @@ export function crearPersonasEnEscena(escena) {
         }
         pose = 'caminar';
         if (p.camino.length === 0 && p.accion) p.tiempoAccion = DURACION_ACCION; // llegó: ahora la acción
+        if (p.camino.length === 0 && p.uso) { p.usando = p.uso.accion ? p.uso : null; p.uso = null; } // llegó: se sienta o se acuesta
+      } else if (p.uso && p.camino.length === 0) {
+        p.usando = p.uso.accion ? p.uso : null; // ya estaba al lado
+        p.uso = null;
+      } else if (p.usando) {
+        pose = p.usando.accion === 'acostarse' ? 'acostado' : 'sentado';
+        rumboBuscado = p.usando.rumbo;
       } else if (p.tiempoAccion > 0) {
         p.tiempoAccion -= dt;
         pose = p.accion;
@@ -433,10 +458,15 @@ export function crearPersonasEnEscena(escena) {
       p.fase += (caminado / (0.35 * p.datos.altura)) * Math.PI * 0.5;
       p.pose = pose;
       if (p.figura) {
-        p.figura.raiz.position.set(p.pos[0], mapa?.y ?? 0, p.pos[1]);
+        const u = p.usando && (pose === 'sentado' || pose === 'acostado') ? p.usando : null;
+        const acostada = u?.accion === 'acostarse';
+        // Sentada: la cadera sobre el asiento; acostada: sobre el colchón, el cuerpo de espaldas (unos 10 cm de alto).
+        const [x, z] = u ? u.sitio : p.pos;
+        p.figura.raiz.position.set(x, (mapa?.y ?? 0) + (acostada ? u.altura + 0.1 * p.datos.altura / 1.7 : 0), z);
         p.figura.raiz.rotation.y = p.rumbo;
+        p.figura.raiz.rotation.x += ((acostada ? -Math.PI / 2 : 0) - p.figura.raiz.rotation.x) * mezcla;
         if (perro) animarPerro(p.figura, pose === 'agacharse' ? 'olfatear' : pose, p.fase, dt, mezcla);
-        else aplicarPose(p.figura, angulosDePose(pose, p.fase), mezcla);
+        else aplicarPose(p.figura, angulosDePose(pose, p.fase), mezcla, u && !acostada ? u.altura : null);
       }
     });
   }
@@ -453,7 +483,8 @@ export function crearPersonasEnEscena(escena) {
     if (!p) return null;
     const y = mapaDe(p.datos.nivel)?.y ?? 0;
     const ojos = p.figura ? (p.figura.esPerro ? ojosDelPerro(p.figura) : alturaDeOjos(p.figura)) : (p.pose === 'agacharse' ? 0.55 : 0.94) * p.datos.altura;
-    return { x: p.pos[0], z: p.pos[1], y, ojos, rumbo: p.rumbo, altura: p.datos.altura, nivel: p.datos.nivel, mapa: mapaDe(p.datos.nivel) };
+    const [x, z] = p.usando ? p.usando.sitio : p.pos;
+    return { x, z, y, ojos, usando: p.usando?.accion ?? null, rumbo: p.rumbo, altura: p.datos.altura, nivel: p.datos.nivel, mapa: mapaDe(p.datos.nivel) };
   }
 
   /** Mostrar u ocultar la figura de una persona (en primera persona no se ve a sí misma). */

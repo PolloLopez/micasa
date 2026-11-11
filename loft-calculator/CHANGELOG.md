@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.49.0] - 2026-11-11
+### Corregido
+- **El sol con "Ver adentro"**: las paredes que se ocultan siguen dando sombra (pasan a una capa que la cámara no
+  dibuja pero el sol sí), así la luz entra solo por las aberturas. Las aberturas de una pared oculta quedan a la vista.
+- **Muebles afuera de la casa**: arrastrándolos o con las flechas se frenan en la pared; cargando distancias, la ficha y
+  el cartelito del 3D avisan "⚠ Se sale por el lateral izquierdo 0,80 m · choca con Mesa" y el contorno se ve rojo.
+### Agregado
+- **Mover aberturas desde el 3D** (como los muebles): tocás la abertura → "✥ Mover" → arrastrás por la pared o flechas
+  (← → por la pared vista desde afuera, ↑ ↓ el antepecho; 1 cm, Shift 10 cm). No se sale de la pared.
+- **Apoyado sobre la mesada**: los electrodomésticos chicos (cafetera, horno de aire, máquina de pan) suben o bajan
+  solos a la mesada o el mueble que tengan abajo al moverlos; se puede tildar en cualquier mueble.
+- **Personas que se sientan y se acuestan**: tocás la cama (se acuesta), el sillón, una silla o el inodoro (se sienta);
+  el plato de ducha se pisa. Se levantan con la próxima orden o con el teclado.
+
 ## [1.48.0] - 2026-11-11
 ### Agregado
 - **Consumibles estimados solos** (Materiales → Accesorios y consumibles): cada accesorio puede ser "estimada sola"

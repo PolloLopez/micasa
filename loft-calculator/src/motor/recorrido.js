@@ -17,7 +17,7 @@
 import { geometriaLados, tramoEntrepiso } from './geometria.js';
 import { haciaAdentro } from './segmentos.js';
 import { LADOS } from './constantes.js';
-import { obstaculosDelNivel, alturaDelPiso } from './interiores.js';
+import { obstaculosDelNivel, alturaDelPiso, ubicarMueble, TIPOS_MUEBLE } from './interiores.js';
 import { listarPiezas } from './estructura.js';
 
 export const TAMANIO_CELDA = 0.1; // 10 cm
@@ -247,4 +247,33 @@ export function ladosQueTapan(params, [x, y, z]) {
   // v1.47.1: también mirando desde arriba de todo (antes, justo encima de la casa el techo no se ocultaba).
   if (y > paredMasBaja) tapan.add('techo');
   return tapan;
+}
+
+/**
+ * v1.49: cómo usa una persona un mueble que se toca: acostarse en la cama, sentarse en el sillón, la silla o el
+ * inodoro, y meterse en el plato de ducha. Devuelve null si el mueble no se usa así.
+ * @returns {{ accion: 'acostarse'|'sentarse'|null, acercarse: [x, z], sitio: [x, z], rumbo, altura } | null}
+ *   acercarse: hasta dónde camina (adelante del mueble); sitio: dónde queda (la cadera al sentarse, los pies al
+ *   acostarse); rumbo: hacia dónde mira (el frente del mueble); altura: la del asiento o el colchón desde su piso.
+ */
+export function lugarParaUsar(params, m) {
+  const forma = TIPOS_MUEBLE[m.tipo]?.forma;
+  const { centro, angulo } = ubicarMueble(params, m);
+  const [c, s] = [Math.cos(angulo), Math.sin(angulo)];
+  const aPlanta = (lz) => [centro[0] + lz * s, centro[1] + lz * c]; // un punto sobre el eje del mueble (lx = 0)
+  const p = m.profundidad;
+  const e = m.elevacion ?? 0;
+  const acercarse = aPlanta(p / 2 + 0.3);
+  if (forma === 'cama') return { accion: 'acostarse', acercarse, sitio: aPlanta(p / 2 - 0.12), rumbo: angulo, altura: e + m.alto };
+  const asientos = {
+    sillon: [Math.min(0.42, m.alto * 0.55), p * 0.08],
+    silla: [Math.min(0.46, m.alto * 0.5), 0],
+    inodoro: [Math.min(0.42, m.alto * 0.6), p * 0.15],
+  };
+  if (asientos[forma]) {
+    const [altura, adelante] = asientos[forma];
+    return { accion: 'sentarse', acercarse, sitio: aPlanta(adelante), rumbo: angulo, altura: e + altura };
+  }
+  if (m.tipo === 'ducha') return { accion: null, acercarse: centro, sitio: centro, rumbo: angulo, altura: 0 };
+  return null;
 }

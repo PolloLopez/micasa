@@ -409,6 +409,20 @@ export function inicioAbertura(abertura, params) {
 }
 
 /**
+ * v1.49: mueve una abertura lo que se la arrastró en el 3D: `du` a lo largo de su pared (hacia la derecha mirándola
+ * desde afuera) y `dv` hacia arriba (el antepecho; las puertas no suben). Conserva desde qué esquina se mide y no
+ * la deja salir de la pared. Devuelve la abertura cambiada (puede no ser válida si no entra de alto: ver validarAbertura).
+ */
+export function moverAbertura(abertura, params, du, dv = 0) {
+  const largo = largoLado(abertura.lado, params);
+  const redondear = (n) => Math.round(n * 100) / 100;
+  const inicio = Math.min(Math.max(inicioAbertura(abertura, params) + du, 0), Math.max(0, largo - abertura.ancho));
+  const offsetHorizontal = redondear(abertura.ladoReferencia === 'izquierda' ? inicio : largo - inicio - abertura.ancho);
+  const alturaAntepecho = abertura.tipo === 'puerta' ? abertura.alturaAntepecho : redondear(Math.max(0, abertura.alturaAntepecho + dv));
+  return { ...abertura, offsetHorizontal, alturaAntepecho };
+}
+
+/**
  * Verifica que la abertura entre en su pared.
  * Devuelve un texto con el problema, o null si está bien.
  */

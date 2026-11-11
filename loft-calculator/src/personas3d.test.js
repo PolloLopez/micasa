@@ -85,3 +85,27 @@ describe('v1.47.1: puertas y perros', () => {
     expect(despues.ojos).toBeLessThan(0.7);
   });
 });
+
+describe('v1.49: sentarse', () => {
+  it('va hasta el sillón y se sienta a la altura del asiento; con el teclado se levanta', async () => {
+    const { lugarParaUsar } = await import('./motor/recorrido.js');
+    const { muebleNuevo } = await import('./motor/interiores.js');
+    const params = { ...PARAMS_INICIALES, anchoEntrepiso: 0, mesadas: [], tabiques: [], muebles: [] };
+    const sillon = { ...muebleNuevo('sillon', [], 1), distanciaLateral: 1, distanciaFrente: 2.5 };
+    const conSillon = { ...params, muebles: [sillon] };
+    const escena = new THREE.Scene();
+    const personas = crearPersonasEnEscena(escena);
+    personas.sincronizar([ana], conSillon, null);
+    const uso = lugarParaUsar(conSillon, sillon);
+    expect(personas.ordenar(1, uso.acercarse, { uso })).toBe(true);
+    for (let i = 0; i < 450; i++) personas.actualizar(1 / 30);
+    const e = personas.estado(1);
+    expect(e.usando).toBe('sentarse');
+    expect(e.x).toBeCloseTo(uso.sitio[0], 5);
+    const figura = escena.children[0].children[0];
+    const cadera = figura.children.find((c) => c.isGroup && c.position.y > 0.3);
+    expect(cadera.position.y).toBeCloseTo(uso.altura, 1);
+    personas.actualizar(1 / 30, { id: 1, avance: [0, 1] });
+    expect(personas.estado(1).usando).toBeNull();
+  });
+});

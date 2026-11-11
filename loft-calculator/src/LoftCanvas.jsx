@@ -25,7 +25,7 @@ import { LADOS } from './motor/constantes.js';
 import { CAPAS, AYUDAS, GRUPOS_LEYENDA, CAPAS_TERRENO, CAPAS_MESADAS, CAPAS_MUEBLES, CAPAS_TABIQUES, COLORES_INICIALES, capaDelProyecto } from './capas.js';
 import SelectorColor from './componentes/SelectorColor.jsx';
 import { losaGruesa, dibujarMueble, dibujarMuebleEn, materialDeColor } from './interiores3d.js';
-import { ubicarMueble } from './motor/interiores.js';
+import { ubicarMueble, choquesDelMueble, avisoDeChoques } from './motor/interiores.js';
 import { posicionAbertura, listarPiezas } from './motor/estructura.js';
 import { geometriaLados, nombreLado } from './motor/geometria.js';
 import { describirPieza } from './descripcionPiezas.js';
@@ -37,7 +37,7 @@ import { juntasDePano, pedazosDePared } from './motor/revestimientos.js';
 import { medirEntre, puntoMasCercanoEnPieza } from './motor/medicion.js';
 import { cotasGenerales } from './motor/cotas3d.js';
 import { vistasFijas, vistasPorPartes } from './motor/vistasFijas.js';
-import { accionPorAltura, ladosQueTapan } from './motor/recorrido.js';
+import { accionPorAltura, ladosQueTapan, lugarParaUsar } from './motor/recorrido.js';
 import { crearPersonasEnEscena } from './personas3d.js';
 import { implantacion } from './motor/terreno.js';
 import { moduloActivo } from './modulos.js';
@@ -669,6 +669,7 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
       malla.position.set(x, y, z);
       malla.rotation.y = rotacionY;
       malla.userData.idAbertura = op.id; // se puede seleccionar con un clic (v1.16)
+      malla.userData.direccionPared = lados[op.lado].direccion; // v1.49: para arrastrarla a lo largo de su pared
       grupo.add(malla);
       // Número de la abertura (el mismo de la lista: #1, #2…) y su etiqueta, un poco afuera de la pared.
       if (capas.etiquetasAberturas && op.mostrarEtiqueta !== false) {
@@ -679,6 +680,9 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
         grupo.add(cartelito);
       }
       marcar(antes, [op.lado]);
+      // v1.49: la abertura en sí queda a la vista aunque su pared se oculte con "Ver adentro" (se ve dónde está y se
+      // puede tocar para moverla); solo su cartel se oculta con la pared.
+      delete malla.userData.ladosPared;
     });
   }
 
@@ -842,6 +846,9 @@ function vaciarGrupo(grupo) {
   grupo.clear();
 }
 
+/** v1.49: capa de Three.js de lo que "Ver adentro" oculta (la cámara mira solo la 0; el sol, las dos). */
+const CAPA_OCULTA = 1;
+
 /**
  * v1.47.1: las puertas de los tabiques dibujadas (sus pivotes): se le pasan a las personas (para abrirlas al pasar)
  * y se guardan para moverlas en cada cuadro.
@@ -892,7 +899,7 @@ function mirarAlFrente(camara, controles, params) {
 export default function LoftCanvas({
   params, estructura, aberturas, paneles, colores, catalogo, unidad, onCambiarColor, onEliminarPieza, onEditarPieza,
   opacidades, onCambiarOpacidad, capturaRef, onMedidasFijas,
-  onActualizarAbertura, onQuitarAbertura, onPegarAbertura, onDuplicarPieza,
+  onActualizarAbertura, onQuitarAbertura, onPegarAbertura, onDuplicarPieza, onMoverAbertura = null,
   resaltado = null, cartelResaltado = null, onSoltarResaltado, onElegir, onMoverMueble, onGirarMueble,
   pedidoVerTerreno = 0, // v1.32: cada vez que cambia, la cámara muestra todo el lote
   onCambiarParam = null, // v1.37: (ruta, valor) para el norte desde el panel del sol
@@ -904,6 +911,13 @@ export default function LoftCanvas({
   const [seleccionada, setSeleccionada] = useState(null); // id de la pieza seleccionada
   const [editandoId, setEditandoId] = useState(null); // pieza con el formulario de edición abierto
   const [aberturaSeleccionada, setAberturaSeleccionada] = useState(null); // id de la abertura tocada (v1.16)
+  // v1.49: mover la abertura elegida (como los muebles: recién con "✥ Mover").
+  const [moviendoAbertura, setMoviendoAbertura] = useState(false);
+  const [avisoAbertura, setAvisoAbertura] = useState(null);
+  const aberturaRef = useRef({ id: null, moviendo: false });
+  aberturaRef.current = { id: aberturaSeleccionada, moviendo: moviendoAbertura && aberturaSeleccionada !== null };
+  const moverAberturaRef = useRef(null);
+  moverAberturaRef.current = (id, du, dv) => setAvisoAbertura(onMoverAbertura?.(id, du, dv) ?? null);
   // Medir (v1.16): modo activo y puntos tocados { a, piezaA, b, piezaB, resultado }.
   const [midiendo, setMidiendo] = useState(false);
   const [medida, setMedida] = useState(null);
@@ -1014,6 +1028,7 @@ export default function LoftCanvas({
     // v1.37: el sol (con sombras), apagado hasta que se abre "☀ Sol". Y un piso invisible que solo recibe sombras.
     const sol = new THREE.DirectionalLight(0xfff4e0, 2.2);
     sol.castShadow = true;
+    sol.shadow.camera.layers.enable(CAPA_OCULTA); // v1.49: las paredes ocultas por "Ver adentro" siguen dando sombra
     sol.shadow.mapSize.set(2048, 2048);
     sol.shadow.bias = -0.0005;
     sol.visible = false;
@@ -1056,9 +1071,13 @@ export default function LoftCanvas({
       const clave = `${corte.version}|${[...tapan].sort().join('')}|${sinCarteles}`;
       if (clave === corte.aplicado) return;
       corte.aplicado = clave;
+      // v1.49.0: lo que tapa no se apaga (visible = false): pasa a la "capa" 1, que la cámara no dibuja pero el sol sí
+      // usa para las sombras. Así, con "Ver adentro", la luz sigue entrando solo por las aberturas.
       grupo.children.forEach((o) => {
         const lados = o.userData.ladosPared;
-        if (lados) o.visible = !lados.every((l) => tapan.has(l)) && !(sinCarteles && o.isSprite);
+        if (!lados) return;
+        const oculto = lados.every((l) => tapan.has(l)) || (sinCarteles && o.isSprite);
+        o.traverse((x) => x.layers.set(oculto ? CAPA_OCULTA : 0));
       });
     };
 
@@ -1157,6 +1176,21 @@ export default function LoftCanvas({
         renderer.domElement.setPointerCapture?.(ev.pointerId);
         return;
       }
+      // v1.49: arrastrar la abertura elegida a lo largo de su pared (y hacia arriba o abajo, las ventanas).
+      if (aberturaRef.current.moviendo && ev.button === 0) {
+        rayo.setFromCamera(puntoEnPantalla(ev), camara);
+        const toque = rayo.intersectObjects(grupo.children, true).find((i) => i.object.userData.idAbertura === aberturaRef.current.id);
+        if (!toque) return;
+        const malla = toque.object;
+        const [dx, dz] = malla.userData.direccionPared;
+        const normal = new THREE.Vector3(-dz, 0, dx); // perpendicular a la pared
+        const plano = new THREE.Plane().setFromNormalAndCoplanarPoint(normal, toque.point);
+        const inicio = toque.point.clone();
+        arrastre = { tipo: 'abertura', malla, plano, inicio, desde: malla.position.clone(), direccion: [dx, dz], du: 0, dv: 0 };
+        controles.enabled = false;
+        renderer.domElement.setPointerCapture?.(ev.pointerId);
+        return;
+      }
       const elegido = muebleElegidoRef.current;
       if (elegido === null || ev.button !== 0 || !moviendoRef.current) return;
       rayo.setFromCamera(puntoEnPantalla(ev), camara);
@@ -1181,12 +1215,29 @@ export default function LoftCanvas({
       rayo.setFromCamera(puntoEnPantalla(ev), camara);
       const ahora = new THREE.Vector3();
       if (!rayo.ray.intersectPlane(arrastre.plano, ahora)) return;
+      if (arrastre.tipo === 'abertura') {
+        const d = ahora.clone().sub(arrastre.inicio);
+        const [dx, dz] = arrastre.direccion;
+        arrastre.du = Math.round((d.x * dx + d.z * dz) * 100) / 100; // de a 1 cm, a lo largo de la pared
+        arrastre.dv = Math.round(d.y * 100) / 100;
+        arrastre.malla.position.set(arrastre.desde.x + dx * arrastre.du, arrastre.desde.y + arrastre.dv, arrastre.desde.z + dz * arrastre.du);
+        return;
+      }
       arrastre.dx = Math.round((ahora.x - arrastre.inicio.x) * 100) / 100; // de a 1 cm
       arrastre.dz = Math.round((ahora.z - arrastre.inicio.z) * 100) / 100;
       arrastre.grupoMueble.position.set(arrastre.desde.x + arrastre.dx, arrastre.desde.y, arrastre.desde.z + arrastre.dz);
     };
     const alSoltar = (ev) => {
       if (primera.mirando) { primera.mirando = null; inicioClic = null; return; }
+      if (arrastre?.tipo === 'abertura') {
+        const { du, dv } = arrastre;
+        arrastre = null;
+        controles.enabled = true;
+        inicioClic = null;
+        if (Math.abs(du) + Math.abs(dv) > 0) moverAberturaRef.current?.(aberturaRef.current.id, du, dv);
+        setMoviendoAbertura(false);
+        return;
+      }
       if (arrastre) {
         const { dx, dz } = arrastre;
         arrastre = null;
@@ -1239,6 +1290,16 @@ export default function LoftCanvas({
         if (!punto) {
           punto = new THREE.Vector3();
           if (!rayo.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -est.y), punto)) return;
+        }
+        // v1.49: si se tocó una cama, un sillón, una silla, el inodoro o la ducha, va y lo usa (se sienta, se acuesta…).
+        let idMueble = null;
+        for (let o = visibles[0]?.object; o; o = o.parent) if (o.userData?.idMueble !== undefined) { idMueble = o.userData.idMueble; break; }
+        const mueble = idMueble !== null ? (paramsRef.current.muebles ?? []).find((m) => m.id === idMueble) : null;
+        const uso = mueble && (mueble.nivel ?? 'piso') === est.nivel ? lugarParaUsar(paramsRef.current, mueble) : null;
+        if (uso) {
+          const ok = personas.ordenar(personaActual, uso.acercarse, { uso });
+          setAvisoPersona(ok ? null : 'No hay por dónde llegar ahí');
+          return;
         }
         const accion = visibles[0] ? accionPorAltura(punto.y - est.y, est.altura) : null;
         const ok = personas.ordenar(personaActual, [punto.x, punto.z], { accion, mirarA: [punto.x, punto.z] });
@@ -1817,6 +1878,24 @@ export default function LoftCanvas({
     setModoPersona('primera');
   };
 
+  // v1.49: la abertura elegida: con "✥ Mover", las flechas la corren (← → por la pared mirándola desde afuera,
+  // ↑ ↓ el antepecho), de a 1 cm (Shift: 10 cm). Esc deja de moverla.
+  useEffect(() => { setMoviendoAbertura(false); setAvisoAbertura(null); }, [aberturaSeleccionada]);
+  useEffect(() => {
+    if (!moviendoAbertura || aberturaSeleccionada === null) return undefined;
+    const alTeclear = (ev) => {
+      if (hayDialogoAbierto() || ev.target.closest?.('input, select, textarea')) return;
+      if (ev.key === 'Escape') { ev.stopPropagation(); setMoviendoAbertura(false); return; }
+      const paso = ev.shiftKey ? 0.1 : 0.01;
+      const [du, dv] = { ArrowRight: [paso, 0], ArrowLeft: [-paso, 0], ArrowUp: [0, paso], ArrowDown: [0, -paso] }[ev.key] ?? [0, 0];
+      if (!du && !dv) return;
+      ev.preventDefault();
+      moverAberturaRef.current?.(aberturaSeleccionada, du, dv);
+    };
+    window.addEventListener('keydown', alTeclear);
+    return () => window.removeEventListener('keydown', alTeclear);
+  }, [moviendoAbertura, aberturaSeleccionada]);
+
   // Al elegir otro mueble (o soltarlo) deja de estar en "mover".
   useEffect(() => { setMoviendoMueble(false); }, [muebleElegido]);
 
@@ -1954,7 +2033,15 @@ export default function LoftCanvas({
               perfiles={catalogo?.filter((i) => i.categoria === 'hierro') ?? null}
               perfilGeneral={catalogo?.find((i) => i.id === INSUMO.MARCO_ABERTURA)?.perfil ?? ''} />
           </ul>
+          {moviendoAbertura && <p className="nota">Arrastrala por la pared o usá las flechas: ← → por la pared (vista desde afuera), ↑ ↓ el antepecho; 1 cm (Shift: 10 cm). Esc: listo.</p>}
+          {avisoAbertura && <p className="error" role="alert">{avisoAbertura}</p>}
           <div className="seleccion-acciones">
+            {onMoverAbertura && (
+              <button type="button" className={`btn-ctrl${moviendoAbertura ? ' activo' : ''}`} aria-pressed={moviendoAbertura}
+                onClick={() => setMoviendoAbertura((v) => !v)} title="Recién con esto se puede arrastrar (así no se mueve sin querer)">
+                {moviendoAbertura ? '✓ Listo' : '✥ Mover'}
+              </button>
+            )}
             <button className="btn-ctrl" title="Crea una igual al lado (Ctrl+C y Ctrl+V hace lo mismo)"
               onClick={() => { const nueva = onPegarAbertura(aberturaElegida); if (nueva) setAberturaSeleccionada(nueva.id); }}>Duplicar</button>
             <button className="btn-del-texto eliminar-aparte"
@@ -1971,6 +2058,10 @@ export default function LoftCanvas({
               {moviendoMueble ? ' · arrastralo o usá las flechas: 1 cm (Shift: 10 cm) · R: girar · Esc: listo' : ' · su ficha está abierta para editarlo'}</div>
             <button type="button" className="btn-cerrar" onClick={() => setMuebleElegido(null)} aria-label="Soltar el mueble">✕</button>
           </div>
+          {/* v1.49: si se sale por una pared o choca con algo, se avisa acá también (y su contorno se ve rojo). */}
+          {avisoDeChoques(choquesDelMueble(params, muebleDelPanel)) && (
+            <p className="error" role="alert">{avisoDeChoques(choquesDelMueble(params, muebleDelPanel))}</p>
+          )}
           <div className="seleccion-acciones">
             <button type="button" className={`btn-ctrl${moviendoMueble ? ' activo' : ''}`} aria-pressed={moviendoMueble}
               onClick={() => setMoviendoMueble((v) => !v)} title="Recién con esto se puede arrastrar (así no se mueve sin querer)">
@@ -1989,7 +2080,7 @@ export default function LoftCanvas({
             <div><strong>{personaDelPanel.nombre}</strong>
               {modoPersona === 'manejar' ? ' · W A S D o flechas para caminar · Shift corre · C agacharse · Esc: dejar de manejar'
                 : modoPersona === 'primera' ? ' · viendo con sus ojos'
-                : ' · tocá el piso y camina hasta ahí; tocá algo y va a buscarlo (se agacha o se estira según la altura)'}</div>
+                : ' · tocá el piso y camina hasta ahí; tocá algo y va a buscarlo (se agacha o se estira según la altura); tocá la cama, un sillón, una silla o el inodoro y se acuesta o se sienta'}</div>
             <button type="button" className="btn-cerrar" onClick={() => { setPersonaElegida(null); setModoPersona(null); }} aria-label="Soltar a la persona">✕</button>
           </div>
           {avisoPersona && <p className="error" role="alert">{avisoPersona}</p>}

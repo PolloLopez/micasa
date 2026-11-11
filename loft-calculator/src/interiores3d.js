@@ -13,7 +13,7 @@
 // ==========================================================
 
 import * as THREE from 'three';
-import { MATERIALES_MUEBLE, TIPOS_MUEBLE, ubicarMueble, margenDePuerta, puertaQueChoca, puertaChocaCon, cajonesQueChocan, cajonesChocanCon } from './motor/interiores.js';
+import { MATERIALES_MUEBLE, TIPOS_MUEBLE, ubicarMueble, margenDePuerta, puertaQueChoca, puertaChocaCon, cajonesQueChocan, cajonesChocanCon, choquesDelMueble } from './motor/interiores.js';
 
 /**
  * Placa horizontal con espesor, a partir de sus 4 esquinas (a→b a lo largo, b→c a lo ancho).
@@ -215,14 +215,16 @@ export function dibujarMueble(params, mueble) {
   // v1.43.2: si la puerta abierta choca (pared, mueble, mesada o tabique), su lugar se pinta de rojo.
   const choca = Boolean(puertaQueChoca(params, mueble)) || puertaChocaCon(params, mueble).length > 0;
   const chocanCajones = cajonesQueChocan(params, mueble).length > 0 || cajonesChocanCon(params, mueble).length > 0;
-  return dibujarMuebleEn(mueble, centro, angulo, y, { chocaPuerta: choca, chocanCajones });
+  // v1.49: si se sale por una pared o se pisa con otra cosa, su contorno en rojo.
+  const { paredes, con } = choquesDelMueble(params, mueble);
+  return dibujarMuebleEn(mueble, centro, angulo, y, { chocaPuerta: choca, chocanCajones, chocaCuerpo: paredes.length > 0 || con.length > 0 });
 }
 
 /**
  * v1.40: un mueble en un lugar dado (centro [x, z], ángulo y altura del piso). Lo usan los muebles sueltos y los
  * electrodomésticos de los huecos de las mesadas. `mueble`: { tipo, ancho, profundidad, alto, material, color?, cargaFrontal? }
  */
-export function dibujarMuebleEn(mueble, centro, angulo, y, { chocaPuerta = false, chocanCajones = false } = {}) {
+export function dibujarMuebleEn(mueble, centro, angulo, y, { chocaPuerta = false, chocanCajones = false, chocaCuerpo = false } = {}) {
   const forma = TIPOS_MUEBLE[mueble.tipo]?.forma ?? 'caja';
   // v1.38.2: con color propio, el mismo brillo de su material pero de ese color.
   const base = MATERIALES_MUEBLE[mueble.material] ?? MATERIALES_MUEBLE.madera;
@@ -244,6 +246,15 @@ export function dibujarMuebleEn(mueble, centro, angulo, y, { chocaPuerta = false
     if (material === materiales().sombra || material === materiales().sombraChoque) caja.userData.sinSombra = true; // los cajones abiertos no tiran sombra
     grupo.add(caja);
   });
+  if (chocaCuerpo) {
+    const caja = new THREE.BoxGeometry(mueble.ancho + 0.02, mueble.alto + 0.02, mueble.profundidad + 0.02);
+    const contorno = new THREE.LineSegments(new THREE.EdgesGeometry(caja), new THREE.LineBasicMaterial({ color: '#ef4444', depthTest: false }));
+    caja.dispose();
+    contorno.position.y = mueble.alto / 2;
+    contorno.renderOrder = 998;
+    contorno.userData.sinSombra = true;
+    grupo.add(contorno);
+  }
   // v1.42.1: el lugar que necesita la puerta abierta (sombreado, como los cajones de la cama).
   const margen = margenDePuerta(mueble);
   if (margen > 0) {

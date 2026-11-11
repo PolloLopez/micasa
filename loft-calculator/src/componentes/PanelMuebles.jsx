@@ -15,7 +15,7 @@ import CampoNumero from './CampoNumero.jsx';
 import CampoSelect from './CampoSelect.jsx';
 import { nombreLado } from '../motor/geometria.js';
 import SelectorColor from './SelectorColor.jsx';
-import { TIPOS_MUEBLE, GRUPOS_MUEBLE, MATERIALES_MUEBLE, muebleNuevo, muebleFueraDeLaPlanta, colorDelMueble, distanciasDelMueble, libreArribaDelMueble, cajonesQueChocan, PUERTAS_MUEBLE, margenDePuerta, puertaQueChoca, puertaChocaCon, cajonesChocanCon } from '../motor/interiores.js';
+import { TIPOS_MUEBLE, GRUPOS_MUEBLE, MATERIALES_MUEBLE, muebleNuevo, colorDelMueble, distanciasDelMueble, libreArribaDelMueble, cajonesQueChocan, PUERTAS_MUEBLE, margenDePuerta, puertaQueChoca, puertaChocaCon, cajonesChocanCon, choquesDelMueble, avisoDeChoques, alturaDeApoyo, seApoya } from '../motor/interiores.js';
 
 const f2 = (n) => n.toFixed(2).replace('.', ',');
 const GIROS = [[0, 'Sin girar'], [90, '90°'], [180, '180° (de espaldas)'], [270, '270°']];
@@ -23,11 +23,18 @@ const GIROS = [[0, 'Sin girar'], [90, '90°'], [180, '180° (de espaldas)'], [27
 /** Un mueble: medidas, material y dónde está. */
 function Mueble({ m, i, params, unidad, cambiar, onQuitar, abiertaAlInicio }) {
   const ruta = `muebles.${i}`;
+  // v1.49: lo que mueve el mueble de lugar; si se apoya solo (cafetera, horno de aire…), sube o baja a lo que tenga abajo.
+  const cambiarLugar = (campo) => (v) => {
+    const nuevo = { ...m, [campo]: v };
+    return cambiar(ruta)(seApoya(nuevo) ? { ...nuevo, elevacion: alturaDeApoyo(params, nuevo) } : nuevo);
+  };
+  const DE_LUGAR = ['distanciaLateral', 'distanciaFrente'];
   const medida = (campo, etiqueta) => (
-    <CampoNumero etiqueta={etiqueta} unidad={unidad} valor={m[campo]} onCambio={cambiar(`${ruta}.${campo}`)} />
+    <CampoNumero etiqueta={etiqueta} unidad={unidad} valor={m[campo]} onCambio={DE_LUGAR.includes(campo) ? cambiarLugar(campo) : cambiar(`${ruta}.${campo}`)} />
   );
   const tipo = TIPOS_MUEBLE[m.tipo];
-  const fuera = muebleFueraDeLaPlanta(params, m);
+  const aviso = avisoDeChoques(choquesDelMueble(params, m)); // v1.49: contra las paredes y contra lo demás
+  const apoyado = seApoya(m);
   // v1.39: las dos distancias que no se cargan y lo libre arriba, calculados.
   const d = distanciasDelMueble(params, m);
   const otraLateral = m.desdeLateral === 'izquierdo' ? d.derecha : d.izquierda;
@@ -77,14 +84,25 @@ function Mueble({ m, i, params, unidad, cambiar, onQuitar, abiertaAlInicio }) {
         {medida('distanciaFrente', `Distancia al ${m.desdeFrente}`)}
         {/* v1.42.1: cómo abre la puerta (se ve el lugar que necesita) y, para la alacena, a qué altura va colgada. */}
         <CampoSelect etiqueta="Puerta" valor={m.puerta ?? 'ninguna'} opciones={PUERTAS_MUEBLE} onCambio={cambiar(`${ruta}.puerta`)} />
-        {medida('elevacion', 'Altura desde el piso')}
+        {apoyado
+          ? <p className="nota">Apoyado a <strong>{f2(m.elevacion ?? 0)} m</strong> (sobre lo que tiene abajo)</p>
+          : medida('elevacion', 'Altura desde el piso')}
         <CampoSelect etiqueta="Giro" valor={String(m.giro)} opciones={GIROS.map(([g, t]) => [String(g), t])}
-          onCambio={(v) => cambiar(`${ruta}.giro`)(Number(v))} />
+          onCambio={(v) => cambiarLugar('giro')(Number(v))} />
         {params.anchoEntrepiso > 0 && (
           <CampoSelect etiqueta="Nivel" valor={m.nivel} opciones={[['piso', 'Planta baja'], ['piso2', 'Piso 2 (entrepiso)']]}
             onCambio={cambiar(`${ruta}.nivel`)} />
         )}
       </div>
+      {/* v1.49: apoyado sobre la mesada o el mueble que tenga abajo (de fábrica en los electrodomésticos chicos). */}
+      <label className="casilla-opcional">
+        <input type="checkbox" checked={apoyado}
+          onChange={(e) => {
+            const nuevo = { ...m, apoyado: e.target.checked };
+            cambiar(ruta)(e.target.checked ? { ...nuevo, elevacion: alturaDeApoyo(params, nuevo) } : nuevo);
+          }} />
+        Apoyarlo sobre la mesada o el mueble que tenga abajo (al moverlo, sube o baja solo)
+      </label>
       {tipo.forma === 'lavarropas' && (
         <label className="casilla-opcional">
           <input type="checkbox" checked={m.cargaFrontal !== false} onChange={(e) => cambiar(`${ruta}.cargaFrontal`)(e.target.checked)} />
@@ -125,8 +143,8 @@ function Mueble({ m, i, params, unidad, cambiar, onQuitar, abiertaAlInicio }) {
       {choquePuerta && (
         <p className="aviso-mueble" role="status">⚠ La puerta abierta ({f2(choquePuerta.margen)} m) choca con la pared ({choquePuerta.pared}): faltan {f2(choquePuerta.falta)} m.</p>
       )}
-      {fuera && <p className="aviso-mueble" role="status">⚠ Se sale de la planta: acomodá las distancias o el giro.</p>}
-      {!fuera && libre < 0 && <p className="aviso-mueble" role="status">⚠ No entra de alto: pasa {f2(-libre)} m.</p>}
+      {aviso && <p className="aviso-mueble aviso-choque" role="alert">{aviso}. Acomodá las distancias o el giro.</p>}
+      {libre < 0 && <p className="aviso-mueble" role="status">⚠ No entra de alto: pasa {f2(-libre)} m.</p>}
     </FichaPlegable>
   );
 }

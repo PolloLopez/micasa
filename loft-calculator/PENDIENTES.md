@@ -3,7 +3,7 @@
 Última limpieza: 2026-11-11 (v1.47.1). Espejo en Trello: tablero "Desarrollo", tarjetas `[CALC]`.
 
 ## 📌 Estado y próximos pasos (11/11)
-En GitHub y publicado: hasta v1.47.0. **v1.47.1 y v1.48.0 por subir** (van en el mismo bundle).
+En GitHub y publicado: hasta v1.47.0 (confirmar). **v1.47.1, v1.48.0 y v1.49.0 por subir.**
 
 Lo que falta, en orden de prioridad (detalle en cada sección de abajo):
 1. 🔴 **Validar con el herrero** los supuestos de obra (sección "Antes de considerar el presupuesto de obra") y
@@ -75,6 +75,11 @@ Mejoras propuestas (técnicas, sin cambios aplicados):
     - 🟢 [ ] Puertas de abrir dibujadas entreabiertas con su barrido.
 - ✅ Etiquetas de mesadas y muebles en el 3D, apagables una por una y por capa (v1.38.1).
 - ✅ **Sol más fuerte** (v1.38.0): intensidad regulable (50–300 %, 150 % de fábrica).
+
+## v1.49.0 Sol con "Ver adentro", choques, aberturas y personas que se sientan (pedido de Leandro 11/11)
+- ✅ Sombras con paredes ocultas; mueble frenado en la pared y aviso de choques; mover aberturas; apoyar en la mesada; sentarse y acostarse.
+  - 🟡 [ ] Mirar en pantalla el sol entrando por las aberturas con "Ver adentro" y a la persona sentada/acostada (probado con tests, no visto).
+  - 🟢 [ ] Escalera: frenarla en la pared al moverla (hoy solo avisa en su tarjeta).
 
 ## v1.48.0 Electrodomésticos (pedido de Leandro 11/11)
 - ✅ Muebles, electrodomésticos y baño por separado; televisor, cafetera, horno de aire y máquina de pan.
