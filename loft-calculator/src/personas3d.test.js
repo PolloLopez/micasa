@@ -56,3 +56,32 @@ describe('personas en la escena', () => {
     expect(personas.estado(1)).toBeNull();
   });
 });
+
+describe('v1.47.1: puertas y perros', () => {
+  const params = { ...PARAMS_INICIALES, anchoEntrepiso: 0, muebles: [], mesadas: [], tabiques: [] };
+
+  it('la persona abre la puerta que está por cruzar; después se cierra sola', () => {
+    const personas = crearPersonasEnEscena(new THREE.Scene());
+    personas.sincronizar([ana], params, null);
+    const desde = personas.estado(1);
+    personas.definirPuertas([{ id: 'p1', centro: [desde.x + 1, desde.z], nivel: 'piso' }]);
+    personas.ordenar(1, [desde.x + 2.5, desde.z]);
+    let maxima = 0;
+    for (let i = 0; i < 120; i++) { personas.actualizar(1 / 30); maxima = Math.max(maxima, personas.apertura('p1')); }
+    expect(maxima).toBeGreaterThan(0.7);
+    expect(personas.estado(1).x).toBeGreaterThan(desde.x + 1.5); // pasó
+    for (let i = 0; i < 300; i++) personas.actualizar(1 / 30);
+    expect(personas.apertura('p1')).toBeLessThan(0.1);
+  });
+
+  it('un perro sale solo a dar vueltas; las puertas no las abre', () => {
+    const personas = crearPersonasEnEscena(new THREE.Scene());
+    const perro = { id: 2, especie: 'perro', nombre: 'Toby', tamanio: 'mediano', altura: 0.5, nivel: 'piso', colorRopa: '' };
+    personas.sincronizar([perro], params, null);
+    const antes = personas.estado(2);
+    for (let i = 0; i < 600; i++) personas.actualizar(1 / 30); // 20 segundos
+    const despues = personas.estado(2);
+    expect(Math.hypot(despues.x - antes.x, despues.z - antes.z)).toBeGreaterThan(0.1);
+    expect(despues.ojos).toBeLessThan(0.7);
+  });
+});

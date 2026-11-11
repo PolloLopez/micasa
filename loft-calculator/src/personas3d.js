@@ -17,7 +17,8 @@
 // ==========================================================
 
 import * as THREE from 'three';
-import { mapaDelNivel, buscarCamino, moverConChoque, libreMasCercano, puntoLibre, TAMANIO_CELDA } from './motor/recorrido.js';
+import { mapaDelNivel, buscarCamino, moverConChoque, libreMasCercano, puntoLibre, techoEn, TAMANIO_CELDA } from './motor/recorrido.js';
+import { crearPerro, animarPerro, ojosDelPerro } from './perros3d.js';
 
 const PIEL = '#d9a57e';
 const PELO = '#3b2a20';
@@ -26,6 +27,9 @@ const ROPA_DE_FABRICA = { mujer: '#db2777', hombre: '#2563eb' };
 const VELOCIDAD = 1.2; // m/s caminando
 const VELOCIDAD_CORRIENDO = 2.6;
 const DURACION_ACCION = 1.8; // segundos agachada, estirada o alcanzando
+const VELOCIDAD_PERRO = 0.9;
+const CERCA_DE_LA_PUERTA = 1.0; // una persona a menos de esto la abre (y queda abierta mientras esté cerca)
+const ESPERA_PUERTA_CERRADA = 1.5; // segundos que la puerta queda abierta después de que se van
 
 // ---------- la figura ----------
 
@@ -173,6 +177,12 @@ export function angulosDePose(pose, fase = 0) {
     return { ...QUIETA, ingleI: -0.45 * s, ingleD: 0.45 * s, rodillaI: 0.6 * Math.max(0, s), rodillaD: 0.6 * Math.max(0, -s),
       hombroI: 0.4 * s, hombroD: -0.4 * s, codoI: -0.35, codoD: -0.35, torso: 0.05 };
   }
+  if (pose === 'caminarAgachada') {
+    // v1.47.1: por debajo de la escalera: camina con las rodillas dobladas y el cuerpo inclinado.
+    const base = angulosDePose('caminar', fase);
+    return { ...base, ingleI: base.ingleI - 0.45, ingleD: base.ingleD - 0.45, rodillaI: base.rodillaI + 0.7, rodillaD: base.rodillaD + 0.7,
+      torso: 0.6, cabeza: -0.35 };
+  }
   if (pose === 'agacharse') {
     return { ...QUIETA, ingleI: -1.4, rodillaI: 2.35, ingleD: -1.25, rodillaD: 2.2, torso: 0.55, cabeza: 0.35,
       hombroI: -0.9, codoI: -0.35, hombroD: -1.1, codoD: -0.25 };
@@ -211,6 +221,17 @@ export function alturaDeOjos(figura) {
 
 // ---------- todas las personas de la escena ----------
 
+const esPerro = (datos) => datos.especie === 'perro';
+const figuraDe = (datos) => (esPerro(datos) ? crearPerro(datos) : crearFigura(datos));
+
+/** Distancia de un punto al segmento a–b (en la planta). */
+function distanciaASegmento([px, pz], [ax, az], [bx, bz]) {
+  const [dx, dz] = [bx - ax, bz - az];
+  const l2 = dx * dx + dz * dz;
+  const t = l2 > 0 ? Math.max(0, Math.min(1, ((px - ax) * dx + (pz - az) * dz) / l2)) : 0;
+  return Math.hypot(px - (ax + dx * t), pz - (az + dz * t));
+}
+
 /** El ángulo más corto de `a` a `b` (para girar por el lado más corto). */
 const diferenciaAngulo = (a, b) => Math.atan2(Math.sin(b - a), Math.cos(b - a));
 
@@ -224,6 +245,8 @@ export function crearPersonasEnEscena(escena) {
   const personas = new Map();
   let mapas = {}; // nivel → mapa (se rehacen al cambiar la obra)
   let elegida = null;
+  /** v1.47.1: puertas de los tabiques: id → { centro, nivel, apertura (0 cerrada a 1 abierta), espera } */
+  const puertas = new Map();
 
   const mapaDe = (nivel) => mapas[nivel] ?? mapas.piso;
 
@@ -237,8 +260,10 @@ export function crearPersonasEnEscena(escena) {
 
   /** Cambia las personas cuando cambian sus datos o la obra (las que siguen, se quedan donde estaban). */
   function sincronizar(lista, params, estructura) {
-    mapas = { piso: mapaDelNivel(params, 'piso', estructura) };
-    if (params.anchoEntrepiso > 0) mapas.piso2 = mapaDelNivel(params, 'piso2', estructura);
+    // v1.47.1: por debajo de la escalera pasa la persona más alta de cada piso (sin chocar la cabeza).
+    const masAlta = (nivel) => Math.max(0, ...lista.filter((x) => !esPerro(x) && x.nivel === nivel).map((x) => x.altura)) || 1.75;
+    mapas = { piso: mapaDelNivel(params, 'piso', estructura, { altoPersona: masAlta('piso') }) };
+    if (params.anchoEntrepiso > 0) mapas.piso2 = mapaDelNivel(params, 'piso2', estructura, { altoPersona: masAlta('piso2') });
     const ids = new Set(lista.map((p) => p.id));
     [...personas.keys()].filter((id) => id !== 'visitante' && !ids.has(id)).forEach((id) => {
       const p = personas.get(id);
@@ -247,12 +272,13 @@ export function crearPersonasEnEscena(escena) {
     });
     lista.forEach((datos, indice) => {
       const antes = personas.get(datos.id);
-      const cambioFigura = !antes || ['altura', 'sexo', 'colorRopa'].some((c) => antes.datos[c] !== datos[c]);
+      const cambioFigura = !antes || ['altura', 'sexo', 'colorRopa', 'especie'].some((c) => antes.datos[c] !== datos[c]);
       const cambioNivel = antes && antes.datos.nivel !== datos.nivel;
-      const p = antes ?? { pos: lugarInicial(datos.nivel, indice), rumbo: Math.PI, camino: [], accion: null, tiempoAccion: 0, fase: 0, pose: 'quieta' };
+      const p = antes ?? { pos: lugarInicial(datos.nivel, indice), rumbo: Math.PI, camino: [], accion: null, tiempoAccion: 0, fase: 0, pose: 'quieta',
+        descanso: 2 + indice }; // descanso: segundos hasta que un perro sale a dar una vuelta
       if (cambioFigura) {
         if (antes?.figura) { grupo.remove(antes.figura.raiz); liberarFigura(antes.figura); }
-        p.figura = crearFigura(datos);
+        p.figura = figuraDe(datos);
         grupo.add(p.figura.raiz);
       }
       if (cambioNivel) { p.pos = lugarInicial(datos.nivel, indice); p.camino = []; }
@@ -298,6 +324,47 @@ export function crearPersonasEnEscena(escena) {
     return true;
   }
 
+  /** v1.47.1: las puertas de los tabiques que hay ahora (se llama cada vez que se redibuja la obra). */
+  function definirPuertas(lista) {
+    const ids = new Set(lista.map((x) => x.id));
+    [...puertas.keys()].filter((id) => !ids.has(id)).forEach((id) => puertas.delete(id));
+    lista.forEach((x) => puertas.set(x.id, { apertura: 0, espera: 0, ...puertas.get(x.id), centro: x.centro, nivel: x.nivel }));
+  }
+  /** Cuánto está abierta una puerta (0 a 1). */
+  const apertura = (id) => puertas.get(id)?.apertura ?? 0;
+
+  /** La puerta que la persona está por cruzar (su camino pasa por el vano, cerca): la primera que encuentre o null. */
+  function puertaPorCruzar(p) {
+    const puntos = [p.pos, ...p.camino.slice(0, 2)];
+    for (const [id, pu] of puertas) {
+      if (pu.nivel !== p.datos.nivel || Math.hypot(pu.centro[0] - p.pos[0], pu.centro[1] - p.pos[1]) > 0.75) continue;
+      for (let k = 1; k < puntos.length; k++) if (distanciaASegmento(pu.centro, puntos[k - 1], puntos[k]) < 0.35) return { id, ...pu };
+    }
+    return null;
+  }
+
+  /** Un perro sin nada que hacer sale a dar una vuelta cerca (y al llegar, olfatea). */
+  function deambular(p, dt) {
+    p.descanso -= dt;
+    if (p.descanso > 0) return;
+    p.descanso = 3 + Math.random() * 5;
+    const angulo = Math.random() * Math.PI * 2;
+    const r = 0.8 + Math.random() * 2;
+    const camino = buscarCamino(mapaDe(p.datos.nivel), p.pos, [p.pos[0] + Math.cos(angulo) * r, p.pos[1] + Math.sin(angulo) * r]);
+    if (camino.length) Object.assign(p, { camino, accion: 'olfatear', mirarA: null, tiempoAccion: 0 });
+  }
+
+  /** Las puertas se abren con una persona cerca (los perros no abren) y se cierran solas un rato después. */
+  function moverPuertas(dt) {
+    puertas.forEach((pu) => {
+      const cerca = [...personas.values()].some((p) => !esPerro(p.datos) && p.datos.nivel === pu.nivel
+        && Math.hypot(pu.centro[0] - p.pos[0], pu.centro[1] - p.pos[1]) < CERCA_DE_LA_PUERTA);
+      if (cerca) pu.espera = ESPERA_PUERTA_CERRADA; else pu.espera -= dt;
+      const objetivo = pu.espera > 0 ? 1 : 0;
+      pu.apertura += (objetivo - pu.apertura) * Math.min(1, dt * 3);
+    });
+  }
+
   /**
    * Un cuadro de la animación.
    * @param dt segundos desde el cuadro anterior
@@ -306,13 +373,26 @@ export function crearPersonasEnEscena(escena) {
    */
   function actualizar(dt, control = null) {
     const mezcla = 1 - Math.exp(-dt * 10);
+    moverPuertas(dt);
     personas.forEach((p, id) => {
       const mapa = mapaDe(p.datos.nivel);
+      const perro = esPerro(p.datos);
       let rumboBuscado = p.rumbo;
       let pose = 'quieta';
       let caminado = 0;
       const manejada = control && control.id === id;
-      if (manejada && control.avance) {
+      if (perro && !manejada && p.camino.length === 0 && !(p.tiempoAccion > 0)) deambular(p, dt);
+      // v1.47.1: antes de cruzar una puerta cerrada, la persona la abre (estira el brazo hacia el picaporte) y
+      // espera a que se abra; el perro espera a que alguien se la abra (si nadie viene, se vuelve).
+      const puerta = !manejada && p.camino.length > 0 ? puertaPorCruzar(p) : null;
+      if (puerta && apertura(puerta.id) < 0.7) {
+        rumboBuscado = Math.atan2(puerta.centro[0] - p.pos[0], puerta.centro[1] - p.pos[1]);
+        pose = perro ? 'quieta' : 'alcanzar';
+        if (!perro) puertas.get(puerta.id).espera = ESPERA_PUERTA_CERRADA; // la está abriendo
+        p.esperando = (p.esperando ?? 0) + dt;
+        if (perro && p.esperando > 3) { p.camino = []; p.esperando = 0; }
+      } else if (manejada && control.avance) {
+        p.esperando = 0;
         // Con el teclado: deja lo que estaba haciendo y avanza (deslizándose contra paredes y muebles).
         p.camino = [];
         p.accion = null;
@@ -324,7 +404,8 @@ export function crearPersonasEnEscena(escena) {
         if (caminado > 1e-4) pose = 'caminar';
       } else if (p.camino.length > 0) {
         // Siguiendo su camino, punto por punto.
-        let paso = VELOCIDAD * dt;
+        p.esperando = 0;
+        let paso = (perro ? VELOCIDAD_PERRO : VELOCIDAD) * dt;
         while (paso > 0 && p.camino.length > 0) {
           const [tx, tz] = p.camino[0];
           const d = Math.hypot(tx - p.pos[0], tz - p.pos[1]);
@@ -347,12 +428,15 @@ export function crearPersonasEnEscena(escena) {
       if (manejada && control.rumbo !== undefined && control.rumbo !== null) rumboBuscado = control.rumbo;
       // Gira de a poco hacia donde va (en primera persona, enseguida: lo maneja el mouse).
       p.rumbo += diferenciaAngulo(p.rumbo, rumboBuscado) * (manejada && control.rumbo != null ? 1 : Math.min(1, dt * 8));
+      // v1.47.1: debajo de la escalera, si no le da la altura, se agacha al pasar.
+      if (!perro && pose === 'caminar' && mapa && techoEn(mapa, p.pos) < p.datos.altura + 0.03) pose = 'caminarAgachada';
       p.fase += (caminado / (0.35 * p.datos.altura)) * Math.PI * 0.5;
       p.pose = pose;
       if (p.figura) {
         p.figura.raiz.position.set(p.pos[0], mapa?.y ?? 0, p.pos[1]);
         p.figura.raiz.rotation.y = p.rumbo;
-        aplicarPose(p.figura, angulosDePose(pose, p.fase), mezcla);
+        if (perro) animarPerro(p.figura, pose === 'agacharse' ? 'olfatear' : pose, p.fase, dt, mezcla);
+        else aplicarPose(p.figura, angulosDePose(pose, p.fase), mezcla);
       }
     });
   }
@@ -368,7 +452,7 @@ export function crearPersonasEnEscena(escena) {
     const p = personas.get(id);
     if (!p) return null;
     const y = mapaDe(p.datos.nivel)?.y ?? 0;
-    const ojos = p.figura ? alturaDeOjos(p.figura) : (p.pose === 'agacharse' ? 0.55 : 0.94) * p.datos.altura;
+    const ojos = p.figura ? (p.figura.esPerro ? ojosDelPerro(p.figura) : alturaDeOjos(p.figura)) : (p.pose === 'agacharse' ? 0.55 : 0.94) * p.datos.altura;
     return { x: p.pos[0], z: p.pos[1], y, ojos, rumbo: p.rumbo, altura: p.datos.altura, nivel: p.datos.nivel, mapa: mapaDe(p.datos.nivel) };
   }
 
@@ -384,5 +468,5 @@ export function crearPersonasEnEscena(escena) {
     escena.remove(grupo);
   }
 
-  return { grupo, sincronizar, elegir, ordenar, actualizar, idDe, estado, mostrar, asegurarVisitante, liberar };
+  return { grupo, sincronizar, elegir, ordenar, actualizar, idDe, estado, mostrar, asegurarVisitante, liberar, definirPuertas, apertura };
 }

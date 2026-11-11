@@ -26,9 +26,27 @@ export function personaNueva(personas, id) {
   };
 }
 
+/**
+ * v1.47.1: perros (pedido de Leandro). Van en la misma lista que las personas, con `especie: 'perro'`; su altura es
+ * la "altura a la cruz" (del piso a los hombros) y `colorRopa` es el color del pelaje. Caminan solos por la casa.
+ */
+export const TAMANIOS_PERRO = [['chico', 'Chico'], ['mediano', 'Mediano'], ['grande', 'Grande']];
+export const ALTURA_PERRO = { chico: 0.3, mediano: 0.5, grande: 0.7 };
+
+export function perroNuevo(lista, id) {
+  const perros = lista.filter((x) => x.especie === 'perro').length;
+  return { id, especie: 'perro', nombre: `Perro ${perros + 1}`, tamanio: 'mediano', altura: ALTURA_PERRO.mediano, nivel: 'piso', colorRopa: '' };
+}
+
 export function validarPersona(p, params) {
-  if (!SEXOS.some(([v]) => v === p.sexo)) return 'Elegí mujer u hombre';
-  if (!(Number.isFinite(p.altura) && p.altura >= 0.5 && p.altura <= 2.3)) return 'La altura va de 0,50 a 2,30 m';
+  if (p.especie === 'perro') {
+    if (!TAMANIOS_PERRO.some(([v]) => v === p.tamanio)) return 'Elegí el tamaño del perro';
+    if (!(Number.isFinite(p.altura) && p.altura >= 0.15 && p.altura <= 1)) return 'La altura a la cruz va de 0,15 a 1 m';
+  } else {
+    if (!SEXOS.some(([v]) => v === p.sexo)) return 'Elegí mujer u hombre';
+    if (!(Number.isFinite(p.altura) && p.altura >= 0.5 && p.altura <= 2.3)) return 'La altura va de 0,50 a 2,30 m';
+  }
+  if (!['persona', 'perro'].includes(p.especie ?? 'persona')) return 'Valor inválido';
   if (!['piso', 'piso2'].includes(p.nivel)) return 'Elegí planta baja o piso 2';
   if (p.nivel === 'piso2' && !(params.anchoEntrepiso > 0)) return 'No hay entrepiso';
   if (typeof p.nombre !== 'string' || p.nombre.length > 40) return 'El nombre puede tener hasta 40 letras';
@@ -38,5 +56,5 @@ export function validarPersona(p, params) {
 
 /** Completa una persona guardada (por si en otra versión se agregan campos). */
 export function completarPersona(p) {
-  return { nivel: 'piso', colorRopa: '', ...p };
+  return { nivel: 'piso', colorRopa: '', especie: 'persona', ...p };
 }

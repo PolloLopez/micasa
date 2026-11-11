@@ -14,7 +14,8 @@ import FichaPlegable from './FichaPlegable.jsx';
 import CampoNumero from './CampoNumero.jsx';
 import CampoSelect from './CampoSelect.jsx';
 import SelectorColor from './SelectorColor.jsx';
-import { SEXOS, ALTURA_SEGUN_SEXO, personaNueva } from '../motor/personas.js';
+import { SEXOS, ALTURA_SEGUN_SEXO, personaNueva, perroNuevo, TAMANIOS_PERRO, ALTURA_PERRO } from '../motor/personas.js';
+import { PELAJE_DE_FABRICA } from '../perros3d.js';
 
 const f2 = (n) => n.toFixed(2).replace('.', ',');
 const ROPA_DE_FABRICA = { mujer: '#db2777', hombre: '#2563eb' }; // la misma que usa personas3d.js sin color propio
@@ -52,28 +53,67 @@ function Persona({ p, i, params, unidad, cambiar, onQuitar, abiertaAlInicio }) {
   );
 }
 
+/** v1.47.1: un perro: nombre, tamaño (con su altura a la cruz), piso y color del pelaje. Camina solo por la casa. */
+function Perro({ p, i, params, unidad, cambiar, onQuitar, abiertaAlInicio }) {
+  const ruta = `personas.${i}`;
+  const nombreTamanio = TAMANIOS_PERRO.find(([v]) => v === p.tamanio)?.[1] ?? '';
+  return (
+    <FichaPlegable clave={`persona:${p.id}`} className="persona" abiertaAlInicio={abiertaAlInicio}
+      encabezado={<>
+        <span className="muestra-elemento" style={{ background: p.colorRopa || PELAJE_DE_FABRICA }} aria-hidden="true" />
+        <strong>🐕 {p.nombre}</strong>
+        <small>{nombreTamanio} · {f2(p.altura)} m a la cruz</small>
+      </>}
+      acciones={<button type="button" className="btn-del" onClick={onQuitar} aria-label={`Quitar ${p.nombre}`} title="Quitar">✕</button>}>
+      <div className="grid-params">
+        <div className="group">
+          <label htmlFor={`persona-nombre-${p.id}`}>Nombre</label>
+          <input id={`persona-nombre-${p.id}`} type="text" maxLength={40} value={p.nombre} onChange={(e) => cambiar(`${ruta}.nombre`)(e.target.value)} />
+        </div>
+        {/* El tamaño pone su altura a la cruz de fábrica; después se puede ajustar a mano. */}
+        <CampoSelect etiqueta="Tamaño" valor={p.tamanio} opciones={TAMANIOS_PERRO}
+          onCambio={(tamanio) => cambiar(ruta)({ ...p, tamanio, altura: ALTURA_PERRO[tamanio] })} />
+        <CampoNumero etiqueta="Altura a la cruz" unidad={unidad} valor={p.altura} onCambio={cambiar(`${ruta}.altura`)} />
+        {params.anchoEntrepiso > 0 && (
+          <CampoSelect etiqueta="Piso" valor={p.nivel} opciones={[['piso', 'Planta baja'], ['piso2', 'Piso 2 (entrepiso)']]} onCambio={cambiar(`${ruta}.nivel`)} />
+        )}
+        <div className="group campo-color">
+          <span className="etiqueta-campo">Pelaje</span>
+          <SelectorColor valor={p.colorRopa} porDefecto={PELAJE_DE_FABRICA} nombre={p.nombre || 'el perro'}
+            onCambio={cambiar(`${ruta}.colorRopa`)} onRestablecer={() => cambiar(`${ruta}.colorRopa`)('')} />
+        </div>
+      </div>
+      <p className="nota">Camina solo por la casa y olfatea. Las puertas cerradas no las abre: espera a que pase alguien.</p>
+    </FichaPlegable>
+  );
+}
+
 export default function PanelPersonas({ params, unidad, cambiar }) {
   const personas = params.personas ?? [];
   const [aviso, setAviso] = useState(null);
   const [recien, setRecien] = useState(null);
-  const agregar = () => {
+  const agregar = (crear) => {
     const id = Math.max(0, ...personas.map((p) => p.id)) + 1;
     setRecien(id);
-    setAviso(cambiar('personas')([...personas, personaNueva(personas, id)]));
+    setAviso(cambiar('personas')([...personas, crear(personas.filter((x) => (crear === perroNuevo) === (x.especie === 'perro')), id)]));
   };
   const quitar = (id) => cambiar('personas')(personas.filter((p) => p.id !== id));
   return (
-    <Tarjeta id="personas" titulo={`Personas (${personas.length})`}>
+    <Tarjeta id="personas" titulo={`Personas y perros (${personas.length})`}>
       <p className="nota">
         Para ver la casa a escala humana. En el 3D tocá una persona y después el piso (camina hasta ahí, esquivando
         paredes y muebles) o algo (va a buscarlo: se agacha o se estira). También se maneja con el teclado o se ve
         con sus ojos (👁 Primera persona). No van al presupuesto.
       </p>
-      {personas.length === 0 && <p className="vacio">Todavía no hay personas.</p>}
-      {personas.map((p, i) => (
-        <Persona key={p.id} p={p} i={i} params={params} unidad={unidad} cambiar={cambiar} onQuitar={() => quitar(p.id)} abiertaAlInicio={p.id === recien} />
-      ))}
-      <button type="button" className="btn-sec" onClick={agregar}>+ Persona</button>
+      {personas.length === 0 && <p className="vacio">Todavía no hay personas ni perros.</p>}
+      {personas.map((p, i) => {
+        const Ficha = p.especie === 'perro' ? Perro : Persona;
+        return <Ficha key={p.id} p={p} i={i} params={params} unidad={unidad} cambiar={cambiar} onQuitar={() => quitar(p.id)} abiertaAlInicio={p.id === recien} />;
+      })}
+      <div className="acciones-seguimiento">
+        <button type="button" className="btn-sec" onClick={() => agregar(personaNueva)}>+ Persona</button>
+        <button type="button" className="btn-sec" onClick={() => agregar(perroNuevo)}>+ Perro</button>
+      </div>
       {aviso && <p className="error" role="alert">{aviso}</p>}
     </Tarjeta>
   );

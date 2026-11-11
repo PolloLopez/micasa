@@ -21,9 +21,14 @@ import { obstaculosDelNivel, alturaDelPiso } from './interiores.js';
 import { listarPiezas } from './estructura.js';
 
 export const TAMANIO_CELDA = 0.1; // 10 cm
-export const RADIO_CUERPO = 0.2; // medio ancho de hombros, más un poco de aire
+// v1.47.1: 15 cm (antes 20): con 20 no se pasaba entre el vanitory y el tabique de un baño chico (44 cm libres);
+// de costado, una persona pasa por ahí.
+export const RADIO_CUERPO = 0.15;
 const MEDIA_PARED = 0.06;
 const ALTO_QUE_TAPA = 1.2; // lo que arranca más arriba (una alacena colgada) no corta el paso
+const ALTO_QUE_SE_PISA = 0.15; // v1.47.1: lo más bajo (un plato de ducha) se pisa: no corta el paso
+const ESPESOR_BAJO_ESCALON = 0.06; // la tabla y el apoyo: lo que baja el escalón desde su pisada
+const AGACHADA = 0.8; // agachándose, una persona pasa por donde queda libre el 80 % de su altura
 
 /** ¿El punto cae sobre el entrepiso? (a lo largo de su pared y hacia adentro, como lo arma la estructura) */
 function sobreElEntrepiso(params, [x, z]) {
@@ -49,21 +54,31 @@ const dentroDe = (r, [x, z], extra) => {
  * @param estructura  (opcional) para la escalera y las columnas del entrepiso
  * @returns {{ x0, z0, columnas, filas, libre: boolean[][], nivel, y }}
  */
-export function mapaDelNivel(params, nivel = 'piso', estructura = null, radio = RADIO_CUERPO) {
+/**
+ * @param opciones.radio  medio ancho del cuerpo (lo que se agranda cada obstáculo)
+ * @param opciones.altoPersona  la persona más alta de ese piso: por debajo de la escalera pasa si no se golpea la cabeza
+ */
+export function mapaDelNivel(params, nivel = 'piso', estructura = null, { radio = RADIO_CUERPO, altoPersona = 1.75 } = {}) {
   const { largo, ancho } = params;
   const borde = MEDIA_PARED + radio; // de la cara de adentro de la pared, el cuerpo
   const x0 = -largo / 2;
   const z0 = -ancho / 2;
   const columnas = Math.max(1, Math.round(largo / TAMANIO_CELDA));
   const filas = Math.max(1, Math.round(ancho / TAMANIO_CELDA));
-  const obstaculos = obstaculosDelNivel(params, nivel, { huecoPuertas: true }).filter((o) => o.y0 < ALTO_QUE_TAPA);
+  const obstaculos = obstaculosDelNivel(params, nivel, { huecoPuertas: true })
+    .filter((o) => o.y0 < ALTO_QUE_TAPA && o.y1 > ALTO_QUE_SE_PISA);
   // La escalera: en planta baja no se pasa por debajo de los escalones bajos; en el piso 2, no se cae por el hueco.
   const escalones = [...(estructura?.escalera?.escalones ?? []), ...(estructura?.escalera?.descansos ?? [])].map((s) => {
     const f = s.direccion; // a lo largo del tramo
     return { centro: [s.centro[0], s.centro[2]], u: [f[1], -f[0]], v: f, mu: s.ancho / 2, mv: (s.huella ?? s.lado) / 2, y: s.centro[1] };
   });
   const yPiso = alturaDelPiso(params, nivel);
-  const tapanEscalones = nivel === 'piso' ? escalones.filter((s) => s.y - yPiso < 2) : [];
+  // v1.47.1: por debajo de la escalera se pasa (agachándose un poco) donde el escalón queda a más del 80 % de la
+  // altura de la persona; antes se cortaba todo lo que estaba debajo de 2 m. `techo` guarda lo libre arriba.
+  const libreDebajo = (s) => s.y - ESPESOR_BAJO_ESCALON - yPiso;
+  const conEscalera = nivel === 'piso' ? escalones : [];
+  const tapanEscalones = conEscalera.filter((s) => libreDebajo(s) < AGACHADA * altoPersona);
+  const bajos = conEscalera.filter((s) => libreDebajo(s) >= AGACHADA * altoPersona && libreDebajo(s) < altoPersona + 0.03);
   // Columnas sueltas (las del entrepiso o la escalera): piezas verticales que no son de las paredes ni de mesadas.
   const columnasSueltas = nivel === 'piso' && estructura
     ? listarPiezas(estructura).filter((p) => Math.hypot(p.hasta[0] - p.desde[0], p.hasta[2] - p.desde[2]) < 0.02
@@ -71,8 +86,10 @@ export function mapaDelNivel(params, nivel = 'piso', estructura = null, radio = 
       .map((p) => ({ centro: [p.desde[0], p.desde[2]], u: [1, 0], v: [0, 1], mu: 0.06, mv: 0.06 }))
     : [];
   const libre = [];
+  const techo = []; // lo libre arriba de cada celda (Infinity = nada encima que moleste)
   for (let i = 0; i < columnas; i++) {
     libre.push([]);
+    techo.push([]);
     for (let k = 0; k < filas; k++) {
       const q = [x0 + (i + 0.5) * TAMANIO_CELDA, z0 + (k + 0.5) * TAMANIO_CELDA];
       const adentro = q[0] > x0 + borde && q[0] < -x0 - borde && q[1] > z0 + borde && q[1] < -z0 - borde;
@@ -81,9 +98,10 @@ export function mapaDelNivel(params, nivel = 'piso', estructura = null, radio = 
         && !obstaculos.some((o) => dentroDe(o, q, radio))
         && !tapanEscalones.some((s) => dentroDe(s, q, radio))
         && !columnasSueltas.some((c) => dentroDe(c, q, radio)));
+      techo[i].push(Math.min(Infinity, ...bajos.filter((s) => dentroDe(s, q, 0.05)).map(libreDebajo)));
     }
   }
-  return { x0, z0, columnas, filas, libre, nivel, y: yPiso };
+  return { x0, z0, columnas, filas, libre, techo, nivel, y: yPiso };
 }
 
 /** En el piso 2, que todo el cuerpo quede arriba del entrepiso (no se asome al borde). */
@@ -95,6 +113,12 @@ function esBordeLibre(params, [x, z], radio) {
 export const celdaDe = (mapa, [x, z]) => [Math.floor((x - mapa.x0) / TAMANIO_CELDA), Math.floor((z - mapa.z0) / TAMANIO_CELDA)];
 const centroDe = (mapa, [i, k]) => [mapa.x0 + (i + 0.5) * TAMANIO_CELDA, mapa.z0 + (k + 0.5) * TAMANIO_CELDA];
 const esLibre = (mapa, [i, k]) => i >= 0 && k >= 0 && i < mapa.columnas && k < mapa.filas && mapa.libre[i][k];
+
+/** Lo libre arriba de un punto (debajo de la escalera); Infinity si no hay nada encima. */
+export function techoEn(mapa, q) {
+  const [i, k] = celdaDe(mapa, q);
+  return mapa.techo?.[i]?.[k] ?? Infinity;
+}
 
 /** ¿Se puede estar parado en este punto? */
 export const puntoLibre = (mapa, q) => esLibre(mapa, celdaDe(mapa, q));
@@ -220,6 +244,7 @@ export function ladosQueTapan(params, [x, y, z]) {
     if ((x - medio[0]) * afuera[0] + (z - medio[1]) * afuera[1] > 0.2) tapan.add(lado);
   });
   const paredMasBaja = (params.elevacion ?? 0) + params.altura; // `altura` es la del lado bajo del techo
-  if (tapan.size > 0 && y > paredMasBaja) tapan.add('techo');
+  // v1.47.1: también mirando desde arriba de todo (antes, justo encima de la casa el techo no se ocultaba).
+  if (y > paredMasBaja) tapan.add('techo');
   return tapan;
 }

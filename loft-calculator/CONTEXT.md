@@ -226,6 +226,7 @@ techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 
 - 2026-10-23 v1.25.0: proveedores, precios en efectivo/tarjeta por proveedor, comparar presupuestos y "lo más barato de cada material".
 - 2026-10-23 v1.26.0: pestaña Planos (paredes y plantas acotadas, listas de corte, revestimiento), en el PDF y en Excel.
 - 2026-10-25 v1.30.0: link compacto (la mitad) y links cortos en Firebase para ver/editar que guardan los cambios.
+- 2026-11-11 v1.47.1: perros (perros3d.js, especie "perro" en params.personas), puertas de tabiques que se abren (pivote con userData.puertaTabique; aperturas en personas3d), paso bajo la escalera agachándose (mapa.techo), radio 15 cm, lo de menos de 15 cm se pisa.
 - 2026-11-11 v1.47.0: pestaña Obra (seguimiento): rubros con estado, contrato, fechas y pagos parciales; armar rubros desde el presupuesto.
 - 2026-11-11 v1.46.0: cierre del presupuesto (motor/cierre.js, params.cierre): MO + imprevistos sobre costo directo + ganancia sobre costo + IVA sobre precio; pantalla, PDF y Excel usan el mismo resultado.
 - 2026-11-11 v1.45.1: capa "Lo enterrado" (capas.bajoTierra): apagada pone un plano de corte global en el renderer (y ≥ −1,5 cm).

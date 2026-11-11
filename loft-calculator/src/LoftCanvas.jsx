@@ -543,9 +543,26 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
       const hoja = new THREE.Mesh(new THREE.BoxGeometry(ancho + (puerta.tipo === 'granero' ? 0.1 : -0.01), alto + (puerta.tipo === 'granero' ? 0.04 : -0.01), 0.04), materiales.placasTabiques);
       // De abrir: en el vano. Granero: del lado elegido, por fuera de la placa, colgada de su riel.
       const corre = puerta.tipo === 'granero' ? puerta.cara * 0.09 : 0;
-      hoja.position.set((a[0] + b[0]) / 2 + normal[0] * corre, a[1] + alto / 2, (a[2] + b[2]) / 2 + normal[2] * corre);
-      hoja.rotation.y = giro;
-      grupo.add(hoja);
+      // v1.47.1: la hoja cuelga de un "pivote" (la bisagra, o el centro si es corrediza) para poder abrirla cuando
+      // pasa una persona. De abrir: la bisagra en el arranque del vano (a) y la hoja gira hacia la cara elegida.
+      const pivote = new THREE.Group();
+      pivote.rotation.y = giro;
+      if (puerta.tipo === 'granero') {
+        pivote.position.set((a[0] + b[0]) / 2 + normal[0] * corre, a[1], (a[2] + b[2]) / 2 + normal[2] * corre);
+        hoja.position.set(0, alto / 2, 0);
+      } else {
+        pivote.position.set(a[0], a[1], a[2]);
+        hoja.position.set(ancho / 2, alto / 2, 0);
+      }
+      pivote.add(hoja);
+      // Hacia qué lado gira: el que lleva la punta de la hoja hacia la cara elegida (normal x cara).
+      const puntaAlGirar = [-Math.sin(giro), -Math.cos(giro)]; // cómo se mueve la punta (+x local) al sumar giro
+      const signo = Math.sign(puntaAlGirar[0] * normal[0] * (puerta.cara || 1) + puntaAlGirar[1] * normal[2] * (puerta.cara || 1)) || 1;
+      pivote.userData.puertaTabique = {
+        id: `tabique:${t.id}`, tipo: puerta.tipo, giro, signo, ancho, base: pivote.position.clone(),
+        direccion: [puerta.direccion[0], puerta.direccion[2]], centro: [(a[0] + b[0]) / 2, (a[2] + b[2]) / 2], nivel: t.nivel ?? 'piso',
+      };
+      grupo.add(pivote);
       if (puerta.tipo === 'granero') {
         const riel = new THREE.Mesh(new THREE.BoxGeometry(ancho * 2 + 0.1, 0.03, 0.03), materialDeColor('#1f2937', { metal: 0.7, aspereza: 0.3 }));
         riel.position.set((a[0] + b[0]) / 2 + puerta.direccion[0] * ancho / 2 + normal[0] * corre, a[1] + alto + 0.06, (a[2] + b[2]) / 2 + puerta.direccion[2] * ancho / 2 + normal[2] * corre);
@@ -826,6 +843,28 @@ function vaciarGrupo(grupo) {
 }
 
 /**
+ * v1.47.1: las puertas de los tabiques dibujadas (sus pivotes): se le pasan a las personas (para abrirlas al pasar)
+ * y se guardan para moverlas en cada cuadro.
+ */
+function juntarPuertas(visor) {
+  visor.puertasDibujadas = visor.grupo.children.filter((o) => o.userData.puertaTabique);
+  visor.personas.definirPuertas(visor.puertasDibujadas.map((o) => o.userData.puertaTabique));
+}
+
+/** Abre cada puerta lo que dicen las personas: la de abrir gira sobre su bisagra; la granero corre por su riel. */
+function moverPuertasDibujadas(visor) {
+  (visor.puertasDibujadas ?? []).forEach((pivote) => {
+    const d = pivote.userData.puertaTabique;
+    const a = visor.personas.apertura(d.id);
+    if (d.tipo === 'granero') {
+      pivote.position.set(d.base.x + d.direccion[0] * d.ancho * a, d.base.y, d.base.z + d.direccion[1] * d.ancho * a);
+    } else {
+      pivote.rotation.y = d.giro + d.signo * a * 1.45; // hasta unos 83°
+    }
+  });
+}
+
+/**
  * Medidas que usa la cámara: las de la construcción o, en una grada, las de
  * la grada (largo de fila x profundidad x altura), mirando desde adelante (A).
  */
@@ -930,6 +969,7 @@ export default function LoftCanvas({
       seleccionada: limpio ? null : seleccionada, catalogo, aberturaSeleccionada: limpio ? null : aberturaSeleccionada,
       medida: limpio ? null : medida, resaltado: limpio ? null : resaltado, medidasFijas: limpio ? [] : medidasFijas,
     });
+    juntarPuertas(visor);
   };
 
   // v1.44: lo que se dibuja de verdad: en la vista realista, sin ayudas (juntas, cotas, etiquetas, medidas) y todo sólido.
@@ -1051,6 +1091,7 @@ export default function LoftCanvas({
       }
       const antes = id !== null ? personas.estado(id) : null;
       personas.actualizar(dt, control);
+      if (visorRef.current) moverPuertasDibujadas(visorRef.current);
       const ahora = id !== null ? personas.estado(id) : null;
       if (ahora && modo === 'primera') {
         // La cámara en sus ojos, mirando hacia donde se arrastró el mouse.
@@ -1350,6 +1391,7 @@ export default function LoftCanvas({
     dibujarModelo(visor.grupo, visor.materiales, visor.materialesPanel,
       { params, estructura, aberturas, capas: capasVista, gruposVisibles, seleccionada, catalogo, aberturaSeleccionada, medida, resaltado, medidasFijas });
     visor.corte.version += 1; // v1.45: hay que volver a ver qué paredes tapan
+    juntarPuertas(visor);
     // Se reacomoda la cámara si cambia el frente o el tipo de proyecto (construcción / grada).
     const encuadre = `${params.tipoProyecto}:${params.ladoFrente}`;
     if (visor.frente !== encuadre) {

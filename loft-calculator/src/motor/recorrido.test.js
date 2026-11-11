@@ -113,3 +113,29 @@ describe('personas en el proyecto', () => {
     expect(validarParametros({ ...migrado, personas: [personaNueva([], 1)] })).toEqual({});
   });
 });
+
+describe('v1.47.1: baño chico, plato de ducha y debajo de la escalera', () => {
+  it('el plato de ducha se pisa (no corta el paso)', () => {
+    const ducha = { ...muebleNuevo('ducha', [], 1), distanciaLateral: 3, distanciaFrente: 1.5 };
+    const p = casa({ muebles: [ducha] });
+    expect(puntoLibre(mapaDelNivel(p), ubicarMueble(p, ducha).centro)).toBe(true);
+  });
+
+  it('debajo de la escalera: pasa agachándose donde el escalón queda alto, no donde queda bajo', async () => {
+    const { generarEstructura } = await import('./estructura.js');
+    const { techoEn } = await import('./recorrido.js');
+    const p = { ...PARAMS_INICIALES };
+    const e = generarEstructura(p, []);
+    const escalones = e.escalera.escalones;
+    const yPiso = mapaDelNivel(p, 'piso', e).y;
+    const bajo = escalones[1];
+    const alto = escalones.at(-1);
+    const mapa = mapaDelNivel(p, 'piso', e, { altoPersona: 1.75 });
+    expect(puntoLibre(mapa, [bajo.centro[0], bajo.centro[2]])).toBe(false);
+    const libreArriba = alto.centro[1] - 0.06 - yPiso;
+    if (libreArriba >= 0.8 * 1.75 && libreArriba < 1.78) {
+      expect(puntoLibre(mapa, [alto.centro[0], alto.centro[2]])).toBe(true);
+      expect(techoEn(mapa, [alto.centro[0], alto.centro[2]])).toBeCloseTo(libreArriba, 2);
+    }
+  });
+});

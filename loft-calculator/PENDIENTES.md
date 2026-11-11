@@ -49,6 +49,12 @@
 - ✅ Etiquetas de mesadas y muebles en el 3D, apagables una por una y por capa (v1.38.1).
 - ✅ **Sol más fuerte** (v1.38.0): intensidad regulable (50–300 %, 150 % de fábrica).
 
+## v1.47.1 Personas y perros (pedido de Leandro 11/11)
+- ✅ Pasar bajo la escalera, entrar al baño y a la ducha; las personas abren las puertas; perros que caminan solos.
+  - 🟡 [ ] Probar con el proyecto real de Leandro (el de la nube es del 4/11, sin el antebaño): el arreglo se probó con una copia vieja + una puerta.
+  - 🟢 [ ] Puertas de los muebles (heladera, placard) que se abran cuando la persona los busca.
+  - 🟢 [ ] Que el perro siga a una persona elegida.
+
 ## v1.47.0 Seguimiento de la obra (pedido de Leandro 11/11)
 - ✅ Rubros con estado, contrato, fechas y pagos parciales; armar desde el presupuesto; resumen de la obra.
   - 🟡 [ ] Seguimiento en el PDF y en el Excel (hoy solo en pantalla).

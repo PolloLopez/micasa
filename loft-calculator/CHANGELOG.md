@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.47.1] - 2026-11-11
+### Agregado
+- **Perros** (Personas y perros → "+ Perro"): nombre, tamaño (chico, mediano, grande, con su altura a la cruz), piso y
+  color del pelaje. Caminan solos por la casa y olfatean; también se eligen y se mandan como las personas, y se puede
+  "ver con sus ojos". Las puertas no las abren: esperan a que pase alguien.
+- **Las personas abren las puertas** de los tabiques: antes de cruzar una cerrada estiran el brazo, la puerta se abre
+  (la de abrir gira sobre su bisagra; la granero corre por su riel) y se cierra sola cuando se van.
+### Corregido
+- **Por debajo de la escalera** ahora se pasa (agachándose) donde el escalón queda a más del 80 % de la altura de la
+  persona más alta de ese piso; antes se cortaba todo lo que estaba a menos de 2 m. No se podía entrar al antebaño.
+- **Baño chico**: el cuerpo ocupa 15 cm para cada lado (antes 20): se pasa entre el vanitory y el tabique.
+- **El plato de ducha se pisa** (lo que mide menos de 15 cm de alto no corta el paso): se puede entrar a la ducha.
+- "Ver adentro" oculta el techo también mirando justo desde arriba.
+
 ## [1.47.0] - 2026-11-11
 ### Agregado
 - **Pestaña "Obra" (seguimiento)**: lo contratado, lo pagado y lo terminado, por rubro.
