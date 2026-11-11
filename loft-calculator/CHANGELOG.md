@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.45.1] - 2026-11-11
+### Agregado
+- **Capas → Estructura → "Lo enterrado"**: apagada, el 3D se corta a nivel del suelo y no se ven los pilotines ni las
+  zapatas por debajo de la tierra (también en las fotos del PDF). Prendida de fábrica, como hasta ahora.
+
 ## [1.45.0] - 2026-11-11
 ### Agregado
 - **Personas** (Paredes y aberturas → Personas): nombre, sexo, altura, piso y color de la ropa. En el 3D se toca una

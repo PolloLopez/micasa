@@ -57,6 +57,7 @@
   - 🟢 [ ] Seleccionar mesadas/tabiques en el 3D por sus placas (hoy por sus hierros).
 
 ## v1.45.0 (pedido de Leandro 11/11)
+- ✅ v1.45.1 Capa "Lo enterrado" para no ver pilotines y zapatas bajo tierra.
 - ✅ Personas con altura y sexo que caminan (clic o teclado), se agachan/estiran; primera persona; paredes que tapan ocultas; mover muebles solo con "✥ Mover".
   - 🟢 [ ] Subir y bajar la escalera caminando (hoy cada persona se queda en su piso; se cambia en su ficha).
   - 🟢 [ ] Salir por las puertas al terreno (hoy caminan solo adentro).

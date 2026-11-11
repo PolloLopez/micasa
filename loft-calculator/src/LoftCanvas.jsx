@@ -905,6 +905,7 @@ export default function LoftCanvas({
   const [capas, setCapas] = useState(() => ({
     ...Object.fromEntries(Object.keys(CAPAS).map((clave) => [clave, true])),
     juntas: true, // líneas de las tiras/placas de los paneles (v1.16)
+    bajoTierra: true, // v1.45.1: lo enterrado (pilotines y zapatas bajo el suelo)
     etiquetasAberturas: true, // número de cada abertura (v1.16)
     etiquetasParedes: true, // v1.33.1: Frente, Lateral…
     etiquetasMesadas: true, // v1.38.1
@@ -1356,6 +1357,14 @@ export default function LoftCanvas({
       visor.frente = encuadre;
     }
   }, [params, estructura, aberturas, capasVista, paneles, gruposVisibles, seleccionada, opacidadesVista.paneles, catalogo, aberturaSeleccionada, medida, resaltado, medidasFijas]);
+
+  // 2a) v1.45.1: "Lo enterrado" apagado = se corta todo lo que está debajo del suelo (un plano de corte en y = 0,
+  // un poquito más abajo para no cortar el piso que recibe las sombras, que está a −1 cm).
+  useEffect(() => {
+    const visor = visorRef.current;
+    if (!visor) return;
+    visor.renderer.clippingPlanes = capas.bajoTierra === false ? [new THREE.Plane(new THREE.Vector3(0, 1, 0), 0.015)] : [];
+  }, [capas.bajoTierra]);
 
   // 2b) COTAS GENERALES (v1.28): aparte del modelo; se ven si la capa está prendida.
   useEffect(() => {

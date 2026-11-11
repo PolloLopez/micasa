@@ -56,7 +56,7 @@ export const CAPAS_SOLO_PROYECTOS_SUELTOS = ['grada', 'montaje', 'chapa'];
 export const CAPAS_TERRENO = ['terrenoLote', 'terrenoCalle', 'terrenoRetiros', 'terrenoPozos', 'terrenoArboles', 'terrenoConstrucciones', 'terrenoAccesos', 'terrenoNorte'];
 
 export const GRUPOS_LEYENDA = [
-  { titulo: 'Estructura', capas: ['pilotines', 'zapatas', 'columnas', 'marcos', 'piso', 'piso2', 'transversales', 'correas', 'techo', 'escalera', 'grada', 'montaje'] },
+  { titulo: 'Estructura', capas: ['pilotines', 'zapatas', 'bajoTierra', 'columnas', 'marcos', 'piso', 'piso2', 'transversales', 'correas', 'techo', 'escalera', 'grada', 'montaje'] },
   { titulo: 'Superficies', capas: ['paneles', 'osb', 'aberturas', 'escalones', 'chapa'] },
   { titulo: 'Interiores', capas: ['mesadas', 'tapasMesada', 'tabiques', 'placasTabiques', 'muebles'] }, // v1.38 (v1.41: tabiques)
   { titulo: 'Ayudas', capas: ['juntas', 'cotas', 'medidasFijas'] },
@@ -68,6 +68,8 @@ export const GRUPOS_LEYENDA = [
 
 /** Ayudas del visor: se prenden y apagan como capas, pero no tienen color. */
 export const AYUDAS = {
+  // v1.45.1: sin esto, se corta todo lo que queda bajo el suelo (pilotines y zapatas enterrados).
+  bajoTierra: { nombre: 'Lo enterrado', titulo: 'Lo que queda por debajo del suelo (pilotines y zapatas). Apagado, el 3D se corta a nivel del terreno' },
   juntas: { nombre: 'Juntas de paneles', titulo: 'Dónde termina cada tira o placa: para acomodar las aberturas' },
   etiquetasParedes: { nombre: 'Paredes', titulo: 'Frente, Lateral… (cada pared puede tener su texto en Paredes)' },
   etiquetasAberturas: { nombre: 'Aberturas', titulo: 'El número o la etiqueta de cada puerta y ventana' },
