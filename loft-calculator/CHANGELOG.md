@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.48.0] - 2026-11-11
+### Agregado
+- **Consumibles estimados solos** (Materiales → Accesorios y consumibles): cada accesorio puede ser "estimada sola"
+  (medida de la obra x un coeficiente que se cambia, redondeado hacia arriba) o "a mano" (como antes). De fábrica:
+  electrodos por kg de hierro (1 kg cada 80 kg), tornillería por m² de panel (6 autoperforantes por m², cajas de 100),
+  sellador por m² de panel (1 cartucho cada 12 m²) y **antióxido** (nuevo) por m² de hierro (2 manos, 12 m²/l). La
+  superficie del hierro sale del peso y el espesor de cada perfil. Coeficientes orientativos: validar con el herrero.
+  Los proyectos de antes: los de fábrica en 0 pasan a estimados; los que tenían cantidad cargada quedan a mano.
+- **Electrodomésticos aparte de los muebles**: la lista para agregar y las fichas se separan en Muebles,
+  Electrodomésticos y Baño. Nuevos: **televisor** (colgado a 1 m), **cafetera**, **horno de aire** y **máquina de pan**
+  (apoyados a 0,95 m, la altura de una mesada), cada uno con su forma en el 3D.
+### Cambiado
+- Un consumible estimado sin precio se ve en la lista (para saber cuánto comprar) pero no se avisa como "nadie lo vende".
+
 ## [1.47.1] - 2026-11-11
 ### Agregado
 - **Perros** (Personas y perros → "+ Perro"): nombre, tamaño (chico, mediano, grande, con su altura a la cruz), piso y

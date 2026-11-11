@@ -74,6 +74,7 @@ valores inválidos.
 | 2026-11-11 | Cierre del presupuesto en `motor/cierre.js` (params.cierre) | El total sumaba solo materiales. Orden: MO → imprevistos sobre costo directo → ganancia sobre costo → IVA sobre precio; una función pura para pantalla, PDF y Excel. |
 | 2026-11-11 | Seguimiento de obra (pagos, contratos, avance) simple y DENTRO de Pollo Calculator (`motor/seguimiento.js`, params.seguimiento) | Decisión de Leandro: antes se había pensado una app Django aparte (opción B de Construcción Modular). Se empieza simple, guardado con el proyecto; si crece (comprobantes, usuarios, varias obras) se pasa a Django. Lo presupuestado de los rubros con `origen` se calcula del presupuesto, no se guarda. |
 | 2026-11-11 | `useSinCambiosSalvo(params, ['seguimiento'])` | Cargar un pago no recalcula estructura, presupuesto ni 3D (dependen de params, no del seguimiento). |
+| 2026-11-11 | Consumibles = medida de la obra x coeficiente editable (kg de hierro, m² de hierro, m² de paneles) | Sin coeficientes del herrero todavía: unos de fábrica orientativos que se pisan; la superficie de hierro sale de kg/m ÷ (espesor x 7,85), sin pedir el perímetro de cada perfil. |
 
 | 2026-10-15 | Entrepiso parcial = largo × profundidad + "medir desde" izquierda/derecha y distancia (`tramoEntrepiso` en `geometria.js`); largo 0 = toda la pared | Decisión de Leandro (largo × profundidad). Reusa la convención de las aberturas (vista desde afuera) y deja los proyectos viejos iguales sin migrar medidas. |
 | 2026-10-15 | Borde libre = el que no cae sobre una pared; lleva viga de cierre (tipo `viga-cierre`, renglón `vigaCierre`) con el mismo id `marco-piso2:<i>` | El perfil lo elige el herrero (decisión de Leandro), por eso renglón propio. Mismo id para no romper piezas eliminadas o editadas de proyectos guardados. |
@@ -226,6 +227,7 @@ techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 
 - 2026-10-23 v1.25.0: proveedores, precios en efectivo/tarjeta por proveedor, comparar presupuestos y "lo más barato de cada material".
 - 2026-10-23 v1.26.0: pestaña Planos (paredes y plantas acotadas, listas de corte, revestimiento), en el PDF y en Excel.
 - 2026-10-25 v1.30.0: link compacto (la mitad) y links cortos en Firebase para ver/editar que guardan los cambios.
+- 2026-11-11 v1.48.0: consumibles estimados (motor/consumibles.js; accesorio.modo/base/coeficiente; van al final del presupuesto porque usan todos los perfiles) y grupos de muebles (TIPOS_MUEBLE.grupo) con televisor, cafetera, horno de aire y máquina de pan.
 - 2026-11-11 v1.47.1: perros (perros3d.js, especie "perro" en params.personas), puertas de tabiques que se abren (pivote con userData.puertaTabique; aperturas en personas3d), paso bajo la escalera agachándose (mapa.techo), radio 15 cm, lo de menos de 15 cm se pisa.
 - 2026-11-11 v1.47.0: pestaña Obra (seguimiento): rubros con estado, contrato, fechas y pagos parciales; armar rubros desde el presupuesto.
 - 2026-11-11 v1.46.0: cierre del presupuesto (motor/cierre.js, params.cierre): MO + imprevistos sobre costo directo + ganancia sobre costo + IVA sobre precio; pantalla, PDF y Excel usan el mismo resultado.

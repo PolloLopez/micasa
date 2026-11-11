@@ -513,7 +513,7 @@ export default function App() {
     const usados = new Set(prev.map((p) => p.id));
     let n = 1;
     while (usados.has(`acc-${n}`)) n++;
-    return [...prev, { id: `acc-${n}`, categoria: 'accesorio', nombre: 'Accesorio nuevo', perfil: '', unidad: 'u', cantidad: 0, largoBarra: null, precio: 0, precios: {} }];
+    return [...prev, { id: `acc-${n}`, categoria: 'accesorio', nombre: 'Accesorio nuevo', perfil: '', unidad: 'u', cantidad: 0, largoBarra: null, precio: 0, precios: {}, modo: 'manual', base: '', coeficiente: 0 }];
   });
   const quitarAccesorio = (id) => setCatalogo((prev) => prev.filter((p) => p.id !== id));
 

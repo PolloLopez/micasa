@@ -463,25 +463,34 @@ export function validarMesada(m, params) {
 
 // ---------- Muebles ----------
 
-/** Tipos de mueble con sus medidas de fábrica (ancho x profundidad x alto, en m) y su material. */
+/** v1.48: grupos de la lista de muebles (antes iba todo mezclado). */
+export const GRUPOS_MUEBLE = [['muebles', 'Muebles'], ['electro', 'Electrodomésticos'], ['bano', 'Baño']];
+
+/** Tipos de mueble con sus medidas de fábrica (ancho x profundidad x alto, en m), su grupo y su material. */
 export const TIPOS_MUEBLE = {
-  cama2: { nombre: 'Cama 2 plazas', ancho: 1.4, profundidad: 1.9, alto: 0.5, material: 'madera', forma: 'cama' },
-  cama1: { nombre: 'Cama 1 plaza', ancho: 0.8, profundidad: 1.9, alto: 0.5, material: 'madera', forma: 'cama' },
-  mesa: { nombre: 'Mesa', ancho: 1.4, profundidad: 0.8, alto: 0.75, material: 'madera', forma: 'mesa' },
-  silla: { nombre: 'Silla', ancho: 0.45, profundidad: 0.45, alto: 0.9, material: 'madera', forma: 'silla' },
-  sillon: { nombre: 'Sillón', ancho: 1.8, profundidad: 0.85, alto: 0.8, material: 'tela', forma: 'sillon' },
-  escritorio: { nombre: 'Escritorio', ancho: 1.2, profundidad: 0.6, alto: 0.75, material: 'madera', forma: 'mesa' },
-  placard: { nombre: 'Placard', ancho: 1.5, profundidad: 0.6, alto: 2.1, material: 'madera', forma: 'placard', puerta: 'dos' },
+  cama2: { nombre: 'Cama 2 plazas', grupo: 'muebles', ancho: 1.4, profundidad: 1.9, alto: 0.5, material: 'madera', forma: 'cama' },
+  cama1: { nombre: 'Cama 1 plaza', grupo: 'muebles', ancho: 0.8, profundidad: 1.9, alto: 0.5, material: 'madera', forma: 'cama' },
+  mesa: { nombre: 'Mesa', grupo: 'muebles', ancho: 1.4, profundidad: 0.8, alto: 0.75, material: 'madera', forma: 'mesa' },
+  silla: { nombre: 'Silla', grupo: 'muebles', ancho: 0.45, profundidad: 0.45, alto: 0.9, material: 'madera', forma: 'silla' },
+  sillon: { nombre: 'Sillón', grupo: 'muebles', ancho: 1.8, profundidad: 0.85, alto: 0.8, material: 'tela', forma: 'sillon' },
+  escritorio: { nombre: 'Escritorio', grupo: 'muebles', ancho: 1.2, profundidad: 0.6, alto: 0.75, material: 'madera', forma: 'mesa' },
+  placard: { nombre: 'Placard', grupo: 'muebles', ancho: 1.5, profundidad: 0.6, alto: 2.1, material: 'madera', forma: 'placard', puerta: 'dos' },
   // v1.42.1: copero y alacena (la alacena va colgada: `elevacion` = del piso a su parte de abajo).
-  copero: { nombre: 'Copero', ancho: 0.9, profundidad: 0.4, alto: 1.9, material: 'madera', forma: 'placard', puerta: 'dos' },
-  alacena: { nombre: 'Alacena', ancho: 1.2, profundidad: 0.35, alto: 0.7, material: 'madera', forma: 'placard', puerta: 'dos', elevacion: 1.45 },
-  heladera: { nombre: 'Heladera', ancho: 0.7, profundidad: 0.7, alto: 1.8, material: 'blanco', forma: 'electro', puerta: 'derecha' },
-  cocina: { nombre: 'Cocina', ancho: 0.56, profundidad: 0.6, alto: 0.85, material: 'acero', forma: 'cocina', puerta: 'abajo' }, // v1.39: con hornallas
-  lavarropas: { nombre: 'Lavarropas', ancho: 0.6, profundidad: 0.6, alto: 0.85, material: 'blanco', forma: 'lavarropas', puerta: 'izquierda' }, // v1.39: carga frontal o superior
-  vanitory: { nombre: 'Vanitory', ancho: 0.6, profundidad: 0.45, alto: 0.85, material: 'blanco', forma: 'vanitory', puerta: 'dos' }, // v1.39: con bacha
-  inodoro: { nombre: 'Inodoro', ancho: 0.4, profundidad: 0.65, alto: 0.75, material: 'blanco', forma: 'inodoro' },
-  ducha: { nombre: 'Plato de ducha', ancho: 0.8, profundidad: 0.8, alto: 0.1, material: 'blanco', forma: 'caja' },
-  otro: { nombre: 'Otro', ancho: 1, profundidad: 0.6, alto: 0.8, material: 'madera', forma: 'caja' },
+  copero: { nombre: 'Copero', grupo: 'muebles', ancho: 0.9, profundidad: 0.4, alto: 1.9, material: 'madera', forma: 'placard', puerta: 'dos' },
+  alacena: { nombre: 'Alacena', grupo: 'muebles', ancho: 1.2, profundidad: 0.35, alto: 0.7, material: 'madera', forma: 'placard', puerta: 'dos', elevacion: 1.45 },
+  heladera: { nombre: 'Heladera', grupo: 'electro', ancho: 0.7, profundidad: 0.7, alto: 1.8, material: 'blanco', forma: 'electro', puerta: 'derecha' },
+  cocina: { nombre: 'Cocina', grupo: 'electro', ancho: 0.56, profundidad: 0.6, alto: 0.85, material: 'acero', forma: 'cocina', puerta: 'abajo' }, // v1.39: con hornallas
+  lavarropas: { nombre: 'Lavarropas', grupo: 'electro', ancho: 0.6, profundidad: 0.6, alto: 0.85, material: 'blanco', forma: 'lavarropas', puerta: 'izquierda' }, // v1.39: carga frontal o superior
+  vanitory: { nombre: 'Vanitory', grupo: 'bano', ancho: 0.6, profundidad: 0.45, alto: 0.85, material: 'blanco', forma: 'vanitory', puerta: 'dos' }, // v1.39: con bacha
+  inodoro: { nombre: 'Inodoro', grupo: 'bano', ancho: 0.4, profundidad: 0.65, alto: 0.75, material: 'blanco', forma: 'inodoro' },
+  ducha: { nombre: 'Plato de ducha', grupo: 'bano', ancho: 0.8, profundidad: 0.8, alto: 0.1, material: 'blanco', forma: 'caja' },
+  // v1.48: electrodomésticos chicos (pedido de Leandro). Los de mesada arrancan apoyados a 0,95 m (alto de mesada) y
+  // el televisor colgado a 1 m; la altura se cambia en la ficha.
+  televisor: { nombre: 'Televisor', grupo: 'electro', ancho: 1.23, profundidad: 0.06, alto: 0.71, material: 'negro', forma: 'tv', elevacion: 1 },
+  cafetera: { nombre: 'Cafetera', grupo: 'electro', ancho: 0.2, profundidad: 0.25, alto: 0.35, material: 'negro', forma: 'cafetera', elevacion: 0.95 },
+  hornoAire: { nombre: 'Horno de aire (air fryer)', grupo: 'electro', ancho: 0.3, profundidad: 0.35, alto: 0.32, material: 'negro', forma: 'hornoAire', elevacion: 0.95 },
+  maquinaPan: { nombre: 'Máquina de pan', grupo: 'electro', ancho: 0.25, profundidad: 0.35, alto: 0.3, material: 'blanco', forma: 'maquinaPan', elevacion: 0.95 },
+  otro: { nombre: 'Otro', grupo: 'muebles', ancho: 1, profundidad: 0.6, alto: 0.8, material: 'madera', forma: 'caja' },
 };
 
 /** Materiales (color y cuánto brilla) para el 3D. */

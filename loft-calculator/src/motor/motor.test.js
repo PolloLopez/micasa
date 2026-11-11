@@ -358,7 +358,8 @@ describe('calcularPresupuesto', () => {
         && ![INSUMO.ESTRUCTURA_MESADA, INSUMO.TAPA_MESADA, INSUMO.ESTANTE_MESADA, INSUMO.BACHA_SIMPLE, INSUMO.BACHA_DOBLE,
           INSUMO.ESTRUCTURA_TABIQUE, INSUMO.PUERTA_PLACA, INSUMO.PUERTA_GRANERO,
           INSUMO.TIRANTE_MADERA, INSUMO.TIRANTE_MADERA_2, INSUMO.MACHIMBRE].includes(id)); // v1.38: solo con mesadas
-    expect(items.map((i) => i.id).sort()).toEqual(esperados.sort());
+    // v1.48: los accesorios de fábrica se estiman solos (tornillería, electrodos, selladores y antióxido).
+    expect(items.map((i) => i.id).sort()).toEqual([...esperados, 'acc-antioxido', 'acc-electrodos', 'acc-selladores', 'acc-tornilleria'].sort());
   });
 
   it('transversales de piso y de piso 2 en renglones separados', () => {

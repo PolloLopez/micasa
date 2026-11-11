@@ -160,7 +160,9 @@ function TablaPorUso({ items, proveedor, onCambiarPrecio, masBaratoDe }) {
                   <CampoNumero etiqueta="" sufijo="$" decimales={0} valor={item.precio}
                     onCambio={validarPrecio((v) => onCambiarPrecio(item, v))} />
                 )}
-                {item.sinPrecio && item.cantidad > 0 && <small className="falta">no lo vende {item.proveedorDelPrecio ?? 'ningún proveedor'}</small>}
+                {item.sinPrecio && item.cantidad > 0 && (item.sinPrecioCargado
+                  ? <small className="falta">estimado sin precio: cargalo en Materiales → Accesorios</small>
+                  : <small className="falta">no lo vende {item.proveedorDelPrecio ?? 'ningún proveedor'}</small>)}
                 {(() => {
                   // v1.29: si otro proveedor lo vende más barato, se avisa (sin contar el flete).
                   const barato = item.cantidad > 0 && item.categoria !== 'flete' ? masBaratoDe(item) : null;

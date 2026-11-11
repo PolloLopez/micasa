@@ -79,7 +79,8 @@ describe('plan de compra', () => {
 describe('accesorios', () => {
   it('con cantidad cargada entran al presupuesto con el precio del proveedor', () => {
     const cat = CATALOGO_INICIAL.map((i) => (i.id === 'acc-electrodos'
-      ? { ...i, cantidad: 3, precios: { 'prov-1': { efectivo: 8000, tarjeta: null } } } : i));
+      ? { ...i, modo: 'manual', cantidad: 3, precios: { 'prov-1': { efectivo: 8000, tarjeta: null } } }
+      : i.categoria === 'accesorio' ? { ...i, modo: 'manual' } : i)); // v1.48: a mano (los de fábrica se estiman)
     const r = calcularPresupuesto(generarEstructura(P, []), cat, { proveedor: 'prov-1', pago: 'efectivo' });
     expect(r.items.find((i) => i.id === 'acc-electrodos')).toMatchObject({ cantidad: 3, subtotal: 24000, unidad: 'kg' });
     // Los que están en 0 no aparecen.
@@ -89,11 +90,13 @@ describe('accesorios', () => {
   it('proyectos de antes arrancan con tornillería, electrodos y selladores; los agregados se conservan', () => {
     const viejo = CATALOGO_INICIAL.filter((i) => i.categoria !== 'accesorio');
     expect(normalizarCatalogo(viejo).filter((i) => i.categoria === 'accesorio').map((i) => i.nombre))
-      .toEqual(['Tornillería', 'Electrodos', 'Selladores']);
+      .toEqual(['Tornillería', 'Electrodos', 'Selladores', 'Antióxido']);
     const conPropio = [...viejo, { id: 'acc-1', categoria: 'accesorio', nombre: 'Pintura antióxido', unidad: 'lata', cantidad: 2, precios: {} }];
     const c = normalizarCatalogo(conPropio).filter((i) => i.categoria === 'accesorio');
-    expect(c).toHaveLength(1);
-    expect(c[0]).toMatchObject({ nombre: 'Pintura antióxido', unidad: 'lata', cantidad: 2 });
+    // v1.48: se suma el antióxido estimado nuevo; el propio sigue a mano con su cantidad.
+    expect(c.map((a) => a.id)).toEqual(['acc-1', 'acc-antioxido']);
+    expect(c[0]).toMatchObject({ nombre: 'Pintura antióxido', unidad: 'lata', cantidad: 2, modo: 'manual' });
+    expect(c[1]).toMatchObject({ modo: 'estimado', base: 'm2Hierro' });
   });
 });
 

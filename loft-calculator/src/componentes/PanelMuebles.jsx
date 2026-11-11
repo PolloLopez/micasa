@@ -15,7 +15,7 @@ import CampoNumero from './CampoNumero.jsx';
 import CampoSelect from './CampoSelect.jsx';
 import { nombreLado } from '../motor/geometria.js';
 import SelectorColor from './SelectorColor.jsx';
-import { TIPOS_MUEBLE, MATERIALES_MUEBLE, muebleNuevo, muebleFueraDeLaPlanta, colorDelMueble, distanciasDelMueble, libreArribaDelMueble, cajonesQueChocan, PUERTAS_MUEBLE, margenDePuerta, puertaQueChoca, puertaChocaCon, cajonesChocanCon } from '../motor/interiores.js';
+import { TIPOS_MUEBLE, GRUPOS_MUEBLE, MATERIALES_MUEBLE, muebleNuevo, muebleFueraDeLaPlanta, colorDelMueble, distanciasDelMueble, libreArribaDelMueble, cajonesQueChocan, PUERTAS_MUEBLE, margenDePuerta, puertaQueChoca, puertaChocaCon, cajonesChocanCon } from '../motor/interiores.js';
 
 const f2 = (n) => n.toFixed(2).replace('.', ',');
 const GIROS = [[0, 'Sin girar'], [90, '90°'], [180, '180° (de espaldas)'], [270, '270°']];
@@ -151,15 +151,34 @@ export default function PanelMuebles({ params, unidad, cambiar }) {
         distancias y lo libre arriba se calculan solos. Sin girar, el mueble mira hacia el {frente}.
       </p>
       <div className="fila-agregar-mueble">
-        <CampoSelect etiqueta="Mueble a agregar" valor={tipoNuevo} opciones={Object.entries(TIPOS_MUEBLE).map(([clave, t]) => [clave, t.nombre])}
-          onCambio={setTipoNuevo} />
+        {/* v1.48: la lista separada en muebles, electrodomésticos y baño (antes iba todo mezclado). */}
+        <div className="group">
+          <label htmlFor="tipo-mueble-nuevo">Mueble a agregar</label>
+          <select id="tipo-mueble-nuevo" value={tipoNuevo} onChange={(e) => setTipoNuevo(e.target.value)}>
+            {GRUPOS_MUEBLE.map(([grupo, nombre]) => (
+              <optgroup key={grupo} label={nombre}>
+                {Object.entries(TIPOS_MUEBLE).filter(([, t]) => t.grupo === grupo).map(([clave, t]) => <option key={clave} value={clave}>{t.nombre}</option>)}
+              </optgroup>
+            ))}
+          </select>
+        </div>
         <button type="button" className="btn-sec" onClick={agregar}>+ Agregar</button>
       </div>
       {aviso && <p className="error" role="alert">{aviso}</p>}
       {muebles.length === 0 && <p className="vacio">Todavía no hay muebles.</p>}
-      {muebles.map((m, i) => (
-        <Mueble key={m.id} m={m} i={i} params={params} unidad={unidad} cambiar={cambiar} onQuitar={() => quitar(m.id)} abiertaAlInicio={m.id === recien} />
-      ))}
+      {/* v1.48: cada grupo con su título (sin cambiar el orden guardado: `i` sigue siendo su lugar en la lista). */}
+      {GRUPOS_MUEBLE.map(([grupo, nombre]) => {
+        const delGrupo = muebles.map((m, i) => ({ m, i })).filter(({ m }) => (TIPOS_MUEBLE[m.tipo]?.grupo ?? 'muebles') === grupo);
+        if (delGrupo.length === 0) return null;
+        return (
+          <div key={grupo} className="grupo-muebles">
+            <h4 className="subtitulo-pared">{nombre} ({delGrupo.length})</h4>
+            {delGrupo.map(({ m, i }) => (
+              <Mueble key={m.id} m={m} i={i} params={params} unidad={unidad} cambiar={cambiar} onQuitar={() => quitar(m.id)} abiertaAlInicio={m.id === recien} />
+            ))}
+          </div>
+        );
+      })}
     </Tarjeta>
   );
 }

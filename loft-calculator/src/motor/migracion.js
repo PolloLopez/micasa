@@ -59,6 +59,7 @@ import { MONTAJE_INICIAL } from './montaje.js';
 import { REVESTIMIENTO_POR_DEFECTO, LIMITES_REVESTIMIENTO, VENTAS, UBICACIONES } from './revestimientos.js';
 import { TIPOS_PERFIL, LIMITES_PERFIL, revisarPerfil, armarListaDePerfiles } from './perfiles.js';
 import { conProveedores, FORMAS_DE_PAGO } from './proveedores.js';
+import { completarConsumible } from './consumibles.js';
 
 const esObjeto = (x) => x !== null && typeof x === 'object' && !Array.isArray(x);
 const esColor = (c) => typeof c === 'string' && /^#[0-9a-fA-F]{6}$/.test(c);
@@ -260,7 +261,11 @@ export function normalizarCatalogo(catalogo) {
   const accesoriosGuardados = guardado.filter((p) => p.categoria === 'accesorio').map(normalizarAccesorio).filter(Boolean)
     .filter((p, i, lista) => lista.findIndex((q) => q.id === p.id) === i);
   const hayAccesorios = guardado.some((p) => p.categoria === 'accesorio');
-  const accesorios = hayAccesorios ? accesoriosGuardados : ACCESORIOS_INICIALES;
+  // v1.48: los de antes (sin `modo`) reciben el antióxido nuevo y los de fábrica en 0 pasan a estimados.
+  const sinModo = hayAccesorios && !guardado.some((p) => p.categoria === 'accesorio' && p.modo);
+  const conAntioxido = sinModo && !accesoriosGuardados.some((a) => a.id === 'acc-antioxido')
+    ? [...accesoriosGuardados, ACCESORIOS_INICIALES.find((a) => a.id === 'acc-antioxido')] : accesoriosGuardados;
+  const accesorios = (hayAccesorios ? conAntioxido : ACCESORIOS_INICIALES).map(completarConsumible);
   return conProveedores([...conPerfil, ...(paneles.length > 0 ? paneles : TIPOS_PANEL_INICIALES), ...perfiles, ...accesorios], guardado);
 }
 
@@ -289,6 +294,10 @@ function normalizarAccesorio(p) {
     largoBarra: null,
     precio: esPrecio(p.precio) ? p.precio : 0,
     precios: p.precios ?? {},
+    // v1.48: a mano o estimado (base y coeficiente, ver consumibles.js).
+    ...(['manual', 'estimado'].includes(p.modo) ? { modo: p.modo } : {}),
+    base: typeof p.base === 'string' ? p.base : '',
+    coeficiente: Number.isFinite(p.coeficiente) && p.coeficiente >= 0 && p.coeficiente <= 1000 ? p.coeficiente : 0,
   };
 }
 

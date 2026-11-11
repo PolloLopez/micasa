@@ -171,6 +171,32 @@ function cajasDe(forma, ancho, alto, prof, mat, opciones = {}) {
     case 'electro':
       // Cuerpo y una franja oscura arriba al frente (manija, panel de comandos o puerta).
       return [[ancho, alto, prof, 0, alto / 2, 0, mat], [ancho * 0.9, Math.min(0.06, alto / 8), 0.01, 0, alto * 0.88, prof / 2 + 0.005, m.detalle]];
+    // v1.48: electrodomésticos chicos.
+    case 'tv':
+      // Marco negro y la pantalla al frente (un poco más chica), apenas brillante.
+      return [[ancho, alto, prof, 0, alto / 2, 0, mat], [ancho * 0.96, alto * 0.93, 0.005, 0, alto / 2, prof / 2 + 0.003, m.vidrio]];
+    case 'cafetera':
+      // Cuerpo atrás, la base adelante con la jarra de vidrio arriba y la tapa que vuela sobre la jarra.
+      return [
+        [ancho, alto, prof * 0.45, 0, alto / 2, -prof * 0.275, mat],
+        [ancho, alto * 0.08, prof * 0.55, 0, alto * 0.04, prof * 0.225, mat],
+        ['cil', Math.min(ancho, prof) * 0.22, alto * 0.45, 'y', 0, alto * 0.08 + alto * 0.225, prof * 0.2, m.vidrio],
+        [ancho, alto * 0.14, prof * 0.55, 0, alto * 0.93, prof * 0.225, mat],
+      ];
+    case 'hornoAire':
+      // Cuerpo redondeado (cilindro), el cajón al frente con su ventanita y la manija.
+      return [
+        ['cil', Math.min(ancho, prof) / 2, alto, 'y', 0, alto / 2, 0, mat],
+        [ancho * 0.7, alto * 0.35, 0.01, 0, alto * 0.62, Math.min(ancho, prof) / 2 + 0.002, m.vidrio],
+        [ancho * 0.3, 0.03, 0.05, 0, alto * 0.32, Math.min(ancho, prof) / 2 + 0.02, m.detalle],
+      ];
+    case 'maquinaPan':
+      // Caja con la tapa de vidrio arriba y el panel de botones adelante.
+      return [
+        [ancho, alto, prof, 0, alto / 2, 0, mat],
+        [ancho * 0.7, 0.005, prof * 0.5, 0, alto + 0.003, -prof * 0.08, m.vidrio],
+        [ancho * 0.7, 0.01, prof * 0.2, 0, alto + 0.005, prof * 0.32, m.detalle],
+      ];
     case 'inodoro': {
       const taza = Math.min(0.42, alto * 0.6);
       return [

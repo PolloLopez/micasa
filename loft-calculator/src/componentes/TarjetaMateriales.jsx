@@ -26,6 +26,7 @@ import { perfilesDeLista } from '../motor/perfiles.js';
 import { aplicarProveedor, proveedoresDe } from '../motor/proveedores.js';
 import PreciosProveedores from './PreciosProveedores.jsx';
 import ListaProveedores from './ListaProveedores.jsx';
+import { BASES_CONSUMIBLE, ESTIMACION_DE_FABRICA, esEstimado } from '../motor/consumibles.js';
 
 /** Valida un número contra sus límites y, si está bien, lo guarda. */
 const conLimites = ({ min, max }, actualizar, enTexto = (n) => `${n} m`) => (v) => {
@@ -97,8 +98,22 @@ function Revestimiento({ tipo, unidad, usos, unicoQueda, proveedores, onCambiar,
   );
 }
 
-/** Un accesorio (v1.29): nombre, descripción, cantidad, unidad y precio por proveedor. */
-function Accesorio({ accesorio: a, proveedores, onCambiar, onQuitar, onCambiarPrecio }) {
+/**
+ * Un accesorio (v1.29): nombre, descripción, cantidad, unidad y precio por proveedor.
+ * v1.48: la cantidad se carga a mano o se estima sola (medida de la obra x coeficiente, ver motor/consumibles.js).
+ * @param calculado el renglón del presupuesto (cantidad y cómo se estimó), o null si no entra
+ */
+function Accesorio({ accesorio: a, calculado, proveedores, onCambiar, onQuitar, onCambiarPrecio }) {
+  const estimado = esEstimado(a);
+  const cambiarCoeficiente = (v) => {
+    if (v < 0 || v > 1000) return 'Entre 0 y 1000';
+    onCambiar(a.id, { coeficiente: v });
+    return null;
+  };
+  // Al pasar a estimado sin base elegida, arranca con la de fábrica (si es uno de los de siempre) o con los kg de hierro.
+  const cambiarModo = (modo) => onCambiar(a.id, modo === 'estimado' && !BASES_CONSUMIBLE[a.base]
+    ? { modo, base: ESTIMACION_DE_FABRICA[a.id]?.base ?? 'kgHierro', coeficiente: a.coeficiente || ESTIMACION_DE_FABRICA[a.id]?.coeficiente || 0 }
+    : { modo });
   const texto = (campo, largo) => (e) => onCambiar(a.id, { [campo]: e.target.value.slice(0, largo) });
   const cambiarCantidad = (v) => {
     const { min, max } = LIMITES_ACCESORIO.cantidad;
@@ -117,12 +132,27 @@ function Accesorio({ accesorio: a, proveedores, onCambiar, onQuitar, onCambiarPr
           <label htmlFor={`acc-desc-${a.id}`}>Descripción</label>
           <input id={`acc-desc-${a.id}`} type="text" maxLength={120} value={a.perfil} placeholder="ej. T2 punta mecha 14x1" onChange={texto('perfil', 120)} />
         </div>
-        <CampoNumero etiqueta="Cantidad" decimales={2} valor={a.cantidad} onCambio={cambiarCantidad} />
+        <CampoSelect etiqueta="Cantidad" valor={estimado ? 'estimado' : 'manual'}
+          opciones={[['estimado', 'Estimada sola'], ['manual', 'A mano']]} onCambio={cambiarModo} />
+        {estimado ? (<>
+          <CampoSelect etiqueta="Según" valor={a.base} opciones={Object.entries(BASES_CONSUMIBLE).map(([k, b]) => [k, b.nombre])}
+            onCambio={(base) => onCambiar(a.id, { base })} />
+          <CampoNumero etiqueta={`${a.unidad || 'u'} por ${BASES_CONSUMIBLE[a.base].unidad}`} decimales={4} valor={a.coeficiente}
+            onCambio={cambiarCoeficiente} />
+        </>) : (
+          <CampoNumero etiqueta="Cantidad a comprar" decimales={2} valor={a.cantidad} onCambio={cambiarCantidad} />
+        )}
         <div className="group">
           <label htmlFor={`acc-unidad-${a.id}`}>Unidad</label>
           <input id={`acc-unidad-${a.id}`} type="text" maxLength={15} value={a.unidad} placeholder="caja, kg, u…" onChange={texto('unidad', 15)} />
         </div>
       </div>
+      {estimado && (
+        <p className="nota" role="status">
+          {calculado ? <>≈ <strong>{calculado.cantidad} {a.unidad}</strong> ({calculado.detalle.replace('estimado: ', '')})</> : 'Esta obra no lleva (0).'}
+          {ESTIMACION_DE_FABRICA[a.id] && <small> · de fábrica: {ESTIMACION_DE_FABRICA[a.id].ayuda} (orientativo, validalo con el herrero)</small>}
+        </p>
+      )}
       <PreciosProveedores material={a} proveedores={proveedores} unidad={a.unidad}
         onCambiar={(idProveedor, campo, valor) => onCambiarPrecio(a.id, idProveedor, campo, valor)} />
       <div className="pie-acciones no-print">
@@ -258,15 +288,16 @@ export default function TarjetaMateriales({
         </div>
       </>)}
 
-      {/* v1.29: accesorios. La cantidad se carga a mano (no sale de la estructura). */}
-      <h3 className="subtitulo">Accesorios (tornillería, electrodos, selladores…)</h3>
+      {/* v1.29: accesorios. v1.48: la cantidad se estima sola con las medidas de la obra, o se carga a mano. */}
+      <h3 className="subtitulo">Accesorios y consumibles (tornillería, electrodos, selladores, antióxido…)</h3>
       <p className="nota">
-        Lo que se compra aparte de la estructura. Cargá cuánto vas a necesitar y el precio de cada proveedor
-        (sin precio = ese proveedor no lo vende). Con cantidad 0 no entra al presupuesto.
+        Lo que se compra aparte de la estructura. "Estimada sola" calcula la cantidad con los kilos de hierro, su
+        superficie o los m² de paneles por un coeficiente que podés cambiar; "a mano" usa la que cargues. Cargá el
+        precio de cada proveedor (sin precio = ese proveedor no lo vende). Con cantidad 0 no entra al presupuesto.
       </p>
       <ul className="opening-list">
         {accesorios.map((a) => (
-          <Accesorio key={a.id} accesorio={a} proveedores={proveedores} onCambiar={onActualizarPerfil}
+          <Accesorio key={a.id} accesorio={a} calculado={items.find((i) => i.id === a.id) ?? null} proveedores={proveedores} onCambiar={onActualizarPerfil}
             onQuitar={onQuitarAccesorio} onCambiarPrecio={onCambiarPrecio} />
         ))}
       </ul>

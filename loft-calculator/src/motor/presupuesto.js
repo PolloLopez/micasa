@@ -19,6 +19,7 @@ import { listarPiezas } from './estructura.js';
 import { textoPilotin } from './ejes.js';
 import { INSUMO, PLACA_OSB, DESPERDICIO_PLACAS } from './constantes.js';
 import { cuentaRevestimiento, REVESTIMIENTO_POR_DEFECTO } from './revestimientos.js';
+import { medidasParaConsumibles, cantidadDeConsumible } from './consumibles.js';
 
 /** Insumos fijos. El perfil y el precio se editan desde la pantalla. */
 export const CATALOGO_FIJO = [
@@ -123,9 +124,11 @@ export const TIPOS_PANEL_INICIALES = [
  *   { id, categoria: 'accesorio', nombre, perfil (descripción), unidad, cantidad, precios }
  */
 export const ACCESORIOS_INICIALES = [
-  { id: 'acc-tornilleria', categoria: 'accesorio', nombre: 'Tornillería', perfil: 'Autoperforantes / bulones', unidad: 'caja', cantidad: 0, largoBarra: null, precio: 0, precios: {} },
-  { id: 'acc-electrodos', categoria: 'accesorio', nombre: 'Electrodos', perfil: 'Electrodos 2.5 mm', unidad: 'kg', cantidad: 0, largoBarra: null, precio: 0, precios: {} },
-  { id: 'acc-selladores', categoria: 'accesorio', nombre: 'Selladores', perfil: 'Sellador poliuretánico', unidad: 'cartucho', cantidad: 0, largoBarra: null, precio: 0, precios: {} },
+  // v1.48: estimados de fábrica (modo 'estimado': cantidad = medida de la obra x coeficiente, ver consumibles.js).
+  { id: 'acc-tornilleria', categoria: 'accesorio', nombre: 'Tornillería', perfil: 'Autoperforantes / bulones', unidad: 'caja', cantidad: 0, largoBarra: null, precio: 0, precios: {}, modo: 'estimado', base: 'm2Paneles', coeficiente: 0.06 },
+  { id: 'acc-electrodos', categoria: 'accesorio', nombre: 'Electrodos', perfil: 'Electrodos 2.5 mm', unidad: 'kg', cantidad: 0, largoBarra: null, precio: 0, precios: {}, modo: 'estimado', base: 'kgHierro', coeficiente: 0.0125 },
+  { id: 'acc-selladores', categoria: 'accesorio', nombre: 'Selladores', perfil: 'Sellador poliuretánico', unidad: 'cartucho', cantidad: 0, largoBarra: null, precio: 0, precios: {}, modo: 'estimado', base: 'm2Paneles', coeficiente: 0.08 },
+  { id: 'acc-antioxido', categoria: 'accesorio', nombre: 'Antióxido', perfil: 'Convertidor de óxido / antióxido', unidad: 'litro', cantidad: 0, largoBarra: null, precio: 0, precios: {}, modo: 'estimado', base: 'm2Hierro', coeficiente: 0.17 },
 ];
 export const LIMITES_ACCESORIO = { cantidad: { min: 0, max: 1000000 } };
 
@@ -389,9 +392,6 @@ function calcularRenglones(estructura, catalogo, excedenteBarras) {
     if (puertas('abatir').length) items.push(itemSimple(insumo(INSUMO.PUERTA_PLACA), puertas('abatir').length, puertas('abatir').map((t) => t.nombre).join(', ')));
     if (puertas('granero').length) items.push(itemSimple(insumo(INSUMO.PUERTA_GRANERO), puertas('granero').length, puertas('granero').map((t) => t.nombre).join(', ')));
   }
-  // v1.29: accesorios con cantidad cargada (tornillería, electrodos, selladores…).
-  catalogo.filter((i) => i.categoria === 'accesorio' && i.cantidad > 0)
-    .forEach((a) => items.push(itemSimple(a, a.cantidad, 'cantidad cargada a mano')));
 
   // Escalera (si no hay, los renglones quedan en 0 con "no lleva").
   const escalera = e.escalera;
@@ -413,7 +413,18 @@ function calcularRenglones(estructura, catalogo, excedenteBarras) {
   items.push(itemSimple(insumo(INSUMO.PISO_DESCANSO), m2Descanso > 0 ? Math.ceil(m2Descanso * 100 - 1e-9) / 100 : 0,
     m2Descanso ? `${m2Descanso.toFixed(2)} m²` : 'no lleva'));
 
-  return conDerivados(items);
+  // v1.29: accesorios (tornillería, electrodos, selladores…). v1.48: a mano o estimados con las medidas de la obra
+  // (kilos y superficie de hierro, m² de paneles); van al final porque necesitan todos los perfiles ya contados.
+  const todos = conDerivados(items);
+  const medidas = medidasParaConsumibles(todos, catalogo, s);
+  catalogo.filter((i) => i.categoria === 'accesorio').forEach((a) => {
+    const { cantidad, detalle } = cantidadDeConsumible(a, medidas);
+    // Un estimado sin precio en ningún proveedor se muestra (para saber cuánto comprar) pero no se avisa como
+    // "nadie lo vende": todavía no cargaste su precio.
+    const conAlgunPrecio = Object.values(a.precios ?? {}).some((p) => p && (p.efectivo > 0 || p.tarjeta > 0)) || a.precio > 0;
+    if (cantidad > 0) todos.push({ ...itemSimple(a, cantidad, detalle), sinPrecioCargado: !conAlgunPrecio });
+  });
+  return todos;
 }
 
 /**

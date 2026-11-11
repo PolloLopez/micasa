@@ -143,7 +143,7 @@ export function conProveedores(catalogo, guardados = []) {
  * Lo que no se puede comprar: renglones que se usan (cantidad > 0) y ese proveedor no vende
  * (con "lo más barato", los que no vende ninguno).
  */
-export const faltanPrecios = (items) => items.filter((i) => i.cantidad > 0 && i.sinPrecio).map((i) => i.nombre);
+export const faltanPrecios = (items) => items.filter((i) => i.cantidad > 0 && i.sinPrecio && !i.sinPrecioCargado).map((i) => i.nombre);
 
 // ---------- Flete y plan de compra (v1.29) ----------
 
@@ -203,7 +203,8 @@ export function planDeCompra(items, catalogo, pago = 'efectivo') {
   const proveedores = proveedoresDe(catalogo).slice(0, MAXIMO_PROVEEDORES_PLAN);
   if (proveedores.length === 0) return null;
   // Cada renglón con lo que cuesta en cada proveedor (null = no lo vende).
-  const renglones = items.filter((i) => i.cantidad > 0 && i.categoria !== 'flete').map((i) => {
+  // v1.48: los consumibles estimados sin ningún precio cargado no entran al plan (se ven en la lista de materiales).
+  const renglones = items.filter((i) => i.cantidad > 0 && i.categoria !== 'flete' && !i.sinPrecioCargado).map((i) => {
     const material = materialDe(i, catalogo);
     const precios = proveedores.map((p) => (material && llevaPrecios(material) ? precioEn(material, p, pago) : null));
     return { item: i, precios };

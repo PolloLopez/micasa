@@ -3,13 +3,14 @@
 Última limpieza: 2026-11-11 (v1.47.1). Espejo en Trello: tablero "Desarrollo", tarjetas `[CALC]`.
 
 ## 📌 Estado y próximos pasos (11/11)
-En GitHub y publicado: hasta v1.47.0. **v1.47.1 (perros, puertas, escalera y baño) todavía no está subida**
-(el bundle no llegó a la carpeta: la compu se había desconectado).
+En GitHub y publicado: hasta v1.47.0. **v1.47.1 y v1.48.0 por subir** (van en el mismo bundle).
 
 Lo que falta, en orden de prioridad (detalle en cada sección de abajo):
 1. 🔴 **Validar con el herrero** los supuestos de obra (sección "Antes de considerar el presupuesto de obra") y
    llevarle la hoja de preguntas: es lo que más cambia el número final.
-2. 🔴 **Consumibles automáticos** (electrodos, autoperforantes, sellador, antióxido) con coeficientes editables.
+2. ✅ v1.48.0 **Consumibles automáticos** (electrodos, autoperforantes, sellador, antióxido) con coeficientes editables.
+   - 🟡 [ ] Validar los coeficientes con el herrero (y el rendimiento del antióxido con el pintor).
+   - 🟢 [ ] Tornillos del Durlock por m² de placa de los tabiques (hoy solo paneles de paredes y techo).
 3. 🟡 **Seguimiento en el PDF y el Excel** (hoy solo en pantalla) + resumen "pagado / falta" en el PDF del cliente.
 4. 🟡 **Precios con fecha** por proveedor y aviso de precios viejos (> 30 días).
 5. 🟡 **Tabiques de Durlock completos**: PGU (soleras) aparte de PGC (montantes), tornillos, cinta y masilla.
@@ -75,6 +76,11 @@ Mejoras propuestas (técnicas, sin cambios aplicados):
 - ✅ Etiquetas de mesadas y muebles en el 3D, apagables una por una y por capa (v1.38.1).
 - ✅ **Sol más fuerte** (v1.38.0): intensidad regulable (50–300 %, 150 % de fábrica).
 
+## v1.48.0 Electrodomésticos (pedido de Leandro 11/11)
+- ✅ Muebles, electrodomésticos y baño por separado; televisor, cafetera, horno de aire y máquina de pan.
+  - 🟢 [ ] Apoyar un electrodoméstico chico "sobre" una mesada o un mueble elegido (hoy se ubica con distancias y altura).
+  - 🟢 [ ] Más: microondas, lavavajillas, termotanque, aire acondicionado, estufa.
+
 ## v1.47.1 Personas y perros (pedido de Leandro 11/11) — falta subir
 - ✅ Pasar bajo la escalera, entrar al baño y a la ducha; las personas abren las puertas; perros que caminan solos.
   - 🟡 [ ] Probar con el proyecto real de Leandro (el de la nube es del 4/11, sin el antebaño): el arreglo se probó con una copia vieja + una puerta.
@@ -97,7 +103,7 @@ barra por proveedor, flete con "gratis desde", lista de materiales con kilos, pl
       margen e IVA (ya estaba en 🟡 Funcionalidad → Presupuesto; lo subo porque el total se lee como "lo que cuesta").
       Propuesta: un bloque de cierre "Materiales + Consumibles + Mano de obra (por kg de hierro, por m² o global)
       + Imprevistos % + Margen % + IVA (opcional) = Total", que salga igual en pantalla, PDF y Excel.
-- [ ] **Consumibles en 0 sin aviso**: tornillería, electrodos y selladores arrancan en cantidad 0 y no suman nada.
+- [x] ✅ v1.48.0 **Consumibles en 0 sin aviso**: tornillería, electrodos y selladores arrancan en cantidad 0 y no suman nada.
       Propuesta: cantidad estimada automática (que se pueda pisar a mano), por ejemplo electrodos ≈ 1–1,5 % de los kg
       de hierro, autoperforantes por m² de panel, sellador por metro de junta, antióxido/esmalte por m² de hierro
       (perímetro de la sección x largo). Los coeficientes, a validar con el herrero.
