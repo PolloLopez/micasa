@@ -1,6 +1,32 @@
 # PENDIENTES — loft-calculator
 
-Última limpieza: 2026-10-15 (v1.14.0). Espejo en Trello: tablero "Desarrollo", tarjetas `[CALC]`.
+Última limpieza: 2026-11-11 (v1.47.1). Espejo en Trello: tablero "Desarrollo", tarjetas `[CALC]`.
+
+## 📌 Estado y próximos pasos (11/11)
+En GitHub y publicado: hasta v1.47.0. **v1.47.1 (perros, puertas, escalera y baño) todavía no está subida**
+(el bundle no llegó a la carpeta: la compu se había desconectado).
+
+Lo que falta, en orden de prioridad (detalle en cada sección de abajo):
+1. 🔴 **Validar con el herrero** los supuestos de obra (sección "Antes de considerar el presupuesto de obra") y
+   llevarle la hoja de preguntas: es lo que más cambia el número final.
+2. 🔴 **Consumibles automáticos** (electrodos, autoperforantes, sellador, antióxido) con coeficientes editables.
+3. 🟡 **Seguimiento en el PDF y el Excel** (hoy solo en pantalla) + resumen "pagado / falta" en el PDF del cliente.
+4. 🟡 **Precios con fecha** por proveedor y aviso de precios viejos (> 30 días).
+5. 🟡 **Tabiques de Durlock completos**: PGU (soleras) aparte de PGC (montantes), tornillos, cinta y masilla.
+6. 🟡 **Tabiques, mesadas, muebles, pilotines y zapatas en las plantas** (hoy solo 3D y listas).
+7. 🟢 Personas: subir y bajar la escalera, puertas de muebles, sentarse/acostarse, esquivarse entre ellas.
+
+Mejoras propuestas (técnicas, sin cambios aplicados):
+- 🟡 **App.jsx y LoftCanvas.jsx muy grandes** (~1.500 y ~1.900 líneas): separar en hooks (`usePresupuesto`,
+  `useSeguimiento`, `usePersonas3D`) y componentes de la barra del 3D. Hace más fácil cada cambio y testear.
+- 🟡 **Tests de pantalla**: los flujos de Playwright que se usan para probar (mueble, personas, cierre, seguimiento)
+  guardarlos en el repo (`e2e/`) para correrlos antes de cada deploy (`npm run e2e`).
+- 🟡 **Respaldo del proyecto**: el trabajo vive en el navegador (localStorage); avisar si hace más de N días que no
+  se guarda en archivo o en la nube, y guardar solo una copia en la nube al cerrar.
+- 🟢 **Rendimiento del 3D**: geometrías y materiales compartidos entre piezas iguales (hoy una malla nueva por pieza);
+  el modo realista con muchas piezas puede ir lento en el celular.
+- 🟢 **Decisión pendiente (Construcción Modular)**: escribir el ADR "seguimiento dentro de Pollo Calculator, Django
+  cuando crezca" para cerrar la opción A/B que quedó abierta en septiembre.
 
 ## 🗺️ Hoja de ruta (28/10, decisiones de Leandro): Estructura → Sol → Muebles
 - ✅ **Pisos**: tirantes ↔ transversales con 3 opciones (mismo plano tirantes enteros / mismo plano
@@ -49,7 +75,7 @@
 - ✅ Etiquetas de mesadas y muebles en el 3D, apagables una por una y por capa (v1.38.1).
 - ✅ **Sol más fuerte** (v1.38.0): intensidad regulable (50–300 %, 150 % de fábrica).
 
-## v1.47.1 Personas y perros (pedido de Leandro 11/11)
+## v1.47.1 Personas y perros (pedido de Leandro 11/11) — falta subir
 - ✅ Pasar bajo la escalera, entrar al baño y a la ducha; las personas abren las puertas; perros que caminan solos.
   - 🟡 [ ] Probar con el proyecto real de Leandro (el de la nube es del 4/11, sin el antebaño): el arreglo se probó con una copia vieja + una puerta.
   - 🟢 [ ] Puertas de los muebles (heladera, placard) que se abran cuando la persona los busca.
