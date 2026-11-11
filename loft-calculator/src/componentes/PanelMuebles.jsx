@@ -15,7 +15,7 @@ import CampoNumero from './CampoNumero.jsx';
 import CampoSelect from './CampoSelect.jsx';
 import { nombreLado } from '../motor/geometria.js';
 import SelectorColor from './SelectorColor.jsx';
-import { TIPOS_MUEBLE, MATERIALES_MUEBLE, muebleNuevo, muebleFueraDeLaPlanta, colorDelMueble, distanciasDelMueble, libreArribaDelMueble, cajonesQueChocan, PUERTAS_MUEBLE, margenDePuerta, puertaQueChoca } from '../motor/interiores.js';
+import { TIPOS_MUEBLE, MATERIALES_MUEBLE, muebleNuevo, muebleFueraDeLaPlanta, colorDelMueble, distanciasDelMueble, libreArribaDelMueble, cajonesQueChocan, PUERTAS_MUEBLE, margenDePuerta, puertaQueChoca, puertaChocaCon, cajonesChocanCon } from '../motor/interiores.js';
 
 const f2 = (n) => n.toFixed(2).replace('.', ',');
 const GIROS = [[0, 'Sin girar'], [90, '90°'], [180, '180° (de espaldas)'], [270, '270°']];
@@ -35,6 +35,8 @@ function Mueble({ m, i, params, unidad, cambiar, onQuitar, abiertaAlInicio }) {
   const { libre, hasta } = libreArribaDelMueble(params, m);
   const choques = cajonesQueChocan(params, m);
   const choquePuerta = puertaQueChoca(params, m);
+  const puertaContra = puertaChocaCon(params, m); // v1.43.2: muebles, mesadas y tabiques en el camino de la puerta
+  const cajonesContra = cajonesChocanCon(params, m); // v1.43.2: lo mismo para los cajones de la cama
   return (
     <FichaPlegable clave={`mueble:${m.id}`} className="mueble" abiertaAlInicio={abiertaAlInicio}
       encabezado={<>
@@ -102,6 +104,9 @@ function Mueble({ m, i, params, unidad, cambiar, onQuitar, abiertaAlInicio }) {
           <div className="grid-params">{medida('aperturaCajones', 'Cajones abiertos salen')}</div>
         )}
         <p className="nota">Izquierda y derecha mirando la cama desde los pies. Abiertos se ven sombreados en el 3D.</p>
+        {cajonesContra.map((c) => (
+          <p key={`con-${c.lado}`} className="aviso-mueble" role="status">⚠ Los cajones {c.lado === 'pies' ? 'de los pies' : `de la ${c.lado}`} abiertos chocan con {c.con.join(', ')}.</p>
+        ))}
         {choques.map((c) => (
           <p key={c.lado} className="aviso-mueble" role="status">⚠ Los cajones {c.lado === 'pies' ? 'de los pies' : `de la ${c.lado}`} chocan con la pared ({c.pared}): faltan {f2(c.falta)} m.</p>
         ))}
@@ -111,7 +116,10 @@ function Mueble({ m, i, params, unidad, cambiar, onQuitar, abiertaAlInicio }) {
         {' '}<strong>{f2(otraFrente)} m</strong> al {m.desdeFrente === 'frente' ? 'fondo' : 'frente'} y
         {' '}<strong>{f2(libre)} m</strong> libres arriba (hasta {hasta === 'piso2' ? 'los tirantes del piso 2' : 'la estructura del techo'}).
       </p>
-      {margenDePuerta(m) > 0 && !choquePuerta && (
+      {puertaContra.length > 0 && (
+        <p className="aviso-mueble" role="status">⚠ La puerta abierta choca con {puertaContra.join(', ')}: movelo o cambiá de qué lado abre.</p>
+      )}
+      {margenDePuerta(m) > 0 && !choquePuerta && puertaContra.length === 0 && (
         <p className="nota" role="status">La puerta abierta necesita {f2(margenDePuerta(m))} m adelante (se ve sombreado en el 3D).</p>
       )}
       {choquePuerta && (

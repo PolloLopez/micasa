@@ -9,7 +9,7 @@ import { INSUMO } from './constantes.js';
 import {
   MESADA_NUEVA, mesadaNueva, colorDelMueble, tramosDeMesada, HUECO_NUEVO, mesadaALaEsquina, ajustarMesada, limitesDeMesada, tabiquesQueCruzaLaMesada, generarMesada, tramosDelFrente, ubicarMesada, validarMesada,
   muebleNuevo, ubicarMueble, validarMueble, muebleFueraDeLaPlanta, distanciasDelMueble, libreArribaDelMueble, paredHacia, cajonesQueChocan,
-  margenDePuerta, puertaQueChoca,
+  margenDePuerta, puertaQueChoca, puertaChocaCon, cajonesChocanCon,
 } from './interiores.js';
 
 // Mesada de fábrica en la pared C (fondo): x de 0,85 a 3,25 (planta de 7,5 x 4,5).
@@ -519,5 +519,55 @@ describe('puertas de los muebles (v1.42.1)', () => {
     const { puerta, elevacion, ...viejo } = muebleNuevo('heladera', [], 1);
     expect([puerta, elevacion]).toEqual(['derecha', 0]);
     expect(migrarParams({ ...P, muebles: [viejo] }).muebles[0]).toMatchObject({ puerta: 'derecha', elevacion: 0 });
+  });
+});
+
+describe('la puerta abierta contra muebles, mesadas y tabiques (v1.43.2)', () => {
+  // Heladera contra el lateral izquierdo, mirando al frente, con el frente a 1 m de la pared del frente.
+  const heladera = { ...muebleNuevo('heladera', [], 1), desdeLateral: 'izquierdo', distanciaLateral: 0.6, desdeFrente: 'frente', distanciaFrente: 1 };
+
+  it('avisa si un mueble queda donde abre la puerta (a la misma altura)', () => {
+    const silla = { ...muebleNuevo('silla', [], 2), desdeLateral: 'izquierdo', distanciaLateral: 0.7, desdeFrente: 'frente', distanciaFrente: 0.5 };
+    expect(puertaChocaCon({ ...P, muebles: [heladera, silla] }, heladera)).toEqual(['Silla']);
+    // Una alacena colgada arriba del lugar de un lavarropas no molesta a su puerta (otra altura).
+    const lav = { ...muebleNuevo('lavarropas', [], 3), desdeLateral: 'izquierdo', distanciaLateral: 3, desdeFrente: 'frente', distanciaFrente: 1 };
+    const alacena = { ...muebleNuevo('alacena', [], 4), desdeLateral: 'izquierdo', distanciaLateral: 3, desdeFrente: 'frente', distanciaFrente: 0.5 };
+    expect(puertaChocaCon({ ...P, muebles: [lav, alacena] }, lav)).toEqual([]);
+    // Corrida a un costado, la silla ya no molesta.
+    expect(puertaChocaCon({ ...P, muebles: [heladera, { ...silla, distanciaLateral: 2 }] }, heladera)).toEqual([]);
+  });
+
+  it('avisa si la puerta da contra una mesada', () => {
+    const mesadaFrente = mesada({ lado: 'A', ladoReferencia: 'izquierda', desde: 0.5, largo: 2.4, nombre: 'Mesada cocina' });
+    const cerca = { ...heladera, distanciaFrente: 0.9 };
+    expect(puertaChocaCon({ ...P, muebles: [cerca], mesadas: [mesadaFrente] }, cerca)).toEqual(['Mesada cocina']);
+    expect(puertaChocaCon({ ...P, muebles: [{ ...cerca, distanciaFrente: 1.4 }], mesadas: [mesadaFrente] }, { ...cerca, distanciaFrente: 1.4 })).toEqual([]);
+  });
+
+  it('avisa si la puerta da contra un tabique', () => {
+    const tabique = { id: 1, nombre: 'Tabique baño', lado: 'A', ladoReferencia: 'izquierda', desde: 0, orientacion: 'paralelo', separacion: 0.4, largo: 4, nivel: 'piso' };
+    expect(puertaChocaCon({ ...P, muebles: [heladera], tabiques: [tabique] }, heladera)).toEqual(['Tabique baño']);
+    expect(puertaChocaCon({ ...P, muebles: [heladera], tabiques: [{ ...tabique, nivel: 'piso2' }] }, heladera)).toEqual([]);
+  });
+
+  it('sin puerta (o corrediza) no choca con nada', () => {
+    const silla = { ...muebleNuevo('silla', [], 2), desdeLateral: 'izquierdo', distanciaLateral: 0.7, desdeFrente: 'frente', distanciaFrente: 0.5 };
+    expect(puertaChocaCon({ ...P, muebles: [silla] }, { ...heladera, puerta: 'corrediza' })).toEqual([]);
+  });
+});
+
+describe('cajones de la cama contra muebles y tabiques (v1.43.2)', () => {
+  it('avisa qué cajón abierto da contra qué', () => {
+    const cama = { ...muebleNuevo('cama2', [], 1), cajonesDerecha: true, cajonesPies: true, aperturaCajones: 0.4,
+      desdeLateral: 'izquierdo', distanciaLateral: 1, desdeFrente: 'fondo', distanciaFrente: 0 };
+    // Una mesita de luz pegada a la derecha de la cama (sin girar, la derecha de la cama da al lateral derecho).
+    const mesita = { ...muebleNuevo('otro', [], 2), nombre: 'Mesa de luz', ancho: 0.45, profundidad: 0.4, alto: 0.55,
+      desdeLateral: 'izquierdo', distanciaLateral: 2.5, desdeFrente: 'fondo', distanciaFrente: 0.5 };
+    const params = { ...P, muebles: [cama, mesita] };
+    expect(cajonesChocanCon(params, cama)).toEqual([{ lado: 'derecha', con: ['Mesa de luz'] }]);
+    // Alejada 50 cm, los cajones (40 cm) entran.
+    expect(cajonesChocanCon({ ...P, muebles: [cama, { ...mesita, distanciaLateral: 3 }] }, cama)).toEqual([]);
+    // Sin cajones, nada.
+    expect(cajonesChocanCon(params, { ...cama, cajonesDerecha: false, cajonesPies: false })).toEqual([]);
   });
 });

@@ -13,7 +13,7 @@
 // ==========================================================
 
 import * as THREE from 'three';
-import { MATERIALES_MUEBLE, TIPOS_MUEBLE, ubicarMueble, margenDePuerta } from './motor/interiores.js';
+import { MATERIALES_MUEBLE, TIPOS_MUEBLE, ubicarMueble, margenDePuerta, puertaQueChoca, puertaChocaCon, cajonesQueChocan, cajonesChocanCon } from './motor/interiores.js';
 
 /**
  * Placa horizontal con espesor, a partir de sus 4 esquinas (a→b a lo largo, b→c a lo ancho).
@@ -44,6 +44,8 @@ function materiales() {
     materialesMuebles.metal = new THREE.MeshStandardMaterial({ color: '#94a3b8', metalness: 0.8, roughness: 0.3 });
     // v1.40.1: el lugar que ocupan los cajones abiertos (amarillo transparente, no tapa nada).
     materialesMuebles.sombra = new THREE.MeshStandardMaterial({ color: '#facc15', transparent: true, opacity: 0.28, depthWrite: false });
+    // v1.43.2: la puerta que choca, en rojo.
+    materialesMuebles.sombraChoque = new THREE.MeshStandardMaterial({ color: '#ef4444', transparent: true, opacity: 0.35, depthWrite: false });
   }
   return materialesMuebles;
 }
@@ -75,6 +77,7 @@ function cajasDe(forma, ancho, alto, prof, mat, opciones = {}) {
       // v1.40.1: cajones (dos por costado, uno o dos a los pies): el frente marcado y, abiertos, el lugar que ocupan.
       const cajones = [];
       const abre = opciones.aperturaCajones ?? 0.4;
+      const sombraCajon = opciones.chocanCajones ? m.sombraChoque : m.sombra; // v1.43.2: en rojo si chocan
       const altoCajon = base * 0.75;
       const yCajon = base * 0.45;
       const z0 = -prof / 2 + 0.12; // lejos de la cabecera
@@ -84,7 +87,7 @@ function cajasDe(forma, ancho, alto, prof, mat, opciones = {}) {
         [0, 1].forEach((k) => {
           const zc = z0 + largo * (k + 0.5);
           cajones.push([0.01, altoCajon, largo - 0.03, lado * (ancho / 2 + 0.005), yCajon, zc, m.detalle]);
-          cajones.push([abre, altoCajon, largo - 0.03, lado * (ancho / 2 + abre / 2), yCajon, zc, m.sombra]);
+          cajones.push([abre, altoCajon, largo - 0.03, lado * (ancho / 2 + abre / 2), yCajon, zc, sombraCajon]);
         });
       });
       if (opciones.cajonesPies) {
@@ -92,7 +95,7 @@ function cajasDe(forma, ancho, alto, prof, mat, opciones = {}) {
         const largo = (ancho - 0.08) / n;
         Array.from({ length: n }, (_, k) => -ancho / 2 + 0.04 + largo * (k + 0.5)).forEach((xc) => {
           cajones.push([largo - 0.03, altoCajon, 0.01, xc, yCajon, prof / 2 + 0.005, m.detalle]);
-          cajones.push([largo - 0.03, altoCajon, abre, xc, yCajon, prof / 2 + abre / 2, m.sombra]);
+          cajones.push([largo - 0.03, altoCajon, abre, xc, yCajon, prof / 2 + abre / 2, sombraCajon]);
         });
       }
       return [
@@ -183,20 +186,23 @@ function cajasDe(forma, ancho, alto, prof, mat, opciones = {}) {
 /** Un mueble armado y ubicado (Group con sus cajas). */
 export function dibujarMueble(params, mueble) {
   const { centro, angulo, y } = ubicarMueble(params, mueble);
-  return dibujarMuebleEn(mueble, centro, angulo, y);
+  // v1.43.2: si la puerta abierta choca (pared, mueble, mesada o tabique), su lugar se pinta de rojo.
+  const choca = Boolean(puertaQueChoca(params, mueble)) || puertaChocaCon(params, mueble).length > 0;
+  const chocanCajones = cajonesQueChocan(params, mueble).length > 0 || cajonesChocanCon(params, mueble).length > 0;
+  return dibujarMuebleEn(mueble, centro, angulo, y, { chocaPuerta: choca, chocanCajones });
 }
 
 /**
  * v1.40: un mueble en un lugar dado (centro [x, z], ángulo y altura del piso). Lo usan los muebles sueltos y los
  * electrodomésticos de los huecos de las mesadas. `mueble`: { tipo, ancho, profundidad, alto, material, color?, cargaFrontal? }
  */
-export function dibujarMuebleEn(mueble, centro, angulo, y) {
+export function dibujarMuebleEn(mueble, centro, angulo, y, { chocaPuerta = false, chocanCajones = false } = {}) {
   const forma = TIPOS_MUEBLE[mueble.tipo]?.forma ?? 'caja';
   // v1.38.2: con color propio, el mismo brillo de su material pero de ese color.
   const base = MATERIALES_MUEBLE[mueble.material] ?? MATERIALES_MUEBLE.madera;
   const mat = mueble.color ? materialDeColor(mueble.color, base) : (materiales()[mueble.material] ?? materiales().madera);
   const grupo = new THREE.Group();
-  cajasDe(forma, mueble.ancho, mueble.alto, mueble.profundidad, mat, mueble).forEach((pieza) => {
+  cajasDe(forma, mueble.ancho, mueble.alto, mueble.profundidad, mat, { ...mueble, chocanCajones }).forEach((pieza) => {
     if (pieza[0] === 'cil') {
       const [, radio, largo, eje, x, yy, z, material] = pieza;
       const cilindro = new THREE.Mesh(new THREE.CylinderGeometry(radio, radio, largo, 24), material);
@@ -209,7 +215,7 @@ export function dibujarMuebleEn(mueble, centro, angulo, y) {
     if (!(a > 0 && h > 0 && p > 0)) return;
     const caja = new THREE.Mesh(new THREE.BoxGeometry(a, h, p), material);
     caja.position.set(x, yy, z);
-    if (material === materiales().sombra) caja.userData.sinSombra = true; // los cajones abiertos no tiran sombra
+    if (material === materiales().sombra || material === materiales().sombraChoque) caja.userData.sinSombra = true; // los cajones abiertos no tiran sombra
     grupo.add(caja);
   });
   // v1.42.1: el lugar que necesita la puerta abierta (sombreado, como los cajones de la cama).
@@ -217,7 +223,7 @@ export function dibujarMuebleEn(mueble, centro, angulo, y) {
   if (margen > 0) {
     const { ancho: a, profundidad: p, alto: h } = mueble;
     const sombra = (geo, x, yy, z) => {
-      const malla = new THREE.Mesh(geo, materiales().sombra);
+      const malla = new THREE.Mesh(geo, chocaPuerta ? materiales().sombraChoque : materiales().sombra);
       malla.position.set(x, yy, z);
       malla.userData.sinSombra = true;
       grupo.add(malla);

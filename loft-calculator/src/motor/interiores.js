@@ -21,7 +21,7 @@
 import { geometriaLados, largoLado, alturaEn, tramoEntrepiso } from './geometria.js';
 import { haciaAdentro, pieza } from './segmentos.js';
 import { LADOS, ALTURA_PISO_2 } from './constantes.js';
-import { limitesSobrePared } from './tabiques.js';
+import { limitesSobrePared, ubicarTabique, MEDIO_ESPESOR_TABIQUE } from './tabiques.js';
 
 const ALTO_PISO = 0.09; // el piso terminado está un poco arriba de la estructura (OSB)
 const MEDIA_PARED = 0.06; // la mesada arranca en la cara de adentro de los perfiles de la pared, no en su eje
@@ -540,6 +540,121 @@ export function puertaQueChoca(params, m) {
   const pared = paredHacia(m, 'pies'); // el frente del mueble
   const falta = margen - distanciasDelMueble(params, m)[pared];
   return falta > 0.001 ? { pared, falta, margen } : null;
+}
+
+// ---------- v1.43.2: la puerta contra muebles, mesadas y tabiques ----------
+
+/** Un rectángulo en planta: centro, sus dos ejes (de largo 1), medias medidas y de qué altura a qué altura va. */
+const rectangulo = (centro, u, v, mu, mv, y0, y1, nombre) => ({ centro, u, v, mu, mv, y0, y1, nombre });
+const dentro = (r, [x, z]) => {
+  const d = [x - r.centro[0], z - r.centro[1]];
+  return Math.abs(d[0] * r.u[0] + d[1] * r.u[1]) < r.mu - 0.005 && Math.abs(d[0] * r.v[0] + d[1] * r.v[1]) < r.mv - 0.005;
+};
+
+/** Pasa un punto del mueble (x a lo ancho, z hacia su frente) a la planta, con la misma rotación que el 3D. */
+function aPlanta(params, m) {
+  const { centro, angulo } = ubicarMueble(params, m);
+  const [c, s] = [Math.cos(angulo), Math.sin(angulo)];
+  return ([lx, lz]) => [centro[0] + lx * c + lz * s, centro[1] - lx * s + lz * c];
+}
+
+/**
+ * Lugar que ocupa la puerta abierta: puntos de muestra en planta (del cuarto de círculo de cada hoja, o del rectángulo
+ * de la puerta rebatible) y de qué altura a qué altura (desde el piso del nivel).
+ */
+export function zonaDePuerta(params, m) {
+  const r = margenDePuerta(m);
+  if (!(r > 0)) return null;
+  const { ancho: a, profundidad: p, alto: h } = m;
+  const elev = m.elevacion ?? 0;
+  const puntos = [];
+  const hoja = (hx, desde) => {
+    for (let i = 1; i <= 4; i++) {
+      for (let k = 0; k <= 6; k++) {
+        const t = desde + (k / 6) * (Math.PI / 2);
+        puntos.push([hx + (r * i / 4) * Math.sin(t), p / 2 + (r * i / 4) * Math.cos(t)]);
+      }
+    }
+  };
+  if (m.puerta === 'izquierda') hoja(-a / 2, 0);
+  if (m.puerta === 'derecha') hoja(a / 2, -Math.PI / 2);
+  if (m.puerta === 'dos') { hoja(-a / 2, 0); hoja(a / 2, -Math.PI / 2); }
+  if (m.puerta === 'abajo') {
+    for (let i = 0; i <= 4; i++) for (let k = 1; k <= 4; k++) puntos.push([-a / 2 + (a * i) / 4, p / 2 + (r * k) / 4]);
+  }
+  const esLavarropas = TIPOS_MUEBLE[m.tipo]?.forma === 'lavarropas';
+  const [y0, y1] = m.puerta === 'abajo' ? [elev, elev + h * 0.4] : esLavarropas ? [elev + h * 0.15, elev + h * 0.75] : [elev, elev + h];
+  const aMundo = aPlanta(params, m);
+  return { puntos: puntos.map(aMundo), y0, y1 };
+}
+
+/** Lo que puede estar adelante de una puerta: los otros muebles, las mesadas y los tabiques del mismo nivel. */
+function obstaculosDe(params, m) {
+  const nivel = m.nivel ?? 'piso';
+  const lista = [];
+  (params.muebles ?? []).filter((o) => o.id !== m.id && (o.nivel ?? 'piso') === nivel).forEach((o) => {
+    const { centro, angulo } = ubicarMueble(params, o);
+    const [c, s] = [Math.cos(angulo), Math.sin(angulo)];
+    const e = o.elevacion ?? 0;
+    lista.push(rectangulo(centro, [c, -s], [s, c], o.ancho / 2, o.profundidad / 2, e, e + o.alto, o.nombre || TIPOS_MUEBLE[o.tipo]?.nombre));
+  });
+  (params.mesadas ?? []).filter((x) => (x.nivel ?? 'piso') === nivel).forEach((x) => {
+    tramosDeMesada(params, x).forEach((t) => {
+      const fondo = x.profundidad + 0.02; // con el vuelo de la tapa
+      const centro = [t.origen[0] + t.alongo[0] * t.largo / 2 + t.adentro[0] * fondo / 2, t.origen[1] + t.alongo[1] * t.largo / 2 + t.adentro[1] * fondo / 2];
+      lista.push(rectangulo(centro, t.alongo, t.adentro, t.largo / 2, fondo / 2, 0, x.alto, x.nombre));
+    });
+  });
+  (params.tabiques ?? []).filter((t) => (t.nivel ?? 'piso') === nivel).forEach((t) => {
+    const { inicio, direccion, normal } = ubicarTabique(params, t);
+    const centro = [inicio[0] + direccion[0] * t.largo / 2, inicio[1] + direccion[1] * t.largo / 2];
+    lista.push(rectangulo(centro, direccion, normal, t.largo / 2, MEDIO_ESPESOR_TABIQUE, 0, Infinity, t.nombre));
+  });
+  return lista;
+}
+
+/**
+ * Con qué choca la puerta abierta (además de la pared de enfrente, ver puertaQueChoca): nombres de los muebles,
+ * mesadas y tabiques que caen en su lugar y a su altura.
+ */
+export function puertaChocaCon(params, m) {
+  const zona = zonaDePuerta(params, m);
+  if (!zona) return [];
+  return [...new Set(obstaculosDe(params, m)
+    .filter((o) => o.y0 < zona.y1 - 0.01 && o.y1 > zona.y0 + 0.01 && zona.puntos.some((q) => dentro(o, q)))
+    .map((o) => o.nombre))];
+}
+
+/** Puntos de muestra de un rectángulo del mueble (x de x0 a x1, z de z0 a z1), en su sistema (x a lo ancho, z al frente). */
+function muestras(x0, x1, z0, z1) {
+  const puntos = [];
+  for (let i = 0; i <= 4; i++) for (let k = 0; k <= 4; k++) puntos.push([x0 + ((x1 - x0) * i) / 4, z0 + ((z1 - z0) * k) / 4]);
+  return puntos;
+}
+
+/**
+ * v1.43.2: cajones abiertos de la cama que dan contra otro mueble, una mesada o un tabique: [{ lado, con: [nombres] }].
+ * (Contra las paredes los avisa cajonesQueChocan.)
+ */
+export function cajonesChocanCon(params, m) {
+  if (TIPOS_MUEBLE[m.tipo]?.forma !== 'cama') return [];
+  const { ancho: a, profundidad: p, alto: h } = m;
+  const abre = m.aperturaCajones ?? 0.4;
+  const z0 = -p / 2 + 0.12;
+  const z1 = p / 2 - 0.04;
+  const zonas = [
+    ['izquierda', m.cajonesIzquierda, muestras(-a / 2 - abre, -a / 2 - 0.01, z0, z1)],
+    ['derecha', m.cajonesDerecha, muestras(a / 2 + 0.01, a / 2 + abre, z0, z1)],
+    ['pies', m.cajonesPies, muestras(-a / 2 + 0.04, a / 2 - 0.04, p / 2 + 0.01, p / 2 + abre)],
+  ];
+  const aMundo = aPlanta(params, m);
+  const elev = m.elevacion ?? 0;
+  const [y0, y1] = [elev, elev + h * 0.55]; // los cajones van en la base de la cama
+  const obstaculos = obstaculosDe(params, m).filter((o) => o.y0 < y1 - 0.01 && o.y1 > y0 + 0.01);
+  return zonas.filter(([, tiene]) => tiene).map(([lado, , puntos]) => {
+    const enMundo = puntos.map(aMundo);
+    return { lado, con: [...new Set(obstaculos.filter((o) => enMundo.some((q) => dentro(o, q))).map((o) => o.nombre))] };
+  }).filter((c) => c.con.length > 0);
 }
 
 /**

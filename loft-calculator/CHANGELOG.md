@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.43.2] - 2026-11-11
+### Agregado
+- **La puerta abierta avisa si choca** con otro mueble, una mesada o un tabique (además de la pared): "⚠ La puerta
+  abierta choca con Mesada 1". Se mira el lugar real de cada hoja (el cuarto de círculo) y la altura, así una alacena
+  colgada no molesta a la puerta de un lavarropas de abajo. En el 3D, el lugar de la puerta que choca se pinta de rojo.
+- Lo mismo para los **cajones de la cama**: avisa si abiertos dan contra un mueble, una mesada o un tabique, y se ven
+  en rojo.
+
 ## [1.43.1] - 2026-11-10
 ### Cambiado
 - **La planta baja y el entrepiso se arman cada uno a su manera**: "Tirantes y transversales" ahora es por piso (por
