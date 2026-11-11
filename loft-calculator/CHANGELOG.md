@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.44.0] - 2026-11-11
+### Agregado
+- **Mover y girar muebles desde el 3D**: tocás un mueble y lo arrastrás por el piso (de a 1 cm), o lo corrés con las
+  flechas (1 cm; con Shift, 10 cm). Con R (o los botones "↺/↻ Girar 90°") gira sobre su centro. La ficha se actualiza
+  sola con las distancias a las paredes. Esc lo suelta.
+- **Modo "✨ Realista"** en el 3D: luz de cielo y sol con sombras, reflejos suaves, hierros con brillo metálico,
+  paneles macizos y sin cotas, juntas ni etiquetas. Se apaga y vuelve a la vista de trabajo.
+- **Exportar "por partes"** (Imprimir → 3D): planta baja y entrepiso vistos desde arriba, y el adentro visto desde cada
+  lado (frente, lateral derecho, fondo, lateral izquierdo) sacando la pared desde donde se mira.
+### Cambiado
+- Las piezas de mesadas y tabiques saben en qué nivel están, así al ocultar el piso 2 se ocultan también.
+
 ## [1.43.2] - 2026-11-11
 ### Agregado
 - **La puerta abierta avisa si choca** con otro mueble, una mesada o un tabique (además de la pared): "⚠ La puerta

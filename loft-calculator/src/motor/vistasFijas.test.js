@@ -19,3 +19,18 @@ describe('vistas fijas', () => {
     expect(lateral.titulo).toBe('Lateral derecho (D)');
   });
 });
+
+describe('vistas por partes (v1.44)', () => {
+  it('planta baja y entrepiso desde arriba, y el adentro desde cada lado sin esa pared', async () => {
+    const { vistasPorPartes } = await import('./vistasFijas.js');
+    const { PARAMS_INICIALES: P } = await import('./parametrosIniciales.js');
+    const v = vistasPorPartes(P);
+    expect(v.map((x) => x.clave)).toEqual(['plantaBaja', 'entrepiso', 'interiorA', 'interiorB', 'interiorC', 'interiorD']);
+    expect(v[0].ocultar).toEqual({ techo: false, piso2: false, escalera: false });
+    expect(v[1].ocultar).toEqual({ techo: false });
+    expect(v[2]).toMatchObject({ ocultar: { A: false }, desde: [0, 0, 1] }); // frente A: se mira desde +z
+    expect(v[2].titulo).toBe('Desde frente (A), sin esa pared');
+    // Sin entrepiso, no hay vista del entrepiso.
+    expect(vistasPorPartes({ ...P, anchoEntrepiso: 0 }).map((x) => x.clave)).not.toContain('entrepiso');
+  });
+});

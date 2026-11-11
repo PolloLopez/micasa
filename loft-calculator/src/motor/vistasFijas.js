@@ -33,3 +33,26 @@ export function vistasFijas(params) {
     { clave: 'arriba', titulo: 'Desde arriba', desde: [0, 1, 0], arriba: sinMenosCero(afueraFrente.map((v) => -v)) },
   ];
 }
+
+/**
+ * v1.44: vistas "por partes" para el PDF (pedido de Leandro): cada piso desde arriba sin lo que lo tapa, y el adentro
+ * visto desde cada lado, sacando la pared de ese lado.
+ * @returns {{ clave, titulo, desde, arriba, ocultar: Object<string, false> }[]} `ocultar`: partes que no se dibujan
+ */
+export function vistasPorPartes(params) {
+  const lados = geometriaLados(params);
+  const frente = params.ladoFrente ?? 'A';
+  const afueraFrente = afueraDe(lados[frente]);
+  const haciaElFondo = sinMenosCero(afueraFrente.map((v) => -v));
+  const arriba = [0, 1, 0];
+  const vistas = [{ clave: 'plantaBaja', titulo: 'Planta baja desde arriba (sin techo ni entrepiso)', desde: arriba, arriba: haciaElFondo,
+    ocultar: { techo: false, piso2: false, escalera: false } }];
+  if (params.anchoEntrepiso > 0) {
+    vistas.push({ clave: 'entrepiso', titulo: 'Entrepiso desde arriba (sin techo)', desde: arriba, arriba: haciaElFondo, ocultar: { techo: false } });
+  }
+  [0, 1, 2, 3].map((i) => LADOS[(LADOS.indexOf(frente) + i) % 4]).forEach((lado) => {
+    vistas.push({ clave: `interior${lado}`, titulo: `Desde ${nombreLado(lado, frente).toLowerCase()} (${lado}), sin esa pared`,
+      desde: afueraDe(lados[lado]), arriba, ocultar: { [lado]: false } });
+  });
+  return vistas;
+}

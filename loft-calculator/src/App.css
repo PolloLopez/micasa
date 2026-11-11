@@ -771,3 +771,6 @@ kbd {
 .ficha-plegable:not(.cerrada) .titulo-ficha .flecha { transform: rotate(90deg); }
 .ficha-plegable.cerrada { padding-bottom: 4px; }
 .en-foco { outline: 2px solid var(--acento); outline-offset: 2px; }
+
+/* v1.44: vistas por partes en el PDF (dos por fila) */
+.vistas-partes { grid-template-columns: 1fr 1fr; }

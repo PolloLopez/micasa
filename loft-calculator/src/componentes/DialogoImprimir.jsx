@@ -15,6 +15,7 @@ const GRUPOS = [
     titulo: '3D', partes: [
       ['vista3D', 'Vista actual (con lo resaltado y lo seleccionado)', true],
       ['vistasFijas', 'Vistas fijas: frente, lateral y desde arriba', true],
+      ['vistasPartes', 'Por partes: cada piso desde arriba y el adentro desde cada lado (sin esa pared)', true],
       ['cotas', 'Cotas generales (largo, ancho y altos)', true],
       ['medidas', 'Medidas fijadas con 📏'],
     ],
@@ -40,7 +41,7 @@ export default function DialogoImprimir({ opciones, onCambiar, cantidadMedidas, 
   const algoParaPdf = Object.entries(opciones).some(([k, v]) => v && k !== 'cotas' && !k.startsWith('parte'));
   const algoParaExcel = ['resumen', 'presupuesto', 'cortes', 'paredes', 'plantas', 'medidas', 'listaCanos', 'listaAberturas'].some((k) => opciones[k]);
   const deshabilitada = (clave) => (clave === 'medidas' && cantidadMedidas === 0)
-    || (!esConstruccion && ['paredes', 'plantas', 'cotas', 'vistasFijas', 'listaAberturas'].includes(clave));
+    || (!esConstruccion && ['paredes', 'plantas', 'cotas', 'vistasFijas', 'vistasPartes', 'listaAberturas'].includes(clave));
 
   return (
     <dialog ref={ventanaRef} className="dialogo dialogo-imprimir no-print" aria-labelledby="imprimir-titulo"

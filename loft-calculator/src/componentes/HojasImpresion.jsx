@@ -123,7 +123,8 @@ export default function HojasImpresion({
   const conHoja1 = (opciones.vista3D && fotos.actual) || (opciones.vistasFijas && fotos.fijas.length > 0)
     || (opciones.medidas && fotos.medidas.length > 0) || (opciones.resumen && resumen.length > 0);
   const conHoja2 = opciones.presupuesto || conPlantas;
-  const primera = conHoja1 ? 1 : conHoja2 ? 2 : conParedes ? 3 : conListas ? 4 : 5;
+  const partes = opciones.vistasPartes ? (fotos.partes ?? []) : []; // v1.44
+  const primera = conHoja1 ? 1 : conHoja2 ? 2 : partes.length > 0 ? 2.5 : conParedes ? 3 : conListas ? 4 : 5;
   const cabecera = (
     <header className="cabecera-impresion">
       <h1>🐤 {nombre || 'Proyecto sin nombre'}</h1>
@@ -223,6 +224,19 @@ export default function HojasImpresion({
               </div>
             </div>
           )}
+        </section>
+      )}
+
+      {/* v1.44: el 3D por partes (cada piso desde arriba, el adentro desde cada lado sin esa pared). */}
+      {partes.length > 0 && (
+        <section className="hoja-impresion">
+          {!conHoja1 && !conHoja2 && cabecera}
+          <h2>Vistas por partes</h2>
+          <div className="vistas-fijas vistas-partes">
+            {partes.map((v) => (
+              <figure key={v.clave}><img src={v.imagen} alt={v.titulo} /><figcaption>{v.titulo}</figcaption></figure>
+            ))}
+          </div>
         </section>
       )}
 

@@ -12,6 +12,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import LoftCanvas from './LoftCanvas.jsx';
 import { ContextoFoco, focoDe } from './componentes/contextoFoco.js';
+import { moverMueble, girarMueble } from './motor/interiores.js';
 import CampoNumero from './componentes/CampoNumero.jsx';
 import CampoOpcional from './componentes/CampoOpcional.jsx';
 import CampoSeparacion from './componentes/CampoSeparacion.jsx';
@@ -310,6 +311,15 @@ export default function App() {
     if (!foco?.item?.startsWith('pared:')) return;
     document.getElementById(`pared-${foco.item.slice(6)}`)?.parentElement?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
   }, [foco]);
+  // v1.44: mover y girar muebles desde el 3D (arrastrando, con las flechas o con los botones).
+  const moverMuebleDesde3D = (id, dx, dz) => {
+    const i = params.muebles.findIndex((m) => m.id === id);
+    if (i >= 0) cambiar(`muebles.${i}`)(moverMueble(params, params.muebles[i], dx, dz));
+  };
+  const girarMuebleDesde3D = (id, sentido) => {
+    const i = params.muebles.findIndex((m) => m.id === id);
+    if (i >= 0) cambiar(`muebles.${i}`)(girarMueble(params.muebles[i], sentido));
+  };
   const lados = useMemo(() => geometriaLados(params), [params]);
   // v1.32: la casa en su terreno (distancias, avisos) y el pedido para que el 3D muestre todo el lote.
   // Módulo Terreno (se puede apagar por instalación, ver modulos.js): apagado, no se muestra nada (los datos quedan).
@@ -712,7 +722,8 @@ export default function App() {
    * flushSync: React actualiza la página en el momento (si no, lo haría después y el PDF saldría sin fotos).
    */
   const prepararImpresion = (opciones) => {
-    const fotos = capturaRef.current?.({ conCotas: opciones.cotas, conVistasFijas: opciones.vistasFijas && esConstruccion }) ?? null;
+    const fotos = capturaRef.current?.({ conCotas: opciones.cotas, conVistasFijas: opciones.vistasFijas && esConstruccion,
+      conVistasPartes: opciones.vistasPartes && esConstruccion }) ?? null; // v1.44: por partes
     flushSync(() => setCapturas(fotos));
   };
   const imprimiendoRef = useRef(false); // para no sacar las fotos dos veces (botón + "beforeprint")
@@ -981,6 +992,7 @@ export default function App() {
             colores={colores} catalogo={catalogoResuelto} unidad={unidad}
             opacidades={opacidades} onCambiarOpacidad={cambiarOpacidad} capturaRef={capturaRef} onMedidasFijas={setMedidasFijas}
             onCambiarColor={cambiarColor} onEliminarPieza={eliminarPieza} onEditarPieza={editarPieza} onElegir={elegirDesde3D}
+            onMoverMueble={moverMuebleDesde3D} onGirarMueble={girarMuebleDesde3D}
             onActualizarAbertura={actualizarAbertura} onQuitarAbertura={quitarAbertura}
             onPegarAbertura={pegarAbertura} onDuplicarPieza={duplicarPiezaElegida}
             resaltado={resaltado} cartelResaltado={cartelResaltado}

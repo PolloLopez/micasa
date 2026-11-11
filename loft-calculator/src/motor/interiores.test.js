@@ -9,7 +9,7 @@ import { INSUMO } from './constantes.js';
 import {
   MESADA_NUEVA, mesadaNueva, colorDelMueble, tramosDeMesada, HUECO_NUEVO, mesadaALaEsquina, ajustarMesada, limitesDeMesada, tabiquesQueCruzaLaMesada, generarMesada, tramosDelFrente, ubicarMesada, validarMesada,
   muebleNuevo, ubicarMueble, validarMueble, muebleFueraDeLaPlanta, distanciasDelMueble, libreArribaDelMueble, paredHacia, cajonesQueChocan,
-  margenDePuerta, puertaQueChoca, puertaChocaCon, cajonesChocanCon,
+  margenDePuerta, puertaQueChoca, puertaChocaCon, cajonesChocanCon, moverMueble, girarMueble,
 } from './interiores.js';
 
 // Mesada de fábrica en la pared C (fondo): x de 0,85 a 3,25 (planta de 7,5 x 4,5).
@@ -569,5 +569,31 @@ describe('cajones de la cama contra muebles y tabiques (v1.43.2)', () => {
     expect(cajonesChocanCon({ ...P, muebles: [cama, { ...mesita, distanciaLateral: 3 }] }, cama)).toEqual([]);
     // Sin cajones, nada.
     expect(cajonesChocanCon(params, { ...cama, cajonesDerecha: false, cajonesPies: false })).toEqual([]);
+  });
+});
+
+describe('mover y girar muebles desde el 3D (v1.44)', () => {
+  it('arrastrar hacia la derecha y hacia el fondo cambia las distancias según desde dónde se mide', () => {
+    const m = { ...muebleNuevo('mesa', [], 1), distanciaLateral: 1, distanciaFrente: 0.5 };
+    // Frente A: la derecha es +x y el fondo es -z.
+    const movida = moverMueble(P, m, 0.3, -0.2);
+    expect(movida).toMatchObject({ distanciaLateral: 1.3, distanciaFrente: 0.7 });
+    const desdeOtros = moverMueble(P, { ...m, desdeLateral: 'derecho', desdeFrente: 'fondo' }, 0.3, -0.2);
+    expect(desdeOtros).toMatchObject({ distanciaLateral: 0.7, distanciaFrente: 0.3 });
+    // El centro se movió exactamente lo arrastrado.
+    const [a, b] = [ubicarMueble(P, m).centro, ubicarMueble(P, movida).centro];
+    expect(b[0] - a[0]).toBeCloseTo(0.3, 6);
+    expect(b[1] - a[1]).toBeCloseTo(-0.2, 6);
+  });
+
+  it('girar 90° no corre el centro', () => {
+    const m = { ...muebleNuevo('cama2', [], 1), distanciaLateral: 1, distanciaFrente: 0.5 };
+    const girada = girarMueble(m, 1);
+    expect(girada.giro).toBe(90);
+    const [a, b] = [ubicarMueble(P, m).centro, ubicarMueble(P, girada).centro];
+    expect(b[0]).toBeCloseTo(a[0], 6);
+    expect(b[1]).toBeCloseTo(a[1], 6);
+    expect(girarMueble(m, -1).giro).toBe(270);
+    expect(girarMueble(girarMueble(m, 1), -1)).toMatchObject({ giro: 0, distanciaLateral: 1, distanciaFrente: 0.5 });
   });
 });

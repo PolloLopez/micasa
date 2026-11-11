@@ -937,11 +937,13 @@ function marcarPerfilesDePared(e, params) {
     if ((p.tipo === 'piso' && params.tirantesPiso === 'madera') || (p.tipo === 'piso2' && params.tirantesPiso2 === 'madera')) return { ...p, madera: true };
     if (p.tipo === 'tabique') { // v1.41: el perfil elegido para ese tabique
       const t = (params.tabiques ?? []).find((x) => String(x.id) === p.id.split(':')[1]);
-      return t?.perfil ? { ...p, perfilPared: t.perfil, ladoPared: t.nombre, tabique: t.id } : { ...p, tabique: t?.id };
+      const nivel = t?.nivel ?? 'piso';
+      return t?.perfil ? { ...p, perfilPared: t.perfil, ladoPared: t.nombre, tabique: t.id, nivel } : { ...p, tabique: t?.id, nivel };
     }
     if (p.tipo === 'mesada') {
       const m = mesadas.get(p.id.split(':')[1]);
-      return m?.perfil ? { ...p, perfilPared: m.perfil, ladoPared: m.nombre, mesada: m.id } : { ...p, mesada: m?.id };
+      const nivel = m?.nivel ?? 'piso'; // v1.44: para ocultar lo del piso 2 en las vistas por partes
+      return m?.perfil ? { ...p, perfilPared: m.perfil, ladoPared: m.nombre, mesada: m.id, nivel } : { ...p, mesada: m?.id, nivel };
     }
     const campo = CAMPO_DE_TIPO[p.tipo];
     if (!campo) return p;

@@ -134,7 +134,7 @@ export function generarTabique(params, t) {
   const L = t.largo;
   const arriba = (x) => h0 + ((h1 - h0) * x) / L;
   const p = (x, h) => [inicio[0] + direccion[0] * x, y0 + h, inicio[1] + direccion[1] * x];
-  const extra = { ...(t.perfil ? { perfilPared: t.perfil, ladoPared: t.nombre } : {}), tabique: t.id };
+  const extra = { ...(t.perfil ? { perfilPared: t.perfil, ladoPared: t.nombre } : {}), tabique: t.id, nivel: t.nivel ?? 'piso' };
   const pz = (id, desde, hasta) => ({ ...pieza(`tabique:${t.id}:${id}`, 'tabique', ['tabique'], desde, hasta), ...extra });
   const conPuerta = t.puerta && t.puerta.tipo !== 'ninguna';
   const pa = conPuerta ? t.puerta.desde : null;
@@ -163,7 +163,7 @@ export function generarTabique(params, t) {
     panos.push({ panel: rev, largo: L, h1: h0, h2: h1, neto: area, huecos, donde: `${t.nombre} (cara ${cara}: ${caras[cara]})` });
   });
   return {
-    id: t.id, nombre: t.nombre, piezas, panos, mostrarEtiqueta: t.mostrarEtiqueta !== false,
+    id: t.id, nombre: t.nombre, piezas, panos, mostrarEtiqueta: t.mostrarEtiqueta !== false, nivel: t.nivel ?? 'piso',
     puerta: conPuerta ? t.puerta.tipo : null,
     dibujo: {
       esquinas: [p(0, 0), p(L, 0), p(L, h1), p(0, h0)], // [abajo inicio, abajo fin, arriba fin, arriba inicio]

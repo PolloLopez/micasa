@@ -2,6 +2,7 @@
 
 export const OPCIONES_IMPRESION_INICIALES = {
   vista3D: true, vistasFijas: true, cotas: true, medidas: true,
+  vistasPartes: false, // v1.44: cada piso desde arriba y el adentro desde cada lado (sin esa pared)
   resumen: true, presupuesto: true, cortes: false, paredes: true, plantas: true, formularios: false,
   // v1.42: con los planos, la lista de caños y perfiles (tipo y cantidad) y la de aberturas.
   listaCanos: true, listaAberturas: true,

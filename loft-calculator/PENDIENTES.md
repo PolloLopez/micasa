@@ -56,6 +56,12 @@
   - 🟢 [ ] Separación recomendada de tirantes de madera según la luz (tabla simple).
   - 🟢 [ ] Seleccionar mesadas/tabiques en el 3D por sus placas (hoy por sus hierros).
 
+## v1.44.0 (pedido de Leandro 11/11)
+- ✅ Mover y girar muebles desde el 3D (arrastre, flechas, R); modo realista; exportar por partes (pisos y lados sin pared).
+  - 🟢 [ ] Mover y girar también mesadas y tabiques desde el 3D (hoy se editan por sus campos).
+  - 🟢 [ ] Elegir en la exportación qué vistas por partes van (hoy van todas).
+  - 🟢 [ ] Texturas en el modo realista (madera, placa) si hace falta más realismo.
+
 ## Exportación (v1.42.0, pedido de Leandro 10/11)
 - ✅ Solo planos; caños y perfiles (tipo, barras, dónde va); aberturas; partes de la obra y atajo "para quien cotiza paneles".
 - 🟢 [ ] Tabiques y mesadas dibujados en las plantas (hoy solo en la lista de caños).

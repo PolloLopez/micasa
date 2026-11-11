@@ -14,12 +14,13 @@
 // Y todos sus GRUPOS (pared, techo, piso) están visibles.
 // ==========================================================
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { piezaResaltada } from './motor/resaltado.js';
 import * as THREE from 'three';
 import { hayDialogoAbierto } from './componentes/useDialogo.js';
 import { useEstadoGuardado } from './hooks/useEstadoGuardado.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { LADOS } from './motor/constantes.js';
 import { CAPAS, AYUDAS, GRUPOS_LEYENDA, CAPAS_TERRENO, CAPAS_MESADAS, CAPAS_MUEBLES, CAPAS_TABIQUES, COLORES_INICIALES, capaDelProyecto } from './capas.js';
 import SelectorColor from './componentes/SelectorColor.jsx';
@@ -35,7 +36,7 @@ import { FilaAbertura } from './componentes/AberturasDePared.jsx';
 import { juntasDePano, pedazosDePared } from './motor/revestimientos.js';
 import { medirEntre, puntoMasCercanoEnPieza } from './motor/medicion.js';
 import { cotasGenerales } from './motor/cotas3d.js';
-import { vistasFijas } from './motor/vistasFijas.js';
+import { vistasFijas, vistasPorPartes } from './motor/vistasFijas.js';
 import { implantacion } from './motor/terreno.js';
 import { moduloActivo } from './modulos.js';
 import { dibujarTerreno, vaciarTerreno, encuadreTerreno, PARTES_TERRENO } from './terreno3d.js';
@@ -335,6 +336,7 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
     const estilo = ESTILO_PIEZA[p.tipo];
     const capa = capaDe(p);
     if (!estilo || !capas[capa] || !p.grupos.every(grupoVisible)) return;
+    if (p.nivel === 'piso2' && !grupoVisible('piso2')) return; // v1.44: mesadas y tabiques del piso 2 van con él
     const elegida = p.id === seleccionada;
     const resaltada = !elegida && piezaResaltada(p, resaltado, catalogo); // v1.27
     // v1.42.1: los tirantes de madera, de madera (y un poco más gruesos).
@@ -477,7 +479,7 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
 
   // v1.38: mesadas (tapa, placas del revestimiento y estantes) y muebles.
   if (capas.tapasMesada && grupoVisible('mesada')) {
-    (e.mesadas ?? []).forEach((m) => {
+    (e.mesadas ?? []).filter((m) => m.nivel !== 'piso2' || grupoVisible('piso2')).forEach((m) => {
       const { tapas, placas, estantes, bachas, espesorTapa } = m.dibujo;
       // v1.38.2: cada mesada puede tener su color de tapa y de estantes ('' = el de la capa).
       const matTapa = m.colorTapa ? materialDeColor(m.colorTapa, { metal: 0.1, aspereza: 0.35 }) : materiales.tapasMesada;
@@ -510,7 +512,7 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
   }
   // v1.41: tabiques: placas de cada cara (con el hueco de la puerta) y la puerta (de abrir o granero con su riel).
   if (capas.placasTabiques && grupoVisible('tabique')) {
-    (e.tabiques ?? []).forEach((t) => {
+    (e.tabiques ?? []).filter((t) => t.nivel !== 'piso2' || grupoVisible('piso2')).forEach((t) => {
       const { esquinas, normal, huecos, puerta } = t.dibujo;
       [['revestimientoA', -1], ['revestimientoB', 1]].forEach(([campo, signo]) => {
         const idPanel = t.dibujo[campo];
@@ -548,10 +550,11 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
   }
   // v1.40: los electrodomésticos de los huecos de las mesadas (van con la capa Muebles).
   if (capas.muebles !== false && moduloActivo('muebles') && grupoVisible('mesada')) {
-    (e.mesadas ?? []).forEach((m) => m.electros.forEach((el) => grupo.add(dibujarMuebleEn(el, el.centro, el.angulo, el.y))));
+    (e.mesadas ?? []).filter((m) => m.nivel !== 'piso2' || grupoVisible('piso2'))
+      .forEach((m) => m.electros.forEach((el) => grupo.add(dibujarMuebleEn(el, el.centro, el.angulo, el.y))));
   }
   if (capas.muebles && moduloActivo('muebles') && params.tipoProyecto === 'construccion') {
-    (params.muebles ?? []).forEach((mueble) => grupo.add(dibujarMueble(params, mueble)));
+    (params.muebles ?? []).filter((m) => m.nivel !== 'piso2' || grupoVisible('piso2')).forEach((mueble) => grupo.add(dibujarMueble(params, mueble)));
   }
   // v1.38.1: carteles con el nombre (como paredes y aberturas): por capa "Etiquetas" y por cada uno en su ficha.
   if (capas.etiquetasMesadas && (capas.mesadas || capas.tapasMesada) && grupoVisible('mesada')) {
@@ -829,7 +832,7 @@ export default function LoftCanvas({
   params, estructura, aberturas, paneles, colores, catalogo, unidad, onCambiarColor, onEliminarPieza, onEditarPieza,
   opacidades, onCambiarOpacidad, capturaRef, onMedidasFijas,
   onActualizarAbertura, onQuitarAbertura, onPegarAbertura, onDuplicarPieza,
-  resaltado = null, cartelResaltado = null, onSoltarResaltado, onElegir,
+  resaltado = null, cartelResaltado = null, onSoltarResaltado, onElegir, onMoverMueble, onGirarMueble,
   pedidoVerTerreno = 0, // v1.32: cada vez que cambia, la cámara muestra todo el lote
   onCambiarParam = null, // v1.37: (ruta, valor) para el norte desde el panel del sol
 }) {
@@ -855,6 +858,13 @@ export default function LoftCanvas({
   const [avisoVisor, setAvisoVisor] = useState(null); // texto corto ("Copiado: …")
   // Partes visibles: cada pared, el techo y los pisos (con sus hierros).
   const [muebleElegido, setMuebleElegido] = useState(null); // v1.42.1: el mueble tocado en el 3D (abre su ficha)
+  // v1.44: vista realista: paneles sólidos, sombras, reflejos suaves, colores de cámara y sin las ayudas de dibujo.
+  const [realista, setRealista] = useEstadoGuardado('vistaRealista', false, (v) => typeof v === 'boolean');
+  // v1.44: los manejadores del montaje leen lo último por refs (el efecto de montaje corre una sola vez).
+  const muebleElegidoRef = useRef(null);
+  muebleElegidoRef.current = muebleElegido;
+  const moverMuebleRef = useRef(onMoverMueble);
+  moverMuebleRef.current = onMoverMueble;
   const [gruposVisibles, setGruposVisibles] = useState({ A: true, B: true, C: true, D: true, techo: true, piso: true, piso2: true, escalera: true, grada: true });
   const [capas, setCapas] = useState(() => ({
     ...Object.fromEntries(Object.keys(CAPAS).map((clave) => [clave, true])),
@@ -869,6 +879,27 @@ export default function LoftCanvas({
     medidasFijas: true, // v1.28: las medidas fijadas con 📌
     ...Object.fromEntries(CAPAS_TERRENO.map((c) => [c, true])), // v1.34.3: cada parte del terreno
   }));
+
+  // v1.44: redibujar el modelo con partes ocultas (para las fotos por partes). null = como está en pantalla.
+  const redibujarRef = useRef(null);
+  redibujarRef.current = (ocultar) => {
+    const visor = visorRef.current;
+    if (!visor || !estructura) return;
+    vaciarGrupo(visor.grupo);
+    const limpio = ocultar !== null;
+    dibujarModelo(visor.grupo, visor.materiales, visor.materialesPanel, {
+      params, estructura, aberturas, capas: capasVista, gruposVisibles: limpio ? { ...gruposVisibles, ...ocultar } : gruposVisibles,
+      seleccionada: limpio ? null : seleccionada, catalogo, aberturaSeleccionada: limpio ? null : aberturaSeleccionada,
+      medida: limpio ? null : medida, resaltado: limpio ? null : resaltado, medidasFijas: limpio ? [] : medidasFijas,
+    });
+  };
+
+  // v1.44: lo que se dibuja de verdad: en la vista realista, sin ayudas (juntas, cotas, etiquetas, medidas) y todo sólido.
+  const capasVista = useMemo(() => (realista
+    ? { ...capas, juntas: false, cotas: false, medidasFijas: false, etiquetasParedes: false, etiquetasAberturas: false,
+      etiquetasTerreno: false, etiquetasMesadas: false, etiquetasTabiques: false, etiquetasMuebles: false }
+    : capas), [realista, capas]);
+  const opacidadesVista = useMemo(() => (realista ? { ...opacidades, paneles: 1, osb: 1, hierros: 1 } : opacidades), [realista, opacidades]);
 
   // 1) MONTAJE: una sola vez.
   useEffect(() => {
@@ -896,6 +927,9 @@ export default function LoftCanvas({
 
     const ambiente = new THREE.AmbientLight(0xffffff, 0.85);
     escena.add(ambiente);
+    // v1.44: luz de cielo (arriba celeste, abajo tierra) para la vista realista; apagada en la vista de siempre.
+    const cielo = new THREE.HemisphereLight(0xdbeafe, 0x6b5b45, 0);
+    escena.add(cielo);
     const luz = new THREE.DirectionalLight(0xffffff, 1);
     luz.position.set(10, 20, 10);
     escena.add(luz);
@@ -951,8 +985,47 @@ export default function LoftCanvas({
     // clickeado y se toma el primer hierro que toca (los paneles se ignoran).
     const rayo = new THREE.Raycaster();
     let inicioClic = null;
-    const alApretar = (ev) => { inicioClic = [ev.clientX, ev.clientY]; };
+    // v1.44: arrastrar el mueble elegido sobre su piso. Mientras se arrastra se mueve solo el dibujo; al soltar se
+    // guarda (App convierte lo movido en distancias a las paredes).
+    let arrastre = null;
+    const puntoEnPantalla = (ev) => {
+      const caja = renderer.domElement.getBoundingClientRect();
+      return new THREE.Vector2(((ev.clientX - caja.left) / caja.width) * 2 - 1, -((ev.clientY - caja.top) / caja.height) * 2 + 1);
+    };
+    const grupoDeMueble = (obj) => { for (let o = obj; o; o = o.parent) if (o.userData?.idMueble !== undefined) return o; return null; };
+    const alApretar = (ev) => {
+      inicioClic = [ev.clientX, ev.clientY];
+      const elegido = muebleElegidoRef.current;
+      if (elegido === null || ev.button !== 0) return;
+      rayo.setFromCamera(puntoEnPantalla(ev), camara);
+      const toque = rayo.intersectObjects(grupo.children, true).find((i) => i.object.isMesh && grupoDeMueble(i.object)?.userData.idMueble === elegido);
+      if (!toque) return;
+      const grupoMueble = grupoDeMueble(toque.object);
+      const plano = new THREE.Plane(new THREE.Vector3(0, 1, 0), -grupoMueble.position.y);
+      const inicio = new THREE.Vector3();
+      if (!rayo.ray.intersectPlane(plano, inicio)) return;
+      arrastre = { grupoMueble, plano, inicio, desde: grupoMueble.position.clone(), dx: 0, dz: 0 };
+      controles.enabled = false; // mientras se arrastra el mueble, la cámara no gira
+      renderer.domElement.setPointerCapture?.(ev.pointerId);
+    };
+    const alMover = (ev) => {
+      if (!arrastre) return;
+      rayo.setFromCamera(puntoEnPantalla(ev), camara);
+      const ahora = new THREE.Vector3();
+      if (!rayo.ray.intersectPlane(arrastre.plano, ahora)) return;
+      arrastre.dx = Math.round((ahora.x - arrastre.inicio.x) * 100) / 100; // de a 1 cm
+      arrastre.dz = Math.round((ahora.z - arrastre.inicio.z) * 100) / 100;
+      arrastre.grupoMueble.position.set(arrastre.desde.x + arrastre.dx, arrastre.desde.y, arrastre.desde.z + arrastre.dz);
+    };
     const alSoltar = (ev) => {
+      if (arrastre) {
+        const { dx, dz } = arrastre;
+        arrastre = null;
+        controles.enabled = true;
+        inicioClic = null;
+        if (Math.abs(dx) + Math.abs(dz) > 0) moverMuebleRef.current?.(muebleElegidoRef.current, dx, dz);
+        return;
+      }
       if (!inicioClic) return;
       const movido = Math.hypot(ev.clientX - inicioClic[0], ev.clientY - inicioClic[1]);
       inicioClic = null;
@@ -986,6 +1059,7 @@ export default function LoftCanvas({
       setMuebleElegido(tocado && !tocado.object.userData.idPieza && !tocado.object.userData.idAbertura ? idMuebleDe(tocado.object) : null);
     };
     renderer.domElement.addEventListener('pointerdown', alApretar);
+    renderer.domElement.addEventListener('pointermove', alMover);
     renderer.domElement.addEventListener('pointerup', alSoltar);
 
     // v1.40.1: doble clic sobre algo = girar alrededor de ese punto (el centro se corre suave, en ~0,3 s).
@@ -1018,7 +1092,7 @@ export default function LoftCanvas({
     // v1.28: fotos para el PDF, con fondo blanco y sin grilla: la vista actual y, si se piden,
     // las vistas fijas (frente, lateral, arriba) con cámara ortográfica. Se dibuja y se lee en el
     // mismo momento (WebGL borra el lienzo después de mostrarlo).
-    const capturar = ({ conCotas = false, conVistasFijas = false } = {}) => {
+    const capturar = ({ conCotas = false, conVistasFijas = false, conVistasPartes = false } = {}) => {
       const fondo = escena.background;
       const cotasVisibles = grupoCotas.visible;
       escena.background = new THREE.Color(0xffffff);
@@ -1043,6 +1117,20 @@ export default function LoftCanvas({
         }));
         renderer.setSize(tamanio.x, tamanio.y, false);
       }
+      // v1.44: por partes: se redibuja el modelo sin lo que tapa (techo, entrepiso o la pared de adelante) y se saca
+      // la foto; al final se vuelve a dibujar como estaba.
+      fotos.partes = [];
+      if (conVistasPartes && redibujarRef.current) {
+        const [ancho, alto] = [1200, 800];
+        renderer.setSize(ancho, alto, false);
+        vistasPorPartes(paramsRef.current).forEach((v) => {
+          redibujarRef.current(v.ocultar);
+          const caja = new THREE.Box3().setFromObject(grupo);
+          fotos.partes.push({ clave: v.clave, titulo: v.titulo, imagen: foto(camaraOrtografica(caja, v, ancho / alto)) });
+        });
+        redibujarRef.current(null);
+        renderer.setSize(tamanio.x, tamanio.y, false);
+      }
       escena.background = fondo;
       grilla.visible = grillaVisible;
       grupoCotas.visible = cotasVisibles;
@@ -1054,7 +1142,7 @@ export default function LoftCanvas({
     if (capturaRef) capturaRef.current = capturar;
 
     const materialesPanel = new Map();
-    visorRef.current = { grupo, grupoCotas, grupoTerreno, grilla, controles, camara, materiales, materialesPanel, frente: null, renderer, ambiente, luz, sol, pisoSombras };
+    visorRef.current = { grupo, grupoCotas, grupoTerreno, grilla, controles, camara, materiales, materialesPanel, frente: null, renderer, ambiente, luz, sol, pisoSombras, escena, cielo, entorno: null };
 
     return () => {
       cancelAnimationFrame(idCuadro);
@@ -1062,6 +1150,7 @@ export default function LoftCanvas({
       vaciarGrupo(grupoCotas);
       vaciarTerreno(grupoTerreno);
       renderer.domElement.removeEventListener('pointerdown', alApretar);
+      renderer.domElement.removeEventListener('pointermove', alMover);
       renderer.domElement.removeEventListener('pointerup', alSoltar);
       renderer.domElement.removeEventListener('dblclick', alDobleClic);
       cancelAnimationFrame(animacionCentro);
@@ -1090,19 +1179,19 @@ export default function LoftCanvas({
     visor.materialesPanel.forEach((m) => { m.exterior.dispose(); m.interior.dispose(); });
     visor.materialesPanel.clear();
     paneles.forEach((p) => visor.materialesPanel.set(p.id, {
-      exterior: materialPanel(p.color, opacidades.paneles, THREE.FrontSide),
-      interior: materialPanel(p.colorInterior ?? p.color, opacidades.paneles, THREE.BackSide),
+      exterior: materialPanel(p.color, opacidadesVista.paneles, THREE.FrontSide),
+      interior: materialPanel(p.colorInterior ?? p.color, opacidadesVista.paneles, THREE.BackSide),
       tipo: p, // ubicación y espesor (v1.15): dónde se dibuja respecto de la estructura
     }));
     dibujarModelo(visor.grupo, visor.materiales, visor.materialesPanel,
-      { params, estructura, aberturas, capas, gruposVisibles, seleccionada, catalogo, aberturaSeleccionada, medida, resaltado, medidasFijas });
+      { params, estructura, aberturas, capas: capasVista, gruposVisibles, seleccionada, catalogo, aberturaSeleccionada, medida, resaltado, medidasFijas });
     // Se reacomoda la cámara si cambia el frente o el tipo de proyecto (construcción / grada).
     const encuadre = `${params.tipoProyecto}:${params.ladoFrente}`;
     if (visor.frente !== encuadre) {
       mirarAlFrente(visor.camara, visor.controles, medidasVista(params, estructura));
       visor.frente = encuadre;
     }
-  }, [params, estructura, aberturas, capas, paneles, gruposVisibles, seleccionada, opacidades.paneles, catalogo, aberturaSeleccionada, medida, resaltado, medidasFijas]);
+  }, [params, estructura, aberturas, capasVista, paneles, gruposVisibles, seleccionada, opacidadesVista.paneles, catalogo, aberturaSeleccionada, medida, resaltado, medidasFijas]);
 
   // 2b) COTAS GENERALES (v1.28): aparte del modelo; se ven si la capa está prendida.
   useEffect(() => {
@@ -1126,7 +1215,7 @@ export default function LoftCanvas({
       dibujarTerreno(visor.grupoTerreno, implantacion(params), params.terreno.retiros,
         { etiquetas: capas.etiquetasTerreno, partes: partesTerreno, opacidad: opacidades.terreno ?? 0.9 });
     }
-    visor.grilla.visible = !conTerreno;
+    visor.grilla.visible = !conTerreno && !realista; // v1.44: la vista realista no lleva grilla
   // Solo lo que cambia el terreno (no todo params: redibujar el lote en cada cambio de la estructura no hace falta).
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conTerreno, params.terreno, params.ladoFrente, params.largo, params.ancho, capas.etiquetasTerreno, clavePartes, opacidades.terreno]);
@@ -1176,10 +1265,28 @@ export default function LoftCanvas({
   useEffect(() => {
     const visor = visorRef.current;
     if (!visor) return;
-    const { ambiente, luz, sol: luzSol, pisoSombras } = visor;
-    luz.visible = !solPrendido;
-    luzSol.visible = solPrendido && posSol.altura > 0;
-    pisoSombras.visible = solPrendido && !conTerreno; // con terreno, el lote recibe las sombras
+    const { ambiente, luz, sol: luzSol, pisoSombras, cielo } = visor;
+    luz.visible = !solPrendido && !realista;
+    luzSol.visible = (solPrendido && posSol.altura > 0) || (realista && !solPrendido);
+    pisoSombras.visible = (solPrendido || realista) && !conTerreno; // con terreno, el lote recibe las sombras
+    cielo.intensity = realista ? 0.9 : 0;
+    if (!solPrendido && realista) {
+      // v1.44: vista realista sin el módulo de sol: un sol fijo de media tarde, desde adelante a la derecha.
+      ambiente.intensity = 0.25;
+      luzSol.intensity = 2.4;
+      luzSol.color.set(0xfff1dc);
+      const tamanio = Math.max(params.largo, params.ancho) + 10;
+      const frente = geometriaLados(params)[params.ladoFrente];
+      const afuera = [-frente.direccion[1], frente.direccion[0]];
+      const hacia = new THREE.Vector3(afuera[0] * 0.6 + frente.direccion[0] * 0.5, 0.75, afuera[1] * 0.6 + frente.direccion[1] * 0.5).normalize();
+      luzSol.position.copy(hacia.multiplyScalar(tamanio * 1.5));
+      luzSol.target.position.set(0, 0, 0);
+      const cam = luzSol.shadow.camera;
+      cam.left = -tamanio; cam.right = tamanio; cam.top = tamanio; cam.bottom = -tamanio;
+      cam.near = 0.5; cam.far = tamanio * 4;
+      cam.updateProjectionMatrix();
+      return;
+    }
     if (!solPrendido) {
       ambiente.intensity = 0.85;
       return;
@@ -1197,7 +1304,30 @@ export default function LoftCanvas({
     cam.left = -tamanio; cam.right = tamanio; cam.top = tamanio; cam.bottom = -tamanio;
     cam.near = 0.5; cam.far = lejos * 2.5;
     cam.updateProjectionMatrix();
-  }, [solPrendido, posSol.altura, haciaSol[0], haciaSol[1], haciaSol[2], conTerreno, params.largo, params.ancho, params.terreno, sol.intensidad]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [solPrendido, realista, posSol.altura, haciaSol[0], haciaSol[1], haciaSol[2], conTerreno, params.largo, params.ancho, params.ladoFrente, params.terreno, sol.intensidad]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // v1.44: la vista realista: colores de cámara (tone mapping), reflejos de un cuarto neutro, cielo claro, sin grilla y
+  // hierros con algo de brillo metálico. Al salir, todo vuelve a como estaba.
+  useEffect(() => {
+    const visor = visorRef.current;
+    if (!visor) return;
+    const { renderer, escena, materiales: mats, grilla } = visor;
+    if (realista && !visor.entorno) {
+      const pmrem = new THREE.PMREMGenerator(renderer);
+      visor.entorno = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+      pmrem.dispose();
+    }
+    renderer.toneMapping = realista ? THREE.ACESFilmicToneMapping : THREE.NoToneMapping;
+    renderer.toneMappingExposure = 1;
+    escena.environment = realista ? visor.entorno : null;
+    escena.background = new THREE.Color(realista ? 0xcfe2f3 : 0x0f172a);
+    grilla.visible = !realista && !conTerreno;
+    CAPAS_HIERRO.forEach((capa) => {
+      if (!mats[capa]) return;
+      mats[capa].metalness = realista ? 0.55 : 0;
+      mats[capa].roughness = realista ? 0.45 : 1;
+    });
+  }, [realista, conTerreno]);
 
   // Qué tira sombra y qué la recibe (después de cada redibujo). Las aberturas no tiran: por ahí entra el sol.
   useEffect(() => {
@@ -1205,8 +1335,8 @@ export default function LoftCanvas({
     if (!visor) return;
     [visor.grupo, visor.grupoTerreno].forEach((g) => g.traverse((obj) => {
       if (!obj.isMesh) return;
-      obj.castShadow = solPrendido && !obj.userData.idAbertura && !obj.userData.sinSombra;
-      obj.receiveShadow = solPrendido;
+      obj.castShadow = (solPrendido || realista) && !obj.userData.idAbertura && !obj.userData.sinSombra;
+      obj.receiveShadow = solPrendido || realista;
     }));
   });
 
@@ -1293,12 +1423,13 @@ export default function LoftCanvas({
   useEffect(() => {
     const visor = visorRef.current;
     if (!visor) return;
+    const opacidades = opacidadesVista; // v1.44: en la vista realista, todo sólido
     aplicarOpacidad(visor.materiales.osb, opacidades.osb);
     aplicarOpacidad(visor.materiales.machimbre, opacidades.osb); // v1.42.1: el machimbre sigue a la opacidad del OSB
     aplicarOpacidad(visor.materiales.paneles, opacidades.paneles);
     CAPAS_HIERRO.forEach((capa) => aplicarOpacidad(visor.materiales[capa], opacidades.hierros));
     aplicarOpacidad(visor.materiales.juntas, opacidades.juntas ?? 1);
-  }, [opacidades]);
+  }, [opacidadesVista]);
 
   // 3) COLORES: solo se cambia el color de cada material (no se redibuja).
   useEffect(() => {
@@ -1410,7 +1541,31 @@ export default function LoftCanvas({
   const seccion = secciones.find((x) => x.titulo === seccionCapas) ?? secciones[0];
 
   // La pieza seleccionada puede desaparecer (se eliminó o cambió una medida).
+  // v1.44: con un mueble elegido, las flechas lo corren (mirando el frente: → hacia la derecha, ↑ hacia el fondo) y R lo gira.
+  useEffect(() => {
+    if (muebleElegido === null) return undefined;
+    const alTeclear = (ev) => {
+      if (hayDialogoAbierto() || ev.target.closest?.('input, select, textarea')) return;
+      const frente = geometriaLados(params)[params.ladoFrente];
+      const derecha = frente.direccion;
+      const adentro = [frente.direccion[1], -frente.direccion[0]];
+      const paso = ev.shiftKey ? 0.1 : 0.01;
+      const hacia = { ArrowRight: derecha, ArrowLeft: derecha.map((c) => -c), ArrowUp: adentro, ArrowDown: adentro.map((c) => -c) }[ev.key];
+      if (hacia) {
+        ev.preventDefault();
+        onMoverMueble?.(muebleElegido, hacia[0] * paso, hacia[1] * paso);
+      } else if (ev.key === 'r' || ev.key === 'R') {
+        onGirarMueble?.(muebleElegido, ev.shiftKey ? -1 : 1);
+      } else if (ev.key === 'Escape') {
+        setMuebleElegido(null);
+      }
+    };
+    window.addEventListener('keydown', alTeclear);
+    return () => window.removeEventListener('keydown', alTeclear);
+  }, [muebleElegido, params, onMoverMueble, onGirarMueble]);
+
   const piezaSeleccionada = seleccionada ? listarPiezas(estructura).find((p) => p.id === seleccionada) : null;
+  const muebleDelPanel = muebleElegido !== null ? (params.muebles ?? []).find((m) => m.id === muebleElegido) ?? null : null;
   const aberturaElegida = aberturaSeleccionada ? aberturas.find((op) => op.id === aberturaSeleccionada) : null;
   // v1.42.1: le avisa a App qué se eligió, para abrir su tarjeta (y cerrarla al soltarlo).
   const elegidoRef = useRef(onElegir);
@@ -1443,6 +1598,10 @@ export default function LoftCanvas({
             ☀ Sol
           </button>
         )}
+        <button className={`btn-ctrl${realista ? ' activo' : ''}`} aria-pressed={realista} onClick={() => setRealista((v) => !v)}
+          title="Paneles sólidos, sombras y reflejos, sin las ayudas de dibujo (juntas, cotas, etiquetas)">
+          ✨ Realista
+        </button>
         <button className={`btn-ctrl${midiendo ? ' activo' : ''}`} aria-pressed={midiendo}
           onClick={() => { setMidiendo((v) => !v); setSeleccionada(null); setAberturaSeleccionada(null); }}>
           📏 {midiendo ? 'Terminar de medir' : 'Medir'}
@@ -1503,6 +1662,20 @@ export default function LoftCanvas({
               onClick={() => { const nueva = onPegarAbertura(aberturaElegida); if (nueva) setAberturaSeleccionada(nueva.id); }}>Duplicar</button>
             <button className="btn-del-texto eliminar-aparte"
               onClick={() => { onQuitarAbertura(aberturaElegida.id); setAberturaSeleccionada(null); }}>Eliminar abertura</button>
+          </div>
+        </div>
+      )}
+
+      {/* v1.44: mueble elegido: se arrastra con el mouse, flechas para correrlo, R o los botones para girarlo. */}
+      {muebleDelPanel && (
+        <div className="seleccion no-print" role="dialog" aria-label="Mueble elegido">
+          <div className="seleccion-cabecera">
+            <div><strong>Mueble:</strong> {muebleDelPanel.nombre} · arrastralo para moverlo · flechas: 1 cm (Shift: 10 cm) · R: girar</div>
+            <button type="button" className="btn-cerrar" onClick={() => setMuebleElegido(null)} aria-label="Soltar el mueble">✕</button>
+          </div>
+          <div className="seleccion-acciones">
+            <button type="button" className="btn-ctrl" onClick={() => onGirarMueble?.(muebleDelPanel.id, -1)}>↺ Girar 90°</button>
+            <button type="button" className="btn-ctrl" onClick={() => onGirarMueble?.(muebleDelPanel.id, 1)}>↻ Girar 90°</button>
           </div>
         </div>
       )}

@@ -274,7 +274,7 @@ function generarSegmento(params, m, s) {
   const prof = m.profundidad;
   const zZocalo = prof - m.retiroZocalo;
   const grupos = ['mesada'];
-  const extra = { ...(m.perfil ? { perfilPared: m.perfil, ladoPared: m.nombre } : {}), mesada: m.id };
+  const extra = { ...(m.perfil ? { perfilPared: m.perfil, ladoPared: m.nombre } : {}), mesada: m.id, nivel: m.nivel ?? 'piso' };
   const pz = (id, desde, hasta) => ({ ...pieza(`${prefijo}:${id}`, 'mesada', grupos, desde, hasta), ...extra });
   const piezas = [];
   const conFrente = sinHuecos(largo, huecos); // donde va la placa del frente
@@ -399,7 +399,7 @@ export function generarMesada(params, m) {
   });
   const bachasM2 = bachas.reduce((acc, b) => acc + b.m2, 0);
   return {
-    id: m.id, nombre: m.nombre, piezas: res.piezas, panos: res.panos, panel: m.revestimiento,
+    id: m.id, nombre: m.nombre, piezas: res.piezas, panos: res.panos, panel: m.revestimiento, nivel: m.nivel ?? 'piso',
     mostrarEtiqueta: m.mostrarEtiqueta !== false,
     colorTapa: m.colorTapa || '', colorEstantes: m.colorEstantes || '', // v1.38.2
     tapa: { m2: Math.max(0, res.tapaM2 - bachasM2), espesor: m.espesorTapa, tramos: res.tapas.length },
@@ -709,6 +709,40 @@ export function distanciasDelMueble(params, m) {
   const izquierda = m.desdeLateral === 'derecho' ? ancho - m.distanciaLateral - anchoPlanta : m.distanciaLateral;
   const frente = m.desdeFrente === 'fondo' ? fondo - m.distanciaFrente - profPlanta : m.distanciaFrente;
   return { izquierda, derecha: ancho - izquierda - anchoPlanta, frente, fondo: fondo - frente - profPlanta };
+}
+
+const redondearCm = (n) => Math.round(n * 100) / 100;
+
+/**
+ * v1.44: mueve el mueble lo que se lo arrastró en el 3D (dx, dz en metros, en la planta). Conserva desde qué paredes
+ * se mide: si se mide desde la derecha, ir a la derecha achica esa distancia. Devuelve el mueble cambiado.
+ */
+export function moverMueble(params, m, dx, dz) {
+  const frente = geometriaLados(params)[params.ladoFrente];
+  const derecha = frente.direccion;
+  const adentro = haciaAdentro(frente);
+  const du = dx * derecha[0] + dz * derecha[1]; // hacia el lateral derecho
+  const dv = dx * adentro[0] + dz * adentro[1]; // hacia el fondo
+  return {
+    ...m,
+    distanciaLateral: redondearCm(m.distanciaLateral + (m.desdeLateral === 'derecho' ? -du : du)),
+    distanciaFrente: redondearCm(m.distanciaFrente + (m.desdeFrente === 'fondo' ? -dv : dv)),
+  };
+}
+
+/**
+ * v1.44: gira el mueble 90° (sentido +1 o -1) sin que se corra su centro: como cambia lo que ocupa en planta, las
+ * distancias a las paredes se acomodan.
+ */
+export function girarMueble(m, sentido = 1) {
+  const antes = ocupaEnPlanta(m);
+  const giro = (((m.giro + 90 * sentido) % 360) + 360) % 360;
+  const despues = ocupaEnPlanta({ ...m, giro });
+  return {
+    ...m, giro,
+    distanciaLateral: redondearCm(m.distanciaLateral + (antes.anchoPlanta - despues.anchoPlanta) / 2),
+    distanciaFrente: redondearCm(m.distanciaFrente + (antes.profPlanta - despues.profPlanta) / 2),
+  };
 }
 
 /**
