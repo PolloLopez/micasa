@@ -1,9 +1,12 @@
 # PENDIENTES — loft-calculator
 
-Última limpieza: 2026-11-11 (v1.47.1). Espejo en Trello: tablero "Desarrollo", tarjetas `[CALC]`.
+Última limpieza: 2026-11-11 (v1.49.0). Espejo en Trello: tablero "Desarrollo", tarjetas `[CALC]`.
 
 ## 📌 Estado y próximos pasos (11/11)
-En GitHub y publicado: hasta v1.47.0 (confirmar). **v1.47.1, v1.48.0 y v1.49.0 por subir.**
+**En GitHub y publicado: v1.49.0** (push y deploy del 11/11, 20:02). Manual de uso para chequear: `MANUAL.md`.
+
+🟡 **Para chequear en pantalla** (probado con tests, no visto): el sol con "Ver adentro" entra solo por las aberturas;
+la persona se sienta en el sillón y se acuesta en la cama; las puertas de los tabiques se abren al pasar.
 
 Lo que falta, en orden de prioridad (detalle en cada sección de abajo):
 1. 🔴 **Validar con el herrero** los supuestos de obra (sección "Antes de considerar el presupuesto de obra") y
@@ -15,7 +18,9 @@ Lo que falta, en orden de prioridad (detalle en cada sección de abajo):
 4. 🟡 **Precios con fecha** por proveedor y aviso de precios viejos (> 30 días).
 5. 🟡 **Tabiques de Durlock completos**: PGU (soleras) aparte de PGC (montantes), tornillos, cinta y masilla.
 6. 🟡 **Tabiques, mesadas, muebles, pilotines y zapatas en las plantas** (hoy solo 3D y listas).
-7. 🟢 Personas: subir y bajar la escalera, puertas de muebles, sentarse/acostarse, esquivarse entre ellas.
+7. 🟢 Personas: subir y bajar la escalera, puertas de muebles (heladera, placard), esquivarse entre ellas.
+   (✅ sentarse y acostarse: v1.49.0)
+8. 🟢 Mover mesadas y tabiques desde el 3D (hoy: muebles y aberturas); frenar la escalera en la pared.
 
 Mejoras propuestas (técnicas, sin cambios aplicados):
 - 🟡 **App.jsx y LoftCanvas.jsx muy grandes** (~1.500 y ~1.900 líneas): separar en hooks (`usePresupuesto`,
