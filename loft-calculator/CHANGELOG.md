@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.45.0] - 2026-11-11
+### Agregado
+- **Personas** (Paredes y aberturas → Personas): nombre, sexo, altura, piso y color de la ropa. En el 3D se toca una
+  persona y después el piso (camina hasta ahí esquivando paredes, muebles, mesadas, tabiques y la escalera; por los
+  tabiques pasa por la puerta) o algo (va a buscarlo: se agacha si está abajo, estira el brazo si está a la altura del
+  pecho, se estira si está arriba).
+- **Manejar con el teclado**: W A S D o flechas (según hacia dónde mira la cámara), Shift corre, C se agacha. La cámara
+  la acompaña.
+- **👁 Primera persona**: la cámara a la altura de los ojos de la persona elegida (o de un visitante de 1,70 m si no hay
+  ninguna). Arrastrás para mirar, W A S D para caminar; Esc vuelve a la vista de antes.
+- **🏠 Ver adentro** (prendido de fábrica): las paredes que quedan entre la cámara y la casa se ocultan solas mientras
+  girás (como en Los Sims), y el techo cuando mirás desde arriba. Las fotos del PDF salen con todas las paredes.
+### Cambiado
+- **Tocar un mueble ya no lo mueve**: abre su ficha. Para correrlo con el mouse o las flechas hay que apretar
+  "✥ Mover" en el cartelito; al soltarlo (o con Esc) queda quieto otra vez.
+
 ## [1.44.0] - 2026-11-11
 ### Agregado
 - **Mover y girar muebles desde el 3D**: tocás un mueble y lo arrastrás por el piso (de a 1 cm), o lo corrés con las

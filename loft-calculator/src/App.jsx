@@ -32,6 +32,7 @@ import TarjetaUniones from './componentes/TarjetaUniones.jsx';
 import PanelMesadas from './componentes/PanelMesadas.jsx';
 import PanelMuebles from './componentes/PanelMuebles.jsx';
 import PanelTabiques from './componentes/PanelTabiques.jsx';
+import PanelPersonas from './componentes/PanelPersonas.jsx';
 import { OPCIONES_PISO } from './motor/uniones.js';
 import { PILOTINES_CON_MODULO } from './motor/ejes.js';
 import { implantacion as calcularImplantacion } from './motor/terreno.js';
@@ -1403,6 +1404,8 @@ export default function App() {
             perfiles={perfilesDeLista(catalogoConPrecios)} generados={estructura.tabiques}
             perfilGeneral={catalogoResuelto.find((i) => i.id === INSUMO.ESTRUCTURA_TABIQUE)?.perfil ?? ''} />
           {moduloMuebles && <PanelMuebles params={params} unidad={unidad} cambiar={cambiar} />}
+          {/* v1.45: personas para recorrer la casa en el 3D. */}
+          <PanelPersonas params={params} unidad={unidad} cambiar={cambiar} />
 
           </section>
           )}

@@ -72,7 +72,7 @@ export function mesadaNueva(mesadas, id) {
 }
 
 /** Altura del piso terminado de un nivel. */
-const alturaDelPiso = (params, nivel) => params.elevacion + (nivel === 'piso2' ? (params.alturaPiso2 ?? ALTURA_PISO_2) : 0) + ALTO_PISO;
+export const alturaDelPiso = (params, nivel) => params.elevacion + (nivel === 'piso2' ? (params.alturaPiso2 ?? ALTURA_PISO_2) : 0) + ALTO_PISO;
 
 /** v1.40: formas de la mesada. "Izquierda" y "derecha" = mirándola de frente, desde adentro de la casa. */
 export const FORMAS_MESADA = [
@@ -590,9 +590,18 @@ export function zonaDePuerta(params, m) {
 
 /** Lo que puede estar adelante de una puerta: los otros muebles, las mesadas y los tabiques del mismo nivel. */
 function obstaculosDe(params, m) {
-  const nivel = m.nivel ?? 'piso';
+  return obstaculosDelNivel(params, m.nivel ?? 'piso', { sinMueble: m.id });
+}
+
+/**
+ * v1.45: muebles, mesadas y tabiques de un nivel como rectángulos en planta ({ centro, u, v, mu, mv, y0, y1, nombre }).
+ * Lo usan las puertas (con qué chocan) y las personas (por dónde no pueden caminar).
+ * @param opciones.sinMueble  id de un mueble que no cuenta (el de la puerta)
+ * @param opciones.huecoPuertas  los tabiques con puerta dejan su hueco libre (para pasar caminando)
+ */
+export function obstaculosDelNivel(params, nivel, { sinMueble = null, huecoPuertas = false } = {}) {
   const lista = [];
-  (params.muebles ?? []).filter((o) => o.id !== m.id && (o.nivel ?? 'piso') === nivel).forEach((o) => {
+  (params.muebles ?? []).filter((o) => o.id !== sinMueble && (o.nivel ?? 'piso') === nivel).forEach((o) => {
     const { centro, angulo } = ubicarMueble(params, o);
     const [c, s] = [Math.cos(angulo), Math.sin(angulo)];
     const e = o.elevacion ?? 0;
@@ -607,8 +616,16 @@ function obstaculosDe(params, m) {
   });
   (params.tabiques ?? []).filter((t) => (t.nivel ?? 'piso') === nivel).forEach((t) => {
     const { inicio, direccion, normal } = ubicarTabique(params, t);
-    const centro = [inicio[0] + direccion[0] * t.largo / 2, inicio[1] + direccion[1] * t.largo / 2];
-    lista.push(rectangulo(centro, direccion, normal, t.largo / 2, MEDIO_ESPESOR_TABIQUE, 0, Infinity, t.nombre));
+    const tramo = (a, b) => {
+      if (b - a < 0.01) return;
+      const centro = [inicio[0] + direccion[0] * (a + b) / 2, inicio[1] + direccion[1] * (a + b) / 2];
+      lista.push(rectangulo(centro, direccion, normal, (b - a) / 2, MEDIO_ESPESOR_TABIQUE, 0, Infinity, t.nombre));
+    };
+    const puerta = t.puerta;
+    if (huecoPuertas && puerta && puerta.tipo !== 'ninguna') {
+      tramo(0, puerta.desde); // de un lado y del otro del hueco de la puerta
+      tramo(puerta.desde + puerta.ancho, t.largo);
+    } else tramo(0, t.largo);
   });
   return lista;
 }

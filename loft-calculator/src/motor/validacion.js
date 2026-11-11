@@ -17,6 +17,7 @@ import { validarTerreno } from './terreno.js';
 import { validarUniones } from './uniones.js';
 import { validarEjes, validarPilotin } from './ejes.js';
 import { validarMesada, validarMueble } from './interiores.js';
+import { validarPersona } from './personas.js';
 import { validarTabique } from './tabiques.js';
 import { validarSol } from './sol.js';
 import { CAMPOS_CON_CANTIDAD, MAXIMO_CANTIDAD } from './cantidades.js';
@@ -114,6 +115,10 @@ export function validarParametros(params) {
   if (params.muebles !== undefined) {
     if (!Array.isArray(params.muebles)) anotar('muebles', 'Lista inválida');
     else params.muebles.forEach((m) => anotar(`muebles.${m?.id}`, validarMueble(m ?? {}, params)));
+  }
+  if (params.personas !== undefined) { // v1.45
+    if (!Array.isArray(params.personas)) anotar('personas', 'Lista inválida');
+    else params.personas.forEach((x) => anotar(`personas.${x?.id}`, validarPersona(x ?? {}, params)));
   }
   // v1.35: zapatas.
   if (params.zapata !== undefined) {

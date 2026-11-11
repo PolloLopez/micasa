@@ -56,6 +56,13 @@
   - 🟢 [ ] Separación recomendada de tirantes de madera según la luz (tabla simple).
   - 🟢 [ ] Seleccionar mesadas/tabiques en el 3D por sus placas (hoy por sus hierros).
 
+## v1.45.0 (pedido de Leandro 11/11)
+- ✅ Personas con altura y sexo que caminan (clic o teclado), se agachan/estiran; primera persona; paredes que tapan ocultas; mover muebles solo con "✥ Mover".
+  - 🟢 [ ] Subir y bajar la escalera caminando (hoy cada persona se queda en su piso; se cambia en su ficha).
+  - 🟢 [ ] Salir por las puertas al terreno (hoy caminan solo adentro).
+  - 🟢 [ ] Acciones con muebles: sentarse en sillas/sillón, acostarse en la cama, abrir la heladera.
+  - 🟢 [ ] Que las personas se esquiven entre ellas.
+
 ## v1.44.0 (pedido de Leandro 11/11)
 - ✅ Mover y girar muebles desde el 3D (arrastre, flechas, R); modo realista; exportar por partes (pisos y lados sin pared).
   - 🟢 [ ] Mover y girar también mesadas y tabiques desde el 3D (hoy se editan por sus campos).

@@ -111,6 +111,7 @@ export const PARAMS_INICIALES = {
   // v1.38: interiores (ver motor/interiores.js). Mesadas con estructura y revestimiento; muebles para dimensionar.
   mesadas: [],
   muebles: [],
+  personas: [], // v1.45: gente para recorrer la casa en el 3D (ver motor/personas.js)
   tabiques: [], // v1.41: divisiones de Durlock (ver motor/tabiques.js)
 };
 

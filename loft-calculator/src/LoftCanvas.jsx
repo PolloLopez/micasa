@@ -37,6 +37,8 @@ import { juntasDePano, pedazosDePared } from './motor/revestimientos.js';
 import { medirEntre, puntoMasCercanoEnPieza } from './motor/medicion.js';
 import { cotasGenerales } from './motor/cotas3d.js';
 import { vistasFijas, vistasPorPartes } from './motor/vistasFijas.js';
+import { accionPorAltura, ladosQueTapan } from './motor/recorrido.js';
+import { crearPersonasEnEscena } from './personas3d.js';
 import { implantacion } from './motor/terreno.js';
 import { moduloActivo } from './modulos.js';
 import { dibujarTerreno, vaciarTerreno, encuadreTerreno, PARTES_TERRENO } from './terreno3d.js';
@@ -330,6 +332,12 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
   const { params, estructura: e, aberturas, capas, gruposVisibles, seleccionada, catalogo, aberturaSeleccionada, medida, resaltado, medidasFijas = [] } = opciones;
   const { elevacion } = params;
   const grupoVisible = (g) => gruposVisibles[g] !== false; // 'interior' no tiene interruptor
+  // v1.45: a lo que es de una pared (o del techo) se le anota cuál, para ocultarlo cuando tapa la vista
+  // (ver ladosQueTapan). `desde` = cuántos objetos había antes de dibujar esa parte.
+  const marcar = (desde, lados) => {
+    for (let i = desde; i < grupo.children.length; i++) grupo.children[i].userData.ladosPared = lados;
+  };
+  const DE_PARED = new Set([...LADOS, 'techo']);
 
   // Piezas de hierro: una malla cada una, con su id para poder seleccionarla.
   listarPiezas(e).forEach((p) => {
@@ -346,6 +354,7 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
     if (resaltada) malla.renderOrder = 997; // después de los paneles transparentes
     malla.userData.idPieza = p.id;
     malla.userData.pieza = p; // para medir de eje a eje (ver medicion.js)
+    if (!p.nivel && p.grupos.length > 0 && p.grupos.every((g) => DE_PARED.has(g))) malla.userData.ladosPared = p.grupos;
     grupo.add(malla);
   });
 
@@ -460,6 +469,7 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
       return esquinas.map((p, i) => (i === 0 || i === 3 ? [p[0] - dx, p[1], p[2] - dz] : [p[0] + dx, p[1], p[2] + dz]));
     };
     e.paredes.filter((pared) => grupoVisible(pared.lado)).forEach((pared) => {
+      const antes = grupo.children.length;
       // Afuera = desde el centro de la planta hacia el centro de la pared (horizontal).
       const centro = pared.esquinas.reduce((acc, p) => [acc[0] + p[0] / 4, 0, acc[2] + p[2] / 4], [0, 0, 0]);
       const afuera = corrimientoDe(pared.panel);
@@ -469,11 +479,14 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
         const adentro = corrimientoDe(pared.panelInterior) || 0.01;
         dibujar(estirar(pared.esquinas, -adentro), pared.panelInterior, centro.map((c) => -c), adentro, pared.huecos, -adentro);
       }
+      marcar(antes, [pared.lado]);
     });
     if (grupoVisible('techo')) {
+      const antes = grupo.children.length;
       const tipoTecho = materialesPanel.get(e.techo.panel)?.tipo;
       // Las esquinas del techo ya están arriba de las correas; embutido baja entre las vigas.
       dibujar(e.techo.esquinas, e.techo.panel, [0, 1, 0], tipoTecho?.ubicacion === 'eje' ? -0.13 : (tipoTecho?.espesor ?? 50) / 2000);
+      marcar(antes, ['techo']);
     }
   }
 
@@ -576,8 +589,9 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
 
   // Juntas de los paneles (v1.16): dónde termina cada tira o placa, para acomodar las aberturas.
   if (capas.paneles && capas.juntas) {
-    const pares = [];
+    const paresDe = {}; // v1.45: las juntas de cada pared aparte (para ocultarlas con su pared)
     e.paredes.filter((pared) => grupoVisible(pared.lado)).forEach((pared) => {
+      const pares = (paresDe[pared.lado] = []);
       const tipo = materialesPanel.get(pared.panel)?.tipo;
       const [h1, h2] = pared.alturas;
       const { verticales, horizontales } = juntasDePano({ largo: pared.largo, h1, h2 }, tipo);
@@ -609,6 +623,7 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
       });
     });
     if (grupoVisible('techo') && e.techo.esquinas.length === 4) {
+      const pares = (paresDe.techo = []);
       const tipo = materialesPanel.get(e.techo.panel)?.tipo;
       const { verticales, horizontales } = juntasDePano({ largo: e.techo.largo, h1: e.techo.largoFaldon, h2: e.techo.largoFaldon }, tipo);
       const [t0, t1, , t3] = e.techo.esquinas;
@@ -618,13 +633,18 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
       verticales.forEach((x) => pares.push([punto(x, 0), punto(x, e.techo.largoFaldon)]));
       horizontales.forEach((h) => pares.push([punto(0, h), punto(e.techo.largo, h)]));
     }
-    if (pares.length > 0) grupo.add(lineas(pares, materiales.juntas));
+    Object.entries(paresDe).filter(([, pares]) => pares.length > 0).forEach(([lado, pares]) => {
+      const l = lineas(pares, materiales.juntas);
+      l.userData.ladosPared = [lado];
+      grupo.add(l);
+    });
   }
 
   if (capas.aberturas) {
     const lados = geometriaLados(params);
     aberturas.forEach((op, i) => {
       if (!grupoVisible(op.lado)) return;
+      const antes = grupo.children.length;
       const { x, y, z, rotacionY } = posicionAbertura(op, params);
       const elegida = op.id === aberturaSeleccionada;
       const malla = new THREE.Mesh(new THREE.BoxGeometry(op.ancho, op.alto, elegida ? 0.2 : 0.14),
@@ -641,6 +661,7 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
         cartelito.position.set(x - geo.direccion[1] * 0.35, y + op.alto / 2 + 0.2, z + geo.direccion[0] * 0.35);
         grupo.add(cartelito);
       }
+      marcar(antes, [op.lado]);
     });
   }
 
@@ -687,6 +708,7 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
       0.35,
       (geo.p1[1] + geo.p2[1]) / 2 + afuera[1] * 1.3
     );
+    sprite.userData.ladosPared = [lado];
     grupo.add(sprite);
   });
 }
@@ -865,6 +887,20 @@ export default function LoftCanvas({
   muebleElegidoRef.current = muebleElegido;
   const moverMuebleRef = useRef(onMoverMueble);
   moverMuebleRef.current = onMoverMueble;
+  // v1.45: el mueble se mueve solo después de apretar "✥ Mover" (tocarlo solo abre su ficha: antes se corría sin querer).
+  const [moviendoMueble, setMoviendoMueble] = useState(false);
+  const moviendoRef = useRef(false);
+  moviendoRef.current = moviendoMueble && muebleElegido !== null;
+  // v1.45: personas. La elegida camina hasta lo que toques; "manejar" = con el teclado; "primera" = ver con sus ojos.
+  const [personaElegida, setPersonaElegida] = useState(null);
+  const [modoPersona, setModoPersona] = useState(null); // null | 'manejar' | 'primera'
+  const [avisoPersona, setAvisoPersona] = useState(null);
+  const personaRef = useRef({ id: null, modo: null });
+  personaRef.current = { id: personaElegida, modo: modoPersona };
+  // v1.45: las paredes que quedan entre la cámara y la casa se ocultan (como en Los Sims), recordado en este navegador.
+  const [verAdentro, setVerAdentro] = useEstadoGuardado('ocultarParedesQueTapan', true, (v) => typeof v === 'boolean');
+  const verAdentroRef = useRef(verAdentro);
+  verAdentroRef.current = verAdentro;
   const [gruposVisibles, setGruposVisibles] = useState({ A: true, B: true, C: true, D: true, techo: true, piso: true, piso2: true, escalera: true, grada: true });
   const [capas, setCapas] = useState(() => ({
     ...Object.fromEntries(Object.keys(CAPAS).map((clave) => [clave, true])),
@@ -886,6 +922,7 @@ export default function LoftCanvas({
     const visor = visorRef.current;
     if (!visor || !estructura) return;
     vaciarGrupo(visor.grupo);
+    visor.corte.version += 1; // v1.45: hay que volver a ver qué paredes tapan
     const limpio = ocultar !== null;
     dibujarModelo(visor.grupo, visor.materiales, visor.materialesPanel, {
       params, estructura, aberturas, capas: capasVista, gruposVisibles: limpio ? { ...gruposVisibles, ...ocultar } : gruposVisibles,
@@ -962,13 +999,91 @@ export default function LoftCanvas({
     escena.add(grupoTerreno);
     const materiales = crearMateriales(coloresRef.current);
 
+    // v1.45: personas, teclado y primera persona.
+    const personas = crearPersonasEnEscena(escena);
+    const teclas = new Set(); // teclas apretadas ahora (para caminar con el teclado)
+    const primera = { yaw: 0, pitch: 0, mirando: null, guardada: null }; // hacia dónde mira y la cámara de antes
+    const corte = { version: 0, aplicado: '' }; // qué paredes están ocultas ahora
+
+    /**
+     * Oculta lo de las paredes (y el techo) que quedan entre la cámara y la casa; `ninguna` = mostrar todo.
+     * En primera persona (`sinCarteles`) no se oculta ninguna pared pero sí los carteles de afuera (tapaban la vista).
+     */
+    const aplicarCorte = (ninguna = false, sinCarteles = false) => {
+      const tapan = ninguna || !verAdentroRef.current || !paramsRef.current || paramsRef.current.tipoProyecto !== 'construccion'
+        ? new Set() : ladosQueTapan(paramsRef.current, camara.position.toArray());
+      const clave = `${corte.version}|${[...tapan].sort().join('')}|${sinCarteles}`;
+      if (clave === corte.aplicado) return;
+      corte.aplicado = clave;
+      grupo.children.forEach((o) => {
+        const lados = o.userData.ladosPared;
+        if (lados) o.visible = !lados.every((l) => tapan.has(l)) && !(sinCarteles && o.isSprite);
+      });
+    };
+
+    /** Dirección en la planta según las teclas (W/S adelante y atrás, A/D a los costados) mirando hacia `rumbo`. */
+    const avanceDeTeclas = (rumbo) => {
+      const adelante = (teclas.has('w') || teclas.has('arrowup') ? 1 : 0) - (teclas.has('s') || teclas.has('arrowdown') ? 1 : 0);
+      const costado = (teclas.has('d') || teclas.has('arrowright') ? 1 : 0) - (teclas.has('a') || teclas.has('arrowleft') ? 1 : 0);
+      if (!adelante && !costado) return null;
+      const f = [Math.sin(rumbo), Math.cos(rumbo)]; // hacia donde mira
+      const d = [-f[1], f[0]]; // su derecha (girando de +z hacia −x)
+      const v = [f[0] * adelante + d[0] * costado, f[1] * adelante + d[1] * costado];
+      const n = Math.hypot(...v);
+      return [v[0] / n, v[1] / n];
+    };
+
+    const reloj = new THREE.Clock();
     let idCuadro;
     const animar = () => {
       idCuadro = requestAnimationFrame(animar);
-      controles.update();
+      const dt = Math.min(reloj.getDelta(), 0.1);
+      const { id, modo } = personaRef.current;
+      let control = null;
+      if (id !== null && modo === 'primera') {
+        control = { id, avance: avanceDeTeclas(primera.yaw), rumbo: primera.yaw, correr: teclas.has('shift'), agachada: teclas.has('c') };
+      } else if (id !== null && modo === 'manejar') {
+        // En tercera persona, "adelante" es hacia donde mira la cámara.
+        const mira = new THREE.Vector3();
+        camara.getWorldDirection(mira);
+        control = { id, avance: avanceDeTeclas(Math.atan2(mira.x, mira.z)), correr: teclas.has('shift'), agachada: teclas.has('c') };
+      }
+      const antes = id !== null ? personas.estado(id) : null;
+      personas.actualizar(dt, control);
+      const ahora = id !== null ? personas.estado(id) : null;
+      if (ahora && modo === 'primera') {
+        // La cámara en sus ojos, mirando hacia donde se arrastró el mouse.
+        camara.position.set(ahora.x, ahora.y + ahora.ojos, ahora.z);
+        const cp = Math.cos(primera.pitch);
+        camara.lookAt(ahora.x + Math.sin(primera.yaw) * cp, ahora.y + ahora.ojos + Math.sin(primera.pitch), ahora.z + Math.cos(primera.yaw) * cp);
+      } else {
+        if (ahora && antes && modo === 'manejar') {
+          // La cámara la acompaña (se corre lo mismo que ella).
+          const d = new THREE.Vector3(ahora.x - antes.x, 0, ahora.z - antes.z);
+          camara.position.add(d);
+          controles.target.add(d);
+        }
+        controles.update();
+      }
+      aplicarCorte(modo === 'primera', modo === 'primera');
       renderer.render(escena, camara);
     };
     animar();
+
+    const alTeclaAbajo = (ev) => {
+      if (hayDialogoAbierto() || ev.target.closest?.('input, select, textarea')) return;
+      const k = ev.key.toLowerCase();
+      const { id, modo } = personaRef.current;
+      if (id !== null && modo && ['w', 'a', 's', 'd', 'c', 'shift', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) {
+        ev.preventDefault();
+        teclas.add(k);
+      }
+    };
+    const alTeclaArriba = (ev) => teclas.delete(ev.key.toLowerCase());
+    const alPerderFoco = () => teclas.clear();
+    window.addEventListener('keydown', alTeclaAbajo);
+    window.addEventListener('keyup', alTeclaArriba);
+    window.addEventListener('blur', alPerderFoco);
 
     const observador = new ResizeObserver(() => {
       const w = contenedor.clientWidth;
@@ -995,8 +1110,13 @@ export default function LoftCanvas({
     const grupoDeMueble = (obj) => { for (let o = obj; o; o = o.parent) if (o.userData?.idMueble !== undefined) return o; return null; };
     const alApretar = (ev) => {
       inicioClic = [ev.clientX, ev.clientY];
+      if (personaRef.current.modo === 'primera') { // en primera persona, arrastrar = mirar alrededor
+        primera.mirando = [ev.clientX, ev.clientY];
+        renderer.domElement.setPointerCapture?.(ev.pointerId);
+        return;
+      }
       const elegido = muebleElegidoRef.current;
-      if (elegido === null || ev.button !== 0) return;
+      if (elegido === null || ev.button !== 0 || !moviendoRef.current) return;
       rayo.setFromCamera(puntoEnPantalla(ev), camara);
       const toque = rayo.intersectObjects(grupo.children, true).find((i) => i.object.isMesh && grupoDeMueble(i.object)?.userData.idMueble === elegido);
       if (!toque) return;
@@ -1009,6 +1129,12 @@ export default function LoftCanvas({
       renderer.domElement.setPointerCapture?.(ev.pointerId);
     };
     const alMover = (ev) => {
+      if (primera.mirando) {
+        primera.yaw -= (ev.clientX - primera.mirando[0]) * 0.005;
+        primera.pitch = Math.max(-1.3, Math.min(1.3, primera.pitch - (ev.clientY - primera.mirando[1]) * 0.005));
+        primera.mirando = [ev.clientX, ev.clientY];
+        return;
+      }
       if (!arrastre) return;
       rayo.setFromCamera(puntoEnPantalla(ev), camara);
       const ahora = new THREE.Vector3();
@@ -1018,12 +1144,14 @@ export default function LoftCanvas({
       arrastre.grupoMueble.position.set(arrastre.desde.x + arrastre.dx, arrastre.desde.y, arrastre.desde.z + arrastre.dz);
     };
     const alSoltar = (ev) => {
+      if (primera.mirando) { primera.mirando = null; inicioClic = null; return; }
       if (arrastre) {
         const { dx, dz } = arrastre;
         arrastre = null;
         controles.enabled = true;
         inicioClic = null;
         if (Math.abs(dx) + Math.abs(dz) > 0) moverMuebleRef.current?.(muebleElegidoRef.current, dx, dz);
+        setMoviendoMueble(false); // v1.45: al soltarlo queda quieto otra vez
         return;
       }
       if (!inicioClic) return;
@@ -1048,6 +1176,31 @@ export default function LoftCanvas({
         setMedida((prev) => (!prev || prev.b
           ? { a: q, piezaA: pieza }
           : { ...prev, b: q, piezaB: pieza, resultado: medirEntre(prev.a, q, prev.piezaA, pieza) }));
+        return;
+      }
+
+      // v1.45: tocar una persona la elige; con una elegida, tocar el piso o algo la manda ahí.
+      const tocadaPersona = rayo.intersectObject(personas.grupo, true).find((i) => i.object.isMesh && i.object.visible);
+      const idPersona = tocadaPersona ? personas.idDe(tocadaPersona.object) : null;
+      if (idPersona !== null) {
+        setPersonaElegida(idPersona);
+        setMuebleElegido(null);
+        setSeleccionada(null);
+        setAberturaSeleccionada(null);
+        return;
+      }
+      const { id: personaActual } = personaRef.current;
+      if (personaActual !== null) {
+        const est = personas.estado(personaActual);
+        const visibles = tocados.filter((i) => i.object.visible && i.object.parent?.visible !== false);
+        let punto = visibles[0]?.point ?? null;
+        if (!punto) {
+          punto = new THREE.Vector3();
+          if (!rayo.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -est.y), punto)) return;
+        }
+        const accion = visibles[0] ? accionPorAltura(punto.y - est.y, est.altura) : null;
+        const ok = personas.ordenar(personaActual, [punto.x, punto.z], { accion, mirarA: [punto.x, punto.z] });
+        setAvisoPersona(ok ? null : 'No hay por dónde llegar ahí');
         return;
       }
 
@@ -1099,6 +1252,7 @@ export default function LoftCanvas({
       const grillaVisible = grilla.visible; // v1.32: con terreno la grilla ya está apagada
       grilla.visible = false;
       if (conCotas) grupoCotas.visible = true;
+      const personasVisibles = personas.grupo.visible;
       // Cada foto se recorta al dibujo (sin el blanco de alrededor): en el PDF la obra sale más grande.
       const foto = (cam) => { renderer.render(escena, cam); return recortarBlanco(renderer.domElement); };
       // La vista actual con la misma forma que en pantalla, pero de al menos 1200 px de ancho
@@ -1107,6 +1261,9 @@ export default function LoftCanvas({
       if (tamanio.x > 0 && tamanio.x < 1200) renderer.setSize(1200, Math.round(1200 / camara.aspect), false);
       const fotos = { actual: foto(camara), fijas: [] };
       renderer.setSize(tamanio.x, tamanio.y, false);
+      // v1.45: las vistas fijas y por partes van sin personas y con todas las paredes (las que tapan se ven igual).
+      personas.grupo.visible = false;
+      aplicarCorte(true);
       if (conVistasFijas) {
         const [ancho, alto] = [1200, 800]; // 3:2, igual para las tres
         renderer.setSize(ancho, alto, false);
@@ -1134,6 +1291,8 @@ export default function LoftCanvas({
       escena.background = fondo;
       grilla.visible = grillaVisible;
       grupoCotas.visible = cotasVisibles;
+      personas.grupo.visible = personasVisibles;
+      corte.aplicado = ''; // el próximo cuadro vuelve a ocultar las que tapan
       return {
         ...fotos,
         medidas: medidasFijasRef.current.map((m) => ({ nombre: m.nombre, texto: textoMedida(m.resultado) })),
@@ -1142,7 +1301,7 @@ export default function LoftCanvas({
     if (capturaRef) capturaRef.current = capturar;
 
     const materialesPanel = new Map();
-    visorRef.current = { grupo, grupoCotas, grupoTerreno, grilla, controles, camara, materiales, materialesPanel, frente: null, renderer, ambiente, luz, sol, pisoSombras, escena, cielo, entorno: null };
+    visorRef.current = { grupo, grupoCotas, grupoTerreno, grilla, controles, camara, materiales, materialesPanel, frente: null, renderer, ambiente, luz, sol, pisoSombras, escena, cielo, entorno: null, personas, primera, corte };
 
     return () => {
       cancelAnimationFrame(idCuadro);
@@ -1153,6 +1312,10 @@ export default function LoftCanvas({
       renderer.domElement.removeEventListener('pointermove', alMover);
       renderer.domElement.removeEventListener('pointerup', alSoltar);
       renderer.domElement.removeEventListener('dblclick', alDobleClic);
+      window.removeEventListener('keydown', alTeclaAbajo);
+      window.removeEventListener('keyup', alTeclaArriba);
+      window.removeEventListener('blur', alPerderFoco);
+      personas.liberar();
       cancelAnimationFrame(animacionCentro);
       observador.disconnect();
       controles.dispose();
@@ -1185,6 +1348,7 @@ export default function LoftCanvas({
     }));
     dibujarModelo(visor.grupo, visor.materiales, visor.materialesPanel,
       { params, estructura, aberturas, capas: capasVista, gruposVisibles, seleccionada, catalogo, aberturaSeleccionada, medida, resaltado, medidasFijas });
+    visor.corte.version += 1; // v1.45: hay que volver a ver qué paredes tapan
     // Se reacomoda la cámara si cambia el frente o el tipo de proyecto (construcción / grada).
     const encuadre = `${params.tipoProyecto}:${params.ladoFrente}`;
     if (visor.frente !== encuadre) {
@@ -1540,12 +1704,83 @@ export default function LoftCanvas({
   ];
   const seccion = secciones.find((x) => x.titulo === seccionCapas) ?? secciones[0];
 
+  // ---------- v1.45: PERSONAS ----------
+  const esConstruccion = params.tipoProyecto === 'construccion';
+  const listaPersonas = esConstruccion ? (params.personas ?? []) : [];
+  // Con cada cambio de la obra o de las personas, se rehace el mapa de por dónde se camina.
+  useEffect(() => {
+    const visor = visorRef.current;
+    if (!visor || !estructura) return;
+    visor.personas.sincronizar(listaPersonas, params, estructura);
+  }, [listaPersonas, params, estructura]); // eslint-disable-line react-hooks/exhaustive-deps
+  // La elegida puede desaparecer (se quitó de la lista).
+  const personaDelPanel = personaElegida === 'visitante' ? { id: 'visitante', nombre: 'Visitante (1,70 m)' }
+    : listaPersonas.find((p) => p.id === personaElegida) ?? null;
+  const personaExiste = personaDelPanel !== null;
+  useEffect(() => {
+    if (personaElegida !== null && !personaExiste) { setPersonaElegida(null); setModoPersona(null); }
+  }, [personaElegida, personaExiste]);
+  useEffect(() => { visorRef.current?.personas.elegir(personaElegida); setAvisoPersona(null); }, [personaElegida]);
+  // Primera persona: la cámara va a sus ojos (la de antes se guarda para volver) y el mouse mira alrededor.
+  useEffect(() => {
+    const visor = visorRef.current;
+    if (!visor || modoPersona !== 'primera' || personaElegida === null) return undefined;
+    const { camara, controles, primera, personas } = visor;
+    primera.guardada = { posicion: camara.position.clone(), centro: controles.target.clone() };
+    primera.yaw = personas.estado(personaElegida)?.rumbo ?? 0;
+    primera.pitch = 0;
+    controles.enabled = false;
+    personas.mostrar(personaElegida, false);
+    const fovAntes = camara.fov;
+    camara.fov = 70; // a la altura de los ojos, más angular (como se ve un ambiente de verdad)
+    camara.updateProjectionMatrix();
+    return () => {
+      personas.mostrar(personaElegida, true);
+      camara.fov = fovAntes;
+      camara.updateProjectionMatrix();
+      camara.position.copy(primera.guardada.posicion);
+      controles.target.copy(primera.guardada.centro);
+      controles.enabled = true;
+      controles.update();
+    };
+  }, [modoPersona, personaElegida]);
+  // Esc: primero deja de manejarla (o sale de sus ojos); otro Esc la suelta.
+  useEffect(() => {
+    if (personaElegida === null) return undefined;
+    const alTeclear = (ev) => {
+      if (ev.key !== 'Escape' || hayDialogoAbierto() || ev.target.closest?.('input, select, textarea')) return;
+      if (modoPersona) setModoPersona(null); else setPersonaElegida(null);
+    };
+    window.addEventListener('keydown', alTeclear);
+    return () => window.removeEventListener('keydown', alTeclear);
+  }, [personaElegida, modoPersona]);
+  /** "👁 Primera persona": con la elegida, o la primera de la lista, o un visitante invisible. */
+  const entrarEnPrimeraPersona = () => {
+    const visor = visorRef.current;
+    if (!visor) return;
+    const id = personaElegida ?? listaPersonas[0]?.id ?? visor.personas.asegurarVisitante();
+    setMuebleElegido(null);
+    setSeleccionada(null);
+    setAberturaSeleccionada(null);
+    setPersonaElegida(id);
+    setModoPersona('primera');
+  };
+
+  // Al elegir otro mueble (o soltarlo) deja de estar en "mover".
+  useEffect(() => { setMoviendoMueble(false); }, [muebleElegido]);
+
   // La pieza seleccionada puede desaparecer (se eliminó o cambió una medida).
   // v1.44: con un mueble elegido, las flechas lo corren (mirando el frente: → hacia la derecha, ↑ hacia el fondo) y R lo gira.
+  // v1.45: solo después de apretar "✥ Mover".
   useEffect(() => {
     if (muebleElegido === null) return undefined;
     const alTeclear = (ev) => {
       if (hayDialogoAbierto() || ev.target.closest?.('input, select, textarea')) return;
+      if (ev.key === 'Escape') {
+        if (moviendoMueble) setMoviendoMueble(false); else setMuebleElegido(null);
+        return;
+      }
+      if (!moviendoMueble) return;
       const frente = geometriaLados(params)[params.ladoFrente];
       const derecha = frente.direccion;
       const adentro = [frente.direccion[1], -frente.direccion[0]];
@@ -1556,13 +1791,11 @@ export default function LoftCanvas({
         onMoverMueble?.(muebleElegido, hacia[0] * paso, hacia[1] * paso);
       } else if (ev.key === 'r' || ev.key === 'R') {
         onGirarMueble?.(muebleElegido, ev.shiftKey ? -1 : 1);
-      } else if (ev.key === 'Escape') {
-        setMuebleElegido(null);
       }
     };
     window.addEventListener('keydown', alTeclear);
     return () => window.removeEventListener('keydown', alTeclear);
-  }, [muebleElegido, params, onMoverMueble, onGirarMueble]);
+  }, [muebleElegido, moviendoMueble, params, onMoverMueble, onGirarMueble]);
 
   const piezaSeleccionada = seleccionada ? listarPiezas(estructura).find((p) => p.id === seleccionada) : null;
   const muebleDelPanel = muebleElegido !== null ? (params.muebles ?? []).find((m) => m.id === muebleElegido) ?? null : null;
@@ -1602,6 +1835,17 @@ export default function LoftCanvas({
           title="Paneles sólidos, sombras y reflejos, sin las ayudas de dibujo (juntas, cotas, etiquetas)">
           ✨ Realista
         </button>
+        {esConstruccion && (<>
+          <button className={`btn-ctrl${verAdentro ? ' activo' : ''}`} aria-pressed={verAdentro} onClick={() => setVerAdentro((v) => !v)}
+            title="Las paredes (y el techo) que quedan entre vos y la casa se ocultan solas mientras girás, para ver adentro">
+            🏠 Ver adentro
+          </button>
+          <button className={`btn-ctrl${modoPersona === 'primera' ? ' activo' : ''}`} aria-pressed={modoPersona === 'primera'}
+            onClick={() => (modoPersona === 'primera' ? setModoPersona(null) : entrarEnPrimeraPersona())}
+            title="Recorrer la casa a la altura de los ojos: arrastrá para mirar, WASD para caminar">
+            👁 Primera persona
+          </button>
+        </>)}
         <button className={`btn-ctrl${midiendo ? ' activo' : ''}`} aria-pressed={midiendo}
           onClick={() => { setMidiendo((v) => !v); setSeleccionada(null); setAberturaSeleccionada(null); }}>
           📏 {midiendo ? 'Terminar de medir' : 'Medir'}
@@ -1609,7 +1853,9 @@ export default function LoftCanvas({
         <span className="ctrl-tip">
           {avisoVisor ?? (midiendo
             ? 'Tocá dos hierros o dos puntos. Entre dos columnas mide de eje a eje. Esc para salir.'
-            : 'Arrastrá para girar · botón derecho para mover · rueda para acercar al mouse · doble clic: girar alrededor de ese punto · clic en un hierro o una abertura para seleccionarlo · Ctrl+C / Ctrl+V')}
+            : modoPersona === 'primera'
+              ? 'Arrastrá para mirar · W A S D o flechas para caminar · Shift corre · C agacharse · Esc para salir'
+              : 'Arrastrá para girar · botón derecho para mover · rueda para acercar al mouse · doble clic: girar alrededor de ese punto · clic en un hierro o una abertura para seleccionarlo · Ctrl+C / Ctrl+V')}
         </span>
         {/* v1.27: qué se está resaltando (al pasar el mouse o fijado con 👁). */}
         {cartelResaltado && (
@@ -1670,12 +1916,39 @@ export default function LoftCanvas({
       {muebleDelPanel && (
         <div className="seleccion no-print" role="dialog" aria-label="Mueble elegido">
           <div className="seleccion-cabecera">
-            <div><strong>Mueble:</strong> {muebleDelPanel.nombre} · arrastralo para moverlo · flechas: 1 cm (Shift: 10 cm) · R: girar</div>
+            <div><strong>Mueble:</strong> {muebleDelPanel.nombre}
+              {moviendoMueble ? ' · arrastralo o usá las flechas: 1 cm (Shift: 10 cm) · R: girar · Esc: listo' : ' · su ficha está abierta para editarlo'}</div>
             <button type="button" className="btn-cerrar" onClick={() => setMuebleElegido(null)} aria-label="Soltar el mueble">✕</button>
           </div>
           <div className="seleccion-acciones">
+            <button type="button" className={`btn-ctrl${moviendoMueble ? ' activo' : ''}`} aria-pressed={moviendoMueble}
+              onClick={() => setMoviendoMueble((v) => !v)} title="Recién con esto se puede arrastrar (así no se mueve sin querer)">
+              {moviendoMueble ? '✓ Listo' : '✥ Mover'}
+            </button>
             <button type="button" className="btn-ctrl" onClick={() => onGirarMueble?.(muebleDelPanel.id, -1)}>↺ Girar 90°</button>
             <button type="button" className="btn-ctrl" onClick={() => onGirarMueble?.(muebleDelPanel.id, 1)}>↻ Girar 90°</button>
+          </div>
+        </div>
+      )}
+
+      {/* v1.45: persona elegida: camina hasta lo que toques, o se maneja con el teclado, o se ve con sus ojos. */}
+      {personaDelPanel && (
+        <div className="seleccion no-print" role="dialog" aria-label="Persona elegida">
+          <div className="seleccion-cabecera">
+            <div><strong>{personaDelPanel.nombre}</strong>
+              {modoPersona === 'manejar' ? ' · W A S D o flechas para caminar · Shift corre · C agacharse · Esc: dejar de manejar'
+                : modoPersona === 'primera' ? ' · viendo con sus ojos'
+                : ' · tocá el piso y camina hasta ahí; tocá algo y va a buscarlo (se agacha o se estira según la altura)'}</div>
+            <button type="button" className="btn-cerrar" onClick={() => { setPersonaElegida(null); setModoPersona(null); }} aria-label="Soltar a la persona">✕</button>
+          </div>
+          {avisoPersona && <p className="error" role="alert">{avisoPersona}</p>}
+          <div className="seleccion-acciones">
+            {personaDelPanel.id !== 'visitante' && (
+              <button type="button" className={`btn-ctrl${modoPersona === 'manejar' ? ' activo' : ''}`} aria-pressed={modoPersona === 'manejar'}
+                onClick={() => setModoPersona((m) => (m === 'manejar' ? null : 'manejar'))}>🎮 Manejar con el teclado</button>
+            )}
+            <button type="button" className={`btn-ctrl${modoPersona === 'primera' ? ' activo' : ''}`} aria-pressed={modoPersona === 'primera'}
+              onClick={() => setModoPersona((m) => (m === 'primera' ? null : 'primera'))}>👁 Ver con sus ojos</button>
           </div>
         </div>
       )}
