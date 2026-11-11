@@ -49,6 +49,37 @@
 - ✅ Etiquetas de mesadas y muebles en el 3D, apagables una por una y por capa (v1.38.1).
 - ✅ **Sol más fuerte** (v1.38.0): intensidad regulable (50–300 %, 150 % de fábrica).
 
+## Revisión de presupuesto y materiales (11/11, pedido de Leandro) — sin cambios aplicados
+Revisado: motor/presupuesto.js, proveedores.js, revestimientos.js, optimizadorCortes.js, TablaPresupuesto y el PDF.
+Lo que ya está bien: cortes compartidos entre renglones del mismo perfil, merma por corte (3 mm), excedente de
+barra por proveedor, flete con "gratis desde", lista de materiales con kilos, plan de compra por proveedor.
+
+### 🔴 Importante
+- [ ] **El total no es un precio de obra**: suma solo materiales. Faltan mano de obra, consumibles, imprevistos,
+      margen e IVA (ya estaba en 🟡 Funcionalidad → Presupuesto; lo subo porque el total se lee como "lo que cuesta").
+      Propuesta: un bloque de cierre "Materiales + Consumibles + Mano de obra (por kg de hierro, por m² o global)
+      + Imprevistos % + Margen % + IVA (opcional) = Total", que salga igual en pantalla, PDF y Excel.
+- [ ] **Consumibles en 0 sin aviso**: tornillería, electrodos y selladores arrancan en cantidad 0 y no suman nada.
+      Propuesta: cantidad estimada automática (que se pueda pisar a mano), por ejemplo electrodos ≈ 1–1,5 % de los kg
+      de hierro, autoperforantes por m² de panel, sellador por metro de junta, antióxido/esmalte por m² de hierro
+      (perímetro de la sección x largo). Los coeficientes, a validar con el herrero.
+
+### 🟡 Conviene
+- [ ] **Precios sin fecha** (con la inflación se vencen rápido): guardar cuándo se actualizó cada proveedor y avisar
+      "precios de hace más de 30 días" en el presupuesto y el PDF.
+- [ ] **Tabiques de Durlock**: soleras y montantes van en un mismo renglón con el mismo perfil; en obra la solera es
+      PGU y el montante PGC. Faltan tornillos T1/T2, cinta y masilla por m² de placa.
+- [ ] **Tirantes de madera** por metro (ya anotado en v1.43.0): comprarlos por largo comercial con el optimizador.
+- [ ] **Desperdicio de placas fijo en 10 %** (OSB y machimbre, `DESPERDICIO_PLACAS`): editable como el excedente de barras.
+- [ ] **Empalmes**: las piezas más largas que la barra se cortan en tramos, pero no se cuenta la unión (soldadura o
+      cubrejunta). Mostrar cuántos empalmes hay en el resumen y, opcional, un renglón de refuerzos.
+- [ ] **Precio por kilo**: muchos corralones venden el hierro por kg; poder cargar $/kg y que la barra se calcule con
+      su peso (los kg por metro ya están).
+
+### 🟢 Detalles
+- [ ] El OSB del entrepiso no descuenta el hueco de la escalera (si la escalera sube por adentro del entrepiso).
+- [ ] PDF del presupuesto: número de presupuesto y "válido por N días".
+
 ## v1.43.0 (pedido de Leandro 10/11)
 - ✅ Puertas de muebles con su margen sombreado y aviso; copero, alacena y altura desde el piso.
 - ✅ Tirantes de madera y machimbre en los dos pisos; fichas plegables; del 3D a su tarjeta.
