@@ -75,3 +75,29 @@ describe('perfil de cada pieza', () => {
         { nombre: 'Montante', perfil: 'Caño estructural 50x50x1.6', largo: 1.85, cantidad: 2 }]);
   });
 });
+
+describe('v1.50: interiores y fundación en las plantas', () => {
+  it('la planta baja trae pilotines, tabiques (con el hueco de la puerta), mesadas y muebles; el techo, nada de eso', async () => {
+    const { tabiqueNuevo } = await import('./tabiques.js');
+    const { mesadaNueva, muebleNuevo } = await import('./interiores.js');
+    const { PARAMS_INICIALES } = await import('./parametrosIniciales.js');
+    const { generarEstructura } = await import('./estructura.js');
+    const { resolverCatalogo } = await import('./perfiles.js');
+    const { CATALOGO_INICIAL } = await import('./presupuesto.js');
+    const base = tabiqueNuevo([], 1);
+    const p = { ...PARAMS_INICIALES, tabiques: [{ ...base, puerta: { ...base.puerta, tipo: 'abatir', desde: 0.5, ancho: 0.7 } }],
+      mesadas: [mesadaNueva([], 1)], muebles: [muebleNuevo('cama2', [], 1)] };
+    const e = generarEstructura(p, []);
+    const vistas = todasLasVistas(e, p, resolverCatalogo(CATALOGO_INICIAL), []);
+    const baja = vistas.plantas.find((v) => v.nivel === 'piso');
+    expect(baja.pilotines.length).toBe(e.pilotines.length);
+    expect(baja.tabiques[0].tramos).toHaveLength(2); // cortado en la puerta
+    expect(baja.tabiques[0].puerta.tipo).toBe('abatir');
+    expect(baja.mesadas.length).toBeGreaterThan(0);
+    expect(baja.muebles[0].puntos).toHaveLength(4);
+    // Todo adentro de la planta (0..largo, 0..ancho).
+    expect(baja.muebles[0].puntos.every(([x, y]) => x >= -0.01 && x <= p.largo + 0.01 && y >= -0.01 && y <= p.ancho + 0.01)).toBe(true);
+    const techo = vistas.plantas.find((v) => v.nivel === 'techo');
+    expect([techo.pilotines, techo.tabiques, techo.muebles].every((l) => l.length === 0)).toBe(true);
+  });
+});

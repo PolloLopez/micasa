@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.50.0] - 2026-11-11
+### Corregido
+- **"No hay por dónde llegar ahí"**: si no hay camino, la persona va lo más cerca que puede y el aviso dice cuánto le
+  faltó y **por qué**: "La puerta de Tabique 1 está tapada por Mesada 1". La ficha del tabique también avisa
+  "⚠ La puerta queda tapada por …" (mesada, mueble, la pared o una puerta muy angosta).
+### Agregado
+- **Seguimiento de la obra en el PDF y el Excel** (Imprimir / Exportar → Datos → "Seguimiento de la obra"): el resumen
+  (presupuestado, contratado, pagado, falta) y cada rubro con su estado y sus pagos (fecha, monto, medio y nota). En el
+  Excel, una hoja "Seguimiento".
+- **Las plantas muestran los interiores y la fundación**: pilotines y zapatas (punteados), tabiques con el hueco de su
+  puerta, mesadas y muebles con su nombre (los colgados o sobre la mesada, punteados). Con "Interiores" apagado en la
+  exportación, las plantas salen sin tabiques, mesadas ni muebles.
+
 ## [1.49.0] - 2026-11-11
 ### Corregido
 - **El sol con "Ver adentro"**: las paredes que se ocultan siguen dando sombra (pasan a una capa que la cámara no

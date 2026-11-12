@@ -17,6 +17,7 @@ import SelectorPerfil from './SelectorPerfil.jsx';
 import { LADOS } from '../motor/constantes.js';
 import { nombreLado } from '../motor/geometria.js';
 import { tabiqueNuevo, carasDelTabique, altosDelTabique, TIPOS_PUERTA } from '../motor/tabiques.js';
+import { puertasTapadas } from '../motor/recorrido.js';
 
 const f2 = (n) => n.toFixed(2).replace('.', ',');
 
@@ -32,6 +33,7 @@ function Tabique({ t, i, params, unidad, cambiar, onQuitar, paneles, perfiles, p
       onCambio={cambiar(`${ruta}.${campo}`)} />
   );
   const metros = generado ? generado.piezas.reduce((acc, p) => acc + p.largo, 0) : 0;
+  const tapada = puertasTapadas(params, t.nivel ?? 'piso').find((x) => x.tabique === t.nombre);
   const m2 = generado ? generado.panos.reduce((acc, p) => acc + p.neto, 0) : 0;
   return (
     <FichaPlegable clave={`tabique:${t.id}`} className="tabique" abiertaAlInicio={abiertaAlInicio}
@@ -95,6 +97,8 @@ function Tabique({ t, i, params, unidad, cambiar, onQuitar, paneles, perfiles, p
           )}
         </>)}
       </div>
+      {/* v1.50: si la puerta queda tapada (mesada, mueble, pared), las personas no pueden pasar. */}
+      {tapada && <p className="aviso-mueble aviso-choque" role="alert">⚠ La puerta queda tapada por {tapada.con.join(', ')}: no se puede pasar. Corré la puerta o lo que la tapa.</p>}
       {generado && (
         <p className="nota resumen-mesada" role="status">
           {generado.piezas.length} piezas ({f2(metros)} m de perfil){m2 > 0 ? ` · ${f2(m2)} m² de placa` : ''}

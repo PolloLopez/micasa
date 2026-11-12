@@ -37,7 +37,7 @@ import { juntasDePano, pedazosDePared } from './motor/revestimientos.js';
 import { medirEntre, puntoMasCercanoEnPieza } from './motor/medicion.js';
 import { cotasGenerales } from './motor/cotas3d.js';
 import { vistasFijas, vistasPorPartes } from './motor/vistasFijas.js';
-import { accionPorAltura, ladosQueTapan, lugarParaUsar } from './motor/recorrido.js';
+import { accionPorAltura, ladosQueTapan, lugarParaUsar, puertasTapadas } from './motor/recorrido.js';
 import { crearPersonasEnEscena } from './personas3d.js';
 import { implantacion } from './motor/terreno.js';
 import { moduloActivo } from './modulos.js';
@@ -1296,14 +1296,19 @@ export default function LoftCanvas({
         for (let o = visibles[0]?.object; o; o = o.parent) if (o.userData?.idMueble !== undefined) { idMueble = o.userData.idMueble; break; }
         const mueble = idMueble !== null ? (paramsRef.current.muebles ?? []).find((m) => m.id === idMueble) : null;
         const uso = mueble && (mueble.nivel ?? 'piso') === est.nivel ? lugarParaUsar(paramsRef.current, mueble) : null;
+        // v1.50: si no llega, va lo más cerca que puede y dice por qué (por ejemplo, una puerta tapada por la mesada).
+        const explicar = (r) => {
+          if (r === true) return null;
+          const tapadas = puertasTapadas(paramsRef.current, est.nivel);
+          const porque = tapadas.length ? ` La puerta de ${tapadas.map((x) => `${x.tabique} está tapada por ${x.con.join(', ')}`).join('; la de ')}.` : '';
+          return r ? `No hay por dónde llegar: quedó a ${r.falta.toFixed(2).replace('.', ',')} m.${porque}` : `No hay por dónde llegar ahí.${porque}`;
+        };
         if (uso) {
-          const ok = personas.ordenar(personaActual, uso.acercarse, { uso });
-          setAvisoPersona(ok ? null : 'No hay por dónde llegar ahí');
+          setAvisoPersona(explicar(personas.ordenar(personaActual, uso.acercarse, { uso })));
           return;
         }
         const accion = visibles[0] ? accionPorAltura(punto.y - est.y, est.altura) : null;
-        const ok = personas.ordenar(personaActual, [punto.x, punto.z], { accion, mirarA: [punto.x, punto.z] });
-        setAvisoPersona(ok ? null : 'No hay por dónde llegar ahí');
+        setAvisoPersona(explicar(personas.ordenar(personaActual, [punto.x, punto.z], { accion, mirarA: [punto.x, punto.z] })));
         return;
       }
 

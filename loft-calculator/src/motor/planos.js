@@ -20,6 +20,8 @@ import { listarPiezas, NOMBRE_TIPO_PIEZA } from './estructura.js';
 import { INSUMO_DE_TIPO } from './piezasAgregadas.js';
 import { nombrePerfil } from './perfiles.js';
 import { tirasDePano, placasDePano, resumirLargos, REVESTIMIENTO_POR_DEFECTO } from './revestimientos.js';
+import { ubicarMueble, tramosDeMesada, TIPOS_MUEBLE } from './interiores.js';
+import { ubicarTabique, MEDIO_ESPESOR_TABIQUE } from './tabiques.js';
 
 const cm = (n) => Math.round(n * 100) / 100; // redondeo al cm (metros)
 const unicos = (lista) => [...new Set(lista.map(cm))].sort((a, b) => a - b);
@@ -151,7 +153,48 @@ export function vistaDePlanta(e, params, nivel, catalogo) {
   const contorno = nivel === 'piso2' && e.entrepiso
     ? e.entrepiso.esquinas.map(([x, z]) => enPlanta([x, 0, z]))
     : [[0, 0], [largo, 0], [largo, ancho], [0, ancho]];
-  return { nivel, largo, ancho, contorno, piezas, lista: listaDePiezas(piezasReales, catalogo) };
+  return { nivel, largo, ancho, contorno, piezas, lista: listaDePiezas(piezasReales, catalogo), ...extrasDePlanta(e, params, nivel, enPlanta) };
+}
+
+/**
+ * v1.50: lo que se dibuja arriba de la estructura en cada planta (pedido de Leandro): en la planta baja los pilotines y
+ * las zapatas (punteados: van debajo); en cada piso sus tabiques (con el hueco de la puerta), mesadas y muebles.
+ * Todo en las mismas coordenadas que las piezas (x a lo largo desde la esquina A-D, y a lo ancho desde el lado A).
+ */
+function extrasDePlanta(e, params, nivel, enPlanta) {
+  const en2D = ([x, z]) => enPlanta([x, 0, z]);
+  const rect = (centro, u, v, mu, mv) => [[-1, -1], [1, -1], [1, 1], [-1, 1]]
+    .map(([a, b]) => en2D([centro[0] + u[0] * mu * a + v[0] * mv * b, centro[1] + u[1] * mu * a + v[1] * mv * b]));
+  if (nivel === 'techo') return { pilotines: [], tabiques: [], mesadas: [], muebles: [] };
+  const pilotines = nivel === 'piso' ? (e.pilotines ?? []).map(({ x, z }) => {
+    const [px, py] = en2D([x, z]);
+    return { x: px, y: py, forma: e.pilotin?.forma ?? 'redondo', medida: e.pilotin?.medida ?? 0.3, zapata: e.zapata?.lado ?? 0 };
+  }) : [];
+  const delNivel = (lista) => (lista ?? []).filter((x) => (x.nivel ?? 'piso') === nivel);
+  const tabiques = delNivel(params.tabiques).map((t) => {
+    const { inicio, direccion } = ubicarTabique(params, t);
+    const punto = (d) => en2D([inicio[0] + direccion[0] * d, inicio[1] + direccion[1] * d]);
+    const conPuerta = t.puerta && t.puerta.tipo !== 'ninguna';
+    const tramos = conPuerta ? [[0, t.puerta.desde], [t.puerta.desde + t.puerta.ancho, t.largo]] : [[0, t.largo]];
+    return {
+      nombre: t.nombre, espesor: MEDIO_ESPESOR_TABIQUE * 2,
+      tramos: tramos.filter(([a, b]) => b - a > 0.01).map(([a, b]) => [punto(a), punto(b)]),
+      puerta: conPuerta ? { tipo: t.puerta.tipo, desde: punto(t.puerta.desde), hasta: punto(t.puerta.desde + t.puerta.ancho) } : null,
+      medio: punto(t.largo / 2),
+    };
+  });
+  const mesadas = delNivel(params.mesadas).flatMap((m) => tramosDeMesada(params, m).map((t) => {
+    const fondo = m.profundidad;
+    const centro = [t.origen[0] + t.alongo[0] * t.largo / 2 + t.adentro[0] * fondo / 2, t.origen[1] + t.alongo[1] * t.largo / 2 + t.adentro[1] * fondo / 2];
+    return { nombre: m.nombre, puntos: rect(centro, t.alongo, t.adentro, t.largo / 2, fondo / 2), medio: en2D(centro) };
+  }));
+  const muebles = delNivel(params.muebles).map((m) => {
+    const { centro, angulo } = ubicarMueble(params, m);
+    const [c, s] = [Math.cos(angulo), Math.sin(angulo)];
+    return { nombre: m.nombre || TIPOS_MUEBLE[m.tipo]?.nombre, puntos: rect(centro, [c, -s], [s, c], m.ancho / 2, m.profundidad / 2), medio: en2D(centro),
+      colgado: (m.elevacion ?? 0) > 0.3 }; // colgado o arriba de una mesada: punteado
+  });
+  return { pilotines, tabiques, mesadas, muebles };
 }
 
 /** Todas las vistas de una construcción (para imprimir y para el Excel). */

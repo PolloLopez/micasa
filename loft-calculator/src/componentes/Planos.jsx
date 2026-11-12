@@ -130,10 +130,37 @@ function DibujoPlanta({ vista }) {
   return (
     <svg className="dibujo-plano" viewBox={`-0.9 -0.5 ${largo + 1.4} ${ancho + 1.5}`} role="img" aria-label={`${NOMBRE_PLANTA[vista.nivel]} vista desde arriba`}>
       <polygon className="contorno" points={vista.contorno.map(([px, py]) => `${px},${y(py)}`).join(' ')} />
+      {/* v1.50: pilotines y zapatas debajo (punteados), después la estructura y arriba mesadas, muebles y tabiques. */}
+      {(vista.pilotines ?? []).map((p, i) => (
+        <g key={`pil${i}`} className="fundacion-planta">
+          {p.zapata > 0 && <rect x={p.x - p.zapata / 2} y={y(p.y) - p.zapata / 2} width={p.zapata} height={p.zapata} className="zapata-planta" />}
+          {p.forma === 'cuadrado'
+            ? <rect x={p.x - p.medida / 2} y={y(p.y) - p.medida / 2} width={p.medida} height={p.medida} className="pilotin-planta" />
+            : <circle cx={p.x} cy={y(p.y)} r={p.medida / 2} className="pilotin-planta" />}
+        </g>
+      ))}
       {vista.piezas.map((p) => {
         const t = trazo(p.tipo);
         return <line key={p.id} x1={p.x1} y1={y(p.y1)} x2={p.x2} y2={y(p.y2)} stroke={t.color} strokeWidth={t.ancho} strokeLinecap="square" />;
       })}
+      {(vista.mesadas ?? []).map((m, i) => (
+        <polygon key={`mes${i}`} className="mesada-planta" points={m.puntos.map(([px, py]) => `${px},${y(py)}`).join(' ')} />
+      ))}
+      {(vista.muebles ?? []).map((m, i) => (
+        <g key={`mue${i}`}>
+          <polygon className={`mueble-planta${m.colgado ? ' colgado' : ''}`} points={m.puntos.map(([px, py]) => `${px},${y(py)}`).join(' ')} />
+          <text x={m.medio[0]} y={y(m.medio[1]) + 0.06} fontSize={TEXTO * 0.7} textAnchor="middle" className="nombre-planta">{m.nombre}</text>
+        </g>
+      ))}
+      {(vista.tabiques ?? []).map((t, i) => (
+        <g key={`tab${i}`}>
+          {t.tramos.map(([a, b], k) => <line key={k} x1={a[0]} y1={y(a[1])} x2={b[0]} y2={y(b[1])} className="tabique-planta" strokeWidth={t.espesor} />)}
+          {t.puerta && <line x1={t.puerta.desde[0]} y1={y(t.puerta.desde[1])} x2={t.puerta.hasta[0]} y2={y(t.puerta.hasta[1])} className="puerta-planta" />}
+        </g>
+      ))}
+      {(vista.mesadas ?? []).filter((m, i, l) => l.findIndex((x) => x.nombre === m.nombre) === i).map((m, i) => (
+        <text key={`nm${i}`} x={m.medio[0]} y={y(m.medio[1]) + 0.06} fontSize={TEXTO * 0.7} textAnchor="middle" className="nombre-planta">{m.nombre}</text>
+      ))}
       <text x={largo / 2} y={y(0) + 0.32} fontSize={TEXTO} textAnchor="middle" className="lado-planta">lado A</text>
       <text x={largo / 2} y={y(ancho) - 0.15} fontSize={TEXTO} textAnchor="middle" className="lado-planta">lado C</text>
       <CotasHorizontales posiciones={[0, largo]} y={y(0) + 0.65} />

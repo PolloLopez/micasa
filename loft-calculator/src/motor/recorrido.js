@@ -18,6 +18,7 @@ import { geometriaLados, tramoEntrepiso } from './geometria.js';
 import { haciaAdentro } from './segmentos.js';
 import { LADOS } from './constantes.js';
 import { obstaculosDelNivel, alturaDelPiso, ubicarMueble, TIPOS_MUEBLE } from './interiores.js';
+import { ubicarTabique } from './tabiques.js';
 import { listarPiezas } from './estructura.js';
 
 export const TAMANIO_CELDA = 0.1; // 10 cm
@@ -157,7 +158,19 @@ function hayLineaLibre(mapa, a, b) {
  * Camino más corto de `desde` a `hasta` (puntos [x, z] en metros). Si `hasta` está ocupado (adentro de un mueble),
  * va a lo libre más cercano. Devuelve los puntos por donde pasa (sin `desde`), o [] si no se puede llegar.
  */
-export function buscarCamino(mapa, desde, hasta) {
+export function buscarCamino(mapa, desde, hasta, { loMasCerca = false } = {}) {
+  // v1.50: con `loMasCerca`, si no hay forma de llegar, va al punto alcanzable más cercano (el camino queda marcado
+  // con `parcial = true` y `falta` = cuánto le queda hasta el destino).
+  if (loMasCerca) {
+    const completo = buscarCamino(mapa, desde, hasta);
+    if (completo.length > 0 || !libreMasCercano(mapa, desde)) return completo;
+    const cerca = alcanzableMasCercano(mapa, desde, hasta);
+    if (!cerca) return completo;
+    const parcial = buscarCamino(mapa, desde, cerca);
+    parcial.parcial = true;
+    parcial.falta = Math.hypot(hasta[0] - cerca[0], hasta[1] - cerca[1]);
+    return parcial;
+  }
   const inicio = libreMasCercano(mapa, desde);
   const fin = libreMasCercano(mapa, hasta);
   if (!inicio || !fin) return [];
@@ -206,6 +219,53 @@ export function buscarCamino(mapa, desde, hasta) {
     j = salto + 1;
   }
   return simple;
+}
+
+/** v1.50: de todas las celdas a las que se puede llegar caminando desde `desde`, la más cercana a `hasta`. */
+export function alcanzableMasCercano(mapa, desde, hasta) {
+  const inicio = libreMasCercano(mapa, desde);
+  if (!inicio) return null;
+  const visto = new Set([inicio[0] * mapa.filas + inicio[1]]);
+  const cola = [inicio];
+  let mejor = inicio;
+  let distMejor = Infinity;
+  while (cola.length > 0) {
+    const celda = cola.shift();
+    const q = centroDe(mapa, celda);
+    const d = Math.hypot(q[0] - hasta[0], q[1] - hasta[1]);
+    if (d < distMejor) { distMejor = d; mejor = celda; }
+    [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([di, dk]) => {
+      const otra = [celda[0] + di, celda[1] + dk];
+      const clave = otra[0] * mapa.filas + otra[1];
+      if (!visto.has(clave) && esLibre(mapa, otra)) { visto.add(clave); cola.push(otra); }
+    });
+  }
+  return centroDe(mapa, mejor);
+}
+
+/**
+ * v1.50: las puertas de los tabiques que quedan tapadas (por una mesada, un mueble o la pared): no se puede pasar.
+ * Se mira el medio del vano, a cada lado del tabique, con el ancho del cuerpo.
+ * @returns {{ tabique, con: string[] }[]}
+ */
+export function puertasTapadas(params, nivel = 'piso', radio = RADIO_CUERPO) {
+  const obstaculos = obstaculosDelNivel(params, nivel, { huecoPuertas: true }).filter((o) => o.y0 < ALTO_QUE_TAPA && o.y1 > ALTO_QUE_SE_PISA);
+  const x0 = -params.largo / 2 + MEDIA_PARED + radio;
+  const z0 = -params.ancho / 2 + MEDIA_PARED + radio;
+  const contraLaPared = ([x, z]) => x < x0 || x > -x0 || z < z0 || z > -z0;
+  return (params.tabiques ?? []).filter((t) => (t.nivel ?? 'piso') === nivel && t.puerta && t.puerta.tipo !== 'ninguna').map((t) => {
+    const { inicio, direccion, normal } = ubicarTabique(params, t);
+    const medio = t.puerta.desde + t.puerta.ancho / 2;
+    const centro = [inicio[0] + direccion[0] * medio, inicio[1] + direccion[1] * medio];
+    const lados = [1, -1].map((sg) => [centro[0] + normal[0] * sg * 0.3, centro[1] + normal[1] * sg * 0.3]);
+    const con = new Set();
+    [centro, ...lados].forEach((q) => {
+      obstaculos.filter((o) => o.nombre !== t.nombre && dentroDe(o, q, radio)).forEach((o) => con.add(o.nombre));
+      if (contraLaPared(q)) con.add('la pared');
+    });
+    if (t.puerta.ancho < 2 * radio + 0.1) con.add('su ancho (muy angosta)');
+    return { tabique: t.nombre, con: [...con] };
+  }).filter((x) => x.con.length > 0);
 }
 
 /** Un paso con el teclado: avanza si se puede; si no, se desliza solo en x o solo en z (como contra una pared). */

@@ -18,6 +18,7 @@ import PlanoImplantacion from './PlanoImplantacion.jsx';
 import { agruparBarras, textoBarra } from '../proyecto/cortesAgrupados.js';
 import { listaDePerfiles, listaDeAberturas, resumenDeAberturas, plantasElegidas } from '../proyecto/listasDePlanos.js';
 import { TablaCierre } from './CierrePresupuesto.jsx';
+import { fechaLegible } from '../motor/seguimiento.js';
 
 const pesos = (n) => n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
 
@@ -106,9 +107,38 @@ function ListasDePlanos({ perfiles, aberturas }) {
   );
 }
 
+/** v1.50: el seguimiento de la obra en el PDF. */
+function InformeSeguimiento({ informe }) {
+  const r = informe.resumen;
+  return (
+    <div className="bloque-seguimiento">
+      <h2>Seguimiento de la obra</h2>
+      <p>Presupuestado {pesos(r.presupuestado)} · Contratado {pesos(r.contratado)} · <strong>Pagado {pesos(r.pagado)}</strong> ·
+        {' '}<strong>Falta pagar {pesos(r.saldo)}</strong> · Terminados {r.terminados} de {r.rubros}</p>
+      <table className="tabla-impresion">
+        <thead><tr><th>Rubro</th><th>Quién</th><th>Estado</th><th className="num">Contratado</th><th className="num">Pagado</th><th className="num">Falta</th></tr></thead>
+        <tbody>
+          {informe.rubros.map((x, i) => (
+            <tr key={i}>
+              <td>{x.nombre}
+                {x.pagos.length > 0 && <small className="detalle"><br />{x.pagos.map((p) => `${fechaLegible(p.fecha)} ${pesos(p.monto)} (${p.medio}${p.nota ? `, ${p.nota}` : ''})`).join(' · ')}</small>}
+              </td>
+              <td>{x.quien}</td>
+              <td>{x.estado}{x.fechaFin ? ` (${fechaLegible(x.fechaFin)})` : ''}</td>
+              <td className="num">{pesos(x.contratado)}</td>
+              <td className="num">{pesos(x.pagado)}</td>
+              <td className="num">{x.deMas > 0 ? `de más ${pesos(x.deMas)}` : pesos(x.falta)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export default function HojasImpresion({
   opciones, capturas, nombre, subtitulo, leyenda3D, resumen, items, total, gruposCortes, vistas, params, plan = null, materiales = [], implantacion = null,
-  aberturas = [], cierre = null,
+  aberturas = [], cierre = null, seguimiento = null,
 }) {
   const fotos = capturas ?? { actual: null, fijas: [], medidas: [] };
   const conParedes = opciones.paredes && vistas.paredes.length > 0;
@@ -215,6 +245,8 @@ export default function HojasImpresion({
               </>)}
             </>
           )}
+          {/* v1.50: seguimiento de la obra (contratado, pagado y lo que falta, con los pagos de cada rubro). */}
+          {opciones.seguimiento && seguimiento?.rubros.length > 0 && <InformeSeguimiento informe={seguimiento} />}
           {/* v1.32: implantación (la casa en su lote), con las plantas. */}
           {conPlantas && implantacion && params.terreno?.activo && (
             <div className="bloque-implantacion plano-impresion">
@@ -226,7 +258,8 @@ export default function HojasImpresion({
             <div className="bloque-plantas">
               <h2>Plantas (vistas desde arriba)</h2>
               <div className="grilla-planos grilla-plantas">
-                {plantas.map((p) => <div key={p.nivel} className="plano-impresion"><PlanoDePlanta vista={p} /></div>)}
+                {/* v1.50: sin "Interiores" (ej. para quien cotiza los paneles) las plantas salen sin tabiques, mesadas ni muebles. */}
+                {plantas.map((p) => <div key={p.nivel} className="plano-impresion"><PlanoDePlanta vista={opciones.parteInteriores === false ? { ...p, tabiques: [], mesadas: [], muebles: [] } : p} /></div>)}
               </div>
             </div>
           )}

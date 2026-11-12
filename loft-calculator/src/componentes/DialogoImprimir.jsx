@@ -20,7 +20,8 @@ const GRUPOS = [
       ['medidas', 'Medidas fijadas con 📏'],
     ],
   },
-  { titulo: 'Datos', partes: [['resumen', 'Datos de la obra'], ['presupuesto', 'Presupuesto'], ['cortes', 'Cómo cortar cada barra']] },
+  { titulo: 'Datos', partes: [['resumen', 'Datos de la obra'], ['presupuesto', 'Presupuesto'], ['cortes', 'Cómo cortar cada barra'],
+    ['seguimiento', 'Seguimiento de la obra: contratado, pagado y lo que falta (pestaña Obra)']] },
   { titulo: 'Planos', partes: [['paredes', 'Paredes acotadas (las 4 juntas)'], ['plantas', 'Piso, entrepiso y techo'],
     // v1.42: las listas que acompañan a los planos.
     ['listaCanos', 'Caños y perfiles: tipo, barras y dónde va cada uno'], ['listaAberturas', 'Aberturas: tipo, medidas y ubicación']] },
@@ -39,7 +40,7 @@ export default function DialogoImprimir({ opciones, onCambiar, cantidadMedidas, 
   }, []);
 
   const algoParaPdf = Object.entries(opciones).some(([k, v]) => v && k !== 'cotas' && !k.startsWith('parte'));
-  const algoParaExcel = ['resumen', 'presupuesto', 'cortes', 'paredes', 'plantas', 'medidas', 'listaCanos', 'listaAberturas'].some((k) => opciones[k]);
+  const algoParaExcel = ['resumen', 'presupuesto', 'cortes', 'paredes', 'plantas', 'medidas', 'listaCanos', 'listaAberturas', 'seguimiento'].some((k) => opciones[k]);
   const deshabilitada = (clave) => (clave === 'medidas' && cantidadMedidas === 0)
     || (!esConstruccion && ['paredes', 'plantas', 'cotas', 'vistasFijas', 'vistasPartes', 'listaAberturas'].includes(clave));
 

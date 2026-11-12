@@ -139,3 +139,24 @@ describe('v1.47.1: baño chico, plato de ducha y debajo de la escalera', () => {
     }
   });
 });
+
+describe('v1.50: puerta tapada y llegar lo más cerca posible', () => {
+  it('una mesada delante de la puerta del tabique la tapa; sin camino, va lo más cerca y dice cuánto falta', async () => {
+    const { puertasTapadas } = await import('./recorrido.js');
+    const { mesadaNueva } = await import('./interiores.js');
+    const base = tabiqueNuevo([], 1);
+    // Tabique que cruza la planta de frente a fondo con su puerta pegada al frente; la mesada corre por el frente.
+    const t = { ...base, lado: 'A', orientacion: 'perpendicular', ladoReferencia: 'izquierda', desde: 3.75, largo: 4.38,
+      puerta: { ...base.puerta, tipo: 'granero', desde: 0.1, ancho: 0.7 } };
+    const mesada = { ...mesadaNueva([], 1), lado: 'A', ladoReferencia: 'izquierda', desde: 2.5, largo: 2.5 };
+    const p = casa({ tabiques: [t], mesadas: [mesada] });
+    expect(puertasTapadas(p)).toEqual([{ tabique: t.nombre, con: [mesada.nombre] }]);
+    expect(puertasTapadas(casa({ tabiques: [{ ...t, puerta: { ...t.puerta, desde: 2 } }] }))).toEqual([]);
+    const mapa = mapaDelNivel(p);
+    expect(buscarCamino(mapa, [-2, 0], [2, 0])).toEqual([]);
+    const cerca = buscarCamino(mapa, [-2, 0], [2, 0], { loMasCerca: true });
+    expect(cerca.parcial).toBe(true);
+    expect(cerca.at(-1)[0]).toBeLessThan(0); // se queda de su lado del tabique
+    expect(cerca.falta).toBeGreaterThan(1.5);
+  });
+});

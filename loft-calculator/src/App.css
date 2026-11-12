@@ -802,3 +802,13 @@ kbd {
 input[type=date] { color-scheme: dark; }
 .detalle-rubro { width: 100%; margin-top: 0.4rem; }
 .acciones-seguimiento { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; }
+
+/* v1.50: interiores y fundación en las plantas. */
+.dibujo-plano .pilotin-planta { fill: none; stroke: #64748b; stroke-width: 0.02; stroke-dasharray: 0.06 0.04; }
+.dibujo-plano .zapata-planta { fill: none; stroke: #a8a29e; stroke-width: 0.015; stroke-dasharray: 0.04 0.04; }
+.dibujo-plano .mesada-planta { fill: #d6d3d1; stroke: #57534e; stroke-width: 0.02; opacity: 0.9; }
+.dibujo-plano .mueble-planta { fill: #fef3c7; stroke: #a16207; stroke-width: 0.02; opacity: 0.9; }
+.dibujo-plano .mueble-planta.colgado { fill: none; stroke-dasharray: 0.06 0.04; }
+.dibujo-plano .tabique-planta { stroke: #0284c7; stroke-linecap: butt; }
+.dibujo-plano .puerta-planta { stroke: #ea580c; stroke-width: 0.03; stroke-dasharray: 0.08 0.05; }
+.dibujo-plano .nombre-planta { fill: #1e293b; }

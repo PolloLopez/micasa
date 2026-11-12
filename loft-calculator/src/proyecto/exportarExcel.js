@@ -15,6 +15,7 @@ import { nombreLado } from '../motor/geometria.js';
 import { NOMBRE_PLANTA } from '../motor/planos.js';
 import { listaDePerfiles, listaDeAberturas, resumenDeAberturas, plantasElegidas } from './listasDePlanos.js';
 import { agruparBarras } from './cortesAgrupados.js';
+import { fechaLegible } from '../motor/seguimiento.js';
 
 const m = (n) => Math.round(n * 100) / 100; // metros con 2 decimales
 
@@ -52,7 +53,7 @@ function filasDePared(v, params) {
 }
 
 /** Qué partes van, si no se dice (el Excel completo). */
-export const PARTES_EXCEL = { resumen: true, medidas: true, presupuesto: true, cortes: true, paredes: true, plantas: true, listaCanos: true, listaAberturas: true };
+export const PARTES_EXCEL = { resumen: true, medidas: true, presupuesto: true, cortes: true, paredes: true, plantas: true, listaCanos: true, listaAberturas: true, seguimiento: true };
 
 /**
  * Hojas del libro (v1.28: pocas hojas, como el PDF): "Obra" (datos, medidas y presupuesto),
@@ -60,7 +61,7 @@ export const PARTES_EXCEL = { resumen: true, medidas: true, presupuesto: true, c
  * @param {object} datos { nombre, params, vistas: { paredes, plantas }, items, total, gruposCortes, proveedor, pago, resumen, medidas }
  * @param {object} partes { resumen, medidas, presupuesto, cortes, paredes, plantas } (true = va)
  */
-export function hojasDeObra({ nombre, params, vistas, items, total, gruposCortes = [], proveedor = '', pago = '', resumen = [], medidas = [], plan = null, materiales = [], aberturas = [], cierre = null }, partes = PARTES_EXCEL) {
+export function hojasDeObra({ nombre, params, vistas, items, total, gruposCortes = [], proveedor = '', pago = '', resumen = [], medidas = [], plan = null, materiales = [], aberturas = [], cierre = null, seguimiento = null }, partes = PARTES_EXCEL) {
   const fecha = new Date().toLocaleDateString('es-AR');
   const hojas = [];
 
@@ -167,6 +168,24 @@ export function hojasDeObra({ nombre, params, vistas, items, total, gruposCortes
         ...lista.map((x) => [x.numero, x.etiqueta ? `${x.tipo} · ${x.etiqueta}` : x.tipo, x.pared, x.ancho, x.alto, x.antepecho, x.ubicacion]),
       ],
     });
+  }
+
+  // v1.50: seguimiento de la obra (informeDeSeguimiento): resumen, cada rubro y sus pagos.
+  if (partes.seguimiento && seguimiento?.rubros.length) {
+    const r = seguimiento.resumen;
+    const filas = [
+      { negrita: true, celdas: ['Seguimiento de la obra'] },
+      ['Presupuestado', { pesos: r.presupuestado }], ['Contratado', { pesos: r.contratado }], ['Pagado', { pesos: r.pagado }],
+      ['Falta pagar', { pesos: r.saldo }], ['Terminados', `${r.terminados} de ${r.rubros}`], [],
+      { negrita: true, celdas: ['Rubro', 'Quién', 'Estado', 'Contratado', 'Pagado', 'Falta', 'Contrato', 'Terminado'] },
+    ];
+    seguimiento.rubros.forEach((x) => {
+      filas.push({ negrita: true, celdas: [x.nombre, x.quien, x.estado, { pesos: x.contratado }, { pesos: x.pagado },
+        { pesos: x.falta }, fechaLegible(x.fechaContrato), fechaLegible(x.fechaFin)] });
+      x.pagos.forEach((p) => filas.push([`  Pago ${fechaLegible(p.fecha)}`, p.medio, p.nota, '', { pesos: p.monto }]));
+      if (x.detalle) filas.push([`  ${x.detalle}`]);
+    });
+    hojas.push({ nombre: 'Seguimiento', anchos: [34, 22, 14, 14, 14, 14, 12, 12], filas });
   }
 
   if (partes.cortes && gruposCortes.length) {

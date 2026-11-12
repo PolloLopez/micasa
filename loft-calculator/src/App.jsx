@@ -51,7 +51,7 @@ import { resolverCatalogo, PERFIL_NUEVO, perfilesDeLista } from './motor/perfile
 import { proveedoresDe, aplicarProveedor, faltanPrecios, MAS_BARATO, planDeCompra, masBaratoEn, totalDeLaObra, listaDeMateriales, kilosDeMateriales } from './motor/proveedores.js';
 import { cerrarPresupuesto } from './motor/cierre.js';
 import { useSinCambiosSalvo } from './hooks/useSinCambiosSalvo.js';
-import { partesDelPresupuesto, resumenSeguimiento } from './motor/seguimiento.js';
+import { partesDelPresupuesto, resumenSeguimiento, informeDeSeguimiento } from './motor/seguimiento.js';
 import PanelSeguimiento from './componentes/PanelSeguimiento.jsx';
 import SelectorPerfil from './componentes/SelectorPerfil.jsx';
 import Planos from './componentes/Planos.jsx';
@@ -787,6 +787,7 @@ export default function App() {
       nombre: nombreProyecto, params, vistas, items, total, gruposCortes,
       proveedor: nombreProveedor, pago: textoPago, resumen, medidas: medidasFijas,
       plan: proveedores.length > 1 ? planCompra : null, materiales: listaMateriales, aberturas: aberturasValidas, cierre,
+      seguimiento: informeDeSeguimiento(params.seguimiento, partesSeguimiento),
     }, opcionesImpresion);
     const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const enlace = document.createElement('a');
@@ -1487,7 +1488,8 @@ export default function App() {
         subtitulo={`${new Date().toLocaleDateString('es-AR')} · ${nombreProveedor ? `${nombreProveedor} ${textoPago}` : textoPago} · Pollo Calculator v${VERSION_APP}`}
         leyenda3D={cartelResaltado ? `Resaltado en rosa — ${cartelResaltado.replace(' (fijado)', '')}` : null}
         resumen={resumen} items={items} total={total} gruposCortes={gruposCortes} vistas={vistas} params={params}
-        plan={proveedores.length > 1 ? planCompra : null} materiales={listaMateriales} implantacion={implantacion} aberturas={aberturasValidas} cierre={cierre} />
+        plan={proveedores.length > 1 ? planCompra : null} materiales={listaMateriales} implantacion={implantacion} aberturas={aberturasValidas} cierre={cierre}
+        seguimiento={informeDeSeguimiento(params.seguimiento, partesSeguimiento)} />
     </div>
     </ContextoFoco>
     </ContextoResaltado>

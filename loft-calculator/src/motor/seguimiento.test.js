@@ -69,3 +69,23 @@ describe('validación y proyectos de antes', () => {
     expect(completarSeguimiento({ rubros: [{ id: 1, nombre: 'x' }] }).rubros[0]).toMatchObject({ estado: 'pendiente', pagos: [], contratado: null });
   });
 });
+
+describe('v1.50: seguimiento en el PDF y el Excel', () => {
+  it('el informe trae cada rubro con sus cuentas y sus pagos ordenados; el Excel tiene su hoja', async () => {
+    const { informeDeSeguimiento, fechaLegible } = await import('./seguimiento.js');
+    const { hojasDeObra } = await import('../proyecto/exportarExcel.js');
+    const partes = partesDelPresupuesto({ compras, cierre });
+    const rubros = rubrosDesdePresupuesto([], partes).map((r, i) => (i === 2
+      ? { ...r, estado: 'enCurso', pagos: [pagoNuevo([], 400000, '2026-11-10'), { ...pagoNuevo([{ id: 1 }], 500000, '2026-11-01'), medio: 'efectivo' }] } : r));
+    const informe = informeDeSeguimiento({ rubros }, partes);
+    const mo = informe.rubros[2];
+    expect(mo).toMatchObject({ nombre: 'Mano de obra', estado: 'En curso', contratado: 1500000, pagado: 900000, falta: 600000 });
+    expect(mo.pagos.map((p) => [fechaLegible(p.fecha), p.medio])).toEqual([['01/11/2026', 'Efectivo'], ['10/11/2026', 'Transferencia']]);
+    const hojas = hojasDeObra({ nombre: 'x', params: PARAMS_INICIALES, vistas: { paredes: [], plantas: [] }, items: [], total: 0, seguimiento: informe },
+      { seguimiento: true });
+    expect(hojas.map((h) => h.nombre)).toEqual(['Seguimiento']);
+    const filas = hojas[0].filas.map((f) => (Array.isArray(f) ? f : f.celdas));
+    expect(filas.some((f) => f[0] === 'Pagado' && f[1].pesos === 900000)).toBe(true);
+    expect(filas.some((f) => f[0] === '  Pago 01/11/2026')).toBe(true);
+  });
+});

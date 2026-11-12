@@ -8,6 +8,8 @@ export const OPCIONES_IMPRESION_INICIALES = {
   listaCanos: true, listaAberturas: true,
   // v1.42: qué partes de la obra salen en los planos y en la lista de caños (las paredes, con sus aberturas, siempre).
   partePisos: true, parteEntrepiso: true, parteTecho: true, parteInteriores: true,
+  // v1.50: lo contratado, lo pagado y lo que falta de la obra (sale si hay rubros cargados).
+  seguimiento: true,
 };
 
 /** v1.42: "Solo planos": las paredes, las plantas y sus listas; nada del 3D ni del presupuesto. */

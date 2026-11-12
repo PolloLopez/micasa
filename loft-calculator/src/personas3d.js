@@ -333,9 +333,14 @@ export function crearPersonasEnEscena(escena) {
   function ordenar(id, hasta, { accion = null, mirarA = null, uso = null } = {}) {
     const p = personas.get(id);
     if (!p) return false;
-    const camino = buscarCamino(mapaDe(p.datos.nivel), p.pos, hasta);
-    // Si ya está ahí (o al lado), igual hace lo pedido.
-    if (camino.length === 0 && Math.hypot(hasta[0] - p.pos[0], hasta[1] - p.pos[1]) > 0.4) return false;
+    // v1.50: si no hay forma de llegar, va lo más cerca que puede (y avisa cuánto le faltó).
+    const camino = buscarCamino(mapaDe(p.datos.nivel), p.pos, hasta, { loMasCerca: true });
+    const lejos = Math.hypot(hasta[0] - p.pos[0], hasta[1] - p.pos[1]) > 0.4;
+    if (camino.length === 0 && lejos && !camino.parcial) return false;
+    if (camino.parcial && camino.falta > 0.4) {
+      Object.assign(p, { camino, accion: null, mirarA: hasta, tiempoAccion: 0, uso: null, usando: null });
+      return { parcial: true, falta: camino.falta };
+    }
     // v1.49: `uso`: sentarse o acostarse al llegar (ver lugarParaUsar); los perros no.
     Object.assign(p, { camino, accion, mirarA, tiempoAccion: 0, uso: esPerro(p.datos) ? null : uso, usando: null });
     return true;

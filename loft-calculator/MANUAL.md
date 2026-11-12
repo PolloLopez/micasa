@@ -1,4 +1,4 @@
-# Manual de Pollo Calculator (v1.49.0)
+# Manual de Pollo Calculator (v1.50.0)
 
 Guía corta para usar el sistema y chequear que todo ande. Cada parte termina con **✔ Chequeá**: lo que tenés que ver.
 
@@ -34,6 +34,8 @@ Medidas de la planta, alturas, pisos (perfil C o tirantes de madera), entrepiso,
   **+ Agregar**. Nuevos: televisor, cafetera, horno de aire, máquina de pan.
   - Los chicos (cafetera, horno de aire, máquina de pan) se **apoyan solos** sobre la mesada o el mueble de abajo.
 - **Personas y perros**: **+ Persona** (nombre, sexo, altura) y **+ Perro** (tamaño, pelaje).
+- Si la puerta de un tabique queda tapada (por la mesada, un mueble o la pared), su ficha avisa
+  **"⚠ La puerta queda tapada por …"**: las personas no pueden pasar por ahí.
 
 ✔ Chequeá:
 - Poné un sillón con "Distancia al lateral" negativa: la ficha dice **"⚠ Se sale por el lateral…"** y en el 3D se ve
@@ -117,7 +119,11 @@ que los materiales y la pestaña "Presupuesto" muestra ese precio.
 - **Imprimir / Exportar**: elegís qué sale (PDF o Excel). Atajos: **Solo planos**, **Por partes** (cada piso desde
   arriba y el adentro desde cada lado, sin esa pared).
 
-✔ Chequeá: el PDF con "Por partes" trae la hoja "Vistas por partes"; si cargaste mano de obra, sale **Precio de la obra**.
+- Las **plantas** muestran pilotines y zapatas (punteados), tabiques con su puerta, mesadas y muebles.
+- **Seguimiento de la obra** (en Datos): lo contratado, lo pagado y lo que falta, con los pagos de cada rubro.
+
+✔ Chequeá: el PDF con "Por partes" trae la hoja "Vistas por partes"; si cargaste mano de obra, sale **Precio de la obra**;
+con pagos cargados, sale **Seguimiento de la obra** (y en el Excel, la hoja "Seguimiento").
 
 ---
 
@@ -126,5 +132,4 @@ que los materiales y la pestaña "Presupuesto" muestra ese precio.
 - Subir o bajar la escalera caminando; salir al terreno.
 - Abrir las puertas de los muebles (heladera, placard).
 - Mover mesadas y tabiques desde el 3D (se editan en su ficha).
-- El seguimiento de la obra todavía no sale en el PDF ni en el Excel.
 - Precios con fecha de actualización.

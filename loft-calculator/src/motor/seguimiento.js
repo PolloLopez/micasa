@@ -137,3 +137,24 @@ export function completarSeguimiento(s) {
   if (!s || !Array.isArray(s.rubros)) return { ...SEGUIMIENTO_INICIAL, rubros: [] };
   return { ...s, rubros: s.rubros.map((r) => ({ ...rubroNuevo([], {}), ...r, pagos: Array.isArray(r.pagos) ? r.pagos : [] })) };
 }
+
+/**
+ * v1.50: el seguimiento listo para el PDF y el Excel: el resumen y cada rubro con sus cuentas y sus pagos.
+ * @returns {{ resumen, rubros: { nombre, quien, estado, presupuestado, contratado, pagado, falta, deMas, fechaContrato, fechaFin, detalle, pagos }[] }}
+ */
+export function informeDeSeguimiento(seguimiento, partes = []) {
+  const rubros = (seguimiento?.rubros ?? []).map((r) => {
+    const c = cuentasDelRubro(r, partes);
+    return {
+      nombre: r.nombre, quien: r.quien, estado: ESTADOS_RUBRO.find(([e]) => e === r.estado)?.[1] ?? r.estado,
+      presupuestado: c.presupuestado, contratado: c.contratado, pagado: c.pagado, falta: c.saldo, deMas: c.deMas,
+      fechaContrato: r.fechaContrato, fechaFin: r.fechaFin, detalle: r.detalle,
+      pagos: [...r.pagos].sort((a, b) => a.fecha.localeCompare(b.fecha))
+        .map((p) => ({ ...p, medio: MEDIOS_PAGO.find(([m]) => m === p.medio)?.[1] ?? p.medio })),
+    };
+  });
+  return { resumen: resumenSeguimiento(seguimiento, partes), rubros };
+}
+
+/** 'AAAA-MM-DD' → 'DD/MM/AAAA' (vacío si no hay fecha). */
+export const fechaLegible = (f) => (f ? f.split('-').reverse().join('/') : '');

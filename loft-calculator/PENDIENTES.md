@@ -3,7 +3,7 @@
 Última limpieza: 2026-11-11 (v1.49.0). Espejo en Trello: tablero "Desarrollo", tarjetas `[CALC]`.
 
 ## 📌 Estado y próximos pasos (11/11)
-**En GitHub y publicado: v1.49.0** (push y deploy del 11/11, 20:02). Manual de uso para chequear: `MANUAL.md`.
+**En GitHub y publicado: v1.49.0** (push y deploy del 11/11, 20:02). **v1.50.0 por subir.** Manual de uso para chequear: `MANUAL.md`.
 
 🟡 **Para chequear en pantalla** (probado con tests, no visto): el sol con "Ver adentro" entra solo por las aberturas;
 la persona se sienta en el sillón y se acuesta en la cama; las puertas de los tabiques se abren al pasar.
@@ -14,10 +14,12 @@ Lo que falta, en orden de prioridad (detalle en cada sección de abajo):
 2. ✅ v1.48.0 **Consumibles automáticos** (electrodos, autoperforantes, sellador, antióxido) con coeficientes editables.
    - 🟡 [ ] Validar los coeficientes con el herrero (y el rendimiento del antióxido con el pintor).
    - 🟢 [ ] Tornillos del Durlock por m² de placa de los tabiques (hoy solo paneles de paredes y techo).
-3. 🟡 **Seguimiento en el PDF y el Excel** (hoy solo en pantalla) + resumen "pagado / falta" en el PDF del cliente.
+3. ✅ v1.50.0 **Seguimiento en el PDF y el Excel**.
 4. 🟡 **Precios con fecha** por proveedor y aviso de precios viejos (> 30 días).
 5. 🟡 **Tabiques de Durlock completos**: PGU (soleras) aparte de PGC (montantes), tornillos, cinta y masilla.
-6. 🟡 **Tabiques, mesadas, muebles, pilotines y zapatas en las plantas** (hoy solo 3D y listas).
+6. ✅ v1.50.0 **Tabiques, mesadas, muebles, pilotines y zapatas en las plantas** (en pantalla y PDF).
+   - 🟢 [ ] La escalera en la planta; cotas de los tabiques y muebles; los interiores también en la hoja "Plantas" del Excel.
+   - 🟡 [ ] Baño de Leandro: si siguen sin poder entrar, mirar el aviso "puerta tapada" o mandar el link (Compartir) para revisarlo con su proyecto.
 7. 🟢 Personas: subir y bajar la escalera, puertas de muebles (heladera, placard), esquivarse entre ellas.
    (✅ sentarse y acostarse: v1.49.0)
 8. 🟢 Mover mesadas y tabiques desde el 3D (hoy: muebles y aberturas); frenar la escalera en la pared.
