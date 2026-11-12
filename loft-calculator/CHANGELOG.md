@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.51.0] - 2026-11-12
+### Agregado
+- **Sentido de las puertas de los tabiques**: "De izquierda a derecha" o "De derecha a izquierda" (mirando el tabique
+  desde su cara A). En la de abrir cambia de qué lado está la bisagra; en la corrediza, hacia dónde corre (el riel va
+  para ese lado). La de abrir ahora también elige hacia qué cara abre.
+- **Tabiques: desde dónde se mide**, como los muebles: la puerta desde el arranque o desde la punta del tabique; el
+  tabique paralelo, desde su pared o desde la de enfrente; la esquina, izquierda o derecha. Al cambiar la referencia el
+  número se pasa a la otra medida (el tabique no se mueve). La ficha muestra las otras distancias calculadas.
+
 ## [1.50.0] - 2026-11-11
 ### Corregido
 - **"No hay por dónde llegar ahí"**: si no hay camino, la persona va lo más cerca que puede y el aviso dice cuánto le

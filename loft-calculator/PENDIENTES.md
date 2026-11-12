@@ -3,7 +3,7 @@
 Última limpieza: 2026-11-11 (v1.49.0). Espejo en Trello: tablero "Desarrollo", tarjetas `[CALC]`.
 
 ## 📌 Estado y próximos pasos (11/11)
-**En GitHub y publicado: v1.49.0** (push y deploy del 11/11, 20:02). **v1.50.0 por subir.** Manual de uso para chequear: `MANUAL.md`.
+**En GitHub: hasta v1.50.0. v1.51.0 por subir.** Manual de uso para chequear: `MANUAL.md`.
 
 🟡 **Para chequear en pantalla** (probado con tests, no visto): el sol con "Ver adentro" entra solo por las aberturas;
 la persona se sienta en el sillón y se acuesta en la cama; las puertas de los tabiques se abren al pasar.
@@ -82,6 +82,10 @@ Mejoras propuestas (técnicas, sin cambios aplicados):
     - 🟢 [ ] Puertas de abrir dibujadas entreabiertas con su barrido.
 - ✅ Etiquetas de mesadas y muebles en el 3D, apagables una por una y por capa (v1.38.1).
 - ✅ **Sol más fuerte** (v1.38.0): intensidad regulable (50–300 %, 150 % de fábrica).
+
+## v1.51.0 Tabiques: sentido de la puerta y desde dónde se mide (pedido de Leandro 12/11)
+- ✅ Bisagra izquierda/derecha y corrediza hacia un lado u otro; puerta desde arranque o punta; paralelo desde su pared o la de enfrente.
+  - 🟡 [ ] Mirar en el 3D que la bisagra y el riel quedan del lado elegido (probado con tests del sentido, no visto).
 
 ## v1.49.0 Sol con "Ver adentro", choques, aberturas y personas que se sientan (pedido de Leandro 11/11)
 - ✅ Sombras con paredes ocultas; mueble frenado en la pared y aviso de choques; mover aberturas; apoyar en la mesada; sentarse y acostarse.

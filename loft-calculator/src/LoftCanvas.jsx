@@ -547,25 +547,31 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
       // pasa una persona. De abrir: la bisagra en el arranque del vano (a) y la hoja gira hacia la cara elegida.
       const pivote = new THREE.Group();
       pivote.rotation.y = giro;
+      // v1.51: el sentido elegido: +1 = bisagra en el arranque del vano (a) / corre hacia la punta; -1 = al revés.
+      const sentido = puerta.sentido ?? 1;
       if (puerta.tipo === 'granero') {
         pivote.position.set((a[0] + b[0]) / 2 + normal[0] * corre, a[1], (a[2] + b[2]) / 2 + normal[2] * corre);
         hoja.position.set(0, alto / 2, 0);
       } else {
-        pivote.position.set(a[0], a[1], a[2]);
-        hoja.position.set(ancho / 2, alto / 2, 0);
+        const bisagra = sentido > 0 ? a : b;
+        pivote.position.set(bisagra[0], bisagra[1], bisagra[2]);
+        hoja.position.set((sentido * ancho) / 2, alto / 2, 0);
       }
       pivote.add(hoja);
       // Hacia qué lado gira: el que lleva la punta de la hoja hacia la cara elegida (normal x cara).
-      const puntaAlGirar = [-Math.sin(giro), -Math.cos(giro)]; // cómo se mueve la punta (+x local) al sumar giro
+      const puntaAlGirar = [-Math.sin(giro) * sentido, -Math.cos(giro) * sentido]; // cómo se mueve la punta al sumar giro
       const signo = Math.sign(puntaAlGirar[0] * normal[0] * (puerta.cara || 1) + puntaAlGirar[1] * normal[2] * (puerta.cara || 1)) || 1;
       pivote.userData.puertaTabique = {
         id: `tabique:${t.id}`, tipo: puerta.tipo, giro, signo, ancho, base: pivote.position.clone(),
-        direccion: [puerta.direccion[0], puerta.direccion[2]], centro: [(a[0] + b[0]) / 2, (a[2] + b[2]) / 2], nivel: t.nivel ?? 'piso',
+        direccion: [puerta.direccion[0] * sentido, puerta.direccion[2] * sentido], // la corrediza corre para este lado
+        centro: [(a[0] + b[0]) / 2, (a[2] + b[2]) / 2], nivel: t.nivel ?? 'piso',
       };
       grupo.add(pivote);
       if (puerta.tipo === 'granero') {
         const riel = new THREE.Mesh(new THREE.BoxGeometry(ancho * 2 + 0.1, 0.03, 0.03), materialDeColor('#1f2937', { metal: 0.7, aspereza: 0.3 }));
-        riel.position.set((a[0] + b[0]) / 2 + puerta.direccion[0] * ancho / 2 + normal[0] * corre, a[1] + alto + 0.06, (a[2] + b[2]) / 2 + puerta.direccion[2] * ancho / 2 + normal[2] * corre);
+        // El riel sigue para el lado al que corre la puerta (v1.51: según su sentido).
+        const s = puerta.sentido ?? 1;
+        riel.position.set((a[0] + b[0]) / 2 + s * puerta.direccion[0] * ancho / 2 + normal[0] * corre, a[1] + alto + 0.06, (a[2] + b[2]) / 2 + s * puerta.direccion[2] * ancho / 2 + normal[2] * corre);
         riel.rotation.y = giro;
         grupo.add(riel);
       }

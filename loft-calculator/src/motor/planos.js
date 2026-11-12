@@ -21,7 +21,7 @@ import { INSUMO_DE_TIPO } from './piezasAgregadas.js';
 import { nombrePerfil } from './perfiles.js';
 import { tirasDePano, placasDePano, resumirLargos, REVESTIMIENTO_POR_DEFECTO } from './revestimientos.js';
 import { ubicarMueble, tramosDeMesada, TIPOS_MUEBLE } from './interiores.js';
-import { ubicarTabique, MEDIO_ESPESOR_TABIQUE } from './tabiques.js';
+import { ubicarTabique, inicioDePuerta, MEDIO_ESPESOR_TABIQUE } from './tabiques.js';
 
 const cm = (n) => Math.round(n * 100) / 100; // redondeo al cm (metros)
 const unicos = (lista) => [...new Set(lista.map(cm))].sort((a, b) => a - b);
@@ -175,11 +175,12 @@ function extrasDePlanta(e, params, nivel, enPlanta) {
     const { inicio, direccion } = ubicarTabique(params, t);
     const punto = (d) => en2D([inicio[0] + direccion[0] * d, inicio[1] + direccion[1] * d]);
     const conPuerta = t.puerta && t.puerta.tipo !== 'ninguna';
-    const tramos = conPuerta ? [[0, t.puerta.desde], [t.puerta.desde + t.puerta.ancho, t.largo]] : [[0, t.largo]];
+    const pa = conPuerta ? inicioDePuerta(t) : 0;
+    const tramos = conPuerta ? [[0, pa], [pa + t.puerta.ancho, t.largo]] : [[0, t.largo]];
     return {
       nombre: t.nombre, espesor: MEDIO_ESPESOR_TABIQUE * 2,
       tramos: tramos.filter(([a, b]) => b - a > 0.01).map(([a, b]) => [punto(a), punto(b)]),
-      puerta: conPuerta ? { tipo: t.puerta.tipo, desde: punto(t.puerta.desde), hasta: punto(t.puerta.desde + t.puerta.ancho) } : null,
+      puerta: conPuerta ? { tipo: t.puerta.tipo, desde: punto(pa), hasta: punto(pa + t.puerta.ancho) } : null,
       medio: punto(t.largo / 2),
     };
   });

@@ -1,4 +1,4 @@
-# Manual de Pollo Calculator (v1.50.0)
+# Manual de Pollo Calculator (v1.51.0)
 
 Guía corta para usar el sistema y chequear que todo ande. Cada parte termina con **✔ Chequeá**: lo que tenés que ver.
 
@@ -29,7 +29,9 @@ Medidas de la planta, alturas, pisos (perfil C o tirantes de madera), entrepiso,
 
 - **Paredes**: columnas, fajas, revestimiento y sus puertas y ventanas.
 - **Mesadas**: recta, en L o en U, con huecos, bachas y electrodomésticos adentro.
-- **Tabiques**: divisiones de Durlock con puerta de abrir o granero.
+- **Tabiques**: divisiones de Durlock con puerta de abrir o granero. Elegís desde dónde medís (la esquina izquierda o
+  derecha; si es paralelo, su pared o la de enfrente; la puerta, desde el arranque o la punta) y el **sentido** de la
+  puerta (de izquierda a derecha o al revés: la bisagra o hacia dónde corre).
 - **Muebles y electrodomésticos**: elegí en "Mueble a agregar" (separado en Muebles, Electrodomésticos y Baño) y
   **+ Agregar**. Nuevos: televisor, cafetera, horno de aire, máquina de pan.
   - Los chicos (cafetera, horno de aire, máquina de pan) se **apoyan solos** sobre la mesada o el mueble de abajo.

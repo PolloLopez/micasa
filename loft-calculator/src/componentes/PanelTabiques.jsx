@@ -15,8 +15,8 @@ import CampoNumero from './CampoNumero.jsx';
 import CampoSelect from './CampoSelect.jsx';
 import SelectorPerfil from './SelectorPerfil.jsx';
 import { LADOS } from '../motor/constantes.js';
-import { nombreLado } from '../motor/geometria.js';
-import { tabiqueNuevo, carasDelTabique, altosDelTabique, TIPOS_PUERTA } from '../motor/tabiques.js';
+import { nombreLado, ladoOpuesto } from '../motor/geometria.js';
+import { tabiqueNuevo, carasDelTabique, altosDelTabique, TIPOS_PUERTA, SENTIDOS_PUERTA, distanciasDelTabique } from '../motor/tabiques.js';
 import { puertasTapadas } from '../motor/recorrido.js';
 
 const f2 = (n) => n.toFixed(2).replace('.', ',');
@@ -27,6 +27,7 @@ function Tabique({ t, i, params, unidad, cambiar, onQuitar, paneles, perfiles, p
     <CampoNumero etiqueta={etiqueta} unidad={unidad} valor={base[campo]} onCambio={cambiar(`${rutaBase}.${campo}`)} />
   );
   const caras = carasDelTabique(t);
+  const d = distanciasDelTabique(params, t);
   const [h0, h1] = altosDelTabique(params, t);
   const selectorRev = (campo, etiqueta) => (
     <CampoSelect etiqueta={etiqueta} valor={t[campo]} opciones={[['', 'Sin placa'], ...paneles.map((p) => [p.id, p.nombre])]}
@@ -59,9 +60,15 @@ function Tabique({ t, i, params, unidad, cambiar, onQuitar, paneles, perfiles, p
           onCambio={cambiar(`${ruta}.orientacion`)} />
         <CampoSelect etiqueta="Medida desde la esquina" valor={t.ladoReferencia}
           opciones={[['izquierda', 'Izquierda (vista desde afuera)'], ['derecha', 'Derecha (vista desde afuera)']]}
-          onCambio={cambiar(`${ruta}.ladoReferencia`)} />
+          onCambio={(v) => cambiar(ruta)({ ...t, ladoReferencia: v, desde: Math.round((v === 'izquierda' ? d.izquierda : d.derecha) * 100) / 100 })} />
         {medida('desde', 'Distancia a la esquina')}
-        {t.orientacion === 'paralelo' && medida('separacion', 'Separación de la pared')}
+        {/* v1.51: como los muebles, la separación se mide desde su pared o desde la de enfrente. */}
+        {t.orientacion === 'paralelo' && (
+          <CampoSelect etiqueta="Separación medida desde" valor={t.separacionDesde ?? 'pared'}
+            opciones={[['pared', `Su pared (${nombreLado(t.lado, params.ladoFrente)})`], ['enfrente', `La de enfrente (${nombreLado(ladoOpuesto(t.lado), params.ladoFrente)})`]]}
+            onCambio={(v) => cambiar(ruta)({ ...t, separacionDesde: v, separacion: Math.round((v === 'enfrente' ? d.aEnfrente : d.aSuPared) * 100) / 100 })} />
+        )}
+        {t.orientacion === 'paralelo' && medida('separacion', 'Separación')}
         {medida('largo', 'Largo')}
         <CampoSelect etiqueta="Alto" valor={t.alto}
           opciones={[['techo', 'Hasta el techo'], ...(params.anchoEntrepiso > 0 ? [['piso2', 'Hasta el piso 2']] : []), ['medida', 'Una medida']]}
@@ -71,6 +78,14 @@ function Tabique({ t, i, params, unidad, cambiar, onQuitar, paneles, perfiles, p
           <CampoSelect etiqueta="Nivel" valor={t.nivel} opciones={[['piso', 'Planta baja'], ['piso2', 'Piso 2 (entrepiso)']]} onCambio={cambiar(`${ruta}.nivel`)} />
         )}
       </div>
+      {/* v1.51: las otras distancias, calculadas (como en los muebles). */}
+      <p className="nota distancias-mueble" role="status">
+        Queda a <strong>{f2(d.izquierda)} m</strong> de la esquina izquierda y a <strong>{f2(d.derecha)} m</strong> de la derecha (vista desde afuera)
+        {t.orientacion === 'paralelo'
+          ? <>, a <strong>{f2(d.aSuPared)} m</strong> de su pared y a <strong>{f2(d.aEnfrente)} m</strong> de la de enfrente.</>
+          : <>; de su punta a la pared de enfrente quedan <strong>{f2(d.alaPunta)} m</strong>.</>}
+        {d.puertaDesdeArranque !== undefined && <> La puerta, a {f2(d.puertaDesdeArranque)} m del arranque y a {f2(d.puertaDesdePunta)} m de la punta.</>}
+      </p>
       <p className="nota">Alto: {f2(h0)}{Math.abs(h0 - h1) > 0.005 ? ` a ${f2(h1)}` : ''} m. {t.orientacion === 'perpendicular'
         ? 'La distancia a la esquina es al eje del tabique; sale desde la cara de adentro de la pared.'
         : 'La separación es de la cara de adentro de la pared al eje del tabique.'}</p>
@@ -85,16 +100,22 @@ function Tabique({ t, i, params, unidad, cambiar, onQuitar, paneles, perfiles, p
       </div>
 
       <h4 className="subtitulo-pared">Puerta</h4>
+      {t.puerta.tipo !== 'ninguna' && <p className="nota">Izquierda y derecha: parado del lado de la cara A ({caras.A}), mirando el tabique.</p>}
       <div className="grid-params">
         <CampoSelect etiqueta="Tipo" valor={t.puerta.tipo} opciones={TIPOS_PUERTA} onCambio={cambiar(`${ruta}.puerta.tipo`)} />
         {t.puerta.tipo !== 'ninguna' && (<>
-          {medida('desde', 'Desde el arranque del tabique', t.puerta, `${ruta}.puerta`)}
+          {/* v1.51: la puerta se ubica desde el arranque o desde la punta del tabique, y se elige su sentido. */}
+          <CampoSelect etiqueta="Puerta medida desde" valor={t.puerta.medidaDesde ?? 'arranque'}
+            opciones={[['arranque', 'El arranque del tabique (contra la pared)'], ['punta', 'La punta del tabique']]}
+            onCambio={(v) => cambiar(`${ruta}.puerta`)({ ...t.puerta, medidaDesde: v,
+              desde: Math.round((v === 'punta' ? d.puertaDesdePunta : d.puertaDesdeArranque) * 100) / 100 })} />
+          {medida('desde', 'Distancia', t.puerta, `${ruta}.puerta`)}
           {medida('ancho', 'Ancho', t.puerta, `${ruta}.puerta`)}
           {medida('alto', 'Alto', t.puerta, `${ruta}.puerta`)}
-          {t.puerta.tipo === 'granero' && (
-            <CampoSelect etiqueta="Corre del lado" valor={t.puerta.cara} opciones={[['A', `A (${caras.A})`], ['B', `B (${caras.B})`]]}
-              onCambio={cambiar(`${ruta}.puerta.cara`)} />
-          )}
+          <CampoSelect etiqueta={t.puerta.tipo === 'granero' ? 'Corre del lado' : 'Abre hacia'} valor={t.puerta.cara}
+            opciones={[['A', `A (${caras.A})`], ['B', `B (${caras.B})`]]} onCambio={cambiar(`${ruta}.puerta.cara`)} />
+          <CampoSelect etiqueta={t.puerta.tipo === 'granero' ? 'Abre corriendo' : 'Abre (la bisagra a la izquierda o a la derecha)'}
+            valor={t.puerta.sentido ?? 'izqDer'} opciones={SENTIDOS_PUERTA} onCambio={cambiar(`${ruta}.puerta.sentido`)} />
         </>)}
       </div>
       {/* v1.50: si la puerta queda tapada (mesada, mueble, pared), las personas no pueden pasar. */}

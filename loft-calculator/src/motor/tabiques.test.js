@@ -103,3 +103,37 @@ describe('tabiques: carga', () => {
     expect(validarParametros({ ...P, tabiques: [tabique()] })).toEqual({});
   });
 });
+
+describe('v1.51: desde dónde se mide y sentido de la puerta', () => {
+  it('la puerta medida desde la punta queda en el mismo lugar que medida desde el arranque', async () => {
+    const { inicioDePuerta, generarTabique } = await import('./tabiques.js');
+    const t = { ...tabiqueNuevo([], 1), largo: 3, puerta: { ...tabiqueNuevo([], 1).puerta, tipo: 'abatir', desde: 0.5, ancho: 0.8 } };
+    const desdePunta = { ...t, puerta: { ...t.puerta, medidaDesde: 'punta', desde: 1.7 } };
+    expect(inicioDePuerta(desdePunta)).toBeCloseTo(0.5, 6);
+    expect(generarTabique(P, desdePunta).dibujo.puerta.esquinas).toEqual(generarTabique(P, t).dibujo.puerta.esquinas);
+  });
+
+  it('paralelo medido desde la pared de enfrente: la misma línea que desde su pared', async () => {
+    const { ubicarTabique, fondoDesdeLaPared, distanciasDelTabique } = await import('./tabiques.js');
+    const t = { ...tabiqueNuevo([], 1), lado: 'A', orientacion: 'paralelo', desde: 1, largo: 2, separacion: 1.2 };
+    const fondo = fondoDesdeLaPared(P, 'A');
+    const enfrente = { ...t, separacionDesde: 'enfrente', separacion: fondo - 1.2 };
+    const [a, b] = [ubicarTabique(P, t).inicio, ubicarTabique(P, enfrente).inicio];
+    expect(a[0]).toBeCloseTo(b[0], 6);
+    expect(a[1]).toBeCloseTo(b[1], 6);
+    const d = distanciasDelTabique(P, t);
+    expect(d.aSuPared).toBeCloseTo(1.2, 6);
+    expect(d.aEnfrente + d.aSuPared).toBeCloseTo(fondo, 6);
+    expect(d.izquierda + 2 + d.derecha).toBeCloseTo(P.largo, 6);
+  });
+
+  it('el sentido invierte la bisagra (y hacia dónde corre la granero)', async () => {
+    const { generarTabique } = await import('./tabiques.js');
+    const base = tabiqueNuevo([], 1);
+    const t = { ...base, puerta: { ...base.puerta, tipo: 'granero' } };
+    const s1 = generarTabique(P, t).dibujo.puerta.sentido;
+    const s2 = generarTabique(P, { ...t, puerta: { ...t.puerta, sentido: 'derIzq' } }).dibujo.puerta.sentido;
+    expect(Math.abs(s1)).toBe(1);
+    expect(s2).toBe(-s1);
+  });
+});

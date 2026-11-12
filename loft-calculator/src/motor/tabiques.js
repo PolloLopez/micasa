@@ -43,7 +43,10 @@ export function limitesSobrePared(params, lado, nivel = 'piso') {
 }
 
 export const TIPOS_PUERTA = [['ninguna', 'Sin puerta'], ['abatir', 'De abrir'], ['granero', 'Corrediza (granero)']];
-export const PUERTA_NUEVA = { tipo: 'ninguna', desde: 0.1, ancho: 0.7, alto: 2.0, cara: 'B' };
+// v1.51: `medidaDesde`: la distancia de la puerta se mide desde el arranque del tabique o desde su punta;
+// `sentido`: de abrir = de qué lado está la bisagra; corrediza = hacia dónde corre al abrirse (visto desde la cara A).
+export const PUERTA_NUEVA = { tipo: 'ninguna', desde: 0.1, ancho: 0.7, alto: 2.0, cara: 'B', medidaDesde: 'arranque', sentido: 'izqDer' };
+export const SENTIDOS_PUERTA = [['izqDer', 'De izquierda a derecha'], ['derIzq', 'De derecha a izquierda']];
 
 export const TABIQUE_NUEVO = {
   nombre: 'Tabique',
@@ -54,6 +57,7 @@ export const TABIQUE_NUEVO = {
   orientacion: 'perpendicular', // 'perpendicular' (sale de la pared) | 'paralelo' (corre al lado de la pared)
   separacion: 1.2, // paralelo: distancia a la cara de adentro de la pared
   largo: 1.5,
+  separacionDesde: 'pared', // v1.51: paralelo: la separación se mide desde su pared o desde la de enfrente
   alto: 'techo', // 'techo' | 'piso2' | 'medida'
   altoMedida: 2.4,
   separacionMontantes: 0.4,
@@ -86,10 +90,58 @@ export function ubicarTabique(params, t) {
   const sobre = (d, hacia) => [geo.p1[0] + geo.direccion[0] * d + adentro[0] * hacia, geo.p1[1] + geo.direccion[1] * d + adentro[1] * hacia];
   if (t.orientacion === 'paralelo') {
     const d0 = t.ladoReferencia === 'izquierda' ? t.desde : largoPared - t.desde - t.largo;
-    return { inicio: sobre(d0, MEDIA_PARED + t.separacion), direccion: geo.direccion, normal: adentro };
+    return { inicio: sobre(d0, MEDIA_PARED + separacionDesdeSuPared(params, t)), direccion: geo.direccion, normal: adentro };
   }
   const d = t.ladoReferencia === 'izquierda' ? t.desde : largoPared - t.desde;
   return { inicio: sobre(d, MEDIA_PARED), direccion: adentro, normal: geo.direccion };
+}
+
+/** v1.51: lo que mide la planta por dentro de la pared del tabique a la de enfrente (de cara a cara). */
+export function fondoDesdeLaPared(params, lado) {
+  return largoLado(LADOS[(LADOS.indexOf(lado) + 1) % 4], params) - 2 * MEDIA_PARED;
+}
+
+/** v1.51: separación del tabique paralelo a la cara de adentro de SU pared (se haya medido desde ella o desde la de enfrente). */
+export function separacionDesdeSuPared(params, t) {
+  return t.separacionDesde === 'enfrente' ? fondoDesdeLaPared(params, t.lado) - t.separacion : t.separacion;
+}
+
+/** v1.51: dónde arranca la puerta, medido desde el arranque del tabique (se haya cargado desde el arranque o la punta). */
+export function inicioDePuerta(t) {
+  return t.puerta.medidaDesde === 'punta' ? t.largo - t.puerta.desde - t.puerta.ancho : t.puerta.desde;
+}
+
+/**
+ * v1.51: hacia dónde queda la "derecha" del tabique mirándolo desde su cara A: +1 si es hacia su punta (la dirección
+ * del tabique), -1 si es hacia su arranque. Sirve para el sentido de la puerta.
+ */
+export function derechaDesdeCaraA(params, t) {
+  const { direccion, normal } = ubicarTabique(params, t);
+  // Parado del lado A mirando hacia B (normal), la derecha es la normal girada: (-nz, nx).
+  const derecha = [-normal[1], normal[0]];
+  return derecha[0] * direccion[0] + derecha[1] * direccion[1] >= 0 ? 1 : -1;
+}
+
+/**
+ * v1.51: distancias del tabique para mostrar (como los muebles): a las dos esquinas de su pared y, si es paralelo, a
+ * su pared y a la de enfrente. Las puertas, desde el arranque y desde la punta.
+ */
+export function distanciasDelTabique(params, t) {
+  const largoPared = largoLado(t.lado, params);
+  const desdeIzquierda = t.ladoReferencia === 'izquierda' ? t.desde : largoPared - t.desde - (t.orientacion === 'paralelo' ? t.largo : 0);
+  const finIzquierda = desdeIzquierda + (t.orientacion === 'paralelo' ? t.largo : 0);
+  const r = { izquierda: desdeIzquierda, derecha: largoPared - finIzquierda };
+  if (t.orientacion === 'paralelo') {
+    const aSuPared = separacionDesdeSuPared(params, t);
+    Object.assign(r, { aSuPared, aEnfrente: fondoDesdeLaPared(params, t.lado) - aSuPared });
+  } else {
+    r.alaPunta = fondoDesdeLaPared(params, t.lado) - t.largo; // lo que queda de la punta a la pared de enfrente
+  }
+  if (t.puerta && t.puerta.tipo !== 'ninguna') {
+    const pa = inicioDePuerta(t);
+    Object.assign(r, { puertaDesdeArranque: pa, puertaDesdePunta: t.largo - pa - t.puerta.ancho });
+  }
+  return r;
 }
 
 /** ¿El punto (x, z) cae bajo el entrepiso? */
@@ -137,8 +189,8 @@ export function generarTabique(params, t) {
   const extra = { ...(t.perfil ? { perfilPared: t.perfil, ladoPared: t.nombre } : {}), tabique: t.id, nivel: t.nivel ?? 'piso' };
   const pz = (id, desde, hasta) => ({ ...pieza(`tabique:${t.id}:${id}`, 'tabique', ['tabique'], desde, hasta), ...extra });
   const conPuerta = t.puerta && t.puerta.tipo !== 'ninguna';
-  const pa = conPuerta ? t.puerta.desde : null;
-  const pb = conPuerta ? t.puerta.desde + t.puerta.ancho : null;
+  const pa = conPuerta ? inicioDePuerta(t) : null;
+  const pb = conPuerta ? pa + t.puerta.ancho : null;
   const enPuerta = (x) => conPuerta && x > pa + 0.005 && x < pb - 0.005;
   const piezas = [];
 
@@ -172,6 +224,8 @@ export function generarTabique(params, t) {
       huecos,
       puerta: conPuerta ? {
         tipo: t.puerta.tipo, cara: t.puerta.cara === 'A' ? -1 : 1,
+        // v1.51: +1 = la bisagra en el arranque del vano y abre hacia la punta (la corrediza corre hacia la punta); -1 al revés.
+        sentido: ((t.puerta.sentido ?? 'izqDer') === 'izqDer' ? 1 : -1) * derechaDesdeCaraA(params, t),
         esquinas: [p(pa, 0), p(pb, 0), p(pb, t.puerta.alto), p(pa, t.puerta.alto)],
         direccion: [direccion[0], 0, direccion[1]],
       } : null,
@@ -214,6 +268,10 @@ export function validarTabique(t, params) {
   const pu = t.puerta;
   if (!pu || !TIPOS_PUERTA.some(([v]) => v === pu.tipo)) return 'Elegí el tipo de puerta';
   if (!['A', 'B'].includes(pu.cara)) return 'Elegí de qué lado corre la puerta';
+  if (!['arranque', 'punta'].includes(pu.medidaDesde ?? 'arranque')) return 'Elegí desde dónde se mide la puerta';
+  if (!SENTIDOS_PUERTA.some(([v]) => v === (pu.sentido ?? 'izqDer'))) return 'Elegí el sentido de la puerta';
+  if (!['pared', 'enfrente'].includes(t.separacionDesde ?? 'pared')) return 'Elegí desde qué pared se mide la separación';
+  if (t.orientacion === 'paralelo' && separacionDesdeSuPared(params, t) < 0.05) return 'El tabique queda contra la otra pared';
   if (pu.tipo !== 'ninguna') {
     if (!num(pu.ancho, 0.4, 2) || !num(pu.alto, 1.5, 3)) return 'La puerta va de 0,40 a 2 m de ancho y de 1,50 a 3 m de alto';
     if (!num(pu.desde, 0, t.largo) || pu.desde + pu.ancho > t.largo + 0.001) return 'La puerta no entra en el tabique';

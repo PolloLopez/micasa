@@ -21,7 +21,7 @@
 import { geometriaLados, largoLado, alturaEn, tramoEntrepiso } from './geometria.js';
 import { haciaAdentro, pieza } from './segmentos.js';
 import { LADOS, ALTURA_PISO_2 } from './constantes.js';
-import { limitesSobrePared, ubicarTabique, MEDIO_ESPESOR_TABIQUE } from './tabiques.js';
+import { limitesSobrePared, ubicarTabique, inicioDePuerta, MEDIO_ESPESOR_TABIQUE } from './tabiques.js';
 
 const ALTO_PISO = 0.09; // el piso terminado está un poco arriba de la estructura (OSB)
 const MEDIA_PARED = 0.06; // la mesada arranca en la cara de adentro de los perfiles de la pared, no en su eje
@@ -633,8 +633,9 @@ export function obstaculosDelNivel(params, nivel, { sinMueble = null, huecoPuert
     };
     const puerta = t.puerta;
     if (huecoPuertas && puerta && puerta.tipo !== 'ninguna') {
-      tramo(0, puerta.desde); // de un lado y del otro del hueco de la puerta
-      tramo(puerta.desde + puerta.ancho, t.largo);
+      const pa = inicioDePuerta(t); // v1.51: puede estar medida desde la punta
+      tramo(0, pa); // de un lado y del otro del hueco de la puerta
+      tramo(pa + puerta.ancho, t.largo);
     } else tramo(0, t.largo);
   });
   return lista;

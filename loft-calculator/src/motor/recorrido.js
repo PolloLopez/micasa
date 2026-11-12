@@ -18,7 +18,7 @@ import { geometriaLados, tramoEntrepiso } from './geometria.js';
 import { haciaAdentro } from './segmentos.js';
 import { LADOS } from './constantes.js';
 import { obstaculosDelNivel, alturaDelPiso, ubicarMueble, TIPOS_MUEBLE } from './interiores.js';
-import { ubicarTabique } from './tabiques.js';
+import { ubicarTabique, inicioDePuerta } from './tabiques.js';
 import { listarPiezas } from './estructura.js';
 
 export const TAMANIO_CELDA = 0.1; // 10 cm
@@ -255,7 +255,7 @@ export function puertasTapadas(params, nivel = 'piso', radio = RADIO_CUERPO) {
   const contraLaPared = ([x, z]) => x < x0 || x > -x0 || z < z0 || z > -z0;
   return (params.tabiques ?? []).filter((t) => (t.nivel ?? 'piso') === nivel && t.puerta && t.puerta.tipo !== 'ninguna').map((t) => {
     const { inicio, direccion, normal } = ubicarTabique(params, t);
-    const medio = t.puerta.desde + t.puerta.ancho / 2;
+    const medio = inicioDePuerta(t) + t.puerta.ancho / 2;
     const centro = [inicio[0] + direccion[0] * medio, inicio[1] + direccion[1] * medio];
     const lados = [1, -1].map((sg) => [centro[0] + normal[0] * sg * 0.3, centro[1] + normal[1] * sg * 0.3]);
     const con = new Set();
