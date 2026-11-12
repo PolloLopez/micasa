@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.51.2] - 2026-11-12
+### Agregado
+- **Lugar libre para pasar, por puerta** (ficha del tabique → "Lugar libre a cada lado para pasar"): lo que hace falta
+  libre de cada lado para que las personas pasen. De fábrica 0,50 m la de abrir y 0,35 m la corrediza (no barre el
+  piso); "volver al de fábrica" lo restablece. El aviso de la puerta trabada usa ese valor.
+
 ## [1.51.1] - 2026-11-12
 ### Cambiado
 - **El aviso de la puerta trabada es explícito**: dice qué la traba, de qué lado (cara A o B y hacia dónde mira), a

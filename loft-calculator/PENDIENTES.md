@@ -3,7 +3,7 @@
 Última limpieza: 2026-11-11 (v1.49.0). Espejo en Trello: tablero "Desarrollo", tarjetas `[CALC]`.
 
 ## 📌 Estado y próximos pasos (11/11)
-**En GitHub: hasta v1.51.0. v1.51.1 por subir.** Manual de uso para chequear: `MANUAL.md`.
+**En GitHub: hasta v1.51.0. v1.51.1 y v1.51.2 por subir.** Manual de uso para chequear: `MANUAL.md`.
 
 🟡 **Para chequear en pantalla** (probado con tests, no visto): el sol con "Ver adentro" entra solo por las aberturas;
 la persona se sienta en el sillón y se acuesta en la cama; las puertas de los tabiques se abren al pasar.
@@ -87,7 +87,7 @@ Mejoras propuestas (técnicas, sin cambios aplicados):
 - ✅ Bisagra izquierda/derecha y corrediza hacia un lado u otro; puerta desde arranque o punta; paralelo desde su pared o la de enfrente.
   - 🟡 [ ] Mirar en el 3D que la bisagra y el riel quedan del lado elegido (probado con tests del sentido, no visto).
   - ✅ v1.51.1 Aviso explícito de la puerta trabada (qué, de qué lado, a cuánto, cuánto correrlo); "Mostrarla abierta"; barrido en el piso.
-  - 🟡 [ ] El chequeo pide 0,50 m libres de cada lado de la puerta: validar con Leandro si es mucho o poco para su baño.
+  - ✅ v1.51.2 El lugar libre para pasar se configura por puerta (de fábrica 0,50 m de abrir, 0,35 m corrediza).
 
 ## v1.49.0 Sol con "Ver adentro", choques, aberturas y personas que se sientan (pedido de Leandro 11/11)
 - ✅ Sombras con paredes ocultas; mueble frenado en la pared y aviso de choques; mover aberturas; apoyar en la mesada; sentarse y acostarse.

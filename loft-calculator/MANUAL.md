@@ -1,4 +1,4 @@
-# Manual de Pollo Calculator (v1.51.1)
+# Manual de Pollo Calculator (v1.51.2)
 
 Guía corta para usar el sistema y chequear que todo ande. Cada parte termina con **✔ Chequeá**: lo que tenés que ver.
 
@@ -37,7 +37,8 @@ Medidas de la planta, alturas, pisos (perfil C o tirantes de madera), entrepiso,
   - Los chicos (cafetera, horno de aire, máquina de pan) se **apoyan solos** sobre la mesada o el mueble de abajo.
 - **Personas y perros**: **+ Persona** (nombre, sexo, altura) y **+ Perro** (tamaño, pelaje).
 - Si por la puerta de un tabique no se puede pasar, su ficha avisa **"⚠ Por esta puerta no se puede pasar"** y dice qué la
-  traba, de qué lado, a cuánto queda y cuánto correrlo (hacen falta 0,50 m libres de cada lado).
+  traba, de qué lado, a cuánto queda y cuánto correrlo. Lo que hace falta libre se cambia en **"Lugar libre a cada lado
+  para pasar"** (de fábrica 0,50 m la de abrir y 0,35 m la corrediza).
 - **"Mostrarla abierta en el 3D"**: la puerta queda abierta; si no, está cerrada y se abre sola cuando pasa alguien. La de
   abrir muestra en el piso hacia dónde abre (celeste; rojo si algo la traba).
 

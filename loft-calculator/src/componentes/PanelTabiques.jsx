@@ -17,7 +17,7 @@ import SelectorPerfil from './SelectorPerfil.jsx';
 import { LADOS } from '../motor/constantes.js';
 import { nombreLado, ladoOpuesto } from '../motor/geometria.js';
 import { tabiqueNuevo, carasDelTabique, altosDelTabique, TIPOS_PUERTA, SENTIDOS_PUERTA, distanciasDelTabique } from '../motor/tabiques.js';
-import { puertasTapadas, textoDePuertaTapada } from '../motor/recorrido.js';
+import { puertasTapadas, textoDePuertaTapada, libreDelanteDePuerta, LIBRE_DELANTE_SEGUN_TIPO } from '../motor/recorrido.js';
 
 const f2 = (n) => n.toFixed(2).replace('.', ',');
 
@@ -116,6 +116,9 @@ function Tabique({ t, i, params, unidad, cambiar, onQuitar, paneles, perfiles, p
             opciones={[['A', `A (${caras.A})`], ['B', `B (${caras.B})`]]} onCambio={cambiar(`${ruta}.puerta.cara`)} />
           <CampoSelect etiqueta={t.puerta.tipo === 'granero' ? 'Abre corriendo' : 'Abre (la bisagra a la izquierda o a la derecha)'}
             valor={t.puerta.sentido ?? 'izqDer'} opciones={SENTIDOS_PUERTA} onCambio={cambiar(`${ruta}.puerta.sentido`)} />
+          {/* v1.51.2: cuánto lugar libre hace falta de cada lado para pasar (de fábrica según el tipo). */}
+          <CampoNumero etiqueta="Lugar libre a cada lado para pasar" unidad={unidad} valor={libreDelanteDePuerta(t.puerta)}
+            onCambio={cambiar(`${ruta}.puerta.libreDelante`)} />
         </>)}
       </div>
       {t.puerta.tipo !== 'ninguna' && (
@@ -124,6 +127,15 @@ function Tabique({ t, i, params, unidad, cambiar, onQuitar, paneles, perfiles, p
           <input type="checkbox" checked={t.puerta.mostrarAbierta === true} onChange={(e) => cambiar(`${ruta}.puerta.mostrarAbierta`)(e.target.checked)} />
           Mostrarla abierta en el 3D ({t.puerta.mostrarAbierta ? 'está abierta' : 'está cerrada: se abre sola cuando pasa alguien'})
         </label>
+      )}
+      {t.puerta.tipo !== 'ninguna' && (
+        <p className="nota">
+          Lugar libre para pasar: de fábrica {(LIBRE_DELANTE_SEGUN_TIPO[t.puerta.tipo] ?? 0.5).toFixed(2).replace('.', ',')} m para
+          {t.puerta.tipo === 'granero' ? ' una corrediza (no barre el piso)' : ' una de abrir'}.{' '}
+          {Number.isFinite(t.puerta.libreDelante) && (
+            <button type="button" className="btn-mini" onClick={() => cambiar(`${ruta}.puerta.libreDelante`)(undefined)}>volver al de fábrica</button>
+          )}
+        </p>
       )}
       <div className="grid-params">
       </div>

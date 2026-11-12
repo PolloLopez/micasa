@@ -271,6 +271,7 @@ export function validarTabique(t, params) {
   if (!['A', 'B'].includes(pu.cara)) return 'Elegí de qué lado corre la puerta';
   if (!['arranque', 'punta'].includes(pu.medidaDesde ?? 'arranque')) return 'Elegí desde dónde se mide la puerta';
   if (pu.mostrarAbierta !== undefined && typeof pu.mostrarAbierta !== 'boolean') return 'Valor inválido';
+  if (pu.libreDelante !== undefined && pu.libreDelante !== null && !num(pu.libreDelante, 0.1, 1.5)) return 'El lugar libre para pasar va de 0,10 a 1,50 m';
   if (!SENTIDOS_PUERTA.some(([v]) => v === (pu.sentido ?? 'izqDer'))) return 'Elegí el sentido de la puerta';
   if (!['pared', 'enfrente'].includes(t.separacionDesde ?? 'pared')) return 'Elegí desde qué pared se mide la separación';
   if (t.orientacion === 'paralelo' && separacionDesdeSuPared(params, t) < 0.05) return 'El tabique queda contra la otra pared';

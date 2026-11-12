@@ -243,8 +243,13 @@ export function alcanzableMasCercano(mapa, desde, hasta) {
   return centroDe(mapa, mejor);
 }
 
-/** v1.51.1: lo que hay que dejar libre delante de una puerta (de cada lado) para pasar caminando. */
-export const LIBRE_DELANTE_DE_PUERTA = 0.5;
+/**
+ * v1.51.1: lo que hay que dejar libre delante de una puerta (de cada lado) para pasar caminando.
+ * v1.51.2 (pedido de Leandro): se configura en cada puerta (`puerta.libreDelante`); si no, el de su tipo: la corrediza
+ * necesita menos (no barre el piso).
+ */
+export const LIBRE_DELANTE_SEGUN_TIPO = { abatir: 0.5, granero: 0.35 };
+export const libreDelanteDePuerta = (puerta) => (Number.isFinite(puerta?.libreDelante) ? puerta.libreDelante : LIBRE_DELANTE_SEGUN_TIPO[puerta?.tipo] ?? 0.5);
 
 /**
  * v1.50 (v1.51.1, más explícito): las puertas de los tabiques por las que no se puede pasar, y por qué.
@@ -268,19 +273,20 @@ export function puertasTapadas(params, nivel = 'piso', radio = RADIO_CUERPO) {
       return { tabique: t.nombre, con: ['su ancho'], motivos: [{ que: 'la puerta es muy angosta', cara: null, distancia: t.puerta.ancho, tipo: 'angosta' }] };
     }
     const enEje = (d) => [inicio[0] + direccion[0] * d, inicio[1] + direccion[1] * d];
+    const requerido = libreDelanteDePuerta(t.puerta);
     const otros = obstaculos.filter((o) => o.nombre !== t.nombre);
     // Para un lugar del vano: qué traba de cada lado, con el lugar libre que deja hasta la cara del tabique.
     const trabas = (d) => {
       const lista = [];
       [['B', 1], ['A', -1]].forEach(([cara, sg]) => {
-        const libreHasta = LIBRE_DELANTE_DE_PUERTA + caraDelTabique - radio; // hasta dónde tiene que poder ir el centro del cuerpo
+        const libreHasta = Math.max(caraDelTabique, requerido + caraDelTabique - radio); // hasta dónde tiene que poder ir el centro del cuerpo
         for (let k = 0; k <= 20; k++) {
           const dist = caraDelTabique + (libreHasta - caraDelTabique) * (k / 20);
           const q = [enEje(d)[0] + normal[0] * sg * dist, enEje(d)[1] + normal[1] * sg * dist];
           const toca = otros.filter((o) => dentroDe(o, q, radio));
           const libre = Math.max(0, dist + radio - caraDelTabique - 0.0001);
-          if (toca.length) { toca.forEach((o) => lista.push({ que: o.nombre, cara, distancia: libre, tipo: 'obstaculo' })); break; }
-          if (aLaPared(q) < radio) { lista.push({ que: 'la pared', cara, distancia: libre, tipo: 'pared' }); break; }
+          if (toca.length) { toca.forEach((o) => lista.push({ que: o.nombre, cara, distancia: libre, tipo: 'obstaculo', requerido })); break; }
+          if (aLaPared(q) < radio) { lista.push({ que: 'la pared', cara, distancia: libre, tipo: 'pared', requerido }); break; }
         }
       });
       return lista;
@@ -313,7 +319,8 @@ export function textoDePuertaTapada(x, caras = { A: '', B: '' }) {
     const cara = (caras[m.cara] ?? '').replace(' (vista de afuera)', ', vista desde afuera');
     const lado = `Del lado ${m.cara}${cara ? ` (${cara})` : ''}`;
     const que = m.tipo === 'pared' ? 'la pared' : m.que;
-    return `${lado}, ${que} queda a ${f2(m.distancia)} m de la puerta: hacen falta ${f2(LIBRE_DELANTE_DE_PUERTA)} m libres para pasar (correlo ${f2(LIBRE_DELANTE_DE_PUERTA - m.distancia)} m o corré la puerta).`;
+    const hace = m.requerido ?? 0.5;
+    return `${lado}, ${que} queda a ${f2(m.distancia)} m de la puerta: hacen falta ${f2(hace)} m libres para pasar (correlo ${f2(Math.max(0.01, hace - m.distancia))} m, corré la puerta o bajá el "lugar libre" de la puerta en su ficha).`;
   }).join(' ');
 }
 

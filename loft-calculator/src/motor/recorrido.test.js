@@ -178,10 +178,28 @@ describe('v1.50: puerta tapada y llegar lo más cerca posible', () => {
 describe('v1.51.1: el aviso de la puerta en palabras', () => {
   it('dice de qué lado, a cuánto queda, cuánto hace falta y cuánto correrlo', async () => {
     const { textoDePuertaTapada } = await import('./recorrido.js');
-    expect(textoDePuertaTapada({ motivos: [{ que: 'Inodoro', cara: 'B', distancia: 0.22, tipo: 'obstaculo' }] },
+    expect(textoDePuertaTapada({ motivos: [{ que: 'Inodoro', cara: 'B', distancia: 0.22, tipo: 'obstaculo', requerido: 0.5 }] },
       { B: 'hacia la esquina derecha (vista de afuera)' }))
-      .toBe('Del lado B (hacia la esquina derecha, vista desde afuera), Inodoro queda a 0,22 m de la puerta: hacen falta 0,50 m libres para pasar (correlo 0,28 m o corré la puerta).');
+      .toBe('Del lado B (hacia la esquina derecha, vista desde afuera), Inodoro queda a 0,22 m de la puerta: hacen falta 0,50 m libres para pasar (correlo 0,28 m, corré la puerta o bajá el "lugar libre" de la puerta en su ficha).');
     expect(textoDePuertaTapada({ motivos: [{ que: 'la pared', cara: 'A', distancia: 0.1, tipo: 'pared' }] }))
       .toMatch(/^Del lado A, la pared queda a 0,10 m/);
+  });
+});
+
+describe('v1.51.2: lugar libre de cada puerta', () => {
+  it('la corrediza pide menos de fábrica; cada puerta puede tener el suyo', async () => {
+    const { libreDelanteDePuerta, puertasTapadas } = await import('./recorrido.js');
+    const { muebleNuevo } = await import('./interiores.js');
+    expect(libreDelanteDePuerta({ tipo: 'abatir' })).toBe(0.5);
+    expect(libreDelanteDePuerta({ tipo: 'granero' })).toBe(0.35);
+    expect(libreDelanteDePuerta({ tipo: 'granero', libreDelante: 0.2 })).toBe(0.2);
+    // Tabique del frente al fondo con puerta en el medio y un mueble a ~0,40 m de un lado.
+    const base = tabiqueNuevo([], 1);
+    const t = { ...base, lado: 'A', orientacion: 'perpendicular', ladoReferencia: 'izquierda', desde: 3.75, largo: 4.38,
+      puerta: { ...base.puerta, tipo: 'abatir', desde: 2, ancho: 0.8 } };
+    const mueble = { ...muebleNuevo('otro', [], 1), ancho: 0.5, profundidad: 0.5, desdeLateral: 'izquierdo', distanciaLateral: 3.75 + 0.05 + 0.4 - 0.06, distanciaFrente: 2.1 };
+    const p = (puerta) => casa({ tabiques: [{ ...t, puerta: { ...t.puerta, ...puerta } }], muebles: [mueble] });
+    expect(puertasTapadas(p({}))).toHaveLength(1); // de abrir: 0,40 < 0,50
+    expect(puertasTapadas(p({ libreDelante: 0.3 }))).toHaveLength(0); // con 0,30 alcanza
   });
 });
