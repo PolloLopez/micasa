@@ -10,6 +10,7 @@ import { TERRENO_INICIAL } from './terreno.js';
 import { UNIONES_INICIALES } from './uniones.js';
 import { EJES_INICIALES, PILOTIN_INICIAL } from './ejes.js';
 import { SOL_INICIAL } from './sol.js';
+import { CIERRE_INICIAL } from './cierre.js';
 
 /** Configuración de una pared (panel). */
 export const PARED_INICIAL = {
@@ -112,7 +113,7 @@ export const PARAMS_INICIALES = {
   mesadas: [],
   muebles: [],
   seguimiento: { rubros: [] }, // v1.47: pagos, contratos y avance de la obra (ver motor/seguimiento.js)
-  cierre: { manoDeObra: { modo: 'ninguna', valor: 0 }, imprevistos: 0, ganancia: 0, iva: 0 }, // v1.46: ver motor/cierre.js
+  cierre: CIERRE_INICIAL, // v1.46: ver motor/cierre.js (v1.53: con la mano de obra por segmento)
   personas: [], // v1.45: gente para recorrer la casa en el 3D (ver motor/personas.js)
   tabiques: [], // v1.41: divisiones de Durlock (ver motor/tabiques.js)
 };

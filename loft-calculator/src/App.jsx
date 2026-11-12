@@ -278,6 +278,10 @@ export default function App() {
   const medidasCierre = {
     m2: (estructura.superficies?.piso ?? 0) + (estructura.superficies?.piso2 ?? 0), // m² cubiertos
     kg: kilosDeMateriales(listaMateriales),
+    // v1.53: para la mano de obra por segmento.
+    m2Revestimiento: (estructura.superficies?.murosNetos ?? 0) + (estructura.superficies?.techo ?? 0),
+    mTabiques: (params.tabiques ?? []).reduce((a, t) => a + t.largo, 0),
+    pilotines: estructura.pilotines?.length ?? 0,
   };
   const cierre = cerrarPresupuesto(totalObra, params.cierre, medidasCierre);
   // v1.47: lo que dice el presupuesto de cada parte (un rubro por proveedor y la mano de obra), para el seguimiento.

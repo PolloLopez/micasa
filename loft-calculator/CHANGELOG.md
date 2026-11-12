@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.53.0] - 2026-11-12
+### Agregado
+- **Mano de obra por segmento** (Presupuesto → "Mano de obra, imprevistos, ganancia e IVA"): una tabla que ya trae
+  Pilotines, Estructura, Revestimiento, Tabiques, Tapial, Pozo séptico, Electricista y Plomero (se agregan y se quitan).
+  Cada uno se cobra como un monto total, por m² cubierto, por m² de revestimiento, por metro de tabique, por pilotín, por
+  kg de hierro o como % de los materiales, y muestra lo que da con las medidas de la obra. En 0 no suma. Todos van al
+  costo directo (y después los imprevistos, la ganancia y el IVA). La mano de obra de antes queda como "general".
+- En la pestaña **Obra**, "Armar desde el presupuesto" crea un rubro por cada segmento con monto, para cargarle los
+  pagos y ver lo que falta.
+
 ## [1.52.0] - 2026-11-12
 ### Cambiado
 - **Las paredes se llaman como su etiqueta en toda la app** (pedido de Leandro): si a una pared le pusiste "Vecino" o

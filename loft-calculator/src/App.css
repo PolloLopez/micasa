@@ -812,3 +812,9 @@ input[type=date] { color-scheme: dark; }
 .dibujo-plano .tabique-planta { stroke: #0284c7; stroke-linecap: butt; }
 .dibujo-plano .puerta-planta { stroke: #ea580c; stroke-width: 0.03; stroke-dasharray: 0.08 0.05; }
 .dibujo-plano .nombre-planta { fill: #1e293b; }
+
+/* v1.53: mano de obra por segmento. */
+.tabla-segmentos { width: 100%; border-collapse: collapse; margin: 0.3rem 0; }
+.tabla-segmentos td, .tabla-segmentos th { padding: 0.2rem 0.3rem; border-bottom: 1px solid var(--borde, #334155); }
+.tabla-segmentos input[type=text] { width: 100%; min-width: 7rem; }
+.tabla-segmentos .group { margin: 0; }

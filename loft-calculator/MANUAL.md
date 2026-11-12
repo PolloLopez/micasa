@@ -1,4 +1,4 @@
-# Manual de Pollo Calculator (v1.52.0)
+# Manual de Pollo Calculator (v1.53.0)
 
 Guía corta para usar el sistema y chequear que todo ande. Cada parte termina con **✔ Chequeá**: lo que tenés que ver.
 
@@ -100,6 +100,9 @@ cambia la cantidad y el presupuesto.
 - Arriba, el **total**. Debajo, **"Mano de obra, imprevistos, ganancia e IVA"**: con algo cargado, arriba pasa a decir
   **PRECIO DE LA OBRA** y abajo ves la cuenta (materiales + mano de obra = costo directo; + imprevistos; + ganancia;
   + IVA).
+- **Mano de obra por segmento** (en el mismo bloque): pilotines, estructura, revestimiento, tabiques, tapial, pozo
+  séptico, electricista, plomero (y los que agregues). Elegís cómo cobra cada uno (monto, por m², por metro de tabique,
+  por pilotín, por kg…) y te muestra cuánto da.
 - Sub-pestañas: **Lista de materiales** (para pedir), **Por proveedor**, **Cortes** (cómo cortar cada barra),
   **Precios y detalle**.
 
@@ -110,7 +113,7 @@ que los materiales y la pestaña "Presupuesto" muestra ese precio.
 
 ## 7. Obra (seguimiento)
 
-- **Armar desde el presupuesto**: crea un rubro por proveedor (o "Materiales") y la mano de obra.
+- **Armar desde el presupuesto**: crea un rubro por proveedor (o "Materiales") y uno por cada segmento de mano de obra.
 - **+ Rubro a mano**: electricista, plomero, flete…
 - En cada rubro: estado (pendiente, contratado, en curso, terminado), monto contratado, fechas y **+ Pago**
   (fecha, monto, medio, nota). Podés cargar varios pagos.

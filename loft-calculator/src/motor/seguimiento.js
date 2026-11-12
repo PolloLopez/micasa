@@ -56,7 +56,10 @@ export function partesDelPresupuesto({ compras = [], materiales = 0, cierre = nu
     ? compras.map((c) => ({ origen: `proveedor:${c.proveedor.id}`, nombre: `Materiales — ${c.proveedor.nombre}`, quien: c.proveedor.nombre, monto: c.total }))
     : [{ origen: 'materiales', nombre: 'Materiales', quien: nombreProveedor, monto: materiales }];
   const mo = cierre?.renglones?.find((r) => r.clave === 'manoDeObra');
-  if (mo) partes.push({ origen: 'manoDeObra', nombre: 'Mano de obra', quien: '', monto: mo.monto });
+  if (mo) partes.push({ origen: 'manoDeObra', nombre: mo.concepto ?? 'Mano de obra', quien: '', monto: mo.monto });
+  // v1.53: un rubro por cada segmento de mano de obra con monto (pilotines, electricista…).
+  (cierre?.renglones ?? []).filter((r) => r.clave.startsWith('mo:'))
+    .forEach((r) => partes.push({ origen: `manoDeObra:${r.clave.slice(3)}`, nombre: r.concepto, quien: '', monto: r.monto }));
   return partes.map((p) => ({ ...p, monto: Math.round(p.monto) }));
 }
 

@@ -63,3 +63,28 @@ describe('cierre en el Excel', async () => {
     expect(filas.at(-1)).toEqual(['PRECIO DE LA OBRA', '', '', '', '', { pesos: 1100000 }]);
   });
 });
+
+describe('v1.53: mano de obra por segmento', () => {
+  it('cada segmento suma su renglón con las medidas de la obra; en 0 no aparece; van al costo directo', async () => {
+    const { SEGMENTOS_INICIALES } = await import('./cierre.js');
+    expect(SEGMENTOS_INICIALES.map((x) => x.nombre)).toEqual(['Pilotines', 'Estructura', 'Revestimiento', 'Tabiques', 'Tapial', 'Pozo séptico', 'Electricista', 'Plomero']);
+    const segmentos = SEGMENTOS_INICIALES.map((x) => ({
+      Pilotines: { ...x, valor: 20000 }, Revestimiento: { ...x, valor: 8000 }, Tabiques: { ...x, valor: 15000 }, Electricista: { ...x, valor: 900000 },
+    }[x.nombre] ?? x));
+    const medidas = { m2: 50, kg: 2000, m2Revestimiento: 100, mTabiques: 6, pilotines: 15 };
+    const r = cerrarPresupuesto(1000000, { ...CIERRE_INICIAL, segmentos, imprevistos: 10 }, medidas);
+    const m = montos(r);
+    expect(m['mo:1']).toBe(300000); // 15 pilotines x 20.000
+    expect(m['mo:3']).toBe(800000); // 100 m² x 8.000
+    expect(m['mo:4']).toBe(90000); // 6 m x 15.000
+    expect(m['mo:7']).toBe(900000); // electricista, monto total
+    expect(m['mo:2']).toBeUndefined(); // en 0
+    expect(m.costoDirecto).toBe(1000000 + 300000 + 800000 + 90000 + 900000);
+    expect(r.renglones.find((x) => x.clave === 'mo:1').detalle).toBe('15 pilotines x $ 20.000');
+    // En la pestaña Obra: un rubro por cada segmento con monto.
+    const { partesDelPresupuesto } = await import('./seguimiento.js');
+    const partes = partesDelPresupuesto({ materiales: 1000000, cierre: r });
+    expect(partes.map((p) => p.nombre)).toEqual(['Materiales', 'Mano de obra — Pilotines', 'Mano de obra — Revestimiento', 'Mano de obra — Tabiques', 'Mano de obra — Electricista']);
+    expect(validarCierre({ ...CIERRE_INICIAL, segmentos: [{ id: 1, nombre: 'x', modo: 'otro', valor: 1 }] })).toHaveProperty(['cierre.segmentos.0']);
+  });
+});

@@ -30,7 +30,36 @@ export const MODOS_MANO_DE_OBRA = [
 
 export const IVAS = [0, 10.5, 21, 27];
 
-export const CIERRE_INICIAL = { manoDeObra: { modo: 'ninguna', valor: 0 }, imprevistos: 0, ganancia: 0, iva: 0 };
+/**
+ * v1.53 (pedido de Leandro): mano de obra por segmento (pilotines, estructura, revestimiento, tabiques, tapial,
+ * pozo séptico, electricista, plomero…). Cada uno se cobra a su manera; las medidas salen de la obra.
+ */
+export const MODOS_SEGMENTO = [
+  ['global', 'Un monto total'],
+  ['porM2', 'Por m² cubierto'],
+  ['porM2Revestimiento', 'Por m² de revestimiento'],
+  ['porMetroTabique', 'Por metro de tabique'],
+  ['porPilotin', 'Por pilotín'],
+  ['porKg', 'Por kg de hierro'],
+  ['porcentaje', '% de los materiales'],
+];
+/** Qué medida usa cada modo y cómo se dice. */
+const MEDIDA_DE_MODO = {
+  porM2: ['m2', 'm² cubiertos'], porM2Revestimiento: ['m2Revestimiento', 'm² de revestimiento'], porMetroTabique: ['mTabiques', 'm de tabique'],
+  porPilotin: ['pilotines', 'pilotines'], porKg: ['kg', 'kg de hierro'],
+};
+
+export const SEGMENTOS_INICIALES = [
+  ['Pilotines', 'porPilotin'], ['Estructura', 'porKg'], ['Revestimiento', 'porM2Revestimiento'], ['Tabiques', 'porMetroTabique'],
+  ['Tapial', 'global'], ['Pozo séptico', 'global'], ['Electricista', 'global'], ['Plomero', 'global'],
+].map(([nombre, modo], i) => ({ id: i + 1, nombre, modo, valor: 0 }));
+
+export const CIERRE_INICIAL = { manoDeObra: { modo: 'ninguna', valor: 0 }, segmentos: SEGMENTOS_INICIALES, imprevistos: 0, ganancia: 0, iva: 0 };
+
+/** Segmento nuevo (a mano). */
+export function segmentoNuevo(segmentos) {
+  return { id: Math.max(0, ...segmentos.map((x) => x.id)) + 1, nombre: `Segmento ${segmentos.length + 1}`, modo: 'global', valor: 0 };
+}
 
 /** Completa un cierre guardado (o lo crea en los proyectos de antes). */
 export function completarCierre(c) {
@@ -38,6 +67,8 @@ export function completarCierre(c) {
   return {
     ...CIERRE_INICIAL, ...base,
     manoDeObra: { ...CIERRE_INICIAL.manoDeObra, ...(base.manoDeObra && typeof base.manoDeObra === 'object' ? base.manoDeObra : {}) },
+    // v1.53: los de antes arrancan con los segmentos de fábrica en 0 (no cambia el total).
+    segmentos: Array.isArray(base.segmentos) ? base.segmentos : SEGMENTOS_INICIALES,
   };
 }
 
@@ -51,6 +82,14 @@ export function validarCierre(c) {
   if (!MODOS_MANO_DE_OBRA.some(([m]) => m === mo?.modo)) errores['cierre.manoDeObra.modo'] = 'Elegí cómo se cobra la mano de obra';
   if (!(Number.isFinite(mo?.valor) && mo.valor >= 0 && mo.valor <= 1e12)) errores['cierre.manoDeObra.valor'] = 'No puede ser negativo';
   if (mo?.modo === 'porcentaje' && mo.valor > 1000) errores['cierre.manoDeObra.valor'] = 'Hasta 1000 %';
+  if (c?.segmentos !== undefined) {
+    if (!Array.isArray(c.segmentos)) errores['cierre.segmentos'] = 'Lista inválida';
+    else c.segmentos.forEach((x, i) => {
+      if (!(typeof x?.nombre === 'string' && x.nombre.length <= 40)) errores[`cierre.segmentos.${i}`] = 'El nombre puede tener hasta 40 letras';
+      else if (!MODOS_SEGMENTO.some(([m]) => m === x.modo)) errores[`cierre.segmentos.${i}`] = 'Elegí cómo se cobra';
+      else if (!(Number.isFinite(x.valor) && x.valor >= 0 && x.valor <= 1e12)) errores[`cierre.segmentos.${i}`] = 'No puede ser negativo';
+    });
+  }
   porcentaje('imprevistos');
   porcentaje('ganancia');
   if (!IVAS.includes(c?.iva)) errores['cierre.iva'] = 'Elegí 0, 10,5, 21 o 27 %';
@@ -61,13 +100,18 @@ const pesosRedondos = (n) => Math.round(n);
 const texto = (n, d = 2) => n.toLocaleString('es-AR', { maximumFractionDigits: d });
 const enPesos = (n) => `$ ${Math.round(n).toLocaleString('es-AR')}`;
 
-/** Cuánto es la mano de obra y cómo se llegó (para el detalle del renglón). */
-function manoDeObra({ modo, valor }, materiales, { m2 = 0, kg = 0 }) {
+/**
+ * Cuánto es una mano de obra y cómo se llegó (para el detalle del renglón).
+ * @param medidas { m2, kg, m2Revestimiento, mTabiques, pilotines } de la obra
+ */
+export function manoDeObra({ modo, valor }, materiales, medidas = {}) {
   if (modo === 'global') return { monto: valor, detalle: 'monto total' };
-  if (modo === 'porM2') return { monto: valor * m2, detalle: `${texto(m2)} m² cubiertos x ${enPesos(valor)}` };
-  if (modo === 'porKg') return { monto: valor * kg, detalle: `${texto(Math.round(kg), 0)} kg de hierro x ${enPesos(valor)}` };
   if (modo === 'porcentaje') return { monto: (materiales * valor) / 100, detalle: `${texto(valor)} % de los materiales` };
-  return { monto: 0, detalle: '' };
+  const [medida, nombre] = MEDIDA_DE_MODO[modo] ?? [];
+  if (!medida) return { monto: 0, detalle: '' };
+  const cantidad = medidas[medida] ?? 0;
+  const mostrada = medida === 'kg' || medida === 'pilotines' ? texto(Math.round(cantidad), 0) : texto(cantidad);
+  return { monto: valor * cantidad, detalle: `${mostrada} ${nombre} x ${enPesos(valor)}` };
 }
 
 /**
@@ -90,7 +134,12 @@ export function cerrarPresupuesto(materiales, cierre, medidas = {}) {
   const subtotal = (clave, concepto) => renglones.push({ clave, concepto, detalle: '', monto: pesosRedondos(acumulado), subtotal: true });
 
   const mo = manoDeObra(c.manoDeObra, materiales, medidas);
-  sumar('manoDeObra', 'Mano de obra', mo.detalle, mo.monto);
+  sumar('manoDeObra', c.segmentos.some((x) => x.valor > 0) ? 'Mano de obra general' : 'Mano de obra', mo.detalle, mo.monto);
+  // v1.53: cada segmento con su renglón (pilotines, estructura, electricista…).
+  c.segmentos.forEach((x) => {
+    const r = manoDeObra(x, materiales, medidas);
+    sumar(`mo:${x.id}`, `Mano de obra — ${x.nombre}`, r.detalle, r.monto);
+  });
   const conImprevistos = c.imprevistos > 0;
   if (conImprevistos && renglones.length > 1) subtotal('costoDirecto', 'Costo directo');
   sumar('imprevistos', 'Imprevistos', `${texto(c.imprevistos)} %`, (acumulado * c.imprevistos) / 100);
