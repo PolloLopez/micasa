@@ -227,6 +227,7 @@ techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 
 - 2026-10-23 v1.25.0: proveedores, precios en efectivo/tarjeta por proveedor, comparar presupuestos y "lo más barato de cada material".
 - 2026-10-23 v1.26.0: pestaña Planos (paredes y plantas acotadas, listas de corte, revestimiento), en el PDF y en Excel.
 - 2026-10-25 v1.30.0: link compacto (la mitad) y links cortos en Firebase para ver/editar que guardan los cambios.
+- 2026-11-12 v1.51.1: puertasTapadas con motivos (que, cara, distancia, tipo) y textoDePuertaTapada; puerta.mostrarAbierta (abiertaFija en el 3D y en personas3d); barrido de la puerta en el piso.
 - 2026-11-12 v1.51.0: puerta.sentido / puerta.medidaDesde / separacionDesde en tabiques (inicioDePuerta, separacionDesdeSuPared, derechaDesdeCaraA, distanciasDelTabique en tabiques.js).
 - 2026-11-11 v1.50.0: buscarCamino({ loMasCerca }) y puertasTapadas (recorrido.js); informeDeSeguimiento para PDF y Excel; extrasDePlanta en planos.js (pilotines, tabiques, mesadas, muebles).
 - 2026-11-11 v1.49.0: "Ver adentro" con capas de Three.js (CAPA_OCULTA: la cámara no la ve, la sombra del sol sí); choquesDelMueble/encerrarEnLaPlanta/alturaDeApoyo; moverAbertura; lugarParaUsar (sentarse/acostarse).

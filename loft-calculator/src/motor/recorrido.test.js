@@ -150,7 +150,21 @@ describe('v1.50: puerta tapada y llegar lo más cerca posible', () => {
       puerta: { ...base.puerta, tipo: 'granero', desde: 0.1, ancho: 0.7 } };
     const mesada = { ...mesadaNueva([], 1), lado: 'A', ladoReferencia: 'izquierda', desde: 2.5, largo: 2.5 };
     const p = casa({ tabiques: [t], mesadas: [mesada] });
-    expect(puertasTapadas(p)).toEqual([{ tabique: t.nombre, con: [mesada.nombre] }]);
+    const tapadas = puertasTapadas(p);
+    expect(tapadas.map((x) => [x.tabique, x.con])).toEqual([[t.nombre, [mesada.nombre]]]);
+    // v1.51.1: dice qué la traba y dónde (la mesada corre por el frente: queda metida en el vano).
+    expect(tapadas[0].motivos[0]).toMatchObject({ que: mesada.nombre, tipo: 'enElVano' });
+    const { textoDePuertaTapada } = await import('./recorrido.js');
+    expect(textoDePuertaTapada(tapadas[0])).toBe(`${mesada.nombre} está en el vano de la puerta (pegado a ella o metido en el hueco): correlo o corré la puerta.`);
+    // Un mueble delante de un solo lado: dice de qué lado, a cuánto queda y cuánto hace falta.
+    const { muebleNuevo } = await import('./interiores.js');
+    const conMueble = casa({ tabiques: [{ ...t, puerta: { ...t.puerta, desde: 2 } }],
+      muebles: [{ ...muebleNuevo('vanitory', [], 1), desdeLateral: 'izquierdo', distanciaLateral: 3.2, distanciaFrente: 2.1 }] });
+    const otra = puertasTapadas(conMueble);
+    if (otra.length) {
+      const m = otra[0].motivos.find((x) => x.tipo === 'obstaculo');
+      if (m) expect(textoDePuertaTapada(otra[0], { A: 'hacia la izquierda', B: 'hacia la derecha' })).toMatch(/^Del lado [AB] \(hacia la (izquierda|derecha)\), Vanitory queda a \d,\d\d m de la puerta: hacen falta 0,50 m libres/);
+    }
     expect(puertasTapadas(casa({ tabiques: [{ ...t, puerta: { ...t.puerta, desde: 2 } }] }))).toEqual([]);
     const mapa = mapaDelNivel(p);
     expect(buscarCamino(mapa, [-2, 0], [2, 0])).toEqual([]);
@@ -158,5 +172,16 @@ describe('v1.50: puerta tapada y llegar lo más cerca posible', () => {
     expect(cerca.parcial).toBe(true);
     expect(cerca.at(-1)[0]).toBeLessThan(0); // se queda de su lado del tabique
     expect(cerca.falta).toBeGreaterThan(1.5);
+  });
+});
+
+describe('v1.51.1: el aviso de la puerta en palabras', () => {
+  it('dice de qué lado, a cuánto queda, cuánto hace falta y cuánto correrlo', async () => {
+    const { textoDePuertaTapada } = await import('./recorrido.js');
+    expect(textoDePuertaTapada({ motivos: [{ que: 'Inodoro', cara: 'B', distancia: 0.22, tipo: 'obstaculo' }] },
+      { B: 'hacia la esquina derecha (vista de afuera)' }))
+      .toBe('Del lado B (hacia la esquina derecha, vista desde afuera), Inodoro queda a 0,22 m de la puerta: hacen falta 0,50 m libres para pasar (correlo 0,28 m o corré la puerta).');
+    expect(textoDePuertaTapada({ motivos: [{ que: 'la pared', cara: 'A', distancia: 0.1, tipo: 'pared' }] }))
+      .toMatch(/^Del lado A, la pared queda a 0,10 m/);
   });
 });

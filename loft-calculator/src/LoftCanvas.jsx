@@ -37,7 +37,8 @@ import { juntasDePano, pedazosDePared } from './motor/revestimientos.js';
 import { medirEntre, puntoMasCercanoEnPieza } from './motor/medicion.js';
 import { cotasGenerales } from './motor/cotas3d.js';
 import { vistasFijas, vistasPorPartes } from './motor/vistasFijas.js';
-import { accionPorAltura, ladosQueTapan, lugarParaUsar, puertasTapadas } from './motor/recorrido.js';
+import { accionPorAltura, ladosQueTapan, lugarParaUsar, puertasTapadas, textoDePuertaTapada } from './motor/recorrido.js';
+import { carasDelTabique } from './motor/tabiques.js';
 import { crearPersonasEnEscena } from './personas3d.js';
 import { implantacion } from './motor/terreno.js';
 import { moduloActivo } from './modulos.js';
@@ -525,6 +526,7 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
   }
   // v1.41: tabiques: placas de cada cara (con el hueco de la puerta) y la puerta (de abrir o granero con su riel).
   if (capas.placasTabiques && grupoVisible('tabique')) {
+    const tapadas = [...puertasTapadas(params, 'piso'), ...(params.anchoEntrepiso > 0 ? puertasTapadas(params, 'piso2') : [])];
     (e.tabiques ?? []).filter((t) => t.nivel !== 'piso2' || grupoVisible('piso2')).forEach((t) => {
       const { esquinas, normal, huecos, puerta } = t.dibujo;
       [['revestimientoA', -1], ['revestimientoB', 1]].forEach(([campo, signo]) => {
@@ -561,7 +563,27 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
       // Hacia qué lado gira: el que lleva la punta de la hoja hacia la cara elegida (normal x cara).
       const puntaAlGirar = [-Math.sin(giro) * sentido, -Math.cos(giro) * sentido]; // cómo se mueve la punta al sumar giro
       const signo = Math.sign(puntaAlGirar[0] * normal[0] * (puerta.cara || 1) + puntaAlGirar[1] * normal[2] * (puerta.cara || 1)) || 1;
+      // v1.51.1: el barrido de la puerta de abrir en el piso (celeste; rojo si algo la traba), para ver hacia dónde abre.
+      if (puerta.tipo !== 'granero') {
+        const bisagra = sentido > 0 ? a : b;
+        const v1 = [puerta.direccion[0] * sentido, puerta.direccion[2] * sentido]; // la hoja cerrada
+        const v2 = [normal[0] * (puerta.cara || 1), normal[2] * (puerta.cara || 1)]; // la hoja abierta
+        const puntos = [];
+        for (let k = 0; k <= 12; k++) {
+          const ang = (k / 12) * (Math.PI / 2);
+          puntos.push([bisagra[0] + (v1[0] * Math.cos(ang) + v2[0] * Math.sin(ang)) * ancho, bisagra[2] + (v1[1] * Math.cos(ang) + v2[1] * Math.sin(ang)) * ancho]);
+        }
+        const posiciones = [];
+        for (let k = 0; k < 12; k++) posiciones.push(bisagra[0], a[1] + 0.012, bisagra[2], puntos[k][0], a[1] + 0.012, puntos[k][1], puntos[k + 1][0], a[1] + 0.012, puntos[k + 1][1]);
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.Float32BufferAttribute(posiciones, 3));
+        const trabada = tapadas.some((x) => x.tabique === t.nombre);
+        const barrido = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: trabada ? '#ef4444' : '#38bdf8', transparent: true, opacity: 0.3, side: THREE.DoubleSide, depthWrite: false }));
+        barrido.userData.sinSombra = true;
+        grupo.add(barrido);
+      }
       pivote.userData.puertaTabique = {
+        abiertaFija: Boolean(puerta.mostrarAbierta), // v1.51.1: "mostrarla abierta" (queda abierta siempre)
         id: `tabique:${t.id}`, tipo: puerta.tipo, giro, signo, ancho, base: pivote.position.clone(),
         direccion: [puerta.direccion[0] * sentido, puerta.direccion[2] * sentido], // la corrediza corre para este lado
         centro: [(a[0] + b[0]) / 2, (a[2] + b[2]) / 2], nivel: t.nivel ?? 'piso',
@@ -868,7 +890,7 @@ function juntarPuertas(visor) {
 function moverPuertasDibujadas(visor) {
   (visor.puertasDibujadas ?? []).forEach((pivote) => {
     const d = pivote.userData.puertaTabique;
-    const a = visor.personas.apertura(d.id);
+    const a = d.abiertaFija ? 1 : visor.personas.apertura(d.id);
     if (d.tipo === 'granero') {
       pivote.position.set(d.base.x + d.direccion[0] * d.ancho * a, d.base.y, d.base.z + d.direccion[1] * d.ancho * a);
     } else {
@@ -1303,18 +1325,23 @@ export default function LoftCanvas({
         const mueble = idMueble !== null ? (paramsRef.current.muebles ?? []).find((m) => m.id === idMueble) : null;
         const uso = mueble && (mueble.nivel ?? 'piso') === est.nivel ? lugarParaUsar(paramsRef.current, mueble) : null;
         // v1.50: si no llega, va lo más cerca que puede y dice por qué (por ejemplo, una puerta tapada por la mesada).
-        const explicar = (r) => {
+        // v1.51.1: en palabras claras: a qué no llega, cuánto le faltó y qué traba cada puerta (de qué lado y cuánto lugar deja).
+        const explicar = (r, destino) => {
           if (r === true) return null;
-          const tapadas = puertasTapadas(paramsRef.current, est.nivel);
-          const porque = tapadas.length ? ` La puerta de ${tapadas.map((x) => `${x.tabique} está tapada por ${x.con.join(', ')}`).join('; la de ')}.` : '';
-          return r ? `No hay por dónde llegar: quedó a ${r.falta.toFixed(2).replace('.', ',')} m.${porque}` : `No hay por dónde llegar ahí.${porque}`;
+          const tabiques = paramsRef.current.tabiques ?? [];
+          const tapadas = puertasTapadas(paramsRef.current, est.nivel).map((x) => {
+            const t = tabiques.find((tb) => tb.nombre === x.tabique);
+            return `No pasa por la puerta de ${x.tabique}. ${textoDePuertaTapada(x, t ? carasDelTabique(t) : undefined)}`;
+          });
+          const falta = r ? ` Se quedó a ${r.falta.toFixed(2).replace('.', ',')} m.` : '';
+          return `No puede llegar ${destino}.${falta}${tapadas.length ? ` ${tapadas.join(' ')}` : ' Algo le corta el paso (muebles, mesadas o tabiques sin puerta).'}`;
         };
         if (uso) {
-          setAvisoPersona(explicar(personas.ordenar(personaActual, uso.acercarse, { uso })));
+          setAvisoPersona(explicar(personas.ordenar(personaActual, uso.acercarse, { uso }), `a ${mueble.nombre || 'ese mueble'}`));
           return;
         }
         const accion = visibles[0] ? accionPorAltura(punto.y - est.y, est.altura) : null;
-        setAvisoPersona(explicar(personas.ordenar(personaActual, [punto.x, punto.z], { accion, mirarA: [punto.x, punto.z] })));
+        setAvisoPersona(explicar(personas.ordenar(personaActual, [punto.x, punto.z], { accion, mirarA: [punto.x, punto.z] }), mueble ? `a ${mueble.nombre}` : 'ahí'));
         return;
       }
 

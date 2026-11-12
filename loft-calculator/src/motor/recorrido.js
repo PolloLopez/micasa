@@ -243,29 +243,78 @@ export function alcanzableMasCercano(mapa, desde, hasta) {
   return centroDe(mapa, mejor);
 }
 
+/** v1.51.1: lo que hay que dejar libre delante de una puerta (de cada lado) para pasar caminando. */
+export const LIBRE_DELANTE_DE_PUERTA = 0.5;
+
 /**
- * v1.50: las puertas de los tabiques que quedan tapadas (por una mesada, un mueble o la pared): no se puede pasar.
- * Se mira el medio del vano, a cada lado del tabique, con el ancho del cuerpo.
- * @returns {{ tabique, con: string[] }[]}
+ * v1.50 (v1.51.1, más explícito): las puertas de los tabiques por las que no se puede pasar, y por qué.
+ * Para cada puerta se prueba el paso del cuerpo (con su ancho) en varios lugares del vano; de cada lado (cara A y cara
+ * B) se mira qué hay delante y a qué distancia. Si en algún lugar del vano los dos lados quedan libres, se puede pasar.
+ * @returns {{ tabique, con: string[], motivos: { que, cara, distancia, tipo: 'obstaculo'|'pared'|'angosta' }[] }[]}
+ *   motivos: lo que traba la puerta, con la cara de la que está y cuánto lugar deja (en m, de la cara del tabique).
  */
 export function puertasTapadas(params, nivel = 'piso', radio = RADIO_CUERPO) {
   const obstaculos = obstaculosDelNivel(params, nivel, { huecoPuertas: true }).filter((o) => o.y0 < ALTO_QUE_TAPA && o.y1 > ALTO_QUE_SE_PISA);
-  const x0 = -params.largo / 2 + MEDIA_PARED + radio;
-  const z0 = -params.ancho / 2 + MEDIA_PARED + radio;
-  const contraLaPared = ([x, z]) => x < x0 || x > -x0 || z < z0 || z > -z0;
+  const x0 = -params.largo / 2 + MEDIA_PARED;
+  const z0 = -params.ancho / 2 + MEDIA_PARED;
+  // Distancia del centro del cuerpo a la cara de adentro de las paredes (negativa = adentro de la pared).
+  const aLaPared = ([x, z]) => Math.min(x - x0, -x0 - x, z - z0, -z0 - z);
+  const caraDelTabique = 0.05; // medio espesor: las distancias se dan desde la cara del tabique
   return (params.tabiques ?? []).filter((t) => (t.nivel ?? 'piso') === nivel && t.puerta && t.puerta.tipo !== 'ninguna').map((t) => {
     const { inicio, direccion, normal } = ubicarTabique(params, t);
-    const medio = inicioDePuerta(t) + t.puerta.ancho / 2;
-    const centro = [inicio[0] + direccion[0] * medio, inicio[1] + direccion[1] * medio];
-    const lados = [1, -1].map((sg) => [centro[0] + normal[0] * sg * 0.3, centro[1] + normal[1] * sg * 0.3]);
-    const con = new Set();
-    [centro, ...lados].forEach((q) => {
-      obstaculos.filter((o) => o.nombre !== t.nombre && dentroDe(o, q, radio)).forEach((o) => con.add(o.nombre));
-      if (contraLaPared(q)) con.add('la pared');
-    });
-    if (t.puerta.ancho < 2 * radio + 0.1) con.add('su ancho (muy angosta)');
-    return { tabique: t.nombre, con: [...con] };
-  }).filter((x) => x.con.length > 0);
+    const pa = inicioDePuerta(t);
+    const pb = pa + t.puerta.ancho;
+    if (pb - pa < 2 * radio + 0.05) {
+      return { tabique: t.nombre, con: ['su ancho'], motivos: [{ que: 'la puerta es muy angosta', cara: null, distancia: t.puerta.ancho, tipo: 'angosta' }] };
+    }
+    const enEje = (d) => [inicio[0] + direccion[0] * d, inicio[1] + direccion[1] * d];
+    const otros = obstaculos.filter((o) => o.nombre !== t.nombre);
+    // Para un lugar del vano: qué traba de cada lado, con el lugar libre que deja hasta la cara del tabique.
+    const trabas = (d) => {
+      const lista = [];
+      [['B', 1], ['A', -1]].forEach(([cara, sg]) => {
+        const libreHasta = LIBRE_DELANTE_DE_PUERTA + caraDelTabique - radio; // hasta dónde tiene que poder ir el centro del cuerpo
+        for (let k = 0; k <= 20; k++) {
+          const dist = caraDelTabique + (libreHasta - caraDelTabique) * (k / 20);
+          const q = [enEje(d)[0] + normal[0] * sg * dist, enEje(d)[1] + normal[1] * sg * dist];
+          const toca = otros.filter((o) => dentroDe(o, q, radio));
+          const libre = Math.max(0, dist + radio - caraDelTabique - 0.0001);
+          if (toca.length) { toca.forEach((o) => lista.push({ que: o.nombre, cara, distancia: libre, tipo: 'obstaculo' })); break; }
+          if (aLaPared(q) < radio) { lista.push({ que: 'la pared', cara, distancia: libre, tipo: 'pared' }); break; }
+        }
+      });
+      return lista;
+    };
+    const lugares = [0, 0.25, 0.5, 0.75, 1].map((f) => pa + radio + (pb - pa - 2 * radio) * f);
+    const porLugar = lugares.map(trabas);
+    if (porLugar.some((l) => l.length === 0)) return null; // en algún lugar del vano se pasa
+    const mejor = porLugar.reduce((a, b) => (b.length < a.length ? b : a));
+    // Una sola vez cada cosa, con su distancia más chica. Lo que aparece pegado de los dos lados está EN el vano.
+    let motivos = [...new Map(mejor.map((m) => [`${m.que}|${m.cara}`, m])).values()];
+    const enElVano = motivos.filter((m) => m.tipo === 'obstaculo' && m.cara === 'A' && m.distancia < radio
+      && motivos.some((n) => n.que === m.que && n.cara === 'B' && n.distancia < radio)).map((m) => m.que);
+    motivos = [
+      ...enElVano.map((que) => ({ que, cara: null, distancia: 0, tipo: 'enElVano' })),
+      ...motivos.filter((m) => !enElVano.includes(m.que)),
+    ];
+    return { tabique: t.nombre, con: [...new Set(motivos.map((m) => m.que))], motivos };
+  }).filter(Boolean);
+}
+
+/**
+ * v1.51.1: el aviso en palabras: qué traba la puerta, de qué lado, cuánto lugar deja y cuánto hace falta.
+ * Ej.: "Del lado B (hacia la esquina derecha), el Inodoro queda a 0,22 m de la puerta: hacen falta 0,50 m para pasar."
+ */
+export function textoDePuertaTapada(x, caras = { A: '', B: '' }) {
+  const f2 = (n) => n.toFixed(2).replace('.', ',');
+  return x.motivos.map((m) => {
+    if (m.tipo === 'angosta') return `La puerta mide ${f2(m.distancia)} m: para pasar hace falta al menos ${f2(2 * RADIO_CUERPO + 0.05)} m.`;
+    if (m.tipo === 'enElVano') return `${m.que} está en el vano de la puerta (pegado a ella o metido en el hueco): correlo o corré la puerta.`;
+    const cara = (caras[m.cara] ?? '').replace(' (vista de afuera)', ', vista desde afuera');
+    const lado = `Del lado ${m.cara}${cara ? ` (${cara})` : ''}`;
+    const que = m.tipo === 'pared' ? 'la pared' : m.que;
+    return `${lado}, ${que} queda a ${f2(m.distancia)} m de la puerta: hacen falta ${f2(LIBRE_DELANTE_DE_PUERTA)} m libres para pasar (correlo ${f2(LIBRE_DELANTE_DE_PUERTA - m.distancia)} m o corré la puerta).`;
+  }).join(' ');
 }
 
 /** Un paso con el teclado: avanza si se puede; si no, se desliza solo en x o solo en z (como contra una pared). */

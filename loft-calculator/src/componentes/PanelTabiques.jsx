@@ -17,7 +17,7 @@ import SelectorPerfil from './SelectorPerfil.jsx';
 import { LADOS } from '../motor/constantes.js';
 import { nombreLado, ladoOpuesto } from '../motor/geometria.js';
 import { tabiqueNuevo, carasDelTabique, altosDelTabique, TIPOS_PUERTA, SENTIDOS_PUERTA, distanciasDelTabique } from '../motor/tabiques.js';
-import { puertasTapadas } from '../motor/recorrido.js';
+import { puertasTapadas, textoDePuertaTapada } from '../motor/recorrido.js';
 
 const f2 = (n) => n.toFixed(2).replace('.', ',');
 
@@ -118,8 +118,17 @@ function Tabique({ t, i, params, unidad, cambiar, onQuitar, paneles, perfiles, p
             valor={t.puerta.sentido ?? 'izqDer'} opciones={SENTIDOS_PUERTA} onCambio={cambiar(`${ruta}.puerta.sentido`)} />
         </>)}
       </div>
+      {t.puerta.tipo !== 'ninguna' && (
+        <label className="casilla-opcional">
+          {/* v1.51.1: abierta o cerrada en el 3D (cerrada, se abre sola cuando pasa alguien). */}
+          <input type="checkbox" checked={t.puerta.mostrarAbierta === true} onChange={(e) => cambiar(`${ruta}.puerta.mostrarAbierta`)(e.target.checked)} />
+          Mostrarla abierta en el 3D ({t.puerta.mostrarAbierta ? 'está abierta' : 'está cerrada: se abre sola cuando pasa alguien'})
+        </label>
+      )}
+      <div className="grid-params">
+      </div>
       {/* v1.50: si la puerta queda tapada (mesada, mueble, pared), las personas no pueden pasar. */}
-      {tapada && <p className="aviso-mueble aviso-choque" role="alert">⚠ La puerta queda tapada por {tapada.con.join(', ')}: no se puede pasar. Corré la puerta o lo que la tapa.</p>}
+      {tapada && <p className="aviso-mueble aviso-choque" role="alert">⚠ Por esta puerta no se puede pasar. {textoDePuertaTapada(tapada, caras)}</p>}
       {generado && (
         <p className="nota resumen-mesada" role="status">
           {generado.piezas.length} piezas ({f2(metros)} m de perfil){m2 > 0 ? ` · ${f2(m2)} m² de placa` : ''}

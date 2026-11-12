@@ -1,4 +1,4 @@
-# Manual de Pollo Calculator (v1.51.0)
+# Manual de Pollo Calculator (v1.51.1)
 
 Guía corta para usar el sistema y chequear que todo ande. Cada parte termina con **✔ Chequeá**: lo que tenés que ver.
 
@@ -36,8 +36,10 @@ Medidas de la planta, alturas, pisos (perfil C o tirantes de madera), entrepiso,
   **+ Agregar**. Nuevos: televisor, cafetera, horno de aire, máquina de pan.
   - Los chicos (cafetera, horno de aire, máquina de pan) se **apoyan solos** sobre la mesada o el mueble de abajo.
 - **Personas y perros**: **+ Persona** (nombre, sexo, altura) y **+ Perro** (tamaño, pelaje).
-- Si la puerta de un tabique queda tapada (por la mesada, un mueble o la pared), su ficha avisa
-  **"⚠ La puerta queda tapada por …"**: las personas no pueden pasar por ahí.
+- Si por la puerta de un tabique no se puede pasar, su ficha avisa **"⚠ Por esta puerta no se puede pasar"** y dice qué la
+  traba, de qué lado, a cuánto queda y cuánto correrlo (hacen falta 0,50 m libres de cada lado).
+- **"Mostrarla abierta en el 3D"**: la puerta queda abierta; si no, está cerrada y se abre sola cuando pasa alguien. La de
+  abrir muestra en el piso hacia dónde abre (celeste; rojo si algo la traba).
 
 ✔ Chequeá:
 - Poné un sillón con "Distancia al lateral" negativa: la ficha dice **"⚠ Se sale por el lateral…"** y en el 3D se ve

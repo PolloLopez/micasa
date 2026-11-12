@@ -350,7 +350,7 @@ export function crearPersonasEnEscena(escena) {
   function definirPuertas(lista) {
     const ids = new Set(lista.map((x) => x.id));
     [...puertas.keys()].filter((id) => !ids.has(id)).forEach((id) => puertas.delete(id));
-    lista.forEach((x) => puertas.set(x.id, { apertura: 0, espera: 0, ...puertas.get(x.id), centro: x.centro, nivel: x.nivel }));
+    lista.forEach((x) => puertas.set(x.id, { apertura: 0, espera: 0, ...puertas.get(x.id), centro: x.centro, nivel: x.nivel, fija: Boolean(x.abiertaFija) }));
   }
   /** Cuánto está abierta una puerta (0 a 1). */
   const apertura = (id) => puertas.get(id)?.apertura ?? 0;
@@ -382,7 +382,7 @@ export function crearPersonasEnEscena(escena) {
       const cerca = [...personas.values()].some((p) => !esPerro(p.datos) && p.datos.nivel === pu.nivel
         && Math.hypot(pu.centro[0] - p.pos[0], pu.centro[1] - p.pos[1]) < CERCA_DE_LA_PUERTA);
       if (cerca) pu.espera = ESPERA_PUERTA_CERRADA; else pu.espera -= dt;
-      const objetivo = pu.espera > 0 ? 1 : 0;
+      const objetivo = pu.espera > 0 || pu.fija ? 1 : 0; // v1.51.1: la que se muestra abierta queda abierta
       pu.apertura += (objetivo - pu.apertura) * Math.min(1, dt * 3);
     });
   }

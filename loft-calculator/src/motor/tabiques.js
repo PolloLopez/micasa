@@ -226,6 +226,7 @@ export function generarTabique(params, t) {
         tipo: t.puerta.tipo, cara: t.puerta.cara === 'A' ? -1 : 1,
         // v1.51: +1 = la bisagra en el arranque del vano y abre hacia la punta (la corrediza corre hacia la punta); -1 al revés.
         sentido: ((t.puerta.sentido ?? 'izqDer') === 'izqDer' ? 1 : -1) * derechaDesdeCaraA(params, t),
+        mostrarAbierta: t.puerta.mostrarAbierta === true, // v1.51.1: en el 3D queda abierta siempre
         esquinas: [p(pa, 0), p(pb, 0), p(pb, t.puerta.alto), p(pa, t.puerta.alto)],
         direccion: [direccion[0], 0, direccion[1]],
       } : null,
@@ -269,6 +270,7 @@ export function validarTabique(t, params) {
   if (!pu || !TIPOS_PUERTA.some(([v]) => v === pu.tipo)) return 'Elegí el tipo de puerta';
   if (!['A', 'B'].includes(pu.cara)) return 'Elegí de qué lado corre la puerta';
   if (!['arranque', 'punta'].includes(pu.medidaDesde ?? 'arranque')) return 'Elegí desde dónde se mide la puerta';
+  if (pu.mostrarAbierta !== undefined && typeof pu.mostrarAbierta !== 'boolean') return 'Valor inválido';
   if (!SENTIDOS_PUERTA.some(([v]) => v === (pu.sentido ?? 'izqDer'))) return 'Elegí el sentido de la puerta';
   if (!['pared', 'enfrente'].includes(t.separacionDesde ?? 'pared')) return 'Elegí desde qué pared se mide la separación';
   if (t.orientacion === 'paralelo' && separacionDesdeSuPared(params, t) < 0.05) return 'El tabique queda contra la otra pared';

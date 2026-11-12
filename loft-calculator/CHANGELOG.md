@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.51.1] - 2026-11-12
+### Cambiado
+- **El aviso de la puerta trabada es explícito**: dice qué la traba, de qué lado (cara A o B y hacia dónde mira), a
+  cuánto queda de la puerta, cuánto hace falta (0,50 m libres de cada lado) y cuánto correrlo. Si algo está metido en
+  el hueco de la puerta, lo dice así. Ej.: "Del lado B (hacia la esquina derecha, vista desde afuera), Inodoro queda a
+  0,22 m de la puerta: hacen falta 0,50 m libres para pasar (correlo 0,28 m o corré la puerta)."
+- El aviso de la persona: "No puede llegar a Inodoro. Se quedó a 1,34 m. No pasa por la puerta de Baño-Antebaño. …".
+### Agregado
+- **Puerta abierta o cerrada**: casilla "Mostrarla abierta en el 3D" en la ficha del tabique (cerrada, se abre sola
+  cuando pasa alguien). La puerta de abrir muestra en el piso su **barrido** (celeste; rojo si algo la traba).
+
 ## [1.51.0] - 2026-11-12
 ### Agregado
 - **Sentido de las puertas de los tabiques**: "De izquierda a derecha" o "De derecha a izquierda" (mirando el tabique
