@@ -75,6 +75,7 @@ valores inválidos.
 | 2026-11-11 | Seguimiento de obra (pagos, contratos, avance) simple y DENTRO de Pollo Calculator (`motor/seguimiento.js`, params.seguimiento) | Decisión de Leandro: antes se había pensado una app Django aparte (opción B de Construcción Modular). Se empieza simple, guardado con el proyecto; si crece (comprobantes, usuarios, varias obras) se pasa a Django. Lo presupuestado de los rubros con `origen` se calcula del presupuesto, no se guarda. |
 | 2026-11-11 | `useSinCambiosSalvo(params, ['seguimiento'])` | Cargar un pago no recalcula estructura, presupuesto ni 3D (dependen de params, no del seguimiento). |
 | 2026-11-11 | Consumibles = medida de la obra x coeficiente editable (kg de hierro, m² de hierro, m² de paneles) | Sin coeficientes del herrero todavía: unos de fábrica orientativos que se pisan; la superficie de hierro sale de kg/m ÷ (espesor x 7,85), sin pedir el perímetro de cada perfil. |
+| 2026-11-12 | El nombre de una pared sale de su etiqueta (nombreDePared), con la letra entre paréntesis | Leandro nombra las paredes por lo que hay (Frente, Vecino, Patio); la letra se deja porque las aberturas, tabiques y mesadas se ubican por lado y ayuda a no confundirse. |
 
 | 2026-10-15 | Entrepiso parcial = largo × profundidad + "medir desde" izquierda/derecha y distancia (`tramoEntrepiso` en `geometria.js`); largo 0 = toda la pared | Decisión de Leandro (largo × profundidad). Reusa la convención de las aberturas (vista desde afuera) y deja los proyectos viejos iguales sin migrar medidas. |
 | 2026-10-15 | Borde libre = el que no cae sobre una pared; lleva viga de cierre (tipo `viga-cierre`, renglón `vigaCierre`) con el mismo id `marco-piso2:<i>` | El perfil lo elige el herrero (decisión de Leandro), por eso renglón propio. Mismo id para no romper piezas eliminadas o editadas de proyectos guardados. |
@@ -227,6 +228,7 @@ techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 
 - 2026-10-23 v1.25.0: proveedores, precios en efectivo/tarjeta por proveedor, comparar presupuestos y "lo más barato de cada material".
 - 2026-10-23 v1.26.0: pestaña Planos (paredes y plantas acotadas, listas de corte, revestimiento), en el PDF y en Excel.
 - 2026-10-25 v1.30.0: link compacto (la mitad) y links cortos en Firebase para ver/editar que guardan los cambios.
+- 2026-11-12 v1.52.0: geometria.nombreDePared(lado, params) = etiqueta de la pared o nombreLado; reemplaza a nombreLado donde hay params (el nombre automático queda para el placeholder de la etiqueta y la grada/montaje).
 - 2026-11-12 v1.51.2: puerta.libreDelante (libreDelanteDePuerta; de fábrica LIBRE_DELANTE_SEGUN_TIPO).
 - 2026-11-12 v1.51.1: puertasTapadas con motivos (que, cara, distancia, tipo) y textoDePuertaTapada; puerta.mostrarAbierta (abiertaFija en el 3D y en personas3d); barrido de la puerta en el piso.
 - 2026-11-12 v1.51.0: puerta.sentido / puerta.medidaDesde / separacionDesde en tabiques (inicioDePuerta, separacionDesdeSuPared, derechaDesdeCaraA, distanciasDelTabique en tabiques.js).

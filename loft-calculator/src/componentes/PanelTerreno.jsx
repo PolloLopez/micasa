@@ -14,7 +14,7 @@ import CampoNumero from './CampoNumero.jsx';
 import CampoOpcional from './CampoOpcional.jsx';
 import CampoSelect from './CampoSelect.jsx';
 import { TIPOS_ELEMENTO, RUMBOS, elementoNuevo, rumboDe } from '../motor/terreno.js';
-import { nombreLado } from '../motor/geometria.js';
+import { nombreDePared } from '../motor/geometria.js';
 
 const f2 = (n) => `${n.toFixed(2)} m`;
 
@@ -95,7 +95,7 @@ export default function PanelTerreno({ params, unidad, cambiar, implantacion, on
       {t.activo && (<>
         <p className="nota">
           Todo se mide parado en la vereda mirando el lote: desde la <strong>línea municipal</strong> hacia el fondo y
-          desde el <strong>lateral izquierdo</strong>, hasta el borde de cada cosa. El {nombreLado(params.ladoFrente, params.ladoFrente).toLowerCase()} de
+          desde el <strong>lateral izquierdo</strong>, hasta el borde de cada cosa. El {nombreDePared(params.ladoFrente, params).toLowerCase()} de
           la casa (lado {params.ladoFrente}) mira a la calle.
         </p>
 

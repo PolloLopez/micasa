@@ -6,7 +6,7 @@
 // PDF (HojasImpresion) y el Excel (exportarExcel), así dicen lo mismo.
 // ==========================================================
 
-import { nombreLado } from '../motor/geometria.js';
+import { nombreDePared } from '../motor/geometria.js';
 import { INSUMO } from '../motor/constantes.js';
 import { optimizarCortes } from '../motor/optimizadorCortes.js';
 
@@ -88,7 +88,7 @@ export function listaDeAberturas(aberturas, params) {
     numero: i + 1,
     tipo: TIPO[op.tipo] ?? op.tipo,
     etiqueta: op.etiqueta?.trim() ?? '',
-    pared: `${nombreLado(op.lado, params.ladoFrente)} (${op.lado})`,
+    pared: `${nombreDePared(op.lado, params)} (${op.lado})`,
     ancho: op.ancho,
     alto: op.alto,
     antepecho: op.alturaAntepecho ?? 0,

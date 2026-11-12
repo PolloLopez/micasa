@@ -11,7 +11,7 @@
 import { nombrePerfil } from '../motor/perfiles.js';
 import { useId } from 'react';
 import CampoNumero from './CampoNumero.jsx';
-import { nombreLado } from '../motor/geometria.js';
+import { nombreDePared } from '../motor/geometria.js';
 import {
   EDICION_VACIA, PERFILES_CONSTRUCCION, PERFILES_GRADA, PERFILES_MONTAJE, esEdicionVacia, esVertical, revisarEdicionDePieza,
 } from '../motor/edicionPiezas.js';
@@ -20,11 +20,11 @@ import {
  * Nombre de cada extremo de la pieza según hacia dónde apunta:
  * vertical => abajo / arriba; si no, la pared hacia la que mira cada punta.
  */
-function nombresExtremos(original, ladoFrente) {
+function nombresExtremos(original, obra) {
   const d = original.hasta.map((v, i) => v - original.desde[i]);
   const eje = [0, 1, 2].reduce((mayor, i) => (Math.abs(d[i]) > Math.abs(d[mayor]) ? i : mayor), 0);
-  const positivo = { 0: `hacia ${nombreLado('B', ladoFrente)} (B)`, 1: 'arriba', 2: `hacia ${nombreLado('A', ladoFrente)} (A)` }[eje];
-  const negativo = { 0: `hacia ${nombreLado('D', ladoFrente)} (D)`, 1: 'abajo', 2: `hacia ${nombreLado('C', ladoFrente)} (C)` }[eje];
+  const positivo = { 0: `hacia ${nombreDePared('B', obra)} (B)`, 1: 'arriba', 2: `hacia ${nombreDePared('A', obra)} (A)` }[eje];
+  const negativo = { 0: `hacia ${nombreDePared('D', obra)} (D)`, 1: 'abajo', 2: `hacia ${nombreDePared('C', obra)} (C)` }[eje];
   // `desde` está del lado negativo si d[eje] > 0.
   return d[eje] > 0 ? { inicio: negativo, fin: positivo } : { inicio: positivo, fin: negativo };
 }
@@ -33,16 +33,17 @@ function nombresExtremos(original, ladoFrente) {
  * @param pieza       pieza actual (puede venir ya editada; trae `original`)
  * @param edicion     edición guardada de esta pieza (o undefined)
  * @param catalogo    para mostrar nombre y perfil de cada renglón
- * @param ladoFrente  para nombrar las paredes
+ * @param ladoFrente, paredes  para nombrar las paredes (con su etiqueta)
  * @param alturaPiso2 altura de la estructura del piso 2 (null si no hay entrepiso)
  * @param elevacion   altura del piso del loft sobre el suelo (las alturas se muestran desde ese piso)
  * @param onEditar    (id, edicion) => error | null
  */
-export default function EditorPieza({ pieza, edicion, catalogo, unidad, ladoFrente, alturaPiso2, elevacion = 0, onEditar }) {
+export default function EditorPieza({ pieza, edicion, catalogo, unidad, ladoFrente, paredes = null, alturaPiso2, elevacion = 0, onEditar }) {
+  const obra = { ladoFrente, paredes }; // v1.52: las paredes con su etiqueta ("Patio")
   const idPerfil = useId();
   const original = pieza.original ?? pieza;
   const actual = { ...EDICION_VACIA, ...edicion };
-  const extremos = nombresExtremos(original, ladoFrente);
+  const extremos = nombresExtremos(original, obra);
 
   /** Cambia un campo: valida contra la pieza original y aplica. */
   const cambiarCampo = (campo) => (valor) => {
@@ -108,8 +109,8 @@ export default function EditorPieza({ pieza, edicion, catalogo, unidad, ladoFren
 
       <h3 className="subtitulo">Mover (negativo = para el otro lado)</h3>
       <div className="grid-params">
-        <CampoNumero etiqueta={`Hacia ${nombreLado('B', ladoFrente)} (B)`} unidad={unidad} valor={actual.moverX} onCambio={cambiarCampo('moverX')} />
-        <CampoNumero etiqueta={`Hacia ${nombreLado('A', ladoFrente)} (A)`} unidad={unidad} valor={actual.moverZ} onCambio={cambiarCampo('moverZ')} />
+        <CampoNumero etiqueta={`Hacia ${nombreDePared('B', obra)} (B)`} unidad={unidad} valor={actual.moverX} onCambio={cambiarCampo('moverX')} />
+        <CampoNumero etiqueta={`Hacia ${nombreDePared('A', obra)} (A)`} unidad={unidad} valor={actual.moverZ} onCambio={cambiarCampo('moverZ')} />
         <CampoNumero etiqueta="Subir" unidad={unidad} valor={actual.moverY} onCambio={cambiarCampo('moverY')} />
       </div>
 

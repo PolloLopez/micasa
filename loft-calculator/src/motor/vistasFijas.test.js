@@ -1,6 +1,6 @@
 // Tests de las vistas fijas para imprimir (v1.28). Correr con: npm test
 import { describe, it, expect } from 'vitest';
-import { vistasFijas } from './vistasFijas.js';
+import { vistasFijas, vistasPorPartes } from './vistasFijas.js';
 import { PARAMS_INICIALES as P } from './parametrosIniciales.js';
 
 describe('vistas fijas', () => {
@@ -32,5 +32,18 @@ describe('vistas por partes (v1.44)', () => {
     expect(v[2].titulo).toBe('Desde frente (A), sin esa pared');
     // Sin entrepiso, no hay vista del entrepiso.
     expect(vistasPorPartes({ ...P, anchoEntrepiso: 0 }).map((x) => x.clave)).not.toContain('entrepiso');
+  });
+});
+
+describe('v1.52: las paredes con su etiqueta', () => {
+  it('nombreDePared usa la etiqueta ("Vecino") y, sin ella, el nombre automático', async () => {
+    const { nombreDePared } = await import('./geometria.js');
+    const { PARAMS_INICIALES } = await import('./parametrosIniciales.js');
+    const p = { ...PARAMS_INICIALES, paredes: { ...PARAMS_INICIALES.paredes, B: { ...PARAMS_INICIALES.paredes.B, etiqueta: '  Vecino ' } } };
+    expect(nombreDePared('B', p)).toBe('Vecino');
+    expect(nombreDePared('C', p)).toBe('Fondo');
+    expect(vistasPorPartes(p).find((v) => v.clave === 'interiorB').titulo).toBe('Desde vecino (B), sin esa pared');
+    const { describirPieza } = await import('../descripcionPiezas.js');
+    expect(describirPieza({ tipo: 'columna', grupos: ['A', 'B'], largo: 3 }, p)).toBe('Columna · Frente y Vecino · 3.00 m');
   });
 });

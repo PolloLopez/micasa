@@ -9,7 +9,7 @@
 import { resumenDeTerreno } from '../motor/terreno.js';
 import { moduloActivo } from '../modulos.js';
 import { LADOS } from '../motor/constantes.js';
-import { nombreLado, geometriaLados, alturasPared, alturaMaxima } from '../motor/geometria.js';
+import { geometriaLados, alturasPared, alturaMaxima, nombreDePared } from '../motor/geometria.js';
 import { infoSeparacion } from '../motor/estructura.js';
 
 const m = (n) => `${Number(n).toFixed(2)} m`;
@@ -39,7 +39,7 @@ export function resumenDeObra({ params, estructura, aberturas = [], catalogo = [
   if (params.tipoProyecto === 'montaje') return [['Tipo', 'Montaje industrial']];
   const lados = geometriaLados(params);
   const filas = [];
-  const frente = (lado) => `${params.paredes?.[lado]?.etiqueta?.trim() || nombreLado(lado, params.ladoFrente)} (${lado})`;
+  const frente = (lado) => `${params.paredes?.[lado]?.etiqueta?.trim() || nombreDePared(lado, params)} (${lado})`;
 
   filas.push(['Planta', `${m(params.largo)} x ${m(params.ancho)} · frente: lado ${params.ladoFrente}`]);
   filas.push(['Alturas', `lado bajo ${m(params.altura)} · lado alto ${m(alturaMaxima(params))} · elevación ${m(params.elevacion)}`]);

@@ -125,7 +125,7 @@ function DibujoPared({ vista }) {
 
 /** Dibujo de una planta vista desde arriba (lado A abajo). */
 function DibujoPlanta({ vista }) {
-  const { largo, ancho } = vista;
+  const { largo, ancho, nombres } = vista;
   const y = (v) => ancho - v;
   return (
     <svg className="dibujo-plano" viewBox={`-0.9 -0.5 ${largo + 1.4} ${ancho + 1.5}`} role="img" aria-label={`${NOMBRE_PLANTA[vista.nivel]} vista desde arriba`}>
@@ -161,8 +161,11 @@ function DibujoPlanta({ vista }) {
       {(vista.mesadas ?? []).filter((m, i, l) => l.findIndex((x) => x.nombre === m.nombre) === i).map((m, i) => (
         <text key={`nm${i}`} x={m.medio[0]} y={y(m.medio[1]) + 0.06} fontSize={TEXTO * 0.7} textAnchor="middle" className="nombre-planta">{m.nombre}</text>
       ))}
-      <text x={largo / 2} y={y(0) + 0.32} fontSize={TEXTO} textAnchor="middle" className="lado-planta">lado A</text>
-      <text x={largo / 2} y={y(ancho) - 0.15} fontSize={TEXTO} textAnchor="middle" className="lado-planta">lado C</text>
+      {/* v1.52: el nombre de cada pared (su etiqueta, ej. "Patio"), con la letra. */}
+      <text x={largo / 2} y={y(0) + 0.32} fontSize={TEXTO} textAnchor="middle" className="lado-planta">{nombres?.A ?? 'lado A'}</text>
+      <text x={largo / 2} y={y(ancho) - 0.15} fontSize={TEXTO} textAnchor="middle" className="lado-planta">{nombres?.C ?? 'lado C'}</text>
+      {nombres && <text x={-0.12} y={y(ancho / 2)} fontSize={TEXTO} textAnchor="middle" className="lado-planta" transform={`rotate(-90 -0.12 ${y(ancho / 2)})`}>{nombres.D}</text>}
+      {nombres && <text x={largo + 0.22} y={y(ancho / 2)} fontSize={TEXTO} textAnchor="middle" className="lado-planta" transform={`rotate(90 ${largo + 0.22} ${y(ancho / 2)})`}>{nombres.B}</text>}
       <CotasHorizontales posiciones={[0, largo]} y={y(0) + 0.65} />
       <CotasVerticales alturas={[0, ancho]} x={-0.4} alto={ancho} />
     </svg>

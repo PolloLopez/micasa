@@ -9,7 +9,7 @@
 // ==========================================================
 
 import { LADOS } from '../motor/constantes.js';
-import { nombreLado } from '../motor/geometria.js';
+import { nombreDePared } from '../motor/geometria.js';
 
 const MARGEN = 0.9; // m alrededor de la planta (para los nombres de las paredes)
 
@@ -90,7 +90,7 @@ export default function PlantaEscalera({ params, escalera, entrepiso }) {
         {nombres.map(({ lado, punto, deCostado }) => (
           <text key={lado} x={punto[0]} y={punto[1]} className={lado === params.ladoFrente ? 'pared frente' : 'pared'}
             transform={deCostado ? `rotate(-90 ${punto[0]} ${punto[1]})` : undefined}>
-            {nombreLado(lado, params.ladoFrente)}
+            {nombreDePared(lado, params)}
           </text>
         ))}
       </svg>

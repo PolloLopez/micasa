@@ -1,4 +1,4 @@
-# Manual de Pollo Calculator (v1.51.2)
+# Manual de Pollo Calculator (v1.52.0)
 
 Guía corta para usar el sistema y chequear que todo ande. Cada parte termina con **✔ Chequeá**: lo que tenés que ver.
 
@@ -27,7 +27,8 @@ Medidas de la planta, alturas, pisos (perfil C o tirantes de madera), entrepiso,
 
 ## 3. Paredes y aberturas
 
-- **Paredes**: columnas, fajas, revestimiento y sus puertas y ventanas.
+- **Paredes**: columnas, fajas, revestimiento y sus puertas y ventanas. El **texto de la etiqueta** de cada pared
+  (por ejemplo "Vecino" o "Patio") pasa a ser su nombre en toda la app: tarjetas, listas, planos, PDF y Excel.
 - **Mesadas**: recta, en L o en U, con huecos, bachas y electrodomésticos adentro.
 - **Tabiques**: divisiones de Durlock con puerta de abrir o granero. Elegís desde dónde medís (la esquina izquierda o
   derecha; si es paralelo, su pared o la de enfrente; la puerta, desde el arranque o la punta) y el **sentido** de la

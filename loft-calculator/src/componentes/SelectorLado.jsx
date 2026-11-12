@@ -6,7 +6,7 @@
 
 import { useId, useState } from 'react';
 import { LADOS } from '../motor/constantes.js';
-import { nombreLado, largoLado } from '../motor/geometria.js';
+import { largoLado, nombreDePared } from '../motor/geometria.js';
 
 export default function SelectorLado({ etiqueta, valor, params, onCambio, ocultarFrente = false }) {
   const id = useId();
@@ -20,7 +20,7 @@ export default function SelectorLado({ etiqueta, valor, params, onCambio, oculta
       <select id={id} value={valor} onChange={alCambiar}>
         {LADOS.map((lado) => (
           <option key={lado} value={lado}>
-            {ocultarFrente ? '' : `${nombreLado(lado, params.ladoFrente)} · `}lado {lado} · {largoLado(lado, params).toFixed(2)} m
+            {ocultarFrente ? '' : `${nombreDePared(lado, params)} · `}lado {lado} · {largoLado(lado, params).toFixed(2)} m
           </option>
         ))}
       </select>

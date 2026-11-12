@@ -3,7 +3,7 @@
 Última limpieza: 2026-11-11 (v1.49.0). Espejo en Trello: tablero "Desarrollo", tarjetas `[CALC]`.
 
 ## 📌 Estado y próximos pasos (11/11)
-**En GitHub: hasta v1.51.0. v1.51.1 y v1.51.2 por subir.** Manual de uso para chequear: `MANUAL.md`.
+**En GitHub: hasta v1.51.0. v1.51.1, v1.51.2 y v1.52.0 por subir.** Manual de uso para chequear: `MANUAL.md`.
 
 🟡 **Para chequear en pantalla** (probado con tests, no visto): el sol con "Ver adentro" entra solo por las aberturas;
 la persona se sienta en el sillón y se acuesta en la cama; las puertas de los tabiques se abren al pasar.
@@ -82,6 +82,10 @@ Mejoras propuestas (técnicas, sin cambios aplicados):
     - 🟢 [ ] Puertas de abrir dibujadas entreabiertas con su barrido.
 - ✅ Etiquetas de mesadas y muebles en el 3D, apagables una por una y por capa (v1.38.1).
 - ✅ **Sol más fuerte** (v1.38.0): intensidad regulable (50–300 %, 150 % de fábrica).
+
+## v1.52.0 Paredes con su nombre (pedido de Leandro 12/11)
+- ✅ La etiqueta de cada pared ("Vecino", "Patio") es su nombre en toda la app (con la letra entre paréntesis).
+  - 🟢 [ ] Si molesta la letra, opción para ocultarla (hoy ayuda a ubicar aberturas, tabiques y mesadas).
 
 ## v1.51.0 Tabiques: sentido de la puerta y desde dónde se mide (pedido de Leandro 12/11)
 - ✅ Bisagra izquierda/derecha y corrediza hacia un lado u otro; puerta desde arranque o punta; paralelo desde su pared o la de enfrente.

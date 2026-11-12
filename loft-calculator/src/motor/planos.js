@@ -15,7 +15,7 @@
 // ==========================================================
 
 import { INSUMO, LADOS } from './constantes.js';
-import { geometriaLados } from './geometria.js';
+import { geometriaLados, nombreDePared } from './geometria.js';
 import { listarPiezas, NOMBRE_TIPO_PIEZA } from './estructura.js';
 import { INSUMO_DE_TIPO } from './piezasAgregadas.js';
 import { nombrePerfil } from './perfiles.js';
@@ -153,7 +153,9 @@ export function vistaDePlanta(e, params, nivel, catalogo) {
   const contorno = nivel === 'piso2' && e.entrepiso
     ? e.entrepiso.esquinas.map(([x, z]) => enPlanta([x, 0, z]))
     : [[0, 0], [largo, 0], [largo, ancho], [0, ancho]];
-  return { nivel, largo, ancho, contorno, piezas, lista: listaDePiezas(piezasReales, catalogo), ...extrasDePlanta(e, params, nivel, enPlanta) };
+  // v1.52: el nombre de cada pared (su etiqueta o el automático) para escribirlo alrededor de la planta.
+  const nombres = Object.fromEntries(LADOS.map((l) => [l, `${nombreDePared(l, params)} (${l})`]));
+  return { nivel, largo, ancho, contorno, piezas, nombres, lista: listaDePiezas(piezasReales, catalogo), ...extrasDePlanta(e, params, nivel, enPlanta) };
 }
 
 /**

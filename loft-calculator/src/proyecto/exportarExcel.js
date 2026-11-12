@@ -11,7 +11,7 @@
 // ==========================================================
 
 import { crearXlsx } from './xlsx.js';
-import { nombreLado } from '../motor/geometria.js';
+import { nombreDePared as nombreSinLetra } from '../motor/geometria.js';
 import { NOMBRE_PLANTA } from '../motor/planos.js';
 import { listaDePerfiles, listaDeAberturas, resumenDeAberturas, plantasElegidas } from './listasDePlanos.js';
 import { agruparBarras } from './cortesAgrupados.js';
@@ -28,8 +28,7 @@ const filasDePiezas = (lista) => [
 
 /** Nombre de una pared como en la pantalla: "Frente (A)" o la etiqueta propia "Patio (B)". */
 export function nombreDePared(lado, params) {
-  const propia = params.paredes?.[lado]?.etiqueta?.trim();
-  return `${propia || nombreLado(lado, params.ladoFrente)} (${lado})`;
+  return `${nombreSinLetra(lado, params)} (${lado})`;
 }
 
 /** Filas de una pared (para la hoja "Paredes", una abajo de la otra). */

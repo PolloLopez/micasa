@@ -11,7 +11,7 @@
 // ==========================================================
 
 import { LADOS } from './constantes.js';
-import { geometriaLados, nombreLado } from './geometria.js';
+import { geometriaLados, nombreDePared } from './geometria.js';
 
 /** Vector "hacia afuera" de un lado, en 3D (x, y, z). */
 const sinMenosCero = (v) => v.map((c) => c + 0); // -0 + 0 = 0 (más prolijo para comparar)
@@ -27,8 +27,8 @@ export function vistasFijas(params) {
   const derecho = LADOS[(LADOS.indexOf(frente) + 1) % 4];
   const afueraFrente = afueraDe(lados[frente]);
   return [
-    { clave: 'frente', titulo: `${nombreLado(frente, frente)} (${frente})`, desde: afueraFrente, arriba: [0, 1, 0] },
-    { clave: 'lateral', titulo: `${nombreLado(derecho, frente)} (${derecho})`, desde: afueraDe(lados[derecho]), arriba: [0, 1, 0] },
+    { clave: 'frente', titulo: `${nombreDePared(frente, params)} (${frente})`, desde: afueraFrente, arriba: [0, 1, 0] },
+    { clave: 'lateral', titulo: `${nombreDePared(derecho, params)} (${derecho})`, desde: afueraDe(lados[derecho]), arriba: [0, 1, 0] },
     // Desde arriba: el frente queda abajo en la foto, así que "arriba" apunta hacia el fondo.
     { clave: 'arriba', titulo: 'Desde arriba', desde: [0, 1, 0], arriba: sinMenosCero(afueraFrente.map((v) => -v)) },
   ];
@@ -51,7 +51,7 @@ export function vistasPorPartes(params) {
     vistas.push({ clave: 'entrepiso', titulo: 'Entrepiso desde arriba (sin techo)', desde: arriba, arriba: haciaElFondo, ocultar: { techo: false } });
   }
   [0, 1, 2, 3].map((i) => LADOS[(LADOS.indexOf(frente) + i) % 4]).forEach((lado) => {
-    vistas.push({ clave: `interior${lado}`, titulo: `Desde ${nombreLado(lado, frente).toLowerCase()} (${lado}), sin esa pared`,
+    vistas.push({ clave: `interior${lado}`, titulo: `Desde ${nombreDePared(lado, params).toLowerCase()} (${lado}), sin esa pared`,
       desde: afueraDe(lados[lado]), arriba, ocultar: { [lado]: false } });
   });
   return vistas;

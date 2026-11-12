@@ -5,13 +5,17 @@
 // ==========================================================
 
 import { NOMBRE_TIPO_PIEZA } from './motor/estructura.js';
-import { nombreLado } from './motor/geometria.js';
+import { nombreLado, nombreDePared } from './motor/geometria.js';
 
 const NOMBRE_GRUPO = { techo: 'Techo', piso: 'Piso', piso2: 'Piso 2', interior: 'Borde del entrepiso', escalera: 'Escalera', grada: 'Grada' };
 
-/** Nombre de un grupo (pared, techo, piso...). */
-export function nombreGrupo(grupo, ladoFrente) {
-  return NOMBRE_GRUPO[grupo] ?? nombreLado(grupo, ladoFrente);
+/**
+ * Nombre de un grupo (pared, techo, piso...).
+ * v1.52: `obra` puede ser el lado del frente ('A') o los params de la obra: con params, la pared usa su etiqueta.
+ */
+export function nombreGrupo(grupo, obra) {
+  if (NOMBRE_GRUPO[grupo]) return NOMBRE_GRUPO[grupo];
+  return typeof obra === 'object' ? nombreDePared(grupo, obra) : nombreLado(grupo, obra);
 }
 
 /** Texto completo de una pieza. */

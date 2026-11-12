@@ -65,7 +65,7 @@ import { flushSync } from 'react-dom';
 import { migrarParams, normalizarCatalogo } from './motor/migracion.js';
 import { PARAMS_INICIALES, ABERTURAS_INICIALES } from './motor/parametrosIniciales.js';
 import { LADOS, INSUMO } from './motor/constantes.js';
-import { nombreLado, alturasPared, geometriaLados, alturaMaxima } from './motor/geometria.js';
+import { nombreLado, alturasPared, geometriaLados, alturaMaxima, nombreDePared } from './motor/geometria.js';
 import { COLORES_INICIALES, coloresValidos, completarColores } from './capas.js';
 import { crearArchivoProyecto, leerArchivoProyecto, nombreDeArchivo } from './proyecto/archivoProyecto.js';
 import { crearLinkProyecto, leerLinkProyecto, tieneProyectoEnLink } from './proyecto/linkProyecto.js';
@@ -416,7 +416,7 @@ export default function App() {
 
     const aberturaQueNoEntra = aberturas.find((op) => validarAbertura(op, nuevos) !== null);
     if (aberturaQueNoEntra) {
-      return `Una ${aberturaQueNoEntra.tipo} (${nombreLado(aberturaQueNoEntra.lado, nuevos.ladoFrente)}) dejaría de entrar. Movela o quitala primero.`;
+      return `Una ${aberturaQueNoEntra.tipo} (${nombreDePared(aberturaQueNoEntra.lado, nuevos)}) dejaría de entrar. Movela o quitala primero.`;
     }
     setParams(nuevos);
     return null;
@@ -509,8 +509,8 @@ export default function App() {
   };
   /** Dónde se usa un tipo de panel (para no borrar uno en uso). */
   const usosDePanel = (id) => [
-    ...LADOS.filter((l) => params.paredes[l].panel === id).map((l) => nombreLado(l, params.ladoFrente)),
-    ...LADOS.filter((l) => params.paredes[l].panelInterior === id).map((l) => `${nombreLado(l, params.ladoFrente)} (interior)`),
+    ...LADOS.filter((l) => params.paredes[l].panel === id).map((l) => nombreDePared(l, params)),
+    ...LADOS.filter((l) => params.paredes[l].panelInterior === id).map((l) => `${nombreDePared(l, params)} (interior)`),
     ...(params.panelTecho === id ? ['Techo'] : []),
   ];
   const quitarTipoPanel = (id) => setCatalogo((prev) => prev.filter((p) => p.id !== id));
@@ -1211,7 +1211,7 @@ export default function App() {
             {/* v1.35.1: alero de cada lado y hasta dónde llegan vigas y correas. */}
             <h4 className="subtitulo-pared">Aleros</h4>
             <div className="grid-params">
-              {LADOS.map((lado) => opcional(`alero.${lado}`, `Alero ${nombreLado(lado, params.ladoFrente).toLowerCase()} (${lado})`, 'Sale', 0.5))}
+              {LADOS.map((lado) => opcional(`alero.${lado}`, `Alero ${nombreDePared(lado, params).toLowerCase()} (${lado})`, 'Sale', 0.5))}
             </div>
             {LADOS.some((lado) => params.alero?.[lado] > 0) && (
               <div className="grid-params grid-uniones">
@@ -1232,7 +1232,7 @@ export default function App() {
               {selectorPerfilDe(INSUMO.CORREA_TECHO, params.techoConBorde ? 'Correas (interior)' : 'Correas')}
             </div>
             <p className="nota">
-              Lado bajo: {params.altura.toFixed(2)} m ({nombreLado(params.caidaTecho, params.ladoFrente).toLowerCase()}) ·
+              Lado bajo: {params.altura.toFixed(2)} m ({nombreDePared(params.caidaTecho, params).toLowerCase()}) ·
               lado alto: {alturaMaxima(params).toFixed(2)} m
             </p>
           </Tarjeta>
@@ -1302,7 +1302,7 @@ export default function App() {
                     return (
                       <li key={agregada.id} className="abertura pieza-eliminada">
                         <span>
-                          {describirPieza(actual, params.ladoFrente)} · {catalogo.find((p) => p.id === agregada.insumo)?.nombre}
+                          {describirPieza(actual, params)} · {catalogo.find((p) => p.id === agregada.insumo)?.nombre}
                           <small className="detalle"> · {agregada.id}</small>
                         </span>
                         <button className="btn-sec no-print" onClick={() => eliminarPieza(agregada.id)}>Quitar</button>
@@ -1323,7 +1323,7 @@ export default function App() {
                       <li key={id} className="abertura pieza-eliminada">
                         <span>
                           {original
-                            ? <>{describirPieza(original, params.ladoFrente)} · {original.largo.toFixed(2)} → {actual.largo.toFixed(2)} m
+                            ? <>{describirPieza(original, params)} · {original.largo.toFixed(2)} → {actual.largo.toFixed(2)} m
                               {actual.insumo && <> · {catalogo.find((p) => p.id === actual.insumo)?.nombre}</>}
                               {actual.recorteIgnorado && <strong className="error"> · el recorte ya no entra</strong>}</>
                             : <em>Ya no existe en el modelo (cambió una medida)</em>}
@@ -1346,7 +1346,7 @@ export default function App() {
                     return (
                       <li key={id} className="abertura pieza-eliminada">
                         <span>
-                          {pieza ? describirPieza(pieza, params.ladoFrente) : <em>Ya no existe en el modelo (cambió una medida)</em>}
+                          {pieza ? describirPieza(pieza, params) : <em>Ya no existe en el modelo (cambió una medida)</em>}
                           <small className="detalle"> · {id}</small>
                         </span>
                         <button className="btn-sec no-print" onClick={() => restaurarPieza(id)}>Restaurar</button>
@@ -1376,30 +1376,30 @@ export default function App() {
               const [h1, h2] = alturasPared(lados[lado], params);
               return (
                 <ZonaResaltable key={lado} className={`pared ${paredesAbiertas[lado] || foco?.item === `pared:${lado}` ? 'abierta' : 'cerrada'}${foco?.item === `pared:${lado}` ? ' en-foco' : ''}`}
-                  criterio={{ tipo: 'grupo', id: lado, nombre: nombreLado(lado, params.ladoFrente) }}>
+                  criterio={{ tipo: 'grupo', id: lado, nombre: nombreDePared(lado, params) }}>
                   {/* El título pliega / despliega la pared (aria-expanded para lectores de pantalla); al lado, el 👁. */}
                   <div className="fila-titulo-pared">
                   <button type="button" className="pared-titulo plegable" aria-expanded={paredesAbiertas[lado] || foco?.item === `pared:${lado}`}
                     aria-controls={`pared-${lado}`} onClick={() => alternarPared(lado)}>
                     <span className="flecha" aria-hidden="true">▸</span>
-                    <strong>{nombreLado(lado, params.ladoFrente)}</strong>
+                    <strong>{nombreDePared(lado, params)}</strong>
                     {params.paredes[lado].etiqueta.trim() && <em>“{params.paredes[lado].etiqueta.trim()}”</em>}
                     <span>lado {lado} · {lados[lado].largo.toFixed(2)} m · alto {h1.toFixed(2)}{Math.abs(h1 - h2) > 0.005 ? ` a ${h2.toFixed(2)}` : ''} m</span>
                   </button>
-                  <BotonResaltar criterio={{ tipo: 'grupo', id: lado, nombre: nombreLado(lado, params.ladoFrente) }} />
+                  <BotonResaltar criterio={{ tipo: 'grupo', id: lado, nombre: nombreDePared(lado, params) }} />
                   </div>
                   <div className="pared-cuerpo" id={`pared-${lado}`}>
                   <div className="etiqueta-pared">
                     <label className="capa">
                       <input type="checkbox" checked={params.paredes[lado].mostrarEtiqueta}
-                        aria-label={`Mostrar la etiqueta de ${nombreLado(lado, params.ladoFrente)} en el 3D`}
+                        aria-label={`Mostrar la etiqueta de ${nombreDePared(lado, params)} en el 3D`}
                         onChange={(e) => cambiar(`paredes.${lado}.mostrarEtiqueta`)(e.target.checked)} />
                       Etiqueta en el 3D
                     </label>
                     <input type="text" className="perfil" maxLength={LARGO_MAXIMO_ETIQUETA}
                       value={params.paredes[lado].etiqueta} disabled={!params.paredes[lado].mostrarEtiqueta}
                       placeholder={`${nombreLado(lado, params.ladoFrente)} (${lado})`}
-                      aria-label={`Texto de la etiqueta de ${nombreLado(lado, params.ladoFrente)}`}
+                      aria-label={`Texto de la etiqueta de ${nombreDePared(lado, params)}`}
                       onChange={(e) => cambiar(`paredes.${lado}.etiqueta`)(e.target.value)} />
                   </div>
                   <div className="grid-params">

@@ -27,7 +27,7 @@ import SelectorColor from './componentes/SelectorColor.jsx';
 import { losaGruesa, dibujarMueble, dibujarMuebleEn, materialDeColor } from './interiores3d.js';
 import { ubicarMueble, choquesDelMueble, avisoDeChoques } from './motor/interiores.js';
 import { posicionAbertura, listarPiezas } from './motor/estructura.js';
-import { geometriaLados, nombreLado } from './motor/geometria.js';
+import { geometriaLados, nombreDePared } from './motor/geometria.js';
 import { describirPieza } from './descripcionPiezas.js';
 import { seccionDesdePerfil } from './motor/canos.js';
 import { INSUMO } from './motor/constantes.js';
@@ -750,7 +750,7 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
     if (!pared.mostrarEtiqueta || !capas.etiquetasParedes) return; // v1.33.1: se pueden sacar todas
     const geo = lados[lado];
     const afuera = [-geo.direccion[1], geo.direccion[0]];
-    const texto = pared.etiqueta.trim() || `${nombreLado(lado, params.ladoFrente)} (${lado})`;
+    const texto = pared.etiqueta.trim() || `${nombreDePared(lado, params)} (${lado})`;
     const sprite = cartel(texto, lado === params.ladoFrente);
     sprite.position.set(
       (geo.p1[0] + geo.p2[0]) / 2 + afuera[0] * 1.3,
@@ -1706,7 +1706,7 @@ export default function LoftCanvas({
         if (abertura) portapapelesRef.current = { clase: 'abertura', dato: abertura };
         else if (pieza) portapapelesRef.current = { clase: 'pieza', dato: pieza };
         else return;
-        setAvisoVisor(`Copiado: ${abertura ? `abertura #${aberturas.indexOf(abertura) + 1}` : describirPieza(pieza, params.ladoFrente)}. Ctrl+V para pegar.`);
+        setAvisoVisor(`Copiado: ${abertura ? `abertura #${aberturas.indexOf(abertura) + 1}` : describirPieza(pieza, params)}. Ctrl+V para pegar.`);
       } else if (tecla === 'v' && portapapelesRef.current) {
         const { clase, dato } = portapapelesRef.current;
         if (clase === 'abertura') {
@@ -1724,7 +1724,7 @@ export default function LoftCanvas({
     };
     window.addEventListener('keydown', alTeclear);
     return () => window.removeEventListener('keydown', alTeclear);
-  }, [aberturas, aberturaSeleccionada, seleccionada, estructura, params.ladoFrente, onPegarAbertura, onDuplicarPieza]);
+  }, [aberturas, aberturaSeleccionada, seleccionada, estructura, params, onPegarAbertura, onDuplicarPieza]);
 
   // El aviso corto se va solo a los 4 segundos.
   useEffect(() => {
@@ -1805,7 +1805,7 @@ export default function LoftCanvas({
   const partes = esGrada ? [{ clave: 'grada', nombre: 'Grada' }]
     : esMontaje ? params.montaje.componentes.map((c) => ({ clave: `comp:${c.id}`, nombre: c.nombre || 'Componente' }))
     : [
-    ...ordenDesdeFrente.map((lado) => ({ clave: lado, nombre: nombreLado(lado, params.ladoFrente) })),
+    ...ordenDesdeFrente.map((lado) => ({ clave: lado, nombre: nombreDePared(lado, params) })),
     { clave: 'techo', nombre: 'Techo' },
     { clave: 'piso', nombre: 'Piso' },
     { clave: 'piso2', nombre: 'Piso 2' },
@@ -2137,7 +2137,7 @@ export default function LoftCanvas({
         <div className="seleccion no-print" role="dialog" aria-label="Pieza seleccionada">
           <div className="seleccion-cabecera">
             <div>
-              <strong>Seleccionada:</strong> {describirPieza(piezaSeleccionada, params.ladoFrente)}
+              <strong>Seleccionada:</strong> {describirPieza(piezaSeleccionada, params)}
               {piezaSeleccionada.editada && <span className="marca-editada"> · editada</span>}
             </div>
             <button type="button" className="btn-cerrar" onClick={() => { setSeleccionada(null); setEditandoId(null); }}
@@ -2145,7 +2145,7 @@ export default function LoftCanvas({
           </div>
           {editandoId === piezaSeleccionada.id && (
             <EditorPieza pieza={piezaSeleccionada} edicion={params.piezasEditadas[piezaSeleccionada.id]}
-              catalogo={catalogo} unidad={unidad} ladoFrente={params.ladoFrente}
+              catalogo={catalogo} unidad={unidad} ladoFrente={params.ladoFrente} paredes={params.paredes}
               alturaPiso2={estructura.entrepiso ? estructura.entrepiso.y : null} elevacion={params.elevacion ?? 0} onEditar={onEditarPieza} />
           )}
           <div className="seleccion-acciones">

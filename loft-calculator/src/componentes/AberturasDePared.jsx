@@ -12,7 +12,7 @@ import CampoNumero from './CampoNumero.jsx';
 import SelectorLado from './SelectorLado.jsx';
 import CampoSelect from './CampoSelect.jsx';
 import { validarAbertura, copiarAbertura, aberturaNueva, LARGO_MAXIMO_ETIQUETA } from '../motor/validacion.js';
-import { nombreLado } from '../motor/geometria.js';
+import { nombreDePared } from '../motor/geometria.js';
 
 /**
  * Una abertura con todos sus campos editables.
@@ -42,7 +42,7 @@ export function FilaAbertura({ abertura, numero, params, unidad, onActualizar, o
     <li className="abertura">
       <div className="abertura-titulo">
         <strong>#{numero} {esPuerta ? 'Puerta' : 'Ventana'}</strong>
-        <span>{abertura.etiqueta?.trim() ? `“${abertura.etiqueta.trim()}” · ` : ''}{nombreLado(abertura.lado, params.ladoFrente)}</span>
+        <span>{abertura.etiqueta?.trim() ? `“${abertura.etiqueta.trim()}” · ` : ''}{nombreDePared(abertura.lado, params)}</span>
       </div>
       {/* Etiqueta propia (v1.17), como las paredes: se ve en el 3D junto al número. */}
       <div className="etiqueta-pared">

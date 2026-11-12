@@ -17,7 +17,7 @@ import CampoSelect from './CampoSelect.jsx';
 import SelectorPerfil from './SelectorPerfil.jsx';
 import SelectorColor from './SelectorColor.jsx';
 import { LADOS } from '../motor/constantes.js';
-import { nombreLado, largoLado } from '../motor/geometria.js';
+import { largoLado, nombreDePared } from '../motor/geometria.js';
 import { mesadaNueva, tramosDeMesada, FORMAS_MESADA, NOMBRE_TRAMO, ELECTROS_HUECO, TAPA_SEGUN_ELECTRO, HUECO_NUEVO, BACHA_NUEVA, ajustarMesada, limitesDeMesada, tabiquesQueCruzaLaMesada } from '../motor/interiores.js';
 
 const f2 = (n) => n.toFixed(2).replace('.', ',');
@@ -82,7 +82,7 @@ function Mesada({ m, i, params, unidad, cambiar, onQuitar, paneles, perfiles, pe
     <FichaPlegable clave={`mesada:${m.id}`} className="mesada" abiertaAlInicio={abiertaAlInicio}
       encabezado={<>
           <strong>{m.nombre}</strong>
-          <small>{nombreLado(m.lado, params.ladoFrente)} · {FORMAS_MESADA.find(([f]) => f === forma)[1].split(' (')[0]} · {f2(largoDe('principal'))} x {f2(m.profundidad)} m</small>
+          <small>{nombreDePared(m.lado, params)} · {FORMAS_MESADA.find(([f]) => f === forma)[1].split(' (')[0]} · {f2(largoDe('principal'))} x {f2(m.profundidad)} m</small>
       </>}
       acciones={<button type="button" className="btn-del" onClick={onQuitar} aria-label={`Quitar ${m.nombre}`} title="Quitar">✕</button>}>
       {/* v1.38.1: el nombre es el cartel del 3D (como paredes y aberturas); se puede sacar uno por uno. */}
@@ -99,7 +99,7 @@ function Mesada({ m, i, params, unidad, cambiar, onQuitar, paneles, perfiles, pe
       <div className="grid-params">
         <CampoSelect etiqueta="Forma" valor={forma} opciones={FORMAS_MESADA} onCambio={cambiar(`${ruta}.forma`)} />
         <CampoSelect etiqueta="Contra la pared" valor={m.lado}
-          opciones={LADOS.map((l) => [l, `${nombreLado(l, params.ladoFrente)} (${l})`])} onCambio={cambiar(`${ruta}.lado`)} />
+          opciones={LADOS.map((l) => [l, `${nombreDePared(l, params)} (${l})`])} onCambio={cambiar(`${ruta}.lado`)} />
         {conEntrepiso && (
           <CampoSelect etiqueta="Nivel" valor={m.nivel} opciones={[['piso', 'Planta baja'], ['piso2', 'Piso 2 (entrepiso)']]}
             onCambio={cambiar(`${ruta}.nivel`)} />

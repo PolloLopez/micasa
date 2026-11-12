@@ -13,7 +13,7 @@ import Tarjeta from './Tarjeta.jsx';
 import FichaPlegable from './FichaPlegable.jsx';
 import CampoNumero from './CampoNumero.jsx';
 import CampoSelect from './CampoSelect.jsx';
-import { nombreLado } from '../motor/geometria.js';
+import { nombreDePared } from '../motor/geometria.js';
 import SelectorColor from './SelectorColor.jsx';
 import { TIPOS_MUEBLE, GRUPOS_MUEBLE, MATERIALES_MUEBLE, muebleNuevo, colorDelMueble, distanciasDelMueble, libreArribaDelMueble, cajonesQueChocan, PUERTAS_MUEBLE, margenDePuerta, puertaQueChoca, puertaChocaCon, cajonesChocanCon, choquesDelMueble, avisoDeChoques, alturaDeApoyo, seApoya } from '../motor/interiores.js';
 
@@ -160,7 +160,7 @@ export default function PanelMuebles({ params, unidad, cambiar }) {
     setAviso(cambiar('muebles')([...muebles, muebleNuevo(tipoNuevo, muebles, id)]));
   };
   const quitar = (id) => cambiar('muebles')(muebles.filter((m) => m.id !== id));
-  const frente = nombreLado(params.ladoFrente, params.ladoFrente).toLowerCase();
+  const frente = nombreDePared(params.ladoFrente, params).toLowerCase();
   return (
     <Tarjeta id="muebles" titulo={`Muebles y electrodomésticos (${muebles.length})`}>
       <p className="nota">

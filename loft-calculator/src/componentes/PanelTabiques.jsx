@@ -15,7 +15,7 @@ import CampoNumero from './CampoNumero.jsx';
 import CampoSelect from './CampoSelect.jsx';
 import SelectorPerfil from './SelectorPerfil.jsx';
 import { LADOS } from '../motor/constantes.js';
-import { nombreLado, ladoOpuesto } from '../motor/geometria.js';
+import { ladoOpuesto, nombreDePared } from '../motor/geometria.js';
 import { tabiqueNuevo, carasDelTabique, altosDelTabique, TIPOS_PUERTA, SENTIDOS_PUERTA, distanciasDelTabique } from '../motor/tabiques.js';
 import { puertasTapadas, textoDePuertaTapada, libreDelanteDePuerta, LIBRE_DELANTE_SEGUN_TIPO } from '../motor/recorrido.js';
 
@@ -40,7 +40,7 @@ function Tabique({ t, i, params, unidad, cambiar, onQuitar, paneles, perfiles, p
     <FichaPlegable clave={`tabique:${t.id}`} className="tabique" abiertaAlInicio={abiertaAlInicio}
       encabezado={<>
           <strong>{t.nombre}</strong>
-          <small>{t.orientacion === 'paralelo' ? 'Paralelo a' : 'Desde'} {nombreLado(t.lado, params.ladoFrente)} · {f2(t.largo)} m</small>
+          <small>{t.orientacion === 'paralelo' ? 'Paralelo a' : 'Desde'} {nombreDePared(t.lado, params)} · {f2(t.largo)} m</small>
       </>}
       acciones={<button type="button" className="btn-del" onClick={onQuitar} aria-label={`Quitar ${t.nombre}`} title="Quitar">✕</button>}>
       <div className="etiqueta-pared">
@@ -53,7 +53,7 @@ function Tabique({ t, i, params, unidad, cambiar, onQuitar, paneles, perfiles, p
           onChange={(e) => cambiar(`${ruta}.nombre`)(e.target.value)} />
       </div>
       <div className="grid-params">
-        <CampoSelect etiqueta="Pared" valor={t.lado} opciones={LADOS.map((l) => [l, `${nombreLado(l, params.ladoFrente)} (${l})`])}
+        <CampoSelect etiqueta="Pared" valor={t.lado} opciones={LADOS.map((l) => [l, `${nombreDePared(l, params)} (${l})`])}
           onCambio={cambiar(`${ruta}.lado`)} />
         <CampoSelect etiqueta="Cómo va" valor={t.orientacion}
           opciones={[['perpendicular', 'Sale de la pared (perpendicular)'], ['paralelo', 'Al lado de la pared (paralelo)']]}
@@ -65,7 +65,7 @@ function Tabique({ t, i, params, unidad, cambiar, onQuitar, paneles, perfiles, p
         {/* v1.51: como los muebles, la separación se mide desde su pared o desde la de enfrente. */}
         {t.orientacion === 'paralelo' && (
           <CampoSelect etiqueta="Separación medida desde" valor={t.separacionDesde ?? 'pared'}
-            opciones={[['pared', `Su pared (${nombreLado(t.lado, params.ladoFrente)})`], ['enfrente', `La de enfrente (${nombreLado(ladoOpuesto(t.lado), params.ladoFrente)})`]]}
+            opciones={[['pared', `Su pared (${nombreDePared(t.lado, params)})`], ['enfrente', `La de enfrente (${nombreDePared(ladoOpuesto(t.lado), params)})`]]}
             onCambio={(v) => cambiar(ruta)({ ...t, separacionDesde: v, separacion: Math.round((v === 'enfrente' ? d.aEnfrente : d.aSuPared) * 100) / 100 })} />
         )}
         {t.orientacion === 'paralelo' && medida('separacion', 'Separación')}

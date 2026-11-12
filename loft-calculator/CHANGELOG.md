@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.52.0] - 2026-11-12
+### Cambiado
+- **Las paredes se llaman como su etiqueta en toda la app** (pedido de Leandro): si a una pared le pusiste "Vecino" o
+  "Patio" en su tarjeta (Paredes y aberturas → texto de la etiqueta), ese nombre aparece en las tarjetas, los
+  desplegables (tabiques, mesadas, aberturas), los planos (títulos y alrededor de cada planta), las vistas del PDF, la
+  descripción de las piezas, los aleros, el resumen y el Excel. Sin etiqueta, el nombre automático de siempre
+  (Frente, Lateral derecho…). La letra (A, B, C, D) queda entre paréntesis donde ya estaba.
+
 ## [1.51.2] - 2026-11-12
 ### Agregado
 - **Lugar libre para pasar, por puerta** (ficha del tabique → "Lugar libre a cada lado para pasar"): lo que hace falta

@@ -62,6 +62,16 @@ export function nombreLado(lado, ladoFrente) {
 }
 
 /**
+ * v1.52 (pedido de Leandro): el nombre de una pared en toda la app: la etiqueta que le pusiste en su tarjeta
+ * ("Vecino", "Patio"…) o, si no tiene, el automático según el frente ("Lateral derecho"). Sin la letra.
+ * @param params los de la obra (o un objeto con `paredes` y `ladoFrente`)
+ */
+export function nombreDePared(lado, params) {
+  const propia = params?.paredes?.[lado]?.etiqueta?.trim();
+  return propia || nombreLado(lado, params?.ladoFrente ?? 'A');
+}
+
+/**
  * Tramo del lado donde se apoya el entrepiso: { inicio, largo }, con
  * `inicio` medido desde la esquina izquierda del lado (vista desde afuera,
  * igual que las aberturas).
