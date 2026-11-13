@@ -167,6 +167,12 @@ input.perfil:focus { outline: 2px solid var(--acento); border-style: solid; }
   background: rgba(15, 23, 42, 0.88); padding: 6px 8px; border-radius: 8px; border: 1px solid var(--borde); font-size: 0.75rem;
 }
 .capas.plegada { width: auto; padding: 4px; }
+/* v1.55: leyenda del color por perfil (abajo a la derecha, para no taparse con las capas). */
+.leyenda-perfiles { position: absolute; bottom: 12px; right: 12px; z-index: 10; list-style: none; margin: 0; padding: 6px 10px; max-height: 40%; overflow-y: auto;
+  background: rgba(15, 23, 42, 0.88); border: 1px solid var(--borde); border-radius: 8px; font-size: 0.75rem; color: #fff; }
+.leyenda-perfiles li { display: flex; align-items: center; gap: 6px; padding: 1px 0; }
+.leyenda-perfiles small { color: var(--texto-tenue); }
+.muestra-color { width: 12px; height: 12px; border-radius: 2px; flex: none; border: 1px solid rgba(255,255,255,0.4); }
 .pestanas-capas { display: flex; flex-wrap: wrap; gap: 4px; }
 .chip-capas {
   background: transparent; color: var(--texto-suave); border: 1px solid var(--borde-input); border-radius: 999px;

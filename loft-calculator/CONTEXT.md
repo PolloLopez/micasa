@@ -228,6 +228,7 @@ techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 
 - 2026-10-23 v1.25.0: proveedores, precios en efectivo/tarjeta por proveedor, comparar presupuestos y "lo más barato de cada material".
 - 2026-10-23 v1.26.0: pestaña Planos (paredes y plantas acotadas, listas de corte, revestimiento), en el PDF y en Excel.
 - 2026-10-25 v1.30.0: link compacto (la mitad) y links cortos en Firebase para ver/editar que guardan los cambios.
+- 2026-11-12 v1.55.0: motor/coloresPerfil.js (coloresPorPerfil con compraDePieza + nombrePerfil, paleta por orden de nombre); LoftCanvas: botón 🎨 Color por perfil (useEstadoGuardado 'colorPorPerfil'), materiales.porPerfil y .leyenda-perfiles.
 - 2026-11-12 v1.54.0: motor/finanzas.js (params.finanzas = { compromisos, acreedores }; planes de cuotas con mesesDobles; monedas ARS/USD sin convertir; deudasConAcreedores); rubros con avance, cuotas y pagos con cuota/acreedor; etapaDelRubro (checklist automático) y totalesPorQuien; deploy por GitHub Actions (.github/workflows/deploy-loft-calculator.yml).
 - 2026-11-12 v1.53.0: cierre.segmentos (MODOS_SEGMENTO, SEGMENTOS_INICIALES, manoDeObra con medidas m2/kg/m2Revestimiento/mTabiques/pilotines); renglones mo:<id> y rubros manoDeObra:<id> en el seguimiento.
 - 2026-11-12 v1.52.0: geometria.nombreDePared(lado, params) = etiqueta de la pared o nombreLado; reemplaza a nombreLado donde hay params (el nombre automático queda para el placeholder de la etiqueta y la grada/montaje).

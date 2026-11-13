@@ -1,4 +1,4 @@
-# Manual de Pollo Calculator (v1.54.0)
+# Manual de Pollo Calculator (v1.55.0)
 
 Guía corta para usar el sistema y chequear que todo ande. Cada parte termina con **✔ Chequeá**: lo que tenés que ver.
 
@@ -58,6 +58,7 @@ Medidas de la planta, alturas, pisos (perfil C o tirantes de madera), entrepiso,
 | Ver frente | Vuelve a la vista de frente |
 | ☀ Sol | Sol del día y la hora que elijas, con sombras |
 | ✨ Realista | Paneles sólidos, reflejos, sin ayudas de dibujo |
+| 🎨 Color por perfil | Cada pieza del color de su caño (el mismo perfil, el mismo color), con leyenda de piezas y metros |
 | 🏠 Ver adentro | Oculta las paredes (y el techo) que te tapan mientras girás |
 | 👁 Primera persona | Ves a la altura de los ojos (arrastrás para mirar, W A S D para caminar, Esc sale) |
 | 📏 Medir | Tocás dos puntos y te da la medida |
@@ -75,6 +76,8 @@ Medidas de la planta, alturas, pisos (perfil C o tirantes de madera), entrepiso,
 Los perros caminan solos y olfatean. Las puertas de los tabiques se abren cuando pasa una persona.
 
 ✔ Chequeá:
+- Con **🎨 Color por perfil**, las columnas y las vigas que son del mismo caño quedan del mismo color, y la leyenda
+  dice cuántos metros hay de cada perfil.
 - Un mueble arrastrado contra la pared **se frena** (no queda medio afuera).
 - Una ventana con ✥ Mover y → se corre por su pared; ↑ sube el antepecho.
 - **☀ Sol + 🏠 Ver adentro**: la luz entra **solo por las ventanas y puertas** (no por la pared que se ocultó).

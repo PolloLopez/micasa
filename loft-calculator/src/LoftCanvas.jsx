@@ -30,6 +30,7 @@ import { posicionAbertura, listarPiezas } from './motor/estructura.js';
 import { geometriaLados, nombreDePared } from './motor/geometria.js';
 import { describirPieza } from './descripcionPiezas.js';
 import { seccionDesdePerfil } from './motor/canos.js';
+import { coloresPorPerfil, perfilDePieza } from './motor/coloresPerfil.js';
 import { INSUMO } from './motor/constantes.js';
 import EditorPieza from './componentes/EditorPieza.jsx';
 import { FilaAbertura } from './componentes/AberturasDePared.jsx';
@@ -155,6 +156,8 @@ function crearMateriales(colores) {
   materiales.madera = new THREE.MeshStandardMaterial({ color: '#b7791f', roughness: 0.85 });
   materiales.machimbre = new THREE.MeshStandardMaterial({ color: '#d6a35c', roughness: 0.8 });
   transparente(materiales.machimbre, 0.6);
+  // v1.55: un material por color de perfil ("Color por perfil"); se crean cuando hacen falta.
+  materiales.porPerfil = new Map();
   // Juntas de los paneles (v1.24: con opacidad regulable desde la leyenda).
   materiales.juntas = new THREE.LineBasicMaterial({ color: COLOR_JUNTAS, transparent: true, opacity: 1 });
   // Pieza seleccionada: amarillo que brilla.
@@ -330,7 +333,20 @@ function cartel(texto, esFrente) {
 
 /** Arma todas las mallas del modelo dentro de `grupo`. */
 function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
-  const { params, estructura: e, aberturas, capas, gruposVisibles, seleccionada, catalogo, aberturaSeleccionada, medida, resaltado, medidasFijas = [] } = opciones;
+  const { params, estructura: e, aberturas, capas, gruposVisibles, seleccionada, catalogo, aberturaSeleccionada, medida, resaltado, medidasFijas = [],
+    perfiles = null, opacidadHierros = 1 } = opciones;
+  // v1.55: con "Color por perfil", cada pieza del color de su caño (el mismo perfil, el mismo color).
+  const colorDePerfil = perfiles ? new Map(perfiles.map((x) => [x.perfil, x.color])) : null;
+  const materialDePerfil = (p) => {
+    const color = colorDePerfil.get(perfilDePieza(p, catalogo));
+    if (!color) return null;
+    if (!materiales.porPerfil.has(color)) {
+      const m = new THREE.MeshStandardMaterial({ color });
+      aplicarOpacidad(m, opacidadHierros);
+      materiales.porPerfil.set(color, m);
+    }
+    return materiales.porPerfil.get(color);
+  };
   const { elevacion } = params;
   const grupoVisible = (g) => gruposVisibles[g] !== false; // 'interior' no tiene interruptor
   // v1.45: a lo que es de una pared (o del techo) se le anota cuál, para ocultarlo cuando tapa la vista
@@ -349,7 +365,8 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
     const elegida = p.id === seleccionada;
     const resaltada = !elegida && piezaResaltada(p, resaltado, catalogo); // v1.27
     // v1.42.1: los tirantes de madera, de madera (y un poco más gruesos).
-    const material = elegida ? materiales.seleccion : resaltada ? materiales.resaltado : p.madera ? materiales.madera : materiales[capa];
+    const material = elegida ? materiales.seleccion : resaltada ? materiales.resaltado : p.madera ? materiales.madera
+      : (colorDePerfil && materialDePerfil(p)) || materiales[capa];
     const seccion = p.madera ? 0.1 : seccionDe(p, catalogo, estilo);
     const malla = barra(p, elegida ? seccion * 1.6 : resaltada ? seccion * 1.3 : seccion, material);
     if (resaltada) malla.renderOrder = 997; // después de los paneles transparentes
@@ -1010,6 +1027,7 @@ export default function LoftCanvas({
       params, estructura, aberturas, capas: capasVista, gruposVisibles: limpio ? { ...gruposVisibles, ...ocultar } : gruposVisibles,
       seleccionada: limpio ? null : seleccionada, catalogo, aberturaSeleccionada: limpio ? null : aberturaSeleccionada,
       medida: limpio ? null : medida, resaltado: limpio ? null : resaltado, medidasFijas: limpio ? [] : medidasFijas,
+      perfiles: perfilesVista, opacidadHierros: opacidadesVista.hierros,
     });
     juntarPuertas(visor);
   };
@@ -1020,6 +1038,10 @@ export default function LoftCanvas({
       etiquetasTerreno: false, etiquetasMesadas: false, etiquetasTabiques: false, etiquetasMuebles: false }
     : capas), [realista, capas]);
   const opacidadesVista = useMemo(() => (realista ? { ...opacidades, paneles: 1, osb: 1, hierros: 1 } : opacidades), [realista, opacidades]);
+  // v1.55: "Color por perfil": la lista de perfiles en uso con su color (también es la leyenda). null = color por función.
+  const [colorPorPerfil, setColorPorPerfil] = useEstadoGuardado('colorPorPerfil', false, (v) => typeof v === 'boolean');
+  const perfilesVista = useMemo(() => (colorPorPerfil && estructura ? coloresPorPerfil(listarPiezas(estructura), catalogo) : null),
+    [colorPorPerfil, estructura, catalogo]);
 
   // 1) MONTAJE: una sola vez.
   useEffect(() => {
@@ -1488,7 +1510,8 @@ export default function LoftCanvas({
       tipo: p, // ubicación y espesor (v1.15): dónde se dibuja respecto de la estructura
     }));
     dibujarModelo(visor.grupo, visor.materiales, visor.materialesPanel,
-      { params, estructura, aberturas, capas: capasVista, gruposVisibles, seleccionada, catalogo, aberturaSeleccionada, medida, resaltado, medidasFijas });
+      { params, estructura, aberturas, capas: capasVista, gruposVisibles, seleccionada, catalogo, aberturaSeleccionada, medida, resaltado, medidasFijas,
+        perfiles: perfilesVista, opacidadHierros: opacidadesVista.hierros });
     visor.corte.version += 1; // v1.45: hay que volver a ver qué paredes tapan
     juntarPuertas(visor);
     // Se reacomoda la cámara si cambia el frente o el tipo de proyecto (construcción / grada).
@@ -1497,7 +1520,7 @@ export default function LoftCanvas({
       mirarAlFrente(visor.camara, visor.controles, medidasVista(params, estructura));
       visor.frente = encuadre;
     }
-  }, [params, estructura, aberturas, capasVista, paneles, gruposVisibles, seleccionada, opacidadesVista.paneles, catalogo, aberturaSeleccionada, medida, resaltado, medidasFijas]);
+  }, [params, estructura, aberturas, capasVista, paneles, gruposVisibles, seleccionada, opacidadesVista.paneles, catalogo, aberturaSeleccionada, medida, resaltado, medidasFijas, perfilesVista, opacidadesVista.hierros]);
 
   // 2a) v1.45.1: "Lo enterrado" apagado = se corta todo lo que está debajo del suelo (un plano de corte en y = 0,
   // un poquito más abajo para no cortar el piso que recibe las sombras, que está a −1 cm).
@@ -1742,6 +1765,7 @@ export default function LoftCanvas({
     aplicarOpacidad(visor.materiales.machimbre, opacidades.osb); // v1.42.1: el machimbre sigue a la opacidad del OSB
     aplicarOpacidad(visor.materiales.paneles, opacidades.paneles);
     CAPAS_HIERRO.forEach((capa) => aplicarOpacidad(visor.materiales[capa], opacidades.hierros));
+    visor.materiales.porPerfil.forEach((m) => aplicarOpacidad(m, opacidades.hierros)); // v1.55
     aplicarOpacidad(visor.materiales.juntas, opacidades.juntas ?? 1);
   }, [opacidadesVista]);
 
@@ -2003,6 +2027,10 @@ export default function LoftCanvas({
           title="Paneles sólidos, sombras y reflejos, sin las ayudas de dibujo (juntas, cotas, etiquetas)">
           ✨ Realista
         </button>
+        <button className={`btn-ctrl${colorPorPerfil ? ' activo' : ''}`} aria-pressed={colorPorPerfil} onClick={() => setColorPorPerfil((v) => !v)}
+          title="Pinta cada pieza del color de su caño o perfil (el mismo perfil, el mismo color), en vez de por columna, viga, tirante…">
+          🎨 Color por perfil
+        </button>
         {esConstruccion && (<>
           <button className={`btn-ctrl${verAdentro ? ' activo' : ''}`} aria-pressed={verAdentro} onClick={() => setVerAdentro((v) => !v)}
             title="Las paredes (y el techo) que quedan entre vos y la casa se ocultan solas mientras girás, para ver adentro">
@@ -2162,6 +2190,16 @@ export default function LoftCanvas({
             </button>
           </div>
         </div>
+      )}
+
+      {/* v1.55: leyenda del color por perfil: cada caño con su color, cuántas piezas y cuántos metros. */}
+      {perfilesVista && perfilesVista.length > 0 && (
+        <ul className="leyenda-perfiles no-print" aria-label="Colores por perfil">
+          {perfilesVista.map((x) => (
+            <li key={x.perfil}><span className="muestra-color" style={{ background: x.color }} />
+              {x.perfil} <small>· {x.piezas} {x.piezas === 1 ? 'pieza' : 'piezas'} · {x.metros.toFixed(1).replace('.', ',')} m</small></li>
+          ))}
+        </ul>
       )}
 
       {/* v1.38.2: capas en pestañas (una sección a la vez, a la izquierda): antes todas juntas tapaban el 3D. */}

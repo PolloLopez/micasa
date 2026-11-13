@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.55.0] - 2026-11-12
+### Agregado
+- **🎨 Color por perfil** (botón en la barra del 3D, pedido de Leandro): cada pieza se pinta del color de su caño o
+  perfil, en vez de por función (columna, viga, tirante…). El mismo 80x80x2 se ve del mismo color en toda la obra.
+  Abajo a la derecha, la leyenda: cada perfil con su color, cuántas piezas y cuántos metros. El perfil es el mismo con
+  el que se compra (el elegido a mano, el de su pared o el de su tipo), así coincide con la lista de materiales. El
+  color sigue al nombre del perfil: no cambia al agregar piezas. Se acuerda prendido o apagado en este navegador.
+
 ## [1.54.0] - 2026-11-12
 ### Agregado
 - **Checklist de cada rubro** (pestaña Obra): la etapa sale sola del **avance** (cuánto está hecho, en %, a mano) y de
