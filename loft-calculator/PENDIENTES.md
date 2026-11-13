@@ -3,7 +3,7 @@
 Última limpieza: 2026-11-11 (v1.49.0). Espejo en Trello: tablero "Desarrollo", tarjetas `[CALC]`.
 
 ## 📌 Estado y próximos pasos (11/11)
-**En GitHub: hasta v1.51.0. v1.51.1 a v1.55.0 por subir.** Manual de uso para chequear: `MANUAL.md`.
+**En GitHub: hasta v1.53.0. v1.54.0 a v1.56.0 por subir** (desde v1.54 el deploy es automático al pushear). Manual de uso para chequear: `MANUAL.md`.
 
 🟡 **Para chequear en pantalla** (probado con tests, no visto): el sol con "Ver adentro" entra solo por las aberturas;
 la persona se sienta en el sillón y se acuesta en la cama; las puertas de los tabiques se abren al pasar.
@@ -28,9 +28,10 @@ Lo que falta, en orden de prioridad (detalle en cada sección de abajo):
 - ✅ v1.54.0 **Finanzas**: checklist por avance, cuotas con meses dobles, por proveedor/contratista, terreno en USD,
   créditos (previsto), acreedores ("lo pagó X") y devoluciones. Deploy automático por GitHub Actions.
   - 🟢 [ ] Crédito: interés y sistema francés (hoy cuotas fijas que cargás vos).
-- [ ] **Obra civil** (materiales por dosificación editable: cemento, arena, piedra, hierro, ladrillo hueco):
-  pilotines, tapial (ladrillo hueco + encadenado + columnas), pilar de luz (ladrillo con columna de hormigón adentro),
-  pozo séptico (cámara séptica + pozo absorbente). Ubicados en el terreno.
+- ✅ v1.56.0 **Obra civil** (dosificación editable): pilotines hormigonados, tapial, pilar de luz, cámara y pozo.
+  - 🔴 [ ] Validar con el albañil los rendimientos (`RENDIMIENTOS` en obraCivil.js): ladrillos por m², secciones de
+    columnas, viga de fundación y encadenado, panal del pozo, empalmes.
+  - 🟢 [ ] Revoque e hidrófugo de la cámara; mano de obra del tapial por m² (hoy monto total).
 - [ ] **Instalaciones** (puntos como los muebles + recorrido que trazás vos; por fuera, atornilladas a la estructura):
   eléctrica (canalización elegible por tramo: bandeja, caño rígido PVC, metálico, cablecanal; tablero, tomas, lámparas),
   agua (termofusión 20/25 editable; termotanque, cisterna, bomba presurizadora; grifería, ducha, lavamanos),

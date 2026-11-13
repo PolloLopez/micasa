@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.56.0] - 2026-11-12
+### Agregado
+- **Obra civil (hormigón y ladrillos)** (pestaña Estructura, debajo del Terreno): cemento, arena, piedra, hierro (ø8,
+  ø6 y ø4,2 de estribos), ladrillos y excavación de:
+  - **Pilotines hormigonados en obra** (opcional): en vez del pilotín comprado y el hormigón elaborado de las zapatas,
+    sus materiales (4 ø8 con estribos; profundidad bajo el terreno editable).
+  - **Tapial del cerramiento**: ladrillo hueco 12x18x33 con columnas (cada X m), viga de fundación y encadenado. Con
+    terreno se eligen los lados del lote (se ve en el 3D y en la implantación); sin terreno, un largo a mano.
+  - **Pilar de luz** (nuevo elemento del terreno): ladrillo común con una columna de hormigón adentro y su base, más
+    un renglón de accesorios (caja de medidor, caño, jabalina, tablero).
+  - **Cámara séptica** (paredes de ladrillo, fondo y tapa de hormigón) y **pozo absorbente** (calzado de ladrillo en
+    panal y tapa de hormigón armado), con la profundidad de cada uno.
+- **Dosificación editable**: kg de cemento y m³ de arena y piedra por m³ de hormigón (de fábrica ≈ 1:2:3) y de
+  mortero; kilos por bolsa. La tabla "Lo que lleva" muestra cada parte y abajo lo que hay que comprar.
+- Los materiales nuevos van al catálogo (Materiales) con precios de ejemplo y a la lista de materiales.
+
 ## [1.55.0] - 2026-11-12
 ### Agregado
 - **🎨 Color por perfil** (botón en la barra del 3D, pedido de Leandro): cada pieza se pinta del color de su caño o

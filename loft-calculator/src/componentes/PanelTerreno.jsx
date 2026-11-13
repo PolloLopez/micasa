@@ -51,7 +51,7 @@ function Elemento({ el, i, unidad, cambiar, onQuitar, pozo }) {
           {medida('ancho', 'Ancho (paralelo a la calle)')}
           {medida('largo', 'Largo (hacia el fondo)')}
         </>)}
-        {(el.tipo === 'arbol' || el.tipo === 'construccion') && medida('alto', 'Alto')}
+        {(el.tipo === 'arbol' || el.tipo === 'construccion' || el.tipo === 'pilarLuz') && medida('alto', 'Alto')}
       </div>
       {pozo && (
         <p className="nota">

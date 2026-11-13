@@ -31,6 +31,8 @@ import { LADOS } from './constantes.js';
 export const TIPOS_ELEMENTO = {
   pozo: { nombre: 'Pozo séptico', forma: 'circulo', diametro: 1.2, alto: 0, color: '#78716c' },
   camara: { nombre: 'Cámara séptica', forma: 'rectangulo', ancho: 0.6, largo: 0.6, alto: 0, color: '#a8a29e' },
+  // v1.56: el pilar de la luz (de ladrillo, con columna de hormigón adentro; materiales en obraCivil.js).
+  pilarLuz: { nombre: 'Pilar de luz', forma: 'rectangulo', ancho: 0.45, largo: 0.3, alto: 1.7, color: '#b45309' },
   arbol: { nombre: 'Árbol', forma: 'circulo', diametro: 4, alto: 6, color: '#15803d' },
   construccion: { nombre: 'Construcción', forma: 'rectangulo', ancho: 3, largo: 3, alto: 2.5, color: '#94a3b8' },
   acceso: { nombre: 'Acceso', forma: 'rectangulo', ancho: 3, largo: 5, alto: 0, color: '#a1a1aa' },

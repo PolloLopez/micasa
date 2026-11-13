@@ -16,7 +16,7 @@ const f2 = (n) => n.toFixed(2);
  * @param imp     resultado de implantacion(params)
  * @param terreno params.terreno (retiros y orientación)
  */
-export default function PlanoImplantacion({ imp, terreno }) {
+export default function PlanoImplantacion({ imp, terreno, tapial = null }) {
   const { lote, casa, distancias } = imp;
   const T = Math.max(lote.frente, lote.fondo) / 45; // alto del texto, proporcional al lote
   const margen = T * 7;
@@ -66,6 +66,14 @@ export default function PlanoImplantacion({ imp, terreno }) {
       {retiros.fondo > 0 && <line x1={0} y1={retiros.fondo} x2={lote.frente} y2={retiros.fondo} className="retiro" />}
       {retiros.izquierda > 0 && <line x1={retiros.izquierda} y1={0} x2={retiros.izquierda} y2={lote.fondo} className="retiro" />}
       {retiros.derecha > 0 && <line x1={lote.frente - retiros.derecha} y1={0} x2={lote.frente - retiros.derecha} y2={lote.fondo} className="retiro" />}
+
+      {/* v1.56: el tapial del cerramiento por los lados elegidos (línea gruesa por dentro del lote). */}
+      {(tapial?.lados ?? []).map((lado) => {
+        const d = 0.075; // medio espesor del tapial
+        const linea = { frente: [0, lote.fondo - d, lote.frente, lote.fondo - d], fondo: [0, d, lote.frente, d],
+          izquierda: [d, 0, d, lote.fondo], derecha: [lote.frente - d, 0, lote.frente - d, lote.fondo] }[lado];
+        return linea && <line key={lado} x1={linea[0]} y1={linea[1]} x2={linea[2]} y2={linea[3]} className="tapial" strokeWidth={0.15} />;
+      })}
 
       {/* Lo que hay en el terreno */}
       {imp.elementos.map((el) => {

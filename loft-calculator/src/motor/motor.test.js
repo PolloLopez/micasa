@@ -348,6 +348,8 @@ describe('calcularPresupuesto', () => {
   const item = (id) => items.find((i) => i.id === id);
 
   it('una construcción tiene un renglón por cada insumo, menos los de grada, montaje y los opcionales sin usar', () => {
+    const OBRA_CIVIL = [INSUMO.CEMENTO, INSUMO.ARENA, INSUMO.PIEDRA, INSUMO.HIERRO_8, INSUMO.HIERRO_6, INSUMO.HIERRO_42,
+      INSUMO.LADRILLO_HUECO, INSUMO.LADRILLO_COMUN, INSUMO.EXCAVACION_OBRA, INSUMO.KIT_PILAR];
     // Opcionales: riostras y montantes (v1.17) aparecen solo si la obra los lleva.
     // Los perfiles de la lista (v1.21, categoria 'hierro') no son renglones del presupuesto.
     // (v1.25: los proveedores tampoco.)
@@ -357,7 +359,8 @@ describe('calcularPresupuesto', () => {
         && id !== INSUMO.HORMIGON_ZAPATA && id !== INSUMO.EXCAVACION // v1.35: solo con zapatas
         && ![INSUMO.ESTRUCTURA_MESADA, INSUMO.TAPA_MESADA, INSUMO.ESTANTE_MESADA, INSUMO.BACHA_SIMPLE, INSUMO.BACHA_DOBLE,
           INSUMO.ESTRUCTURA_TABIQUE, INSUMO.PUERTA_PLACA, INSUMO.PUERTA_GRANERO,
-          INSUMO.TIRANTE_MADERA, INSUMO.TIRANTE_MADERA_2, INSUMO.MACHIMBRE].includes(id)); // v1.38: solo con mesadas
+          INSUMO.TIRANTE_MADERA, INSUMO.TIRANTE_MADERA_2, INSUMO.MACHIMBRE].includes(id) // v1.38: solo con mesadas
+        && !OBRA_CIVIL.includes(id)); // v1.56: solo con tapial, pilar, pozo o pilotines hormigonados
     // v1.48: los accesorios de fábrica se estiman solos (tornillería, electrodos, selladores y antióxido).
     expect(items.map((i) => i.id).sort()).toEqual([...esperados, 'acc-antioxido', 'acc-electrodos', 'acc-selladores', 'acc-tornilleria'].sort());
   });

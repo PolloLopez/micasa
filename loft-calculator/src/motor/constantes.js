@@ -81,6 +81,17 @@ export const INSUMO = {
   MONTAJE_CHAPA_MESA: 'montajeChapaMesa',
   MONTAJE_MADERA: 'montajeMadera',
   MONTAJE_SOLDADURA: 'montajeSoldadura',
+  // v1.56: obra civil (pilotines hormigonados, tapial, pilar de luz, cámara y pozo; ver obraCivil.js)
+  CEMENTO: 'cemento',
+  ARENA: 'arena',
+  PIEDRA: 'piedra',
+  HIERRO_8: 'hierro8',
+  HIERRO_6: 'hierro6',
+  HIERRO_42: 'hierro42',
+  LADRILLO_HUECO: 'ladrilloHueco',
+  LADRILLO_COMUN: 'ladrilloComun',
+  EXCAVACION_OBRA: 'excavacionObra',
+  KIT_PILAR: 'kitPilar',
 };
 
 // Límites de los componentes de un montaje (ver motor/montaje.js).

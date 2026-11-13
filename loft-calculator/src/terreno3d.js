@@ -88,8 +88,8 @@ function dibujarElemento(el, aMundo, conEtiqueta = true) {
     const pozo = new THREE.Mesh(new THREE.CylinderGeometry(el.diametro / 2, el.diametro / 2, 0.08, 24), material());
     pozo.position.set(cx, 0.04, cz);
     g.add(pozo);
-  } else if (el.tipo === 'construccion') {
-    const caja = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), material(0.7));
+  } else if (el.tipo === 'construccion' || el.tipo === 'pilarLuz') { // v1.56: el pilar de luz, una caja de su alto
+    const caja = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), material(el.tipo === 'pilarLuz' ? 1 : 0.7));
     const [p0, p1, , p3] = esquinasDe(aMundo, c);
     // El lote está alineado con los ejes: el ancho y el largo caen en x o en z según el frente.
     caja.scale.set(Math.abs(p1[0] - p0[0]) || Math.abs(p3[0] - p0[0]), Math.max(el.alto, 0.1), Math.abs(p3[1] - p0[1]) || Math.abs(p1[1] - p0[1]));
@@ -109,7 +109,7 @@ function dibujarElemento(el, aMundo, conEtiqueta = true) {
 }
 
 /** Qué parte del terreno es cada tipo de elemento (para prenderlas y apagarlas en Capas, v1.34.3). */
-const PARTE_DE_ELEMENTO = { pozo: 'pozos', camara: 'pozos', arbol: 'arboles', construccion: 'construcciones', acceso: 'accesos', vereda: 'accesos' };
+const PARTE_DE_ELEMENTO = { pozo: 'pozos', camara: 'pozos', arbol: 'arboles', construccion: 'construcciones', pilarLuz: 'construcciones', acceso: 'accesos', vereda: 'accesos' };
 
 /** Las partes del terreno que se pueden prender y apagar (claves de la capa: terreno + Parte). */
 export const PARTES_TERRENO = ['lote', 'calle', 'retiros', 'pozos', 'arboles', 'construcciones', 'accesos', 'norte'];
@@ -129,9 +129,10 @@ function aplicarOpacidadTerreno(grupo, factor) {
  * Dibuja el terreno en `grupo`.
  * @param imp  resultado de implantacion(params)
  * @param retiros params.terreno.retiros (0 = no se dibuja)
- * @param opciones { etiquetas: bool (v1.33.1), partes: { lote, calle, … } (v1.34.3, todas por defecto), opacidad: 0..1 }
+ * @param opciones { etiquetas: bool (v1.33.1), partes: { lote, calle, … } (v1.34.3, todas por defecto), opacidad: 0..1,
+ *                   tapial: { lados, alto } (v1.56: el tapial del cerramiento, por dentro del borde del lote) }
  */
-export function dibujarTerreno(grupo, imp, retiros = {}, { etiquetas: conEtiquetas = true, partes = {}, opacidad = 1 } = {}) {
+export function dibujarTerreno(grupo, imp, retiros = {}, { etiquetas: conEtiquetas = true, partes = {}, opacidad = 1, tapial = null } = {}) {
   const { aMundo, lote, norte } = imp;
   const caja = { u: 0, v: 0, ancho: lote.frente, largo: lote.fondo };
   const ver = (parte) => partes[parte] !== false;
@@ -163,6 +164,24 @@ export function dibujarTerreno(grupo, imp, retiros = {}, { etiquetas: conEtiquet
     if (retiros.fondo > 0) grupo.add(polilinea([aMundo(0, lote.fondo - retiros.fondo), aMundo(lote.frente, lote.fondo - retiros.fondo)], 0.01, COLOR_RETIRO, { discontinua: true }));
     if (retiros.izquierda > 0) grupo.add(polilinea([aMundo(retiros.izquierda, 0), aMundo(retiros.izquierda, lote.fondo)], 0.01, COLOR_RETIRO, { discontinua: true }));
     if (retiros.derecha > 0) grupo.add(polilinea([aMundo(lote.frente - retiros.derecha, 0), aMundo(lote.frente - retiros.derecha, lote.fondo)], 0.01, COLOR_RETIRO, { discontinua: true }));
+  }
+
+  // v1.56: el tapial: un muro de 15 cm por dentro de cada lado elegido del lote (va con "Construcciones").
+  if (tapial && tapial.alto > 0 && ver('construcciones')) {
+    const e = 0.15;
+    const tramos = { frente: { u: 0, v: 0, ancho: lote.frente, largo: e }, fondo: { u: 0, v: lote.fondo - e, ancho: lote.frente, largo: e },
+      izquierda: { u: 0, v: 0, ancho: e, largo: lote.fondo }, derecha: { u: lote.frente - e, v: 0, ancho: e, largo: lote.fondo } };
+    const material = new THREE.MeshStandardMaterial({ color: '#c2410c', roughness: 0.9 });
+    tapial.lados.forEach((lado) => {
+      const c = tramos[lado];
+      if (!c) return;
+      const [p0, p1, , p3] = esquinasDe(aMundo, c);
+      const muro = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), material);
+      muro.scale.set(Math.abs(p1[0] - p0[0]) || Math.abs(p3[0] - p0[0]), tapial.alto, Math.abs(p3[1] - p0[1]) || Math.abs(p1[1] - p0[1]));
+      const [cx, cz] = aMundo(c.u + c.ancho / 2, c.v + c.largo / 2);
+      muro.position.set(cx, tapial.alto / 2, cz);
+      grupo.add(muro);
+    });
   }
 
   imp.elementos.filter((el) => ver(PARTE_DE_ELEMENTO[el.tipo] ?? 'accesos'))

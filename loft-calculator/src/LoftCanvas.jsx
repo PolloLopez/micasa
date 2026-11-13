@@ -1550,12 +1550,13 @@ export default function LoftCanvas({
     vaciarTerreno(visor.grupoTerreno);
     if (conTerreno) {
       dibujarTerreno(visor.grupoTerreno, implantacion(params), params.terreno.retiros,
-        { etiquetas: capas.etiquetasTerreno, partes: partesTerreno, opacidad: opacidades.terreno ?? 0.9 });
+        { etiquetas: capas.etiquetasTerreno, partes: partesTerreno, opacidad: opacidades.terreno ?? 0.9,
+          tapial: params.obraCivil?.tapial ?? null }); // v1.56
     }
     visor.grilla.visible = !conTerreno && !realista; // v1.44: la vista realista no lleva grilla
   // Solo lo que cambia el terreno (no todo params: redibujar el lote en cada cambio de la estructura no hace falta).
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conTerreno, params.terreno, params.ladoFrente, params.largo, params.ancho, capas.etiquetasTerreno, clavePartes, opacidades.terreno]);
+  }, [conTerreno, params.terreno, params.obraCivil?.tapial, params.ladoFrente, params.largo, params.ancho, capas.etiquetasTerreno, clavePartes, opacidades.terreno]);
 
   /** Cámara para ver todo el lote: desde la calle, en diagonal y alto. */
   const verTerreno = () => {

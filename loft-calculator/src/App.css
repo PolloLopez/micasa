@@ -721,6 +721,7 @@ kbd {
 .plano-implantacion .rotulo-lm { fill: #c2410c; font-weight: 700; }
 .plano-implantacion .rotulo-calle { fill: #475569; font-style: italic; }
 .plano-implantacion .retiro { stroke: #ca8a04; stroke-width: 0.05; stroke-dasharray: 0.4 0.25; }
+.plano-implantacion .tapial { stroke: #c2410c; } /* v1.56: el tapial del cerramiento */
 .plano-implantacion .casa { fill: #bfdbfe; stroke: #1d4ed8; stroke-width: 0.08; }
 .plano-implantacion .rotulo-casa { font-weight: 700; fill: #1e3a8a; }
 .plano-implantacion .elemento circle, .plano-implantacion .elemento rect { fill-opacity: 0.75; stroke: #334155; stroke-width: 0.04; }

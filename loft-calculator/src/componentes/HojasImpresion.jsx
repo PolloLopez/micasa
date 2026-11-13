@@ -275,7 +275,7 @@ export default function HojasImpresion({
           {conPlantas && implantacion && params.terreno?.activo && (
             <div className="bloque-implantacion plano-impresion">
               <h2>Implantación (la calle abajo)</h2>
-              <PlanoImplantacion imp={implantacion} terreno={params.terreno} />
+              <PlanoImplantacion imp={implantacion} terreno={params.terreno} tapial={params.obraCivil?.tapial} />
             </div>
           )}
           {conPlantas && (

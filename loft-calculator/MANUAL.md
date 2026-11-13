@@ -1,4 +1,4 @@
-# Manual de Pollo Calculator (v1.55.0)
+# Manual de Pollo Calculator (v1.56.0)
 
 Guía corta para usar el sistema y chequear que todo ande. Cada parte termina con **✔ Chequeá**: lo que tenés que ver.
 
@@ -21,7 +21,16 @@ Página: https://pollolopez.github.io/micasa/
 
 Medidas de la planta, alturas, pisos (perfil C o tirantes de madera), entrepiso, escalera, techo, pilotines y zapatas.
 
-✔ Chequeá: si la escalera no entra, su tarjeta avisa "La escalera se sale de la planta".
+**Obra civil (hormigón y ladrillos)** (debajo de Terreno): la dosificación (cemento, arena y piedra por m³), los
+pilotines **hormigonados en obra**, el **tapial** (los lados del lote, el alto y cada cuánto van las columnas) y la
+profundidad del pilar, la cámara y el pozo. El pilar de luz, la cámara y el pozo se agregan en **Terreno** (+ Pilar de
+luz, + Cámara séptica, + Pozo séptico). Abajo, "Lo que lleva" cada parte y lo que hay que comprar.
+
+✔ Chequeá:
+- Si la escalera no entra, su tarjeta avisa "La escalera se sale de la planta".
+- Con terreno, tildá "Lateral izquierdo" y "Fondo" en el tapial: en el 3D aparece el muro y el largo es la suma de esos
+  lados. Subí el cemento de la dosificación: suben las bolsas.
+- Con "Hormigonados en obra", el renglón "Pilotines" sale del presupuesto y aparecen cemento, arena, piedra y hierro.
 
 ---
 

@@ -260,7 +260,7 @@ export default function Planos({ vistas, params, onExportar, implantacion = null
       {implantacion && params.terreno?.activo && (
         <section className="card plano">
           <h3 className="subtitulo">Implantación (vista desde arriba, la calle abajo)</h3>
-          <PlanoImplantacion imp={implantacion} terreno={params.terreno} />
+          <PlanoImplantacion imp={implantacion} terreno={params.terreno} tapial={params.obraCivil?.tapial} />
         </section>
       )}
       {vistas.paredes.map((v) => (

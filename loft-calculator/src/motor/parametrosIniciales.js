@@ -7,6 +7,7 @@ import { GRADA_INICIAL } from './grada.js';
 import { MONTAJE_INICIAL } from './montaje.js';
 import { ESCALERA_INICIAL } from './escalera.js';
 import { TERRENO_INICIAL } from './terreno.js';
+import { OBRA_CIVIL_INICIAL } from './obraCivil.js';
 import { UNIONES_INICIALES } from './uniones.js';
 import { EJES_INICIALES, PILOTIN_INICIAL } from './ejes.js';
 import { SOL_INICIAL } from './sol.js';
@@ -112,6 +113,7 @@ export const PARAMS_INICIALES = {
   // v1.38: interiores (ver motor/interiores.js). Mesadas con estructura y revestimiento; muebles para dimensionar.
   mesadas: [],
   muebles: [],
+  obraCivil: structuredClone(OBRA_CIVIL_INICIAL), // v1.56: hormigón, tapial, pilar de luz y pozo (ver motor/obraCivil.js)
   finanzas: { compromisos: [], acreedores: [] }, // v1.54: terreno en cuotas, créditos y acreedores (ver motor/finanzas.js)
   seguimiento: { rubros: [] }, // v1.47: pagos, contratos y avance de la obra (ver motor/seguimiento.js)
   cierre: CIERRE_INICIAL, // v1.46: ver motor/cierre.js (v1.53: con la mano de obra por segmento)

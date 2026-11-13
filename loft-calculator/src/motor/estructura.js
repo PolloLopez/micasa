@@ -18,6 +18,7 @@
 // Coordenadas y nombres de lados: ver motor/geometria.js.
 // ==========================================================
 
+import { cuentasDeObraCivil, completarObraCivil } from './obraCivil.js';
 import { ALTURA_PISO_2, LADOS } from './constantes.js';
 import {
   geometriaLados, alturaEn, alturasPared, puntoSobreLado, luzTecho, ladoOpuesto, tramoEntrepiso,
@@ -890,6 +891,7 @@ export function generarEstructura(params, aberturas, catalogo = null) {
     agregadas: piezasDeAgregadas(params.piezasAgregadas), // v1.16: duplicadas a mano
     mesadas: generarMesadas(params), // v1.38: estructura, revestimiento, tapa y estantes
     tabiques: generarTabiques(params), // v1.41: divisiones de Durlock con puerta
+    obraCivil: null, // v1.56: se completa abajo (necesita los pilotines)
     cubiertas: { piso: params.cubiertaPiso ?? 'osb', piso2: params.cubiertaPiso2 ?? 'osb' }, // v1.42.1: OSB o machimbre
     superficies: {
       piso: planta.largoU * planta.largoV,
@@ -899,6 +901,9 @@ export function generarEstructura(params, aberturas, catalogo = null) {
       techo: techo.superficie,
     },
   };
+  // v1.56: cemento, arena, piedra, hierro y ladrillos de pilotines, tapial, pilar de luz, cámara y pozo.
+  const civil = cuentasDeObraCivil(params, completa);
+  completa.obraCivil = { ...civil, hormigonEnObra: completarObraCivil(params.obraCivil).hormigonEnObra };
   // v1.33: primero los perfiles de cada pared (las uniones necesitan la medida de cada pieza), después las
   // uniones y al final lo hecho a mano (las ediciones apuntan a los tramos ya cortados).
   // v1.34.1: lo hecho a mano sobre piezas enteras (ej. borrar una columna) va ANTES de las uniones, así la

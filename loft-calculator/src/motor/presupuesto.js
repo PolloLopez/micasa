@@ -96,6 +96,17 @@ export const CATALOGO_FIJO = [
   // v1.43.1: borde del entrepiso aparte del de planta baja (al final: no cambia la numeración de los perfiles).
   { id: INSUMO.BORDE_PISO_2, categoria: 'perfil', nombre: 'Bordes de piso 2', perfil: 'Perfil C 120x50x2.0', unidad: 'barra', largoBarra: 6, precio: 35000 },
   { id: INSUMO.BACHA_DOBLE, categoria: 'unidad', nombre: 'Bachas dobles', perfil: 'Bacha doble de acero inoxidable 76 x 37 cm', unidad: 'u', largoBarra: null, precio: 110000 },
+  // v1.56: obra civil (solo aparecen si la obra los usa). Precios de ejemplo: cargá los tuyos.
+  { id: INSUMO.CEMENTO, categoria: 'unidad', nombre: 'Cemento', perfil: 'Cemento portland bolsa 50 kg', unidad: 'bolsas', largoBarra: null, precio: 12000 },
+  { id: INSUMO.ARENA, categoria: 'unidad', nombre: 'Arena', perfil: 'Arena gruesa', unidad: 'm³', largoBarra: null, precio: 45000 },
+  { id: INSUMO.PIEDRA, categoria: 'unidad', nombre: 'Piedra', perfil: 'Piedra partida 6-20', unidad: 'm³', largoBarra: null, precio: 65000 },
+  { id: INSUMO.HIERRO_8, categoria: 'unidad', nombre: 'Hierro ø8', perfil: 'Varilla aletada ø8 x 12 m', unidad: 'varillas', largoBarra: null, precio: 9000 },
+  { id: INSUMO.HIERRO_6, categoria: 'unidad', nombre: 'Hierro ø6', perfil: 'Varilla aletada ø6 x 12 m', unidad: 'varillas', largoBarra: null, precio: 5500 },
+  { id: INSUMO.HIERRO_42, categoria: 'unidad', nombre: 'Hierro ø4,2 (estribos)', perfil: 'Varilla ø4,2 x 12 m', unidad: 'varillas', largoBarra: null, precio: 3000 },
+  { id: INSUMO.LADRILLO_HUECO, categoria: 'unidad', nombre: 'Ladrillo hueco', perfil: 'Ladrillo hueco 12x18x33', unidad: 'u', largoBarra: null, precio: 650 },
+  { id: INSUMO.LADRILLO_COMUN, categoria: 'unidad', nombre: 'Ladrillo común', perfil: 'Ladrillo común 25x12x5,5', unidad: 'u', largoBarra: null, precio: 180 },
+  { id: INSUMO.EXCAVACION_OBRA, categoria: 'unidad', nombre: 'Excavación (obra civil)', perfil: 'Pozos y zanjas a mano o con máquina', unidad: 'm³', largoBarra: null, precio: 30000 },
+  { id: INSUMO.KIT_PILAR, categoria: 'unidad', nombre: 'Accesorios del pilar de luz', perfil: 'Caja de medidor, caño, jabalina y tablero de pilar', unidad: 'u', largoBarra: null, precio: 120000 },
 ];
 
 /** Renglones que solo se usan en un proyecto de grada. */
@@ -354,19 +365,42 @@ function calcularRenglones(estructura, catalogo, excedenteBarras) {
   });
 
   // v1.36: el pilotín dice su forma y medida ("Pilotín de hormigón ø 30 cm").
+  // v1.56: hormigonados en obra, el pilotín y el hormigón de las zapatas se compran como cemento, arena y piedra (abajo).
+  const enObra = Boolean(e.obraCivil?.hormigonEnObra);
   const pilotin = insumo(INSUMO.PILOTIN);
   const medidaPilotin = e.pilotin ? textoPilotin(e.pilotin) : null;
-  items.push(itemSimple(medidaPilotin && !pilotin.perfil.includes(medidaPilotin) ? { ...pilotin, perfil: `${pilotin.perfil} ${medidaPilotin}`.trim() } : pilotin,
+  if (!enObra) items.push(itemSimple(medidaPilotin && !pilotin.perfil.includes(medidaPilotin) ? { ...pilotin, perfil: `${pilotin.perfil} ${medidaPilotin}`.trim() } : pilotin,
     e.pilotines.length, e.pilotines.some((p) => p.bajoColumna) ? 'uno bajo cada columna + grilla' : 'grilla de fundación'));
   // v1.35: zapatas: hormigón (lado x lado x alto) y excavación (lado x lado x profundidad), por pilotín.
   if (e.zapata) {
     const { lado, alto, profundidad } = e.zapata;
     const n = e.pilotines.length;
     const m3 = (v) => Math.round(v * 100) / 100;
-    items.push(itemSimple(insumo(INSUMO.HORMIGON_ZAPATA), m3(n * lado * lado * alto),
+    if (!enObra) items.push(itemSimple(insumo(INSUMO.HORMIGON_ZAPATA), m3(n * lado * lado * alto),
       `${n} zapatas de ${lado.toFixed(2)} x ${lado.toFixed(2)} x ${alto.toFixed(2)} m`));
     items.push(itemSimple(insumo(INSUMO.EXCAVACION), m3(n * lado * lado * profundidad),
       `${n} pozos de ${lado.toFixed(2)} x ${lado.toFixed(2)} m, ${profundidad.toFixed(2)} m de profundidad`));
+  }
+  // v1.56: obra civil: cemento, arena, piedra, hierro, ladrillos y excavación de pilotines, tapial, pilar, cámara y pozo.
+  const oc = e.obraCivil;
+  if (oc && oc.partes.length > 0) {
+    const m = oc.materiales;
+    const de = (campo) => oc.partes.filter((x) => x[campo] > 0).map((x) => x.nombre.toLowerCase()).join(', ');
+    const texto = (n, d = 2) => n.toLocaleString('es-AR', { maximumFractionDigits: d });
+    const renglones = [
+      [INSUMO.CEMENTO, m.bolsas, `${texto(m.cemento, 0)} kg (${texto(oc.total.hormigon)} m³ de hormigón + ${texto(oc.total.mortero)} m³ de mortero): ${de('hormigon') || de('mortero')}`],
+      [INSUMO.ARENA, m.arena, de('hormigon') || de('mortero')],
+      [INSUMO.PIEDRA, m.piedra, `${texto(oc.total.hormigon)} m³ de hormigón: ${de('hormigon')}`],
+      [INSUMO.HIERRO_8, m.varillas8, `${texto(oc.total.hierro8, 0)} m + 10 % empalmes: ${de('hierro8')}`],
+      [INSUMO.HIERRO_6, m.varillas6, `${texto(oc.total.hierro6, 0)} m + 10 %: ${de('hierro6')}`],
+      [INSUMO.HIERRO_42, m.varillas42, `${texto(oc.total.hierro42, 0)} m de estribos + 10 %: ${de('hierro42')}`],
+      [INSUMO.LADRILLO_HUECO, m.ladrilloHueco, de('ladrilloHueco')],
+      [INSUMO.LADRILLO_COMUN, m.ladrilloComun, de('ladrilloComun')],
+      [INSUMO.EXCAVACION_OBRA, m.excavacion, de('excavacion')],
+    ];
+    renglones.filter(([, cantidad]) => cantidad > 0).forEach(([id, cantidad, detalle]) => items.push(itemSimple(insumo(id), cantidad, detalle)));
+    const pilares = oc.partes.filter((x) => x.clave.startsWith('pilar:')).length;
+    if (pilares > 0) items.push(itemSimple(insumo(INSUMO.KIT_PILAR), pilares, 'caja de medidor, caño, jabalina y tablero (según la distribuidora)'));
   }
   // v1.38: mesadas: estructura (barras con cortes, o un renglón por perfil elegido), tapa y estantes en m².
   const mesadas = e.mesadas ?? [];

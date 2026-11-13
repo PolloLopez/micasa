@@ -54,6 +54,7 @@ import { useSinCambiosSalvo } from './hooks/useSinCambiosSalvo.js';
 import { partesDelPresupuesto, resumenSeguimiento, informeDeSeguimiento } from './motor/seguimiento.js';
 import PanelSeguimiento from './componentes/PanelSeguimiento.jsx';
 import PanelFinanzas from './componentes/PanelFinanzas.jsx';
+import PanelObraCivil from './componentes/PanelObraCivil.jsx';
 import SelectorPerfil from './componentes/SelectorPerfil.jsx';
 import Planos from './componentes/Planos.jsx';
 import { todasLasVistas } from './motor/planos.js';
@@ -1087,6 +1088,8 @@ export default function App() {
 
           {/* TERRENO (v1.32): el lote, dónde va la casa, pozo, árboles, accesos y el norte. */}
           {moduloTerreno && <PanelTerreno params={params} unidad={unidad} cambiar={cambiar} implantacion={implantacion} onVerTerreno={verTerreno} />}
+          {/* v1.56: obra civil (pilotines hormigonados, tapial, pilar de luz, cámara y pozo). */}
+          {params.tipoProyecto === 'construccion' && <PanelObraCivil params={params} estructura={estructura} unidad={unidad} cambiar={cambiar} />}
 
           {/* PISOS */}
           <Tarjeta id="pisos" titulo="Pisos" resaltar={{ tipo: 'grupo', id: ['piso', 'piso2'], nombre: 'Pisos' }}>
