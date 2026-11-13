@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.54.0] - 2026-11-12
+### Agregado
+- **Checklist de cada rubro** (pestaña Obra): la etapa sale sola del **avance** (cuánto está hecho, en %, a mano) y de
+  lo pagado: Presupuestado → En proceso (con % hecho y % pagado) → Finalizado, falta pagar → Finalizado y pagado; y
+  Pagado sin finalizar. Reemplaza el estado que se elegía a mano (los de antes: "terminado" pasa a 100 % hecho).
+- **Cuotas** en cualquier rubro ("Pagar en cuotas"): cantidad, monto, mes de la primera y los meses en que la cuota es
+  doble (de fábrica junio y diciembre). Dice cuántas están pagas, si debés alguna vencida y cuál es la próxima. Cada
+  pago elige a qué cuota va (o se aplica en orden).
+- **Por proveedor o contratista**: cuánto es de cada uno, lo pagado y lo que falta (agrupa por "Quién").
+- **Terreno, créditos y acreedores** (pestaña Obra, abajo): compras en cuotas (el terreno) y créditos, cada uno en su
+  moneda (pesos o dólares, sin convertir ni sumar entre sí), con anticipo y cuotas. Acreedores: si alguien pagó una
+  cuota o un gasto por vos, en ese pago elegís "Lo pagó…" y queda lo que le debés (menos lo que le devolviste).
+- Todo eso sale en el PDF y en la hoja "Seguimiento" del Excel.
+- **Deploy automático** (GitHub Actions): cada push a main corre los tests, arma la página y la publica en gh-pages.
+
 ## [1.53.0] - 2026-11-12
 ### Agregado
 - **Mano de obra por segmento** (Presupuesto → "Mano de obra, imprevistos, ganancia e IVA"): una tabla que ya trae

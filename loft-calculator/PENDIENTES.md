@@ -3,7 +3,7 @@
 Última limpieza: 2026-11-11 (v1.49.0). Espejo en Trello: tablero "Desarrollo", tarjetas `[CALC]`.
 
 ## 📌 Estado y próximos pasos (11/11)
-**En GitHub: hasta v1.51.0. v1.51.1 a v1.53.0 por subir.** Manual de uso para chequear: `MANUAL.md`.
+**En GitHub: hasta v1.51.0. v1.51.1 a v1.54.0 por subir.** Manual de uso para chequear: `MANUAL.md`.
 
 🟡 **Para chequear en pantalla** (probado con tests, no visto): el sol con "Ver adentro" entra solo por las aberturas;
 la persona se sienta en el sillón y se acuesta en la cama; las puertas de los tabiques se abren al pasar.
@@ -23,6 +23,24 @@ Lo que falta, en orden de prioridad (detalle en cada sección de abajo):
 7. 🟢 Personas: subir y bajar la escalera, puertas de muebles (heladera, placard), esquivarse entre ellas.
    (✅ sentarse y acostarse: v1.49.0)
 8. 🟢 Mover mesadas y tabiques desde el 3D (hoy: muebles y aberturas); frenar la escalera en la pared.
+
+## 🧱 Pedido del 12/11 (orden elegido: finanzas → obra civil → instalaciones → visual)
+- ✅ v1.54.0 **Finanzas**: checklist por avance, cuotas con meses dobles, por proveedor/contratista, terreno en USD,
+  créditos (previsto), acreedores ("lo pagó X") y devoluciones. Deploy automático por GitHub Actions.
+  - 🟢 [ ] Crédito: interés y sistema francés (hoy cuotas fijas que cargás vos).
+- [ ] **Obra civil** (materiales por dosificación editable: cemento, arena, piedra, hierro, ladrillo hueco):
+  pilotines, tapial (ladrillo hueco + encadenado + columnas), pilar de luz (ladrillo con columna de hormigón adentro),
+  pozo séptico (cámara séptica + pozo absorbente). Ubicados en el terreno.
+- [ ] **Instalaciones** (puntos como los muebles + recorrido que trazás vos; por fuera, atornilladas a la estructura):
+  eléctrica (canalización elegible por tramo: bandeja, caño rígido PVC, metálico, cablecanal; tablero, tomas, lámparas),
+  agua (termofusión 20/25 editable; termotanque, cisterna, bomba presurizadora; grifería, ducha, lavamanos),
+  desagües (PVC 40/50/63/110), gas (garrafa en el exterior). Cada plano se prende y apaga y se exporta con medidas y
+  lista (cajas, uniones, curvas, cuplas, terminales).
+- [ ] **Equipos**: aires (condensadora afuera + split adentro, frigorías por ambiente), salamandra con su caño,
+  paneles solares y termotanque solar (peso sobre el techo).
+- [ ] **Visual**: "ver estructura de hierro" (sin maderas ni aberturas), abertura a futuro (marco hecho y
+  revestido entero), comparativa de materiales y proveedores (revestimiento 50 mm vs 10 mm), **un color por perfil**
+  en el 3D (el mismo 80x80x2 siempre del mismo color, con leyenda).
 
 Mejoras propuestas (técnicas, sin cambios aplicados):
 - 🟡 **App.jsx y LoftCanvas.jsx muy grandes** (~1.500 y ~1.900 líneas): separar en hooks (`usePresupuesto`,

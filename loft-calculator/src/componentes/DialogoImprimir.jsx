@@ -21,7 +21,7 @@ const GRUPOS = [
     ],
   },
   { titulo: 'Datos', partes: [['resumen', 'Datos de la obra'], ['presupuesto', 'Presupuesto'], ['cortes', 'Cómo cortar cada barra'],
-    ['seguimiento', 'Seguimiento de la obra: contratado, pagado y lo que falta (pestaña Obra)']] },
+    ['seguimiento', 'Seguimiento de la obra: contratado, pagado, lo que falta, terreno y acreedores (pestaña Obra)']] },
   { titulo: 'Planos', partes: [['paredes', 'Paredes acotadas (las 4 juntas)'], ['plantas', 'Piso, entrepiso y techo'],
     // v1.42: las listas que acompañan a los planos.
     ['listaCanos', 'Caños y perfiles: tipo, barras y dónde va cada uno'], ['listaAberturas', 'Aberturas: tipo, medidas y ubicación']] },

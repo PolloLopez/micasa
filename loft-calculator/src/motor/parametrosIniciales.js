@@ -112,6 +112,7 @@ export const PARAMS_INICIALES = {
   // v1.38: interiores (ver motor/interiores.js). Mesadas con estructura y revestimiento; muebles para dimensionar.
   mesadas: [],
   muebles: [],
+  finanzas: { compromisos: [], acreedores: [] }, // v1.54: terreno en cuotas, créditos y acreedores (ver motor/finanzas.js)
   seguimiento: { rubros: [] }, // v1.47: pagos, contratos y avance de la obra (ver motor/seguimiento.js)
   cierre: CIERRE_INICIAL, // v1.46: ver motor/cierre.js (v1.53: con la mano de obra por segmento)
   personas: [], // v1.45: gente para recorrer la casa en el 3D (ver motor/personas.js)

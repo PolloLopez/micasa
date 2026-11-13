@@ -16,12 +16,30 @@
 // los precios, se actualiza solo). Los rubros a mano guardan el suyo.
 // ==========================================================
 
+import { estadoDeCuotas, errorDelPlan, textoDeCuotas, mesDe, informeDeFinanzas } from './finanzas.js';
+
 export const ESTADOS_RUBRO = [
   ['pendiente', 'Pendiente'], ['contratado', 'Contratado'], ['enCurso', 'En curso'], ['terminado', 'Terminado'],
 ];
 export const MEDIOS_PAGO = [['efectivo', 'Efectivo'], ['transferencia', 'Transferencia'], ['tarjeta', 'Tarjeta'], ['cheque', 'Cheque'], ['otro', 'Otro']];
 
 export const SEGUIMIENTO_INICIAL = { rubros: [] };
+
+/**
+ * v1.54 (pedido de Leandro): el "checklist" de cada rubro. La etapa sale sola del avance (que se carga a mano, en %)
+ * y de lo pagado; no se elige.
+ */
+export const ETAPAS_RUBRO = [
+  ['presupuestado', 'Presupuestado'],
+  ['enProceso', 'En proceso'],
+  ['finalizadoFaltaPagar', 'Finalizado, falta pagar'],
+  ['finalizadoPagado', 'Finalizado y pagado'],
+  ['pagadoSinFinalizar', 'Pagado sin finalizar'],
+];
+export const nombreEtapa = (e) => ETAPAS_RUBRO.find(([v]) => v === e)?.[1] ?? e;
+
+/** El estado viejo (v1.47) que corresponde a un avance, para los proyectos y el PDF de antes. */
+export const estadoSegunAvance = (avance, estado) => (avance >= 100 ? 'terminado' : avance > 0 ? 'enCurso' : estado === 'terminado' || estado === 'enCurso' ? 'contratado' : estado);
 
 /** Fecha de hoy como 'AAAA-MM-DD' (la del navegador, no la UTC). */
 export function hoy(fecha = new Date()) {
@@ -36,11 +54,14 @@ export function rubroNuevo(rubros, { nombre, origen = '', quien = '' } = {}) {
   return {
     id: siguienteId(rubros), nombre: nombre ?? `Rubro ${rubros.length + 1}`, origen, quien, detalle: '',
     estado: 'pendiente', presupuestado: 0, contratado: null, fechaContrato: '', fechaFin: '', pagos: [],
+    avance: 0, // v1.54: % hecho (a mano)
+    cuotas: null, // v1.54: plan de cuotas (ver finanzas.js) o null si se paga suelto
   };
 }
 
 export function pagoNuevo(pagos, monto = 0, fecha = hoy()) {
-  return { id: siguienteId(pagos), fecha, monto, medio: 'transferencia', nota: '' };
+  // v1.54: `cuota` (a qué cuota va, si el rubro tiene plan) y `acreedor` (si lo pagó otro por vos: se lo debés).
+  return { id: siguienteId(pagos), fecha, monto, medio: 'transferencia', nota: '', cuota: null, acreedor: null };
 }
 
 /**
@@ -87,7 +108,48 @@ export function cuentasDelRubro(rubro, partes = []) {
     presupuestado, contratado, pagado,
     saldo: Math.max(0, contratado - pagado), deMas: Math.max(0, pagado - contratado),
     pagadoTodo: contratado > 0 && pagado >= contratado, sinOrigen: Boolean(rubro.origen) && !parte,
+    porcentajePagado: contratado > 0 ? Math.min(100, (pagado / contratado) * 100) : 0,
   };
+}
+
+/**
+ * v1.54: la etapa del checklist según el avance y lo pagado.
+ * @returns {{ etapa, texto }}  texto = "En proceso · 40 % hecho · 25 % pagado · 3 de 6 cuotas pagas"
+ */
+export function etapaDelRubro(rubro, cuentas, mesActual = mesDe()) {
+  const avance = rubro.avance ?? (rubro.estado === 'terminado' ? 100 : 0); // los de antes, sin completar
+  const pagadoTodo = cuentas.pagadoTodo;
+  let etapa;
+  if (avance >= 100) etapa = pagadoTodo ? 'finalizadoPagado' : 'finalizadoFaltaPagar';
+  else if (pagadoTodo) etapa = 'pagadoSinFinalizar';
+  else if (avance > 0 || cuentas.pagado > 0) etapa = 'enProceso';
+  else etapa = 'presupuestado';
+  const partes = [nombreEtapa(etapa)];
+  if (etapa === 'enProceso' || etapa === 'pagadoSinFinalizar') partes.push(`${Math.round(avance)} % hecho`);
+  if (etapa !== 'presupuestado' && etapa !== 'finalizadoPagado' && etapa !== 'pagadoSinFinalizar') partes.push(`${Math.round(cuentas.porcentajePagado)} % pagado`);
+  const cuotas = rubro.cuotas ? estadoDeCuotas(rubro.cuotas, rubro.pagos, mesActual) : null;
+  if (cuotas && cuotas.cuotas.length > 0 && !pagadoTodo) partes.push(textoDeCuotas(cuotas));
+  return { etapa, texto: partes.join(' · '), cuotas };
+}
+
+/**
+ * v1.54: el total de cada proveedor o contratista (por el nombre en "Quién", sin importar mayúsculas).
+ * @returns {{ quien, rubros: string[], contratado, pagado, falta }[]}  ordenado por lo contratado
+ */
+export function totalesPorQuien(seguimiento, partes = []) {
+  const grupos = new Map();
+  (seguimiento?.rubros ?? []).forEach((r) => {
+    const quien = (r.quien ?? '').trim() || 'Sin asignar';
+    const clave = quien.toLowerCase();
+    const c = cuentasDelRubro(r, partes);
+    const g = grupos.get(clave) ?? { quien, rubros: [], contratado: 0, pagado: 0, falta: 0 };
+    g.rubros.push(r.nombre);
+    g.contratado += c.contratado;
+    g.pagado += c.pagado;
+    g.falta += c.saldo;
+    grupos.set(clave, g);
+  });
+  return [...grupos.values()].sort((a, b) => b.contratado - a.contratado);
 }
 
 /** Totales de la obra: presupuestado, contratado, pagado, saldo y cuántos rubros terminados. */
@@ -100,7 +162,7 @@ export function resumenSeguimiento(seguimiento, partes = []) {
   return {
     rubros: rubros.length,
     presupuestado: suma('presupuestado'), contratado, pagado, saldo: suma('saldo'),
-    terminados: rubros.filter((r) => r.estado === 'terminado').length,
+    terminados: rubros.filter((r) => (r.avance ?? (r.estado === 'terminado' ? 100 : 0)) >= 100).length,
     porcentajePagado: contratado > 0 ? Math.min(100, (pagado / contratado) * 100) : 0,
   };
 }
@@ -120,8 +182,12 @@ function validarRubro(r) {
   if (r.contratado !== null && !monto(r.contratado)) return 'El monto contratado no puede ser negativo';
   if (!fechaValida(r.fechaContrato) || !fechaValida(r.fechaFin)) return 'Fecha inválida';
   if (!Array.isArray(r.pagos)) return 'Pagos inválidos';
+  if (r.avance !== undefined && !(Number.isFinite(r.avance) && r.avance >= 0 && r.avance <= 100)) return 'El avance va de 0 a 100 %';
+  const plan = errorDelPlan(r.cuotas);
+  if (plan) return plan;
   const malo = r.pagos.find((p) => !fechaValida(p.fecha) || p.fecha === '' || !monto(p.monto)
-    || !MEDIOS_PAGO.some(([m]) => m === p.medio) || !textoHasta(p.nota, 120));
+    || !MEDIOS_PAGO.some(([m]) => m === p.medio) || !textoHasta(p.nota, 120)
+    || !(p.cuota == null || (Number.isInteger(p.cuota) && p.cuota >= 1)) || !(p.acreedor == null || Number.isInteger(p.acreedor)));
   return malo ? 'Revisá los pagos: fecha, monto (no negativo) y medio' : null;
 }
 
@@ -138,25 +204,33 @@ export function validarSeguimiento(s) {
 
 export function completarSeguimiento(s) {
   if (!s || !Array.isArray(s.rubros)) return { ...SEGUIMIENTO_INICIAL, rubros: [] };
-  return { ...s, rubros: s.rubros.map((r) => ({ ...rubroNuevo([], {}), ...r, pagos: Array.isArray(r.pagos) ? r.pagos : [] })) };
+  return { ...s, rubros: s.rubros.map((r) => ({
+    ...rubroNuevo([], {}), ...r,
+    // v1.54: los de antes: terminado = 100 % hecho; el resto, 0 %.
+    avance: Number.isFinite(r.avance) ? r.avance : r.estado === 'terminado' ? 100 : 0,
+    pagos: Array.isArray(r.pagos) ? r.pagos.map((p) => ({ cuota: null, acreedor: null, ...p })) : [],
+  })) };
 }
 
 /**
  * v1.50: el seguimiento listo para el PDF y el Excel: el resumen y cada rubro con sus cuentas y sus pagos.
  * @returns {{ resumen, rubros: { nombre, quien, estado, presupuestado, contratado, pagado, falta, deMas, fechaContrato, fechaFin, detalle, pagos }[] }}
  */
-export function informeDeSeguimiento(seguimiento, partes = []) {
+export function informeDeSeguimiento(seguimiento, partes = [], finanzas = null) {
   const rubros = (seguimiento?.rubros ?? []).map((r) => {
     const c = cuentasDelRubro(r, partes);
+    const etapa = etapaDelRubro(r, c);
     return {
-      nombre: r.nombre, quien: r.quien, estado: ESTADOS_RUBRO.find(([e]) => e === r.estado)?.[1] ?? r.estado,
+      nombre: r.nombre, quien: r.quien, estado: etapa.texto, etapa: etapa.etapa, avance: r.avance ?? 0,
       presupuestado: c.presupuestado, contratado: c.contratado, pagado: c.pagado, falta: c.saldo, deMas: c.deMas,
       fechaContrato: r.fechaContrato, fechaFin: r.fechaFin, detalle: r.detalle,
       pagos: [...r.pagos].sort((a, b) => a.fecha.localeCompare(b.fecha))
         .map((p) => ({ ...p, medio: MEDIOS_PAGO.find(([m]) => m === p.medio)?.[1] ?? p.medio })),
     };
   });
-  return { resumen: resumenSeguimiento(seguimiento, partes), rubros };
+  // v1.54: el total por proveedor o contratista y las finanzas (terreno, créditos, acreedores).
+  return { resumen: resumenSeguimiento(seguimiento, partes), rubros, porQuien: totalesPorQuien(seguimiento, partes),
+    finanzas: informeDeFinanzas(finanzas, seguimiento?.rubros ?? []) };
 }
 
 /** 'AAAA-MM-DD' → 'DD/MM/AAAA' (vacío si no hay fecha). */

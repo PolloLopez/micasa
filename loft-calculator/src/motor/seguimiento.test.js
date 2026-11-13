@@ -43,7 +43,7 @@ describe('pagos y saldo', () => {
   it('resumen de la obra', () => {
     const partes = partesDelPresupuesto({ compras, cierre });
     const rubros = rubrosDesdePresupuesto([], partes).map((r, i) => (i === 0
-      ? { ...r, estado: 'terminado', pagos: [pagoNuevo([], 3000000)] } : r));
+      ? { ...r, estado: 'terminado', avance: 100, pagos: [pagoNuevo([], 3000000)] } : r));
     const aMano = { ...rubroNuevo(rubros, { nombre: 'Electricista' }), presupuestado: 800000, pagos: [pagoNuevo([], 200000)] };
     const s = resumenSeguimiento({ rubros: [...rubros, aMano] }, partes);
     expect(s).toMatchObject({ rubros: 4, presupuestado: 7300000, contratado: 7300000, pagado: 3200000, saldo: 4100000, terminados: 1 });
@@ -76,10 +76,10 @@ describe('v1.50: seguimiento en el PDF y el Excel', () => {
     const { hojasDeObra } = await import('../proyecto/exportarExcel.js');
     const partes = partesDelPresupuesto({ compras, cierre });
     const rubros = rubrosDesdePresupuesto([], partes).map((r, i) => (i === 2
-      ? { ...r, estado: 'enCurso', pagos: [pagoNuevo([], 400000, '2026-11-10'), { ...pagoNuevo([{ id: 1 }], 500000, '2026-11-01'), medio: 'efectivo' }] } : r));
+      ? { ...r, estado: 'enCurso', avance: 30, pagos: [pagoNuevo([], 400000, '2026-11-10'), { ...pagoNuevo([{ id: 1 }], 500000, '2026-11-01'), medio: 'efectivo' }] } : r));
     const informe = informeDeSeguimiento({ rubros }, partes);
     const mo = informe.rubros[2];
-    expect(mo).toMatchObject({ nombre: 'Mano de obra', estado: 'En curso', contratado: 1500000, pagado: 900000, falta: 600000 });
+    expect(mo).toMatchObject({ nombre: 'Mano de obra', estado: 'En proceso · 30 % hecho · 60 % pagado', contratado: 1500000, pagado: 900000, falta: 600000 });
     expect(mo.pagos.map((p) => [fechaLegible(p.fecha), p.medio])).toEqual([['01/11/2026', 'Efectivo'], ['10/11/2026', 'Transferencia']]);
     const hojas = hojasDeObra({ nombre: 'x', params: PARAMS_INICIALES, vistas: { paredes: [], plantas: [] }, items: [], total: 0, seguimiento: informe },
       { seguimiento: true });

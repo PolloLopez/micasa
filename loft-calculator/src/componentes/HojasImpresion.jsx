@@ -19,6 +19,7 @@ import { agruparBarras, textoBarra } from '../proyecto/cortesAgrupados.js';
 import { listaDePerfiles, listaDeAberturas, resumenDeAberturas, plantasElegidas } from '../proyecto/listasDePlanos.js';
 import { TablaCierre } from './CierrePresupuesto.jsx';
 import { fechaLegible } from '../motor/seguimiento.js';
+import { plata } from '../motor/finanzas.js';
 
 const pesos = (n) => n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
 
@@ -132,6 +133,29 @@ function InformeSeguimiento({ informe }) {
           ))}
         </tbody>
       </table>
+      {informe.porQuien?.length > 0 && (<>
+        <h3>Por proveedor o contratista</h3>
+        <table className="tabla-impresion">
+          <thead><tr><th>Quién</th><th>Rubros</th><th className="num">Total</th><th className="num">Pagado</th><th className="num">Falta</th></tr></thead>
+          <tbody>{informe.porQuien.map((g) => (
+            <tr key={g.quien}><td>{g.quien}</td><td>{g.rubros.join(', ')}</td><td className="num">{pesos(g.contratado)}</td>
+              <td className="num">{pesos(g.pagado)}</td><td className="num">{pesos(g.falta)}</td></tr>
+          ))}</tbody>
+        </table>
+      </>)}
+      {informe.finanzas && (<>
+        <h3>Terreno, créditos y acreedores</h3>
+        <table className="tabla-impresion">
+          <thead><tr><th>Compromiso</th><th>Cuotas</th><th className="num">Total</th><th className="num">Pagado</th><th className="num">Falta</th></tr></thead>
+          <tbody>{informe.finanzas.compromisos.map((c, i) => (
+            <tr key={i}><td>{c.nombre}</td><td>{c.cuotas}</td><td className="num">{plata(c.total, c.moneda)}</td>
+              <td className="num">{plata(c.pagado, c.moneda)}</td><td className="num">{plata(c.falta, c.moneda)}</td></tr>
+          ))}</tbody>
+        </table>
+        {informe.finanzas.acreedores.length > 0 && (
+          <p>Acreedores: {informe.finanzas.acreedores.map((a) => `${a.nombre}: le debés ${a.debes}`).join(' · ')}</p>
+        )}
+      </>)}
     </div>
   );
 }
@@ -246,7 +270,7 @@ export default function HojasImpresion({
             </>
           )}
           {/* v1.50: seguimiento de la obra (contratado, pagado y lo que falta, con los pagos de cada rubro). */}
-          {opciones.seguimiento && seguimiento?.rubros.length > 0 && <InformeSeguimiento informe={seguimiento} />}
+          {opciones.seguimiento && (seguimiento?.rubros.length > 0 || seguimiento?.finanzas) && <InformeSeguimiento informe={seguimiento} />}
           {/* v1.32: implantación (la casa en su lote), con las plantas. */}
           {conPlantas && implantacion && params.terreno?.activo && (
             <div className="bloque-implantacion plano-impresion">

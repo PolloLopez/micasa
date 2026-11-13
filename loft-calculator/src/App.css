@@ -795,6 +795,25 @@ kbd {
 .chip-estado.estado-contratado { background: #2563eb; }
 .chip-estado.estado-enCurso { background: #ca8a04; }
 .chip-estado.estado-terminado { background: #16a34a; }
+/* v1.54: etapas del checklist (salen del avance y de lo pagado) */
+.chip-estado.etapa-enProceso { background: #ca8a04; }
+.chip-estado.etapa-finalizadoFaltaPagar { background: #ea580c; }
+.chip-estado.etapa-finalizadoPagado { background: #16a34a; }
+.chip-estado.etapa-pagadoSinFinalizar { background: #7c3aed; }
+.etapa-rubro { margin: 0.3rem 0; font-weight: 600; }
+.barra-avance { height: 6px; border-radius: 3px; background: var(--borde, #334155); overflow: hidden; margin: 0 0 0.4rem; }
+.barra-avance > span { display: block; height: 100%; background: #3b82f6; }
+.plan-cuotas { margin: 0.3rem 0; }
+.meses-dobles { display: flex; flex-wrap: wrap; gap: 0.3rem 0.7rem; border: 1px solid var(--borde, #334155); border-radius: 6px; padding: 0.3rem 0.6rem; margin: 0.3rem 0; }
+.meses-dobles legend { font-size: 0.8rem; }
+.check-mes { font-size: 0.85rem; display: inline-flex; gap: 0.2rem; align-items: center; }
+.tabla-cuotas { width: 100%; font-size: 0.85rem; border-collapse: collapse; }
+.tabla-cuotas td, .tabla-cuotas th { padding: 0.15rem 0.4rem; text-align: left; }
+.tabla-cuotas .num { text-align: right; }
+.cuota-paga { opacity: 0.6; }
+.cuota-vencida td { color: #f87171; }
+.por-quien { margin-top: 0.8rem; }
+.lista-prestamos { font-size: 0.85rem; margin: 0.3rem 0 0.5rem 1rem; }
 .lista-pagos { list-style: none; padding: 0; margin: 0.3rem 0; display: flex; flex-direction: column; gap: 0.35rem; }
 .lista-pagos .pago { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: flex-end; padding-bottom: 0.35rem; border-bottom: 1px dashed var(--borde, #334155); }
 .lista-pagos .pago .group { margin: 0; flex: 0 1 8rem; }

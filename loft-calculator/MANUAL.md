@@ -1,4 +1,4 @@
-# Manual de Pollo Calculator (v1.53.0)
+# Manual de Pollo Calculator (v1.54.0)
 
 Guía corta para usar el sistema y chequear que todo ande. Cada parte termina con **✔ Chequeá**: lo que tenés que ver.
 
@@ -115,10 +115,19 @@ que los materiales y la pestaña "Presupuesto" muestra ese precio.
 
 - **Armar desde el presupuesto**: crea un rubro por proveedor (o "Materiales") y uno por cada segmento de mano de obra.
 - **+ Rubro a mano**: electricista, plomero, flete…
-- En cada rubro: estado (pendiente, contratado, en curso, terminado), monto contratado, fechas y **+ Pago**
-  (fecha, monto, medio, nota). Podés cargar varios pagos.
+- En cada rubro: **Avance** (cuánto está hecho, en %), quién lo hace, monto contratado, fechas y **+ Pago** (fecha,
+  monto, medio, nota). La etapa sale sola: **Presupuestado → En proceso → Finalizado, falta pagar → Finalizado y
+  pagado** (o **Pagado sin finalizar**).
+- **Pagar en cuotas**: cantidad, cada cuota, mes de la primera y los meses dobles (de fábrica junio y diciembre).
+- **Por proveedor o contratista** (abajo): el total de cada uno, lo pagado y lo que falta.
+- **Terreno, créditos y acreedores**: **+ Compra en cuotas (terreno)** (en dólares) o **+ Crédito**, con anticipo y
+  cuotas. **+ Acreedor**: después, en el pago que hizo otro, elegís **"Lo pagó…"** y queda lo que le debés. Lo que le
+  devolvés va en **+ Devolución**.
 
-✔ Chequeá: con un pago parcial, el rubro dice "pagado $X de $Y · falta $Z" y arriba se suman Pagado y Falta pagar.
+✔ Chequeá:
+- Un rubro con 40 % de avance y un pago parcial dice "En proceso · 40 % hecho · N % pagado".
+- El terreno con anticipo USD 5.000 y 12 cuotas de USD 400: total USD 10.600 (junio y diciembre se pagan doble).
+- Si el anticipo lo pagó un acreedor, su ficha dice "le debés USD 5.000". Los dólares no se mezclan con los pesos.
 
 ---
 

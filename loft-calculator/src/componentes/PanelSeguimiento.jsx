@@ -12,11 +12,11 @@ import { useState } from 'react';
 import Tarjeta from './Tarjeta.jsx';
 import FichaPlegable from './FichaPlegable.jsx';
 import CampoNumero from './CampoNumero.jsx';
-import CampoSelect from './CampoSelect.jsx';
-import { ESTADOS_RUBRO, MEDIOS_PAGO, hoy, rubroNuevo, pagoNuevo, rubrosDesdePresupuesto, cuentasDelRubro, resumenSeguimiento } from '../motor/seguimiento.js';
+import { MEDIOS_PAGO, hoy, rubroNuevo, pagoNuevo, rubrosDesdePresupuesto, cuentasDelRubro, resumenSeguimiento,
+  etapaDelRubro, estadoSegunAvance, totalesPorQuien } from '../motor/seguimiento.js';
+import { PlanDeCuotas, EstadoDeCuotas, SelectorCuota, SelectorAcreedor } from './Cuotas.jsx';
 
 const pesos = (n) => n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
-const nombreEstado = (e) => ESTADOS_RUBRO.find(([v]) => v === e)?.[1] ?? e;
 
 /** Una fecha (input nativo del navegador: en el celular abre el calendario). */
 function CampoFecha({ etiqueta, valor, onCambio }) {
@@ -39,7 +39,7 @@ function BarraPagado({ pagado, contratado }) {
   );
 }
 
-function Pago({ p, ruta, cambiar, onQuitar }) {
+function Pago({ p, ruta, cambiar, onQuitar, plan, acreedores }) {
   return (
     <li className="pago">
       <input type="date" value={p.fecha} aria-label="Fecha del pago" onChange={(e) => cambiar(`${ruta}.fecha`)(e.target.value)} />
@@ -49,28 +49,42 @@ function Pago({ p, ruta, cambiar, onQuitar }) {
       </select>
       <input type="text" maxLength={120} value={p.nota} placeholder="Nota (seña, cuota 2, recibo 0012…)" aria-label="Nota del pago"
         onChange={(e) => cambiar(`${ruta}.nota`)(e.target.value)} />
+      <SelectorCuota plan={plan} valor={p.cuota} onCambio={cambiar(`${ruta}.cuota`)} />
+      <SelectorAcreedor acreedores={acreedores} valor={p.acreedor} onCambio={cambiar(`${ruta}.acreedor`)} />
       <button type="button" className="btn-del" onClick={onQuitar} aria-label="Quitar el pago" title="Quitar">✕</button>
     </li>
   );
 }
 
-function Rubro({ r, i, partes, cambiar, onQuitar, abiertaAlInicio }) {
+function Rubro({ r, i, partes, acreedores, cambiar, onQuitar, abiertaAlInicio }) {
   const ruta = `seguimiento.rubros.${i}`;
   const c = cuentasDelRubro(r, partes);
-  const agregarPago = () => cambiar(`${ruta}.pagos`)([...r.pagos, pagoNuevo(r.pagos, c.saldo)]);
+  const agregarPago = () => {
+    // Con cuotas, el pago nuevo es la próxima cuota (con lo que le falta); si no, lo que falta pagar.
+    const proxima = r.cuotas ? etapaDelRubro(r, c).cuotas?.proxima : null;
+    const pago = pagoNuevo(r.pagos, proxima ? Math.round(proxima.monto - proxima.pagado) : c.saldo);
+    cambiar(`${ruta}.pagos`)([...r.pagos, proxima ? { ...pago, cuota: proxima.n } : pago]);
+  };
   const quitarPago = (id) => cambiar(`${ruta}.pagos`)(r.pagos.filter((p) => p.id !== id));
-  // Al pasar a "Terminado" se anota la fecha de hoy si no tenía (se puede cambiar).
-  const cambiarEstado = (estado) => cambiar(ruta)({ ...r, estado,
-    fechaFin: estado === 'terminado' && !r.fechaFin ? hoy() : r.fechaFin });
+  // v1.54: la etapa sale sola del avance (a mano) y de lo pagado. Al llegar a 100 % se anota la fecha de hoy si no
+  // tenía (se puede cambiar). El estado viejo se mantiene al día para los proyectos de antes.
+  const etapa = etapaDelRubro(r, c);
+  const cambiarAvance = (avance) => {
+    if (!(avance >= 0 && avance <= 100)) return 'De 0 a 100 %';
+    return cambiar(ruta)({ ...r, avance, estado: estadoSegunAvance(avance, r.estado),
+      fechaFin: avance >= 100 && !r.fechaFin ? hoy() : r.fechaFin });
+  };
   return (
     <FichaPlegable clave={`rubro:${r.id}`} className={`rubro estado-${r.estado}`} abiertaAlInicio={abiertaAlInicio}
       encabezado={<>
-        <span className={`chip-estado estado-${r.estado}`}>{nombreEstado(r.estado)}</span>
+        <span className={`chip-estado etapa-${etapa.etapa}`}>{etapa.texto.split(' · ')[0]}</span>
         <strong>{r.nombre}</strong>
-        <small>{c.pagadoTodo ? 'pagado ✓' : `pagado ${pesos(c.pagado)} de ${pesos(c.contratado)}`}</small>
+        <small>{c.pagadoTodo ? 'pagado ✓' : `pagado ${pesos(c.pagado)} de ${pesos(c.contratado)}`}{r.avance > 0 && r.avance < 100 ? ` · ${Math.round(r.avance)} % hecho` : ''}</small>
       </>}
       acciones={<button type="button" className="btn-del" onClick={onQuitar} aria-label={`Quitar ${r.nombre}`} title="Quitar">✕</button>}>
+      <p className="etapa-rubro" role="status">{etapa.texto}</p>
       <BarraPagado pagado={c.pagado} contratado={c.contratado} />
+      <div className="barra-avance" role="img" aria-label={`Hecho ${Math.round(r.avance ?? 0)} %`}><span style={{ width: `${r.avance ?? 0}%` }} /></div>
       <div className="grid-params">
         <div className="group">
           <label>Nombre
@@ -82,7 +96,7 @@ function Rubro({ r, i, partes, cambiar, onQuitar, abiertaAlInicio }) {
             <input type="text" maxLength={60} value={r.quien} onChange={(e) => cambiar(`${ruta}.quien`)(e.target.value)} />
           </label>
         </div>
-        <CampoSelect etiqueta="Estado" valor={r.estado} opciones={ESTADOS_RUBRO} onCambio={cambiarEstado} />
+        <CampoNumero etiqueta="Avance (cuánto está hecho)" sufijo="%" decimales={0} valor={r.avance ?? 0} onCambio={cambiarAvance} />
         {!r.origen && (
           <CampoNumero etiqueta="Presupuestado" sufijo="$" decimales={0} valor={r.presupuestado} onCambio={cambiar(`${ruta}.presupuestado`)} />
         )}
@@ -102,11 +116,15 @@ function Rubro({ r, i, partes, cambiar, onQuitar, abiertaAlInicio }) {
       <textarea className="detalle-rubro" maxLength={300} rows={2} value={r.detalle} placeholder="Detalle (qué incluye, condiciones, contacto…)"
         aria-label="Detalle" onChange={(e) => cambiar(`${ruta}.detalle`)(e.target.value)} />
 
+      <h4 className="subtitulo-pared">Cuotas</h4>
+      <PlanDeCuotas plan={r.cuotas} ruta={`${ruta}.cuotas`} cambiar={cambiar} montoSugerido={c.saldo} />
+      <EstadoDeCuotas plan={r.cuotas} pagos={r.pagos} totalEsperado={c.contratado} />
+
       <h4 className="subtitulo-pared">Pagos</h4>
       {r.pagos.length === 0 && <p className="vacio">Sin pagos todavía.</p>}
       <ul className="lista-pagos">
         {r.pagos.map((p, k) => (
-          <Pago key={p.id} p={p} ruta={`${ruta}.pagos.${k}`} cambiar={cambiar} onQuitar={() => quitarPago(p.id)} />
+          <Pago key={p.id} p={p} ruta={`${ruta}.pagos.${k}`} cambiar={cambiar} onQuitar={() => quitarPago(p.id)} plan={r.cuotas} acreedores={acreedores} />
         ))}
       </ul>
       <p className="nota resumen-mesada" role="status">
@@ -135,9 +153,12 @@ export default function PanelSeguimiento({ params, partes, precioObra, cambiar }
     setAviso(cambiar('seguimiento.rubros')([...rubros, nuevo]));
   };
   const quitar = (id) => cambiar('seguimiento.rubros')(rubros.filter((r) => r.id !== id));
-  // Con los rubros en curso primero y los terminados al final (sin cambiar el orden guardado).
-  const orden = { enCurso: 0, contratado: 1, pendiente: 2, terminado: 3 };
-  const ordenados = rubros.map((r, i) => ({ r, i })).sort((a, b) => orden[a.r.estado] - orden[b.r.estado] || a.i - b.i);
+  const acreedores = params.finanzas?.acreedores ?? [];
+  // v1.54: en proceso primero, después lo presupuestado y al final lo finalizado (sin cambiar el orden guardado).
+  const orden = { enProceso: 0, finalizadoFaltaPagar: 1, pagadoSinFinalizar: 2, presupuestado: 3, finalizadoPagado: 4 };
+  const etapaDe = (r) => etapaDelRubro(r, cuentasDelRubro(r, partes)).etapa;
+  const ordenados = rubros.map((r, i) => ({ r, i })).sort((a, b) => orden[etapaDe(a.r)] - orden[etapaDe(b.r)] || a.i - b.i);
+  const porQuien = totalesPorQuien(seguimiento, partes);
 
   return (
     <Tarjeta id="seguimiento" titulo="Seguimiento de la obra">
@@ -150,7 +171,7 @@ export default function PanelSeguimiento({ params, partes, precioObra, cambiar }
         <div><small>Contratado</small><strong>{pesos(resumen.contratado)}</strong></div>
         <div><small>Pagado</small><strong>{pesos(resumen.pagado)}</strong></div>
         <div><small>Falta pagar</small><strong>{pesos(resumen.saldo)}</strong></div>
-        <div><small>Terminados</small><strong>{resumen.terminados} de {resumen.rubros}</strong></div>
+        <div><small>Finalizados</small><strong>{resumen.terminados} de {resumen.rubros}</strong></div>
       </div>
       {resumen.rubros > 0 && <BarraPagado pagado={resumen.pagado} contratado={resumen.contratado} />}
       {precioObra > 0 && Math.abs(precioObra - resumen.presupuestado) > 1 && resumen.rubros > 0 && (
@@ -159,7 +180,7 @@ export default function PanelSeguimiento({ params, partes, precioObra, cambiar }
       )}
       {rubros.length === 0 && <p className="vacio">Todavía no hay rubros. Armalos desde el presupuesto o agregá uno a mano.</p>}
       {ordenados.map(({ r, i }) => (
-        <Rubro key={r.id} r={r} i={i} partes={partes} cambiar={cambiar} onQuitar={() => quitar(r.id)} abiertaAlInicio={r.id === recien} />
+        <Rubro key={r.id} r={r} i={i} partes={partes} acreedores={acreedores} cambiar={cambiar} onQuitar={() => quitar(r.id)} abiertaAlInicio={r.id === recien} />
       ))}
       <div className="acciones-seguimiento">
         {faltanDelPresupuesto.length > 0 && (
@@ -171,6 +192,21 @@ export default function PanelSeguimiento({ params, partes, precioObra, cambiar }
         <button type="button" className="btn-sec" onClick={agregar}>+ Rubro a mano</button>
       </div>
       {aviso && <p className="error" role="alert">{aviso}</p>}
+      {porQuien.length > 0 && (
+        <details className="por-quien">
+          <summary><strong>Por proveedor o contratista</strong> <small>· cuánto es de cada uno, lo pagado y lo que falta</small></summary>
+          <table className="tabla-segmentos">
+            <thead><tr><th>Quién</th><th>Rubros</th><th className="num">Total</th><th className="num">Pagado</th><th className="num">Falta</th></tr></thead>
+            <tbody>
+              {porQuien.map((g) => (
+                <tr key={g.quien}><td>{g.quien}</td><td><small>{g.rubros.join(', ')}</small></td>
+                  <td className="num">{pesos(g.contratado)}</td><td className="num">{pesos(g.pagado)}</td><td className="num">{pesos(g.falta)}</td></tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="nota">Se agrupa por lo que escribiste en "Quién" (sin importar mayúsculas).</p>
+        </details>
+      )}
     </Tarjeta>
   );
 }

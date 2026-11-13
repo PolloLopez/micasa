@@ -53,6 +53,7 @@ import { cerrarPresupuesto } from './motor/cierre.js';
 import { useSinCambiosSalvo } from './hooks/useSinCambiosSalvo.js';
 import { partesDelPresupuesto, resumenSeguimiento, informeDeSeguimiento } from './motor/seguimiento.js';
 import PanelSeguimiento from './componentes/PanelSeguimiento.jsx';
+import PanelFinanzas from './componentes/PanelFinanzas.jsx';
 import SelectorPerfil from './componentes/SelectorPerfil.jsx';
 import Planos from './componentes/Planos.jsx';
 import { todasLasVistas } from './motor/planos.js';
@@ -148,7 +149,7 @@ export default function App() {
   const [catalogo, setCatalogo] = useEstadoGuardado('catalogo', CATALOGO_INICIAL, catalogoGuardadoValido, normalizarCatalogo);
   const params = useMemo(() => conPanelesExistentes(paramsGuardados, catalogo), [paramsGuardados, catalogo]);
   // v1.47: los mismos params sin el seguimiento: cargar un pago no recalcula la estructura, el presupuesto ni el 3D.
-  const paramsObra = useSinCambiosSalvo(params, ['seguimiento']);
+  const paramsObra = useSinCambiosSalvo(params, ['seguimiento', 'finanzas']);
   const [colores, setColores] = useEstadoGuardado('colores', COLORES_INICIALES, coloresValidos, completarColores);
   // Opacidad del 3D (por navegador, como ver u ocultar el 3D): paneles, OSB y hierros.
   // Las guardadas antes de v1.24 no tienen "juntas": se completan con las de fábrica (no se pierden las demás).
@@ -403,6 +404,8 @@ export default function App() {
    * mensaje de error (y no guarda); si está bien, guarda y devuelve null.
    */
   const cambiar = (ruta) => (valor) => aplicarSiValido(conValor(params, ruta, valor), ruta);
+  /** v1.54: varios cambios juntos (ej. quitar un acreedor toca las finanzas y los pagos de la obra). [[ruta, valor], …] */
+  const cambiarVarios = (cambios) => aplicarSiValido(cambios.reduce((p, [ruta, valor]) => conValor(p, ruta, valor), params), cambios[0][0]);
   /**
    * v1.43.1: tirantes de hierro o madera de un piso ('' = planta baja, '2' = piso 2). Pasando a madera, ese piso arma
    * los tirantes apoyados sobre los transversales de perfil C (lo normal con madera); el otro piso no cambia.
@@ -791,7 +794,7 @@ export default function App() {
       nombre: nombreProyecto, params, vistas, items, total, gruposCortes,
       proveedor: nombreProveedor, pago: textoPago, resumen, medidas: medidasFijas,
       plan: proveedores.length > 1 ? planCompra : null, materiales: listaMateriales, aberturas: aberturasValidas, cierre,
-      seguimiento: informeDeSeguimiento(params.seguimiento, partesSeguimiento),
+      seguimiento: informeDeSeguimiento(params.seguimiento, partesSeguimiento, params.finanzas),
     }, opcionesImpresion);
     const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const enlace = document.createElement('a');
@@ -1484,6 +1487,7 @@ export default function App() {
           <section id="pestana-obra" role="tabpanel" aria-labelledby="boton-obra"
             className={`pestana${pestanaActiva === 'obra' ? '' : ' oculta'}`}>
             <PanelSeguimiento params={params} partes={partesSeguimiento} precioObra={cierre.total} cambiar={cambiar} />
+            <PanelFinanzas params={params} cambiar={cambiar} cambiarVarios={cambiarVarios} />
           </section>
         </div>
       </main>
@@ -1493,7 +1497,7 @@ export default function App() {
         leyenda3D={cartelResaltado ? `Resaltado en rosa — ${cartelResaltado.replace(' (fijado)', '')}` : null}
         resumen={resumen} items={items} total={total} gruposCortes={gruposCortes} vistas={vistas} params={params}
         plan={proveedores.length > 1 ? planCompra : null} materiales={listaMateriales} implantacion={implantacion} aberturas={aberturasValidas} cierre={cierre}
-        seguimiento={informeDeSeguimiento(params.seguimiento, partesSeguimiento)} />
+        seguimiento={informeDeSeguimiento(params.seguimiento, partesSeguimiento, params.finanzas)} />
     </div>
     </ContextoFoco>
     </ContextoResaltado>

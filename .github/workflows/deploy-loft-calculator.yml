@@ -1,0 +1,44 @@
+# ==========================================================
+# Deploy de Pollo Calculator (v1.54): cada push a main que toca loft-calculator/
+# corre los tests, arma la página y la publica en la rama gh-pages
+# (https://pollolopez.github.io/micasa/). Reemplaza el `npm run deploy` a mano,
+# así se puede publicar sin la compu (por ejemplo, desde el chat del teléfono).
+# Si un test falla, no se publica nada y la página queda como estaba.
+# ==========================================================
+name: Deploy loft-calculator
+
+on:
+  push:
+    branches: [main]
+    paths: ['loft-calculator/**', '.github/workflows/deploy-loft-calculator.yml']
+  workflow_dispatch: {} # botón "Run workflow" en la pestaña Actions, para publicar a mano
+
+permissions:
+  contents: write # para escribir la rama gh-pages
+
+concurrency:
+  group: deploy-loft-calculator
+  cancel-in-progress: false # un deploy no corta a otro a la mitad
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: loft-calculator
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: loft-calculator/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npx vite build
+      - name: Publicar en gh-pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: loft-calculator/dist
+          branch: gh-pages
+          commit-message: 'deploy: build de produccion desde main (${{ github.sha }})'

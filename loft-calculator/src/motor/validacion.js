@@ -20,6 +20,7 @@ import { validarMesada, validarMueble } from './interiores.js';
 import { validarPersona } from './personas.js';
 import { validarCierre } from './cierre.js';
 import { validarSeguimiento } from './seguimiento.js';
+import { validarFinanzas } from './finanzas.js';
 import { validarTabique } from './tabiques.js';
 import { validarSol } from './sol.js';
 import { CAMPOS_CON_CANTIDAD, MAXIMO_CANTIDAD } from './cantidades.js';
@@ -120,6 +121,7 @@ export function validarParametros(params) {
   }
   if (params.cierre !== undefined) Object.entries(validarCierre(params.cierre)).forEach(([c, e]) => anotar(c, e)); // v1.46
   if (params.seguimiento !== undefined) Object.entries(validarSeguimiento(params.seguimiento)).forEach(([c, e]) => anotar(c, e)); // v1.47
+  if (params.finanzas !== undefined) Object.entries(validarFinanzas(params.finanzas)).forEach(([c, e]) => anotar(c, e)); // v1.54
   if (params.personas !== undefined) { // v1.45
     if (!Array.isArray(params.personas)) anotar('personas', 'Lista inválida');
     else params.personas.forEach((x) => anotar(`personas.${x?.id}`, validarPersona(x ?? {}, params)));

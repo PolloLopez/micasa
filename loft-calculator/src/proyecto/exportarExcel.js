@@ -170,7 +170,7 @@ export function hojasDeObra({ nombre, params, vistas, items, total, gruposCortes
   }
 
   // v1.50: seguimiento de la obra (informeDeSeguimiento): resumen, cada rubro y sus pagos.
-  if (partes.seguimiento && seguimiento?.rubros.length) {
+  if (partes.seguimiento && (seguimiento?.rubros.length || seguimiento?.finanzas)) {
     const r = seguimiento.resumen;
     const filas = [
       { negrita: true, celdas: ['Seguimiento de la obra'] },
@@ -184,6 +184,22 @@ export function hojasDeObra({ nombre, params, vistas, items, total, gruposCortes
       x.pagos.forEach((p) => filas.push([`  Pago ${fechaLegible(p.fecha)}`, p.medio, p.nota, '', { pesos: p.monto }]));
       if (x.detalle) filas.push([`  ${x.detalle}`]);
     });
+    // v1.54: total por proveedor o contratista.
+    if (seguimiento.porQuien?.length) {
+      filas.push([], { negrita: true, celdas: ['Por proveedor o contratista', 'Rubros', '', 'Total', 'Pagado', 'Falta'] });
+      seguimiento.porQuien.forEach((g) => filas.push([g.quien, g.rubros.join(', '), '', { pesos: g.contratado }, { pesos: g.pagado }, { pesos: g.falta }]));
+    }
+    // v1.54: terreno, créditos y acreedores (cada uno en su moneda: los dólares van como número, sin formato de pesos).
+    const fz = seguimiento.finanzas;
+    if (fz) {
+      filas.push([], { negrita: true, celdas: ['Terreno y créditos', 'Moneda', 'Cuotas', 'Total', 'Pagado', 'Falta'] });
+      const monto = (n, m) => (m === 'USD' ? Math.round(n) : { pesos: n });
+      fz.compromisos.forEach((c) => filas.push([c.nombre, c.moneda, c.cuotas, monto(c.total, c.moneda), monto(c.pagado, c.moneda), monto(c.falta, c.moneda)]));
+      if (fz.acreedores.length) {
+        filas.push([], { negrita: true, celdas: ['Acreedor', 'Le debés'] });
+        fz.acreedores.forEach((a) => filas.push([a.nombre, a.debes]));
+      }
+    }
     hojas.push({ nombre: 'Seguimiento', anchos: [34, 22, 14, 14, 14, 14, 12, 12], filas });
   }
 
