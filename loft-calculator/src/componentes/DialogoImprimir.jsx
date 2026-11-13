@@ -30,7 +30,8 @@ const GRUPOS = [
   { titulo: 'Partes de la obra (planos y caños)', partes: [['partePisos', 'Piso de planta baja'], ['parteEntrepiso', 'Entrepiso (altillo) y escalera'],
     ['parteTecho', 'Techo'], ['parteInteriores', 'Divisiones interiores (tabiques y mesadas)']], nota: 'Las paredes con la estructura de las aberturas van siempre.' },
   // v1.57: cada instalación por separado (plano, tramos y materiales).
-  { titulo: 'Instalaciones', partes: [['instElectrica', 'Eléctrica'], ['instAgua', 'Agua'], ['instDesague', 'Desagües'], ['instGas', 'Gas']],
+  { titulo: 'Instalaciones', partes: [['instElectrica', 'Eléctrica'], ['instAgua', 'Agua'], ['instDesague', 'Desagües'], ['instGas', 'Gas'],
+    ['instEquipos', 'Equipos: aires, salamandra y solar']],
     nota: 'Cada una sale con su plano desde arriba, el largo de cada tramo y la lista de materiales (si tiene puntos).' },
   { titulo: 'Además', partes: [['formularios', 'Todos los formularios (como antes: muchas hojas)', true]] },
 ];
@@ -43,7 +44,7 @@ export default function DialogoImprimir({ opciones, onCambiar, cantidadMedidas, 
   }, []);
 
   const algoParaPdf = Object.entries(opciones).some(([k, v]) => v && k !== 'cotas' && !k.startsWith('parte'));
-  const algoParaExcel = ['resumen', 'presupuesto', 'cortes', 'paredes', 'plantas', 'medidas', 'listaCanos', 'listaAberturas', 'seguimiento', 'instElectrica', 'instAgua', 'instDesague', 'instGas'].some((k) => opciones[k]);
+  const algoParaExcel = ['resumen', 'presupuesto', 'cortes', 'paredes', 'plantas', 'medidas', 'listaCanos', 'listaAberturas', 'seguimiento', 'instElectrica', 'instAgua', 'instDesague', 'instGas', 'instEquipos'].some((k) => opciones[k]);
   const deshabilitada = (clave) => (clave === 'medidas' && cantidadMedidas === 0)
     || (!esConstruccion && ['paredes', 'plantas', 'cotas', 'vistasFijas', 'vistasPartes', 'listaAberturas'].includes(clave));
 

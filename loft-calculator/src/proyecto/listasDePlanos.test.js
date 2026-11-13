@@ -45,7 +45,7 @@ describe('aberturas', () => {
 describe('solo planos', () => {
   it('el atajo deja paredes, plantas, caños y aberturas', () => {
     expect(Object.entries(SOLO_PLANOS).filter(([, v]) => v).map(([k]) => k).sort())
-      .toEqual(['instAgua', 'instDesague', 'instElectrica', 'instGas', 'listaAberturas', 'listaCanos', 'paredes', 'parteEntrepiso', 'parteInteriores', 'partePisos', 'parteTecho', 'plantas']); // v1.57: + instalaciones
+      .toEqual(['instAgua', 'instDesague', 'instElectrica', 'instEquipos', 'instGas', 'listaAberturas', 'listaCanos', 'paredes', 'parteEntrepiso', 'parteInteriores', 'partePisos', 'parteTecho', 'plantas']); // v1.57: + instalaciones
     expect(opcionesImpresionValidas(SOLO_PLANOS)).toBe(true);
   });
 

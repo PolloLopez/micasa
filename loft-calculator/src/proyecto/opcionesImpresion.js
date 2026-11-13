@@ -12,6 +12,7 @@ export const OPCIONES_IMPRESION_INICIALES = {
   seguimiento: true,
   // v1.57: el plano de cada instalación con sus tramos y su lista de materiales (sale si tiene puntos).
   instElectrica: true, instAgua: true, instDesague: true, instGas: true,
+  instEquipos: true, // v1.58: aires, salamandra y solar
 };
 
 /** v1.42: "Solo planos": las paredes, las plantas y sus listas; nada del 3D ni del presupuesto. */

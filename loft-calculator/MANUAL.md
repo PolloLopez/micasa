@@ -1,4 +1,4 @@
-# Manual de Pollo Calculator (v1.57.0)
+# Manual de Pollo Calculator (v1.58.0)
 
 Guía corta para usar el sistema y chequear que todo ande. Cada parte termina con **✔ Chequeá**: lo que tenés que ver.
 
@@ -131,12 +131,16 @@ que los materiales y la pestaña "Presupuesto" muestra ese precio.
 - **+ Tramo**: de qué punto a qué punto, con qué caño o canalización (y el cable en la eléctrica), a qué altura corre por
   afuera y el largo extra si sigue afuera de la casa. Dice el largo y las curvas.
 - Abajo, la **lista de materiales** con su precio (cargá los tuyos): su total va al presupuesto.
+- **Equipos** (más abajo): **+ Aire** (frigorías, m² del ambiente, pared y altura), **+ Salamandra** (dónde va, caño y
+  por dónde sale) y **Va con energía solar** (consumo por mes, paneles y termotanque solar).
 
 ✔ Chequeá:
 - Un tablero en el frente y una toma en el lateral: el tramo dobla 1 esquina y la lista trae caños, cuplas, curvas,
   grampas, conectores, las cajas y el cable.
 - En el 3D se ve el caño por afuera; en **Capas → Instalaciones** se apaga. En **Planos**, cada instalación tiene su
   casilla; al imprimir, una hoja por sistema.
+- Un aire de 2.250 frigorías para 20 m² dice **"⚠ No alcanza"** y sugiere uno de 3.000.
+- Con 300 kWh por mes salen 7 paneles; con un termotanque solar de 200 l, aviso de apoyarlo sobre las vigas.
 
 ---
 

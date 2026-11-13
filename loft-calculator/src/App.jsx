@@ -57,6 +57,8 @@ import PanelFinanzas from './componentes/PanelFinanzas.jsx';
 import PanelObraCivil from './componentes/PanelObraCivil.jsx';
 import PanelInstalaciones from './componentes/PanelInstalaciones.jsx';
 import { materialesDeInstalaciones } from './motor/instalaciones.js';
+import { materialesDeEquipos } from './motor/equipos.js';
+import PanelEquipos from './componentes/PanelEquipos.jsx';
 import SelectorPerfil from './componentes/SelectorPerfil.jsx';
 import Planos from './componentes/Planos.jsx';
 import { todasLasVistas } from './motor/planos.js';
@@ -262,12 +264,18 @@ export default function App() {
   );
   // v1.57: instalaciones (eléctrica, agua, desagües, gas): un renglón por sistema en el presupuesto, con el total de su
   // lista de materiales (los precios se cargan en la pestaña Instalaciones, no por proveedor).
-  const instalaciones = useMemo(() => (esConstruccion ? materialesDeInstalaciones(paramsObra, estructura) : []), [esConstruccion, paramsObra, estructura]);
+  // v1.58: + los equipos (aires, salamandra, solar) como un "sistema" más (su renglón y su lista).
+  const instalaciones = useMemo(() => {
+    if (!esConstruccion) return [];
+    const equipos = materialesDeEquipos(paramsObra, estructura);
+    return [...materialesDeInstalaciones(paramsObra, estructura), ...(equipos.puntos > 0 ? [equipos] : [])];
+  }, [esConstruccion, paramsObra, estructura]);
   const totalInstalaciones = instalaciones.reduce((a, s) => a + s.total, 0);
   const items = useMemo(() => [...itemsEstructura, ...instalaciones.map((s) => ({
-    id: `inst:${s.sistema}`, categoria: 'instalacion', nombre: `Instalación ${s.nombre.toLowerCase()}`, perfil: 'Materiales (ver Instalaciones)',
+    id: `inst:${s.sistema}`, categoria: 'instalacion', nombre: s.sistema === 'equipos' ? 'Equipos (aires, salamandra, solar)' : `Instalación ${s.nombre.toLowerCase()}`, perfil: 'Materiales (ver Instalaciones)',
     unidad: 'global', largoBarra: null, cantidad: 1, precio: s.total, subtotal: s.total, cortes: null,
-    detalle: `${s.puntos} puntos, ${s.tramos.length} tramos (${s.tramos.reduce((a, t) => a + t.largo, 0).toFixed(1).replace('.', ',')} m)`,
+    detalle: s.sistema === 'equipos' ? `${s.puntos} equipo(s): aires, salamandra, solar`
+      : `${s.puntos} puntos, ${s.tramos.length} tramos (${s.tramos.reduce((a, t) => a + t.largo, 0).toFixed(1).replace('.', ',')} m)`,
   }))], [itemsEstructura, instalaciones]);
   const total = totalEstructura + totalInstalaciones;
   // v1.25: el total con cada proveedor (y con lo más barato de cada material), en efectivo y con tarjeta.
@@ -1508,6 +1516,7 @@ export default function App() {
           <section id="pestana-instalaciones" role="tabpanel" aria-labelledby="boton-instalaciones"
             className={`pestana${pestanaActiva === 'instalaciones' ? '' : ' oculta'}`}>
             {esConstruccion && <PanelInstalaciones params={params} estructura={estructura} unidad={unidad} cambiar={cambiar} />}
+            {esConstruccion && <PanelEquipos params={params} estructura={estructura} unidad={unidad} cambiar={cambiar} />}
           </section>
           <section id="pestana-obra" role="tabpanel" aria-labelledby="boton-obra"
             className={`pestana${pestanaActiva === 'obra' ? '' : ' oculta'}`}>

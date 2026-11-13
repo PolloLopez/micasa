@@ -21,6 +21,7 @@ import { TablaCierre } from './CierrePresupuesto.jsx';
 import { fechaLegible } from '../motor/seguimiento.js';
 import { plata } from '../motor/finanzas.js';
 import { BloqueInstalacion } from './PlanoInstalaciones.jsx';
+import { materialesDeEquipos } from '../motor/equipos.js';
 
 const SISTEMAS_PDF = [['electrica', 'instElectrica'], ['agua', 'instAgua'], ['desague', 'instDesague'], ['gas', 'instGas']]; // v1.57
 
@@ -168,6 +169,7 @@ export default function HojasImpresion({
   aberturas = [], cierre = null, seguimiento = null, estructura = null,
 }) {
   const fotos = capturas ?? { actual: null, fijas: [], medidas: [] };
+  const equiposPdf = materialesDeEquipos(params, estructura); // v1.58
   const conParedes = opciones.paredes && vistas.paredes.length > 0;
   // v1.42: solo las plantas de las partes elegidas (ej. sin entrepiso para quien cotiza los paneles).
   const plantas = plantasElegidas(vistas.plantas, opciones);
@@ -299,6 +301,19 @@ export default function HojasImpresion({
           <BloqueInstalacion params={params} estructura={estructura} sistema={s} />
         </section>
       ))}
+      {/* v1.58: los equipos (aires, salamandra, solar) con lo que hay que comprar. */}
+      {opciones.instEquipos && equiposPdf.materiales.length > 0 && (
+        <section className="hoja-impresion">
+          <h2>Equipos: aires, salamandra y solar</h2>
+          <table className="tabla-impresion">
+            <thead><tr><th>Material</th><th className="num">Cantidad</th><th className="num">Precio</th><th className="num">Total</th></tr></thead>
+            <tbody>
+              {equiposPdf.materiales.map((m) => <tr key={m.nombre}><td>{m.nombre}</td><td className="num">{m.cantidad} {m.unidad}</td><td className="num">{pesos(m.precio)}</td><td className="num">{pesos(m.total)}</td></tr>)}
+              <tr className="fila-total"><td>Total</td><td /><td /><td className="num">{pesos(equiposPdf.total)}</td></tr>
+            </tbody>
+          </table>
+        </section>
+      )}
 
       {/* v1.44: el 3D por partes (cada piso desde arriba, el adentro desde cada lado sin esa pared). */}
       {partes.length > 0 && (

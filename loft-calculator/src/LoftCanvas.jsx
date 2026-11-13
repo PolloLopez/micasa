@@ -24,6 +24,7 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 import { LADOS } from './motor/constantes.js';
 import { CAPAS, AYUDAS, GRUPOS_LEYENDA, CAPAS_TERRENO, CAPAS_MESADAS, CAPAS_MUEBLES, CAPAS_TABIQUES, CAPAS_INSTALACIONES, CAPA_DE_SISTEMA, COLORES_INICIALES, capaDelProyecto } from './capas.js';
 import { recorridoDelTramo, posicionDelPunto, pisoDeLaObra } from './motor/instalaciones.js';
+import { ubicarAire, canoDeSalida } from './motor/equipos.js';
 import SelectorColor from './componentes/SelectorColor.jsx';
 import { losaGruesa, dibujarMueble, dibujarMuebleEn, materialDeColor } from './interiores3d.js';
 import { ubicarMueble, choquesDelMueble, avisoDeChoques } from './motor/interiores.js';
@@ -651,6 +652,34 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
         const largo = Math.hypot(hasta[0] - desde[0], hasta[1] - desde[1], hasta[2] - desde[2]);
         if (largo > 1e-6) grupo.add(barra({ desde, hasta, largo }, grosor, materiales[CAPA_DE_SISTEMA[t.sistema]]));
       });
+    });
+  }
+  // v1.58: equipos (van con la capa Muebles): el split y la condensadora de cada aire; la salamandra y su caño.
+  if (params.tipoProyecto === 'construccion' && params.equipos && capas.muebles !== false) {
+    const pisoDe = pisoDeLaObra(params, e);
+    const blanco = materialDeColor('#f1f5f9', { metal: 0.1, aspereza: 0.5 });
+    const negro = materialDeColor('#1f2937', { metal: 0.6, aspereza: 0.4 });
+    (params.equipos.aires ?? []).filter((a) => a.nivel !== 'piso2' || grupoVisible('piso2')).forEach((a) => {
+      const u = ubicarAire(a, params, pisoDe);
+      const split = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.28, 0.2), blanco);
+      split.position.set(...u.split);
+      split.rotation.y = u.angulo + Math.PI / 2;
+      const cond = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.55, 0.3), blanco);
+      cond.position.set(...u.condensadora);
+      cond.rotation.y = u.angulo + Math.PI / 2;
+      grupo.add(split, cond);
+    });
+    (params.equipos.salamandras ?? []).filter((s) => s.nivel !== 'piso2' || grupoVisible('piso2')).forEach((s) => {
+      // Medida desde el lateral izquierdo y el frente, como los muebles (por dentro de la casa).
+      const { centro, y } = ubicarMueble(params, { ...s, ancho: 0.5, profundidad: 0.5, distanciaLateral: s.desdeLateral, distanciaFrente: s.desdeFrente,
+        desdeLateral: 'izquierdo', desdeFrente: 'frente', giro: 0, elevacion: 0 });
+      const cuerpo = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.8, 0.5), negro);
+      cuerpo.position.set(centro[0], y + 0.4, centro[1]);
+      const c = canoDeSalida(s, params, e);
+      const vertical = s.salida === 'techo' ? c.metros : c.metros - (c.pared ?? 0) - 0.3;
+      const cano = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, Math.max(0.1, vertical), 16), negro);
+      cano.position.set(centro[0], y + 0.8 + Math.max(0.1, vertical) / 2, centro[1]);
+      grupo.add(cuerpo, cano);
     });
   }
   // v1.38.1: carteles con el nombre (como paredes y aberturas): por capa "Etiquetas" y por cada uno en su ficha.

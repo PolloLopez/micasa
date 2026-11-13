@@ -23,6 +23,7 @@ import { validarSeguimiento } from './seguimiento.js';
 import { validarFinanzas } from './finanzas.js';
 import { validarObraCivil } from './obraCivil.js';
 import { validarInstalaciones } from './instalaciones.js';
+import { validarEquipos } from './equipos.js';
 import { validarTabique } from './tabiques.js';
 import { validarSol } from './sol.js';
 import { CAMPOS_CON_CANTIDAD, MAXIMO_CANTIDAD } from './cantidades.js';
@@ -123,6 +124,7 @@ export function validarParametros(params) {
   }
   if (params.cierre !== undefined) Object.entries(validarCierre(params.cierre)).forEach(([c, e]) => anotar(c, e)); // v1.46
   if (params.seguimiento !== undefined) Object.entries(validarSeguimiento(params.seguimiento)).forEach(([c, e]) => anotar(c, e)); // v1.47
+  if (params.equipos !== undefined) Object.entries(validarEquipos(params.equipos)).forEach(([c, e]) => anotar(c, e)); // v1.58
   if (params.instalaciones !== undefined) Object.entries(validarInstalaciones(params.instalaciones)).forEach(([c, e]) => anotar(c, e)); // v1.57
   if (params.obraCivil !== undefined) Object.entries(validarObraCivil(params.obraCivil)).forEach(([c, e]) => anotar(c, e)); // v1.56
   if (params.finanzas !== undefined) Object.entries(validarFinanzas(params.finanzas)).forEach(([c, e]) => anotar(c, e)); // v1.54

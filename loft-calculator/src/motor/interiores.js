@@ -792,8 +792,8 @@ export function ubicarMueble(params, m) {
 
 const ALTO_ENTREPISO = 0.12; // tirantes del piso 2: lo que baja el "techo" de la planta baja bajo el entrepiso
 
-/** ¿El punto (x, z) cae bajo el entrepiso? */
-function bajoElEntrepiso(params, [x, z]) {
+/** ¿El punto (x, z) cae bajo el entrepiso? (v1.58: exportada para avisar si el caño de la salamandra lo atraviesa) */
+export function bajoElEntrepiso(params, [x, z]) {
   if (!(params.anchoEntrepiso > 0)) return false;
   const geo = geometriaLados(params)[params.ladoEntrepiso];
   const { inicio, largo } = tramoEntrepiso(params);

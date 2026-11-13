@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.58.0] - 2026-11-12
+### Agregado
+- **Equipos** (pestaña Instalaciones, abajo):
+  - **Aires acondicionados**: el split adentro en la pared y la condensadora afuera (en el 3D), con las **frigorías**:
+    ≈ 50 por m³ del ambiente (sus m² o toda la planta) por un factor (sol de la tarde, mucho vidrio). Dice si alcanza
+    y, si no, qué equipo poner. Lleva el kit: caño de cobre, ménsula, desagüe y cable.
+  - **Salamandra** con su **caño de salida** (5" o 6", por el techo o por la pared y para arriba): metros, codos,
+    sombrerete, babeta o pasamuro y placa ignífuga; si calienta la casa (≈ 45 kcal/h por m³) y aviso si el caño
+    atraviesa el entrepiso.
+  - **Paneles solares y termotanque solar**: cuántos paneles de 450 W pide el consumo (kWh por mes y horas de sol), lo
+    que generan, la superficie que ocupan contra la del techo y el peso (con el termotanque lleno), con aviso para
+    reforzar las correas o apoyarlo sobre las vigas.
+  - Lo que hay que comprar, con precios editables: va al presupuesto (renglón "Equipos"), al PDF y al Excel.
+
 ## [1.57.0] - 2026-11-12
 ### Agregado
 - **Pestaña Instalaciones**: eléctrica, agua, desagües y gas, un sistema a la vez.

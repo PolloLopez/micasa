@@ -53,7 +53,7 @@ function filasDePared(v, params) {
 
 /** Qué partes van, si no se dice (el Excel completo). */
 export const PARTES_EXCEL = { resumen: true, medidas: true, presupuesto: true, cortes: true, paredes: true, plantas: true, listaCanos: true, listaAberturas: true, seguimiento: true,
-  instElectrica: true, instAgua: true, instDesague: true, instGas: true };
+  instElectrica: true, instAgua: true, instDesague: true, instGas: true, instEquipos: true };
 
 /**
  * Hojas del libro (v1.28: pocas hojas, como el PDF): "Obra" (datos, medidas y presupuesto),
@@ -158,12 +158,12 @@ export function hojasDeObra({ nombre, params, vistas, items, total, gruposCortes
     }
   }
   // v1.57: instalaciones: los tramos (largo y curvas) y la lista de materiales de cada sistema elegido.
-  const OPCION_DE_SISTEMA = { electrica: 'instElectrica', agua: 'instAgua', desague: 'instDesague', gas: 'instGas' };
+  const OPCION_DE_SISTEMA = { electrica: 'instElectrica', agua: 'instAgua', desague: 'instDesague', gas: 'instGas', equipos: 'instEquipos' };
   const sistemas = instalaciones.filter((s) => partes[OPCION_DE_SISTEMA[s.sistema]]);
   if (sistemas.length) {
     const filas = [];
     sistemas.forEach((s) => {
-      filas.push({ negrita: true, celdas: [`Instalación ${s.nombre.toLowerCase()}`] });
+      filas.push({ negrita: true, celdas: [s.sistema === 'equipos' ? 'Equipos: aires, salamandra y solar' : `Instalación ${s.nombre.toLowerCase()}`] });
       if (s.tramos.length) {
         filas.push({ negrita: true, celdas: ['Tramo', 'Caño o canalización', 'Largo (m)', 'Curvas'] });
         s.tramos.forEach((t) => filas.push([t.nombre, t.material, Math.round(t.largo * 100) / 100, t.curvas]));
