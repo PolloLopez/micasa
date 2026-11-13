@@ -20,6 +20,9 @@ import { listaDePerfiles, listaDeAberturas, resumenDeAberturas, plantasElegidas 
 import { TablaCierre } from './CierrePresupuesto.jsx';
 import { fechaLegible } from '../motor/seguimiento.js';
 import { plata } from '../motor/finanzas.js';
+import { BloqueInstalacion } from './PlanoInstalaciones.jsx';
+
+const SISTEMAS_PDF = [['electrica', 'instElectrica'], ['agua', 'instAgua'], ['desague', 'instDesague'], ['gas', 'instGas']]; // v1.57
 
 const pesos = (n) => n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
 
@@ -162,7 +165,7 @@ function InformeSeguimiento({ informe }) {
 
 export default function HojasImpresion({
   opciones, capturas, nombre, subtitulo, leyenda3D, resumen, items, total, gruposCortes, vistas, params, plan = null, materiales = [], implantacion = null,
-  aberturas = [], cierre = null, seguimiento = null,
+  aberturas = [], cierre = null, seguimiento = null, estructura = null,
 }) {
   const fotos = capturas ?? { actual: null, fijas: [], medidas: [] };
   const conParedes = opciones.paredes && vistas.paredes.length > 0;
@@ -289,6 +292,13 @@ export default function HojasImpresion({
           )}
         </section>
       )}
+
+      {/* v1.57: cada instalación elegida (con puntos): su plano desde arriba, los tramos y los materiales. */}
+      {SISTEMAS_PDF.filter(([s, opcion]) => opciones[opcion] && (params.instalaciones?.puntos ?? []).some((p) => p.sistema === s)).map(([s]) => (
+        <section key={s} className="hoja-impresion">
+          <BloqueInstalacion params={params} estructura={estructura} sistema={s} />
+        </section>
+      ))}
 
       {/* v1.44: el 3D por partes (cada piso desde arriba, el adentro desde cada lado sin esa pared). */}
       {partes.length > 0 && (

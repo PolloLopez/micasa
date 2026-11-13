@@ -113,6 +113,7 @@ export const PARAMS_INICIALES = {
   // v1.38: interiores (ver motor/interiores.js). Mesadas con estructura y revestimiento; muebles para dimensionar.
   mesadas: [],
   muebles: [],
+  instalaciones: { puntos: [], tramos: [], precios: {} }, // v1.57: eléctrica, agua, desagües y gas (ver motor/instalaciones.js)
   obraCivil: structuredClone(OBRA_CIVIL_INICIAL), // v1.56: hormigón, tapial, pilar de luz y pozo (ver motor/obraCivil.js)
   finanzas: { compromisos: [], acreedores: [] }, // v1.54: terreno en cuotas, créditos y acreedores (ver motor/finanzas.js)
   seguimiento: { rubros: [] }, // v1.47: pagos, contratos y avance de la obra (ver motor/seguimiento.js)

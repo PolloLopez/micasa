@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.57.0] - 2026-11-12
+### Agregado
+- **Pestaña Instalaciones**: eléctrica, agua, desagües y gas, un sistema a la vez.
+  - **Puntos** (tablero, tomas, interruptores, lámparas, cajas de paso; canillas, pileta, lavamanos, ducha, inodoro,
+    lavarropas, termotanque, cisterna, bomba presurizadora, entrada de agua; desagües de inodoro, ducha, lavamanos,
+    pileta, cámara de inspección y ventilación; garrafa y cocina): en una pared, a una distancia de su esquina
+    izquierda (vista desde afuera), a una altura y, si hace falta, hacia adentro (la lámpara del techo).
+  - **Tramos** que trazás vos, de un punto a otro: van **por afuera, atornillados a la estructura** (salen, atraviesan
+    la pared, suben o bajan a la altura del recorrido y dan la vuelta por el lado más corto). Dice el largo y las curvas.
+  - **Canalización eléctrica elegible por tramo**: bandeja portacables, caño rígido de PVC, caño semipesado o
+    cablecanal, con el cable (1,5 a 6 mm², 3 conductores). Agua en termofusión ø20 o ø25; desagües en PVC ø40 a ø110;
+    gas en epoxi ½" o ¾". Lo que va afuera de la casa (hasta la cámara o la garrafa) como "largo extra".
+  - **Lista de materiales** por sistema: lo de cada punto (cajas, tomas, grifería, termotanque, garrafa…) y lo de cada
+    tramo (barras, cuplas, curvas, grampas, conectores o terminales, cable), con precios editables. El total de cada
+    sistema va al presupuesto como un renglón y cada material a la lista para pedir.
+- **Cada instalación se prende y se apaga**: en el 3D (Capas → Instalaciones), en Planos (una casilla por sistema) y al
+  exportar (PDF: una hoja por sistema con su plano desde arriba, los tramos y los materiales; Excel: hoja "Instalaciones").
+- En la pestaña Obra, "Armar desde el presupuesto" agrega un rubro por cada instalación.
+
 ## [1.56.0] - 2026-11-12
 ### Agregado
 - **Obra civil (hormigón y ladrillos)** (pestaña Estructura, debajo del Terreno): cemento, arena, piedra, hierro (ø8,

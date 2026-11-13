@@ -22,7 +22,8 @@ import { useEstadoGuardado } from './hooks/useEstadoGuardado.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { LADOS } from './motor/constantes.js';
-import { CAPAS, AYUDAS, GRUPOS_LEYENDA, CAPAS_TERRENO, CAPAS_MESADAS, CAPAS_MUEBLES, CAPAS_TABIQUES, COLORES_INICIALES, capaDelProyecto } from './capas.js';
+import { CAPAS, AYUDAS, GRUPOS_LEYENDA, CAPAS_TERRENO, CAPAS_MESADAS, CAPAS_MUEBLES, CAPAS_TABIQUES, CAPAS_INSTALACIONES, CAPA_DE_SISTEMA, COLORES_INICIALES, capaDelProyecto } from './capas.js';
+import { recorridoDelTramo, posicionDelPunto, pisoDeLaObra } from './motor/instalaciones.js';
 import SelectorColor from './componentes/SelectorColor.jsx';
 import { losaGruesa, dibujarMueble, dibujarMuebleEn, materialDeColor } from './interiores3d.js';
 import { ubicarMueble, choquesDelMueble, avisoDeChoques } from './motor/interiores.js';
@@ -180,7 +181,7 @@ const OPACIDADES = [
 ];
 
 /** Capas de hierro (todas menos superficies y madera): comparten la opacidad "Hierros". */
-const CAPAS_SUPERFICIE = ['paneles', 'osb', 'aberturas', 'chapa', 'escalones', 'zapatas', 'tapasMesada', 'muebles', 'placasTabiques']; // zapatas: hormigón, no hierro
+const CAPAS_SUPERFICIE = ['paneles', 'osb', 'aberturas', 'chapa', 'escalones', 'zapatas', 'tapasMesada', 'muebles', 'placasTabiques', ...CAPAS_INSTALACIONES]; // v1.57: los caños, sólidos // zapatas: hormigón, no hierro
 const CAPAS_HIERRO = Object.keys(CAPAS).filter((c) => !CAPAS_SUPERFICIE.includes(c));
 
 /** Opacidad de un material: 1 = sólido (tapa lo de atrás); menos = se ve a través. */
@@ -630,6 +631,27 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
   }
   if (capas.muebles && moduloActivo('muebles') && params.tipoProyecto === 'construccion') {
     (params.muebles ?? []).filter((m) => m.nivel !== 'piso2' || grupoVisible('piso2')).forEach((mueble) => grupo.add(dibujarMueble(params, mueble)));
+  }
+  // v1.57: instalaciones: los puntos (un cubito adentro) y cada tramo por afuera, del color de su sistema.
+  if (params.tipoProyecto === 'construccion' && params.instalaciones) {
+    const pisoDe = pisoDeLaObra(params, e);
+    const { puntos = [], tramos = [] } = params.instalaciones;
+    const visible = (sistema) => capas[CAPA_DE_SISTEMA[sistema]] !== false;
+    puntos.filter((p) => visible(p.sistema) && (p.nivel !== 'piso2' || grupoVisible('piso2'))).forEach((p) => {
+      const cubo = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.1), materiales[CAPA_DE_SISTEMA[p.sistema]]);
+      cubo.position.set(...posicionDelPunto(p, params, pisoDe));
+      grupo.add(cubo);
+    });
+    tramos.filter((t) => visible(t.sistema)).forEach((t) => {
+      const r = recorridoDelTramo(t, puntos, params, pisoDe);
+      if (!r) return;
+      const grosor = t.sistema === 'desague' ? 0.06 : 0.035;
+      r.puntos.slice(1).forEach((hasta, k) => {
+        const desde = r.puntos[k];
+        const largo = Math.hypot(hasta[0] - desde[0], hasta[1] - desde[1], hasta[2] - desde[2]);
+        if (largo > 1e-6) grupo.add(barra({ desde, hasta, largo }, grosor, materiales[CAPA_DE_SISTEMA[t.sistema]]));
+      });
+    });
   }
   // v1.38.1: carteles con el nombre (como paredes y aberturas): por capa "Etiquetas" y por cada uno en su ficha.
   if (capas.etiquetasMesadas && (capas.mesadas || capas.tapasMesada) && grupoVisible('mesada')) {
@@ -1579,6 +1601,7 @@ export default function LoftCanvas({
   // v1.38: la leyenda muestra Interiores solo si la obra tiene mesadas o muebles.
   const hayMesadas = params.tipoProyecto === 'construccion' && (params.mesadas?.length ?? 0) > 0;
   const hayTabiques = params.tipoProyecto === 'construccion' && (params.tabiques?.length ?? 0) > 0; // v1.41
+  const hayInstalaciones = params.tipoProyecto === 'construccion' && (params.instalaciones?.puntos?.length ?? 0) > 0; // v1.57
   const hayMuebles = moduloActivo('muebles') && params.tipoProyecto === 'construccion'
     && ((params.muebles?.length ?? 0) > 0 || (params.mesadas ?? []).some((m) => (m.huecos ?? []).some((h) => h.electro))); // v1.40: o electros en huecos
   const hoy = new Date();
@@ -1847,7 +1870,8 @@ export default function LoftCanvas({
         && (!(CAPAS_TERRENO.includes(clave) || clave === 'etiquetasTerreno') || obraConTerreno)
         && (!CAPAS_MESADAS.includes(clave) || hayMesadas)
         && (!CAPAS_MUEBLES.includes(clave) || hayMuebles)
-        && (!CAPAS_TABIQUES.includes(clave) || hayTabiques));
+        && (!CAPAS_TABIQUES.includes(clave) || hayTabiques)
+        && (!CAPAS_INSTALACIONES.includes(clave) || hayInstalaciones)); // v1.57
       return visibles.length === 0 ? null
         : { titulo, contenido: visibles.map((clave) => casillaCapa(clave)), todoNada: (valor) => ponerCapas(visibles, valor) };
     }).filter(Boolean),

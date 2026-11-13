@@ -32,7 +32,16 @@ export const CAPAS = {
   // v1.41: tabiques (solo si la obra tiene alguno).
   tabiques: { nombre: 'Estructura de tabiques', color: '#38bdf8' },
   placasTabiques: { nombre: 'Placas y puertas de tabiques', color: '#92400e', titulo: 'Las placas van con el color de su revestimiento; el color de la casilla es el de las puertas' },
+  // v1.57: cada instalación se prende y se apaga (los puntos y los caños que van por afuera).
+  instElectrica: { nombre: 'Eléctrica', color: '#facc15' },
+  instAgua: { nombre: 'Agua', color: '#38bdf8' },
+  instDesague: { nombre: 'Desagües', color: '#a16207' },
+  instGas: { nombre: 'Gas', color: '#f97316' },
 };
+
+/** v1.57: las capas de las instalaciones (se muestran en la leyenda si la obra tiene alguna). */
+export const CAPAS_INSTALACIONES = ['instElectrica', 'instAgua', 'instDesague', 'instGas'];
+export const CAPA_DE_SISTEMA = { electrica: 'instElectrica', agua: 'instAgua', desague: 'instDesague', gas: 'instGas' };
 
 /** Capas de interiores (v1.38): se muestran en la leyenda solo si la obra tiene mesadas (las dos primeras) o muebles. */
 export const CAPAS_MESADAS = ['mesadas', 'tapasMesada', 'etiquetasMesadas'];
@@ -59,6 +68,7 @@ export const GRUPOS_LEYENDA = [
   { titulo: 'Estructura', capas: ['pilotines', 'zapatas', 'bajoTierra', 'columnas', 'marcos', 'piso', 'piso2', 'transversales', 'correas', 'techo', 'escalera', 'grada', 'montaje'] },
   { titulo: 'Superficies', capas: ['paneles', 'osb', 'aberturas', 'escalones', 'chapa'] },
   { titulo: 'Interiores', capas: ['mesadas', 'tapasMesada', 'tabiques', 'placasTabiques', 'muebles'] }, // v1.38 (v1.41: tabiques)
+  { titulo: 'Instalaciones', capas: ['instElectrica', 'instAgua', 'instDesague', 'instGas'] }, // v1.57
   { titulo: 'Ayudas', capas: ['juntas', 'cotas', 'medidasFijas'] },
   // v1.34.3: cada parte del terreno por separado (solo si la obra tiene terreno).
   { titulo: 'Terreno', capas: CAPAS_TERRENO },

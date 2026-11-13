@@ -10,11 +10,13 @@ export const OPCIONES_IMPRESION_INICIALES = {
   partePisos: true, parteEntrepiso: true, parteTecho: true, parteInteriores: true,
   // v1.50: lo contratado, lo pagado y lo que falta de la obra (sale si hay rubros cargados).
   seguimiento: true,
+  // v1.57: el plano de cada instalación con sus tramos y su lista de materiales (sale si tiene puntos).
+  instElectrica: true, instAgua: true, instDesague: true, instGas: true,
 };
 
 /** v1.42: "Solo planos": las paredes, las plantas y sus listas; nada del 3D ni del presupuesto. */
 export const SOLO_PLANOS = Object.fromEntries(Object.keys(OPCIONES_IMPRESION_INICIALES)
-  .map((k) => [k, ['paredes', 'plantas', 'listaCanos', 'listaAberturas'].includes(k) || k.startsWith('parte')]));
+  .map((k) => [k, ['paredes', 'plantas', 'listaCanos', 'listaAberturas'].includes(k) || k.startsWith('parte') || k.startsWith('inst')]));
 
 /** Lo guardado sirve si tiene todas las claves con true/false. */
 export const opcionesImpresionValidas = (o) => o !== null && typeof o === 'object'

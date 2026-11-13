@@ -55,6 +55,8 @@ import { partesDelPresupuesto, resumenSeguimiento, informeDeSeguimiento } from '
 import PanelSeguimiento from './componentes/PanelSeguimiento.jsx';
 import PanelFinanzas from './componentes/PanelFinanzas.jsx';
 import PanelObraCivil from './componentes/PanelObraCivil.jsx';
+import PanelInstalaciones from './componentes/PanelInstalaciones.jsx';
+import { materialesDeInstalaciones } from './motor/instalaciones.js';
 import SelectorPerfil from './componentes/SelectorPerfil.jsx';
 import Planos from './componentes/Planos.jsx';
 import { todasLasVistas } from './motor/planos.js';
@@ -253,11 +255,21 @@ export default function App() {
     ? params.proveedorElegido : proveedores[0]?.id;
   const formaPago = params.formaPago ?? 'efectivo';
   const opcionesPresupuesto = { excedenteBarras: params.excedenteBarras, compartir: params.compartirCortes };
-  const { items, total, gruposCortes } = useMemo(
+  const { items: itemsEstructura, total: totalEstructura, gruposCortes } = useMemo(
     () => calcularPresupuesto(estructura, catalogo, { ...opcionesPresupuesto, proveedor: proveedorElegido, pago: formaPago }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [estructura, catalogo, params.excedenteBarras, params.compartirCortes, proveedorElegido, formaPago]
   );
+  // v1.57: instalaciones (eléctrica, agua, desagües, gas): un renglón por sistema en el presupuesto, con el total de su
+  // lista de materiales (los precios se cargan en la pestaña Instalaciones, no por proveedor).
+  const instalaciones = useMemo(() => (esConstruccion ? materialesDeInstalaciones(paramsObra, estructura) : []), [esConstruccion, paramsObra, estructura]);
+  const totalInstalaciones = instalaciones.reduce((a, s) => a + s.total, 0);
+  const items = useMemo(() => [...itemsEstructura, ...instalaciones.map((s) => ({
+    id: `inst:${s.sistema}`, categoria: 'instalacion', nombre: `Instalación ${s.nombre.toLowerCase()}`, perfil: 'Materiales (ver Instalaciones)',
+    unidad: 'global', largoBarra: null, cantidad: 1, precio: s.total, subtotal: s.total, cortes: null,
+    detalle: `${s.puntos} puntos, ${s.tramos.length} tramos (${s.tramos.reduce((a, t) => a + t.largo, 0).toFixed(1).replace('.', ',')} m)`,
+  }))], [itemsEstructura, instalaciones]);
+  const total = totalEstructura + totalInstalaciones;
   // v1.25: el total con cada proveedor (y con lo más barato de cada material), en efectivo y con tarjeta.
   const comparacion = useMemo(() => [...proveedores.map((p) => ({ id: p.id, nombre: p.nombre })),
     { id: MAS_BARATO, nombre: 'Lo más barato de cada material' }].map(({ id, nombre }) => ({
@@ -270,12 +282,16 @@ export default function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   })), [estructura, catalogo, proveedores, params.excedenteBarras, params.compartirCortes]);
   // v1.29: plan de compra (a quién comprarle cada material, contando el flete), con las cantidades de este presupuesto.
-  const planCompra = useMemo(() => planDeCompra(items, resolverCatalogo(catalogo), formaPago), [items, catalogo, formaPago]);
+  const planCompra = useMemo(() => planDeCompra(itemsEstructura, resolverCatalogo(catalogo), formaPago), [itemsEstructura, catalogo, formaPago]);
   // v1.30.2: el total de la obra (pestaña y TOTAL) es el del plan de compra cuando hay varios proveedores:
   // el de un solo proveedor deja afuera lo que ese no vende (ej. los paneles de otro).
-  const totalObra = totalDeLaObra(total, planCompra, proveedores.length);
+  const totalObra = totalDeLaObra(totalEstructura, planCompra, proveedores.length) + totalInstalaciones; // v1.57: + instalaciones
   // v1.31.0: todos los materiales de la obra, sin proveedor (sub-pestaña Materiales del presupuesto).
-  const listaMateriales = useMemo(() => listaDeMateriales(items, resolverCatalogo(catalogo)), [items, catalogo]);
+  // v1.57: con el detalle de las instalaciones (cada caño, curva y caja), para pedir.
+  const listaMateriales = useMemo(() => listaDeMateriales([...itemsEstructura, ...instalaciones.flatMap((s) => s.materiales.map((m, k) => ({
+    id: `inst:${s.sistema}:${k}`, categoria: 'instalacion', nombre: m.nombre, perfil: s.nombre, unidad: m.unidad, cantidad: m.cantidad,
+    precio: m.precio, subtotal: m.total, largoBarra: null, detalle: `Instalación ${s.nombre.toLowerCase()}`,
+  })))], resolverCatalogo(catalogo)), [itemsEstructura, instalaciones, catalogo]);
   // v1.46: cierre: de los materiales al precio de la obra (mano de obra, imprevistos, ganancia e IVA).
   const medidasCierre = {
     m2: (estructura.superficies?.piso ?? 0) + (estructura.superficies?.piso2 ?? 0), // m² cubiertos
@@ -289,7 +305,7 @@ export default function App() {
   // v1.47: lo que dice el presupuesto de cada parte (un rubro por proveedor y la mano de obra), para el seguimiento.
   const conPlanDeCompra = proveedores.length > 1 && planCompra?.compras?.length > 0;
   const partesSeguimiento = partesDelPresupuesto({
-    compras: conPlanDeCompra ? planCompra.compras : [], materiales: totalObra, cierre,
+    compras: conPlanDeCompra ? planCompra.compras : [], materiales: totalObra - totalInstalaciones, cierre, instalaciones,
     nombreProveedor: proveedores.find((p) => p.id === proveedorElegido)?.nombre ?? '',
   });
   const resumenObra = resumenSeguimiento(params.seguimiento, partesSeguimiento);
@@ -313,6 +329,7 @@ export default function App() {
     ...(esConstruccion ? [{ clave: 'paredes', nombre: 'Paredes y aberturas', corto: 'Paredes' }] : []),
     { clave: 'materiales', nombre: 'Materiales' },
     { clave: 'presupuesto', nombre: 'Presupuesto', corto: 'Presup.', detalle: pesosCompletos(cierre.total) },
+    ...(esConstruccion ? [{ clave: 'instalaciones', nombre: 'Instalaciones', corto: 'Instal.' }] : []), // v1.57
     { clave: 'planos', nombre: 'Planos' }, // v1.26: paredes y plantas acotadas, para imprimir y exportar
     // v1.47: pagos, contratos y avance de la obra.
     { clave: 'obra', nombre: 'Obra', corto: 'Obra', detalle: resumenObra.rubros > 0 ? `pagado ${pesosCompletos(resumenObra.pagado)}` : undefined },
@@ -796,6 +813,7 @@ export default function App() {
       proveedor: nombreProveedor, pago: textoPago, resumen, medidas: medidasFijas,
       plan: proveedores.length > 1 ? planCompra : null, materiales: listaMateriales, aberturas: aberturasValidas, cierre,
       seguimiento: informeDeSeguimiento(params.seguimiento, partesSeguimiento, params.finanzas),
+      instalaciones, // v1.57
     }, opcionesImpresion);
     const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const enlace = document.createElement('a');
@@ -1485,7 +1503,11 @@ export default function App() {
           {/* v1.26: planos de cada pared y planta (en pantalla y en el PDF) + Excel. */}
           <section id="pestana-planos" role="tabpanel" aria-labelledby="boton-planos"
             className={`pestana${pestanaActiva === 'planos' ? '' : ' oculta'}`}>
-            <Planos vistas={vistas} params={params} implantacion={implantacion} onExportar={() => setDialogoImprimir(true)} />
+            <Planos vistas={vistas} params={params} estructura={estructura} implantacion={implantacion} onExportar={() => setDialogoImprimir(true)} />
+          </section>
+          <section id="pestana-instalaciones" role="tabpanel" aria-labelledby="boton-instalaciones"
+            className={`pestana${pestanaActiva === 'instalaciones' ? '' : ' oculta'}`}>
+            {esConstruccion && <PanelInstalaciones params={params} estructura={estructura} unidad={unidad} cambiar={cambiar} />}
           </section>
           <section id="pestana-obra" role="tabpanel" aria-labelledby="boton-obra"
             className={`pestana${pestanaActiva === 'obra' ? '' : ' oculta'}`}>
@@ -1500,7 +1522,7 @@ export default function App() {
         leyenda3D={cartelResaltado ? `Resaltado en rosa — ${cartelResaltado.replace(' (fijado)', '')}` : null}
         resumen={resumen} items={items} total={total} gruposCortes={gruposCortes} vistas={vistas} params={params}
         plan={proveedores.length > 1 ? planCompra : null} materiales={listaMateriales} implantacion={implantacion} aberturas={aberturasValidas} cierre={cierre}
-        seguimiento={informeDeSeguimiento(params.seguimiento, partesSeguimiento, params.finanzas)} />
+        seguimiento={informeDeSeguimiento(params.seguimiento, partesSeguimiento, params.finanzas)} estructura={estructura} />
     </div>
     </ContextoFoco>
     </ContextoResaltado>

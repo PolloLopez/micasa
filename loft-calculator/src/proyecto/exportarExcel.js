@@ -52,7 +52,8 @@ function filasDePared(v, params) {
 }
 
 /** Qué partes van, si no se dice (el Excel completo). */
-export const PARTES_EXCEL = { resumen: true, medidas: true, presupuesto: true, cortes: true, paredes: true, plantas: true, listaCanos: true, listaAberturas: true, seguimiento: true };
+export const PARTES_EXCEL = { resumen: true, medidas: true, presupuesto: true, cortes: true, paredes: true, plantas: true, listaCanos: true, listaAberturas: true, seguimiento: true,
+  instElectrica: true, instAgua: true, instDesague: true, instGas: true };
 
 /**
  * Hojas del libro (v1.28: pocas hojas, como el PDF): "Obra" (datos, medidas y presupuesto),
@@ -60,7 +61,7 @@ export const PARTES_EXCEL = { resumen: true, medidas: true, presupuesto: true, c
  * @param {object} datos { nombre, params, vistas: { paredes, plantas }, items, total, gruposCortes, proveedor, pago, resumen, medidas }
  * @param {object} partes { resumen, medidas, presupuesto, cortes, paredes, plantas } (true = va)
  */
-export function hojasDeObra({ nombre, params, vistas, items, total, gruposCortes = [], proveedor = '', pago = '', resumen = [], medidas = [], plan = null, materiales = [], aberturas = [], cierre = null, seguimiento = null }, partes = PARTES_EXCEL) {
+export function hojasDeObra({ nombre, params, vistas, items, total, gruposCortes = [], proveedor = '', pago = '', resumen = [], medidas = [], plan = null, materiales = [], aberturas = [], cierre = null, seguimiento = null, instalaciones = [] }, partes = PARTES_EXCEL) {
   const fecha = new Date().toLocaleDateString('es-AR');
   const hojas = [];
 
@@ -155,6 +156,23 @@ export function hojasDeObra({ nombre, params, vistas, items, total, gruposCortes
         ],
       });
     }
+  }
+  // v1.57: instalaciones: los tramos (largo y curvas) y la lista de materiales de cada sistema elegido.
+  const OPCION_DE_SISTEMA = { electrica: 'instElectrica', agua: 'instAgua', desague: 'instDesague', gas: 'instGas' };
+  const sistemas = instalaciones.filter((s) => partes[OPCION_DE_SISTEMA[s.sistema]]);
+  if (sistemas.length) {
+    const filas = [];
+    sistemas.forEach((s) => {
+      filas.push({ negrita: true, celdas: [`Instalación ${s.nombre.toLowerCase()}`] });
+      if (s.tramos.length) {
+        filas.push({ negrita: true, celdas: ['Tramo', 'Caño o canalización', 'Largo (m)', 'Curvas'] });
+        s.tramos.forEach((t) => filas.push([t.nombre, t.material, Math.round(t.largo * 100) / 100, t.curvas]));
+      }
+      filas.push({ negrita: true, celdas: ['Material', 'Unidad', 'Cantidad', 'Precio', 'Total'] });
+      s.materiales.forEach((m) => filas.push([m.nombre, m.unidad, m.cantidad, { pesos: m.precio }, { pesos: m.total }]));
+      filas.push({ negrita: true, celdas: ['Total', '', '', '', { pesos: s.total }] }, []);
+    });
+    hojas.push({ nombre: 'Instalaciones', anchos: [40, 30, 12, 14, 14], filas });
   }
   if (partes.listaAberturas && params.tipoProyecto === 'construccion' && aberturas.length) {
     const lista = listaDeAberturas(aberturas, params);

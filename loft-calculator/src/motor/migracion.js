@@ -54,6 +54,7 @@ import { completarCierre } from './cierre.js';
 import { completarSeguimiento } from './seguimiento.js';
 import { completarFinanzas } from './finanzas.js';
 import { completarObraCivil } from './obraCivil.js';
+import { completarInstalaciones } from './instalaciones.js';
 import { completarTabique } from './tabiques.js';
 import { completarSol } from './sol.js';
 import { GRADA_INICIAL } from './grada.js';
@@ -125,6 +126,7 @@ export function migrarParams(params) {
   nuevos.seguimiento = completarSeguimiento(nuevos.seguimiento); // v1.47: pagos, contratos y avance
   nuevos.finanzas = completarFinanzas(nuevos.finanzas); // v1.54: terreno, créditos y acreedores
   nuevos.obraCivil = completarObraCivil(nuevos.obraCivil); // v1.56: hormigón, tapial, pilar y pozo
+  nuevos.instalaciones = completarInstalaciones(nuevos.instalaciones); // v1.57: eléctrica, agua, desagües y gas
   nuevos.cierre = completarCierre(nuevos.cierre); // v1.46: mano de obra, imprevistos, ganancia e IVA (de fábrica en 0)
   nuevos.sol = completarSol(nuevos.sol); // v1.37: Mercedes // v1.33: con descuentos en los cruces (lo correcto)
   nuevos.piezasEditadas ??= {}; // v1.8

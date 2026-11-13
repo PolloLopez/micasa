@@ -10,6 +10,9 @@
 
 import Tarjeta from './Tarjeta.jsx';
 import PlanoImplantacion from './PlanoImplantacion.jsx';
+import { BloqueInstalacion } from './PlanoInstalaciones.jsx';
+import { SISTEMAS } from '../motor/instalaciones.js';
+import { useEstadoGuardado } from '../hooks/useEstadoGuardado.js';
 import { NOMBRE_PLANTA } from '../motor/planos.js';
 import { nombreDePared } from '../proyecto/exportarExcel.js';
 
@@ -237,7 +240,29 @@ export function PlanoDePlanta({ vista: p }) {
   );
 }
 
-export default function Planos({ vistas, params, onExportar, implantacion = null }) {
+/** v1.57: los planos de las instalaciones, cada uno con su casilla para prenderlo o apagarlo. */
+function PlanosInstalaciones({ params, estructura }) {
+  const [visibles, setVisibles] = useEstadoGuardado('planosInstalaciones', { electrica: true, agua: true, desague: true, gas: true },
+    (v) => v && typeof v === 'object');
+  const conPuntos = SISTEMAS.filter(([s]) => (params.instalaciones?.puntos ?? []).some((p) => p.sistema === s));
+  if (conPuntos.length === 0) return null;
+  return (
+    <section className="card plano">
+      <h3 className="subtitulo">Instalaciones</h3>
+      <div className="fila-casillas" role="group" aria-label="Qué instalaciones se ven">
+        {conPuntos.map(([s, nombre, color]) => (
+          <label key={s} className="casilla-opcional">
+            <input type="checkbox" checked={visibles[s] !== false} onChange={(e) => setVisibles({ ...visibles, [s]: e.target.checked })} />
+            <span className="muestra-color" style={{ background: color }} /> {nombre}
+          </label>
+        ))}
+      </div>
+      {conPuntos.filter(([s]) => visibles[s] !== false).map(([s]) => <BloqueInstalacion key={s} params={params} estructura={estructura} sistema={s} />)}
+    </section>
+  );
+}
+
+export default function Planos({ vistas, params, estructura = null, onExportar, implantacion = null }) {
   if (!vistas.paredes.length && !vistas.plantas.length) {
     return (
       <Tarjeta id="planos" titulo="Planos">
@@ -269,6 +294,7 @@ export default function Planos({ vistas, params, onExportar, implantacion = null
       {vistas.plantas.map((p) => (
         <section key={p.nivel} className="card plano"><PlanoDePlanta vista={p} /></section>
       ))}
+      <PlanosInstalaciones params={params} estructura={estructura} />
     </>
   );
 }

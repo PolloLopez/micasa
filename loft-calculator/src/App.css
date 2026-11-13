@@ -844,3 +844,10 @@ input[type=date] { color-scheme: dark; }
 .tabla-segmentos td, .tabla-segmentos th { padding: 0.2rem 0.3rem; border-bottom: 1px solid var(--borde, #334155); }
 .tabla-segmentos input[type=text] { width: 100%; min-width: 7rem; }
 .tabla-segmentos .group { margin: 0; }
+
+/* v1.57: planos de las instalaciones */
+.plano-instalacion { width: 100%; max-height: 520px; background: #fff; border-radius: 6px; }
+.plano-instalacion .casa-instalacion { fill: #f1f5f9; stroke: #334155; stroke-width: 0.06; }
+.plano-instalacion text { fill: #0f172a; }
+.plano-instalacion .rotulo-tramo { fill: #1e293b; font-weight: 700; }
+.bloque-instalacion { margin: 0.6rem 0 1rem; }

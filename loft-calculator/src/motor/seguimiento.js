@@ -72,10 +72,12 @@ export function pagoNuevo(pagos, monto = 0, fecha = hoy()) {
  * @param cierre    resultado de cerrarPresupuesto
  * @returns {{ origen, nombre, quien, monto }[]}
  */
-export function partesDelPresupuesto({ compras = [], materiales = 0, cierre = null, nombreProveedor = '' }) {
+export function partesDelPresupuesto({ compras = [], materiales = 0, cierre = null, nombreProveedor = '', instalaciones = [] }) {
   const partes = compras.length > 0
     ? compras.map((c) => ({ origen: `proveedor:${c.proveedor.id}`, nombre: `Materiales — ${c.proveedor.nombre}`, quien: c.proveedor.nombre, monto: c.total }))
     : [{ origen: 'materiales', nombre: 'Materiales', quien: nombreProveedor, monto: materiales }];
+  // v1.57: los materiales de cada instalación, aparte (eléctrica, agua…).
+  instalaciones.filter((s) => s.total > 0).forEach((s) => partes.push({ origen: `instalacion:${s.sistema}`, nombre: `Materiales — Instalación ${s.nombre.toLowerCase()}`, quien: '', monto: s.total }));
   const mo = cierre?.renglones?.find((r) => r.clave === 'manoDeObra');
   if (mo) partes.push({ origen: 'manoDeObra', nombre: mo.concepto ?? 'Mano de obra', quien: '', monto: mo.monto });
   // v1.53: un rubro por cada segmento de mano de obra con monto (pilotines, electricista…).

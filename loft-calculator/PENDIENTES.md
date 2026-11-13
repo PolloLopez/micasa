@@ -3,7 +3,7 @@
 Última limpieza: 2026-11-11 (v1.49.0). Espejo en Trello: tablero "Desarrollo", tarjetas `[CALC]`.
 
 ## 📌 Estado y próximos pasos (11/11)
-**En GitHub: hasta v1.53.0. v1.54.0 a v1.56.0 por subir** (desde v1.54 el deploy es automático al pushear). Manual de uso para chequear: `MANUAL.md`.
+**En GitHub: hasta v1.53.0. v1.54.0 a v1.57.0 por subir** (desde v1.54 el deploy es automático al pushear). Manual de uso para chequear: `MANUAL.md`.
 
 🟡 **Para chequear en pantalla** (probado con tests, no visto): el sol con "Ver adentro" entra solo por las aberturas;
 la persona se sienta en el sillón y se acuesta en la cama; las puertas de los tabiques se abren al pasar.
@@ -32,7 +32,12 @@ Lo que falta, en orden de prioridad (detalle en cada sección de abajo):
   - 🔴 [ ] Validar con el albañil los rendimientos (`RENDIMIENTOS` en obraCivil.js): ladrillos por m², secciones de
     columnas, viga de fundación y encadenado, panal del pozo, empalmes.
   - 🟢 [ ] Revoque e hidrófugo de la cámara; mano de obra del tapial por m² (hoy monto total).
-- [ ] **Instalaciones** (puntos como los muebles + recorrido que trazás vos; por fuera, atornilladas a la estructura):
+- ✅ v1.57.0 **Instalaciones**: puntos, tramos por afuera, materiales por sistema, capas en 3D, planos y export.
+  - 🟡 [ ] Precios de ejemplo solo en caños y cables: cargar los del resto (cajas, grifería, garrafa…).
+  - 🟡 [ ] Tes y derivaciones (hoy cada tramo es de punto a punto; una derivación se arma con una "caja de paso").
+  - 🟢 [ ] Mover los puntos desde el 3D (✥ Mover, como los muebles); pendiente de los desagües (hoy horizontal).
+  - 🟢 [ ] Precios por proveedor de los materiales de las instalaciones (hoy una lista propia).
+- (pedido original) **Instalaciones** (puntos como los muebles + recorrido que trazás vos; por fuera, atornilladas a la estructura):
   eléctrica (canalización elegible por tramo: bandeja, caño rígido PVC, metálico, cablecanal; tablero, tomas, lámparas),
   agua (termofusión 20/25 editable; termotanque, cisterna, bomba presurizadora; grifería, ducha, lavamanos),
   desagües (PVC 40/50/63/110), gas (garrafa en el exterior). Cada plano se prende y apaga y se exporta con medidas y

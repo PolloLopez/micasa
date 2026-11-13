@@ -1,4 +1,4 @@
-# Manual de Pollo Calculator (v1.56.0)
+# Manual de Pollo Calculator (v1.57.0)
 
 Guía corta para usar el sistema y chequear que todo ande. Cada parte termina con **✔ Chequeá**: lo que tenés que ver.
 
@@ -8,7 +8,7 @@ Página: https://pollolopez.github.io/micasa/
 
 ## 1. Lo básico
 
-- Arriba están las pestañas: **Estructura · Paredes y aberturas · Materiales · Presupuesto · Planos · Obra**.
+- Arriba están las pestañas: **Estructura · Paredes y aberturas · Materiales · Presupuesto · Instalaciones · Planos · Obra**.
 - A la izquierda (o con **Ocultar 3D**) está el modelo 3D.
 - **Guardar** guarda en este navegador. **Compartir** copia un link para otra persona. **Mis proyectos** abre los guardados.
 - **Ctrl+Z** deshace, **Ctrl+Y** rehace. **?** abre la ayuda.
@@ -120,6 +120,23 @@ cambia la cantidad y el presupuesto.
 
 ✔ Chequeá: con mano de obra por m², 5 % de imprevistos, 15 % de ganancia e IVA 10,5 %, el precio de la obra es mayor
 que los materiales y la pestaña "Presupuesto" muestra ese precio.
+
+---
+
+## 6b. Instalaciones
+
+- Elegí el sistema arriba (**Eléctrica, Agua, Desagües, Gas**).
+- **+ Punto**: elegí qué es (toma, canilla, garrafa…). En su ficha: la pared, la distancia desde la esquina izquierda
+  (mirando la pared desde afuera), la altura y, si va en el medio del techo, cuánto hacia adentro.
+- **+ Tramo**: de qué punto a qué punto, con qué caño o canalización (y el cable en la eléctrica), a qué altura corre por
+  afuera y el largo extra si sigue afuera de la casa. Dice el largo y las curvas.
+- Abajo, la **lista de materiales** con su precio (cargá los tuyos): su total va al presupuesto.
+
+✔ Chequeá:
+- Un tablero en el frente y una toma en el lateral: el tramo dobla 1 esquina y la lista trae caños, cuplas, curvas,
+  grampas, conectores, las cajas y el cable.
+- En el 3D se ve el caño por afuera; en **Capas → Instalaciones** se apaga. En **Planos**, cada instalación tiene su
+  casilla; al imprimir, una hoja por sistema.
 
 ---
 
