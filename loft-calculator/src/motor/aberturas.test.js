@@ -58,3 +58,39 @@ describe('agregar puerta o ventana en una pared (v1.17)', () => {
     expect(aberturaNueva('ventana', 'B', llena, P, 7).error).toMatch(/lugar/);
   });
 });
+
+describe('v1.59: abertura a futuro (solo el marco, revestida entera)', async () => {
+  const { generarEstructura } = await import('./estructura.js');
+  const { calcularPresupuesto, CATALOGO_INICIAL } = await import('./presupuesto.js');
+  const { PARAMS_INICIALES } = await import('./parametrosIniciales.js');
+  const { validarAbertura } = await import('./validacion.js');
+  const ventana = { id: 1, tipo: 'ventana', lado: 'A', ancho: 1.2, alto: 1, offsetHorizontal: 2, alturaAntepecho: 1, ladoReferencia: 'izquierda' };
+  it('lleva el marco igual que una de verdad, pero la pared no se descuenta ni se recorta', () => {
+    const normal = generarEstructura(PARAMS_INICIALES, [ventana]);
+    const futura = generarEstructura(PARAMS_INICIALES, [{ ...ventana, futura: true }]);
+    const sin = generarEstructura(PARAMS_INICIALES, []);
+    expect(futura.refuerzosAberturas.length).toBe(normal.refuerzosAberturas.length);
+    expect(futura.refuerzosAberturas.length).toBeGreaterThan(0);
+    const paredA = (e) => e.paredes.find((p) => p.lado === 'A');
+    expect(paredA(futura).huecos).toEqual([]);
+    expect(paredA(futura).superficieNeta).toBe(paredA(sin).superficieNeta);
+    const panel = (e) => calcularPresupuesto(e, CATALOGO_INICIAL).items.find((i) => i.id === 'panelMuros').cantidad;
+    expect(panel(futura)).toBe(panel(sin));
+    expect(validarAbertura({ ...ventana, futura: 'si' }, PARAMS_INICIALES)).toMatch(/futuro/);
+  });
+});
+
+describe('v1.59: comparativa de revestimientos', async () => {
+  const { compararRevestimientos, espesorDelPanel } = await import('./comparativa.js');
+  const { CATALOGO_INICIAL } = await import('./presupuesto.js');
+  const { PARAMS_INICIALES } = await import('./parametrosIniciales.js');
+  it('cada panel en todas las paredes: el más barato primero y la diferencia contra lo de ahora', () => {
+    const fino = { ...CATALOGO_INICIAL.find((i) => i.id === 'panelMuros'), id: 'panelFino', nombre: 'Panel fino', perfil: 'Panel PUR 10 mm', precio: 15000, precios: {} };
+    const catalogo = [...CATALOGO_INICIAL, fino];
+    const r = compararRevestimientos(PARAMS_INICIALES, [], catalogo);
+    expect(espesorDelPanel(fino)).toBe(10);
+    const actual = r.find((x) => x.id === 'panelMuros');
+    expect(actual).toMatchObject({ actual: true, diferencia: 0, espesor: 50 });
+    expect(r.map((x) => x.total)).toEqual([...r.map((x) => x.total)].sort((a, b) => a - b));
+  });
+});

@@ -59,6 +59,7 @@ import PanelInstalaciones from './componentes/PanelInstalaciones.jsx';
 import { materialesDeInstalaciones } from './motor/instalaciones.js';
 import { materialesDeEquipos } from './motor/equipos.js';
 import PanelEquipos from './componentes/PanelEquipos.jsx';
+import ComparativaRevestimientos from './componentes/ComparativaRevestimientos.jsx';
 import SelectorPerfil from './componentes/SelectorPerfil.jsx';
 import Planos from './componentes/Planos.jsx';
 import { todasLasVistas } from './motor/planos.js';
@@ -1507,6 +1508,11 @@ export default function App() {
             onCambiarPrecio={(item, valor) => cambiarPrecio(item.perfilId ?? item.id, proveedorElegido, formaPago, valor)}
             plan={planCompra} nombreProyecto={nombreProyecto} materiales={listaMateriales} masBaratoDe={(item) => masBaratoEn(item, catalogoResuelto, formaPago)}
             cierre={params.cierre} resultadoCierre={cierre} medidasCierre={medidasCierre} cambiar={cambiar} />
+          {/* v1.59: la obra con cada panel en las 4 paredes, para elegir el revestimiento. */}
+          {esConstruccion && (
+            <ComparativaRevestimientos params={paramsObra} aberturas={aberturasValidas} catalogo={catalogo} cambiarVarios={cambiarVarios}
+              opciones={{ ...opcionesPresupuesto, proveedor: proveedorElegido, pago: formaPago }} />
+          )}
           </section>
           {/* v1.26: planos de cada pared y planta (en pantalla y en el PDF) + Excel. */}
           <section id="pestana-planos" role="tabpanel" aria-labelledby="boton-planos"

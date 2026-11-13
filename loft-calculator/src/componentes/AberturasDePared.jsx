@@ -57,6 +57,12 @@ export function FilaAbertura({ abertura, numero, params, unidad, onActualizar, o
           aria-label={`Texto de la etiqueta de la abertura ${numero}`}
           onChange={(e) => cambiar('etiqueta')(e.target.value)} />
       </div>
+      {/* v1.59: abertura a futuro: se arma el marco y la pared va revestida entera (el día de mañana se corta y se pone). */}
+      <label className="casilla-opcional">
+        <input type="checkbox" checked={abertura.futura === true}
+          onChange={(e) => setErrorSelect(cambiar('futura')(e.target.checked))} />
+        A futuro: solo el marco, revestida entera (se corta y se coloca después)
+      </label>
       {/* v1.28: travesaños hasta las columnas, a la altura del dintel y del antepecho. */}
       <label className="casilla-opcional">
         <input type="checkbox" checked={abertura.travesanos === true}

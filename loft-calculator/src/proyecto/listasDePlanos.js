@@ -87,19 +87,21 @@ export function listaDeAberturas(aberturas, params) {
   return aberturas.map((op, i) => ({
     numero: i + 1,
     tipo: TIPO[op.tipo] ?? op.tipo,
+    futura: op.futura === true, // v1.59: solo el marco, revestida entera
     etiqueta: op.etiqueta?.trim() ?? '',
     pared: `${nombreDePared(op.lado, params)} (${op.lado})`,
     ancho: op.ancho,
     alto: op.alto,
     antepecho: op.alturaAntepecho ?? 0,
-    ubicacion: `a ${op.offsetHorizontal.toFixed(2)} m de la esquina ${op.ladoReferencia === 'derecha' ? 'derecha' : 'izquierda'}`,
+    ubicacion: `a ${op.offsetHorizontal.toFixed(2)} m de la esquina ${op.ladoReferencia === 'derecha' ? 'derecha' : 'izquierda'}${op.futura ? ' · A FUTURO: solo el marco, revestida' : ''}`,
   }));
 }
 
 /** Resumen de las aberturas para un renglón: "2 puertas · 3 ventanas". */
 export function resumenDeAberturas(lista) {
-  const cuenta = (tipo) => lista.filter((a) => a.tipo === tipo).length;
-  const partes = [[cuenta('Puerta'), 'puerta', 'puertas'], [cuenta('Ventana'), 'ventana', 'ventanas']]
+  const cuenta = (tipo) => lista.filter((a) => a.tipo === tipo && !a.futura).length;
+  const futuras = lista.filter((a) => a.futura).length;
+  const partes = [[cuenta('Puerta'), 'puerta', 'puertas'], [cuenta('Ventana'), 'ventana', 'ventanas'], [futuras, 'a futuro (solo el marco)', 'a futuro (solo el marco)']]
     .filter(([n]) => n > 0).map(([n, uno, varios]) => `${n} ${n === 1 ? uno : varios}`);
   return partes.join(' · ') || 'sin aberturas';
 }

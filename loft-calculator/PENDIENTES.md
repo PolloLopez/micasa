@@ -3,7 +3,7 @@
 Última limpieza: 2026-11-11 (v1.49.0). Espejo en Trello: tablero "Desarrollo", tarjetas `[CALC]`.
 
 ## 📌 Estado y próximos pasos (11/11)
-**En GitHub: hasta v1.53.0. v1.54.0 a v1.58.0 por subir** (desde v1.54 el deploy es automático al pushear). Manual de uso para chequear: `MANUAL.md`.
+**En GitHub: hasta v1.53.0. v1.54.0 a v1.59.0 por subir** (desde v1.54 el deploy es automático al pushear). Manual de uso para chequear: `MANUAL.md`.
 
 🟡 **Para chequear en pantalla** (probado con tests, no visto): el sol con "Ver adentro" entra solo por las aberturas;
 la persona se sienta en el sillón y se acuesta en la cama; las puertas de los tabiques se abren al pasar.
@@ -45,8 +45,8 @@ Lo que falta, en orden de prioridad (detalle en cada sección de abajo):
 - ✅ v1.58.0 **Equipos**: aires con frigorías, salamandra con su caño, paneles y termotanque solar con su peso.
   - 🟡 [ ] Cálculo de verdad de la correa o viga que aguanta el solar (hoy aviso por kg/m²); paneles en el 3D.
   - 🟢 [ ] Ambientes con nombre (para elegir el ambiente del aire en vez de cargar los m²).
-- [ ] **Visual**: "ver estructura de hierro" (sin maderas ni aberturas), abertura a futuro (marco hecho y
-  revestido entero), comparativa de materiales y proveedores (revestimiento 50 mm vs 10 mm).
+- ✅ v1.59.0 **Visual**: ver estructura de hierro, abertura a futuro y comparar revestimientos.
+  - 🟡 [ ] Comparar también perfiles (ej. columnas 100x100 contra 80x80) y el techo; comparar escenarios completos guardados.
   - ✅ v1.55.0 **Color por perfil** en el 3D (el mismo 80x80x2 siempre del mismo color, con leyenda).
 
 Mejoras propuestas (técnicas, sin cambios aplicados):

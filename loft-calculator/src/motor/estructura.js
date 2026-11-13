@@ -736,8 +736,9 @@ function generarParedes(params, lados, aberturas) {
     const geo = lados[lado];
     const [h1, h2] = alturasPared(geo, params);
     const bruta = (geo.largo * (h1 + h2)) / 2; // trapecio
+    // v1.59: las aberturas "a futuro" tienen su marco pero la pared va revestida entera (se cortan el día de mañana).
     const huecos = aberturas
-      .filter((op) => op.lado === lado)
+      .filter((op) => op.lado === lado && !op.futura)
       .reduce((acc, op) => acc + op.ancho * op.alto, 0);
     const y = params.elevacion;
     return {
@@ -745,7 +746,7 @@ function generarParedes(params, lados, aberturas) {
       // v1.24: huecos de las aberturas en coordenadas de la pared: desde/hasta = distancia desde la
       // punta 1 (p1) a lo largo de la pared; abajo/arriba = altura desde el piso. Para descontar
       // tiras y placas y para recortar el panel en el 3D.
-      huecos: aberturas.filter((op) => op.lado === lado).map((op) => {
+      huecos: aberturas.filter((op) => op.lado === lado && !op.futura).map((op) => {
         const v = vano(op, params);
         return { desde: v.inicio, hasta: v.fin, abajo: v.abajo, arriba: v.arriba };
       }),

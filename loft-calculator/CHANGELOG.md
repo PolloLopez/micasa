@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.59.0] - 2026-11-12
+### Agregado
+- **🔩 Ver estructura de hierro** (barra del 3D): oculta maderas (tirantes, escalones, machimbre), revestimientos,
+  OSB, aberturas y muebles; quedan los marcos, montantes y perfiles C. Al apagarlo vuelve todo como estaba (no toca
+  las casillas de Capas).
+- **Abertura a futuro** (ficha de cada abertura): se arma su marco (dintel, jambas, alféizar) pero la pared va
+  **revestida entera**, para cortarla y colocar la abertura el día de mañana. En el 3D se ve naranja casi
+  transparente con "(a futuro)"; en la lista de aberturas dice "A FUTURO: solo el marco".
+- **Comparar revestimientos** (pestaña Presupuesto, abajo): la obra con cada tipo de panel en las 4 paredes, con su
+  espesor, lo que hace falta, el total y la diferencia con el de ahora; "Usar en las 4 paredes" lo elige. Para comparar
+  uno nuevo (ej. 10 mm contra 50 mm), se agrega en Materiales → Revestimientos.
+
 ## [1.58.0] - 2026-11-12
 ### Agregado
 - **Equipos** (pestaña Instalaciones, abajo):

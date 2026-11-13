@@ -158,6 +158,8 @@ function crearMateriales(colores) {
   materiales.madera = new THREE.MeshStandardMaterial({ color: '#b7791f', roughness: 0.85 });
   materiales.machimbre = new THREE.MeshStandardMaterial({ color: '#d6a35c', roughness: 0.8 });
   transparente(materiales.machimbre, 0.6);
+  // v1.59: abertura a futuro (el marco está, la pared revestida entera): naranja casi transparente.
+  materiales.aberturaFutura = new THREE.MeshStandardMaterial({ color: '#f59e0b', transparent: true, opacity: 0.25, depthWrite: false });
   // v1.55: un material por color de perfil ("Color por perfil"); se crean cuando hacen falta.
   materiales.porPerfil = new Map();
   // Juntas de los paneles (v1.24: con opacidad regulable desde la leyenda).
@@ -367,6 +369,7 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
     const elegida = p.id === seleccionada;
     const resaltada = !elegida && piezaResaltada(p, resaltado, catalogo); // v1.27
     // v1.42.1: los tirantes de madera, de madera (y un poco más gruesos).
+    if (p.madera && capas.madera === false) return; // v1.59: "Ver estructura de hierro" saca los tirantes de madera
     const material = elegida ? materiales.seleccion : resaltada ? materiales.resaltado : p.madera ? materiales.madera
       : (colorDePerfil && materialDePerfil(p)) || materiales[capa];
     const seccion = p.madera ? 0.1 : seccionDe(p, catalogo, estilo);
@@ -760,8 +763,9 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
       const antes = grupo.children.length;
       const { x, y, z, rotacionY } = posicionAbertura(op, params);
       const elegida = op.id === aberturaSeleccionada;
-      const malla = new THREE.Mesh(new THREE.BoxGeometry(op.ancho, op.alto, elegida ? 0.2 : 0.14),
-        elegida ? materiales.seleccion : materiales.aberturas);
+      // v1.59: la abertura "a futuro" (solo el marco, revestida entera): una caja naranja casi transparente.
+      const malla = new THREE.Mesh(new THREE.BoxGeometry(op.ancho, op.alto, elegida ? 0.2 : op.futura ? 0.16 : 0.14),
+        elegida ? materiales.seleccion : op.futura ? materiales.aberturaFutura : materiales.aberturas);
       malla.position.set(x, y, z);
       malla.rotation.y = rotacionY;
       malla.userData.idAbertura = op.id; // se puede seleccionar con un clic (v1.16)
@@ -770,7 +774,7 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
       // Número de la abertura (el mismo de la lista: #1, #2…) y su etiqueta, un poco afuera de la pared.
       if (capas.etiquetasAberturas && op.mostrarEtiqueta !== false) {
         const geo = lados[op.lado];
-        const texto = op.etiqueta?.trim() ? `#${i + 1} ${op.etiqueta.trim()}` : `#${i + 1}`;
+        const texto = `${op.etiqueta?.trim() ? `#${i + 1} ${op.etiqueta.trim()}` : `#${i + 1}`}${op.futura ? ' (a futuro)' : ''}`;
         const cartelito = cartelChico(texto, elegida ? 'rgba(202,138,4,0.95)' : 'rgba(2,132,199,0.9)');
         cartelito.position.set(x - geo.direccion[1] * 0.35, y + op.alto / 2 + 0.2, z + geo.direccion[0] * 0.35);
         grupo.add(cartelito);
@@ -1084,10 +1088,19 @@ export default function LoftCanvas({
   };
 
   // v1.44: lo que se dibuja de verdad: en la vista realista, sin ayudas (juntas, cotas, etiquetas, medidas) y todo sólido.
-  const capasVista = useMemo(() => (realista
-    ? { ...capas, juntas: false, cotas: false, medidasFijas: false, etiquetasParedes: false, etiquetasAberturas: false,
-      etiquetasTerreno: false, etiquetasMesadas: false, etiquetasTabiques: false, etiquetasMuebles: false }
-    : capas), [realista, capas]);
+  // v1.59: "Ver estructura de hierro": sin maderas, revestimientos, aberturas ni muebles (los marcos, montantes y
+  // perfiles C a la vista). No toca las casillas de Capas: al apagarlo vuelve todo como estaba.
+  const [soloHierro, setSoloHierro] = useState(false);
+  const capasVista = useMemo(() => {
+    const base = realista
+      ? { ...capas, juntas: false, cotas: false, medidasFijas: false, etiquetasParedes: false, etiquetasAberturas: false,
+        etiquetasTerreno: false, etiquetasMesadas: false, etiquetasTabiques: false, etiquetasMuebles: false }
+      : capas;
+    return soloHierro
+      ? { ...base, paneles: false, osb: false, aberturas: false, escalones: false, muebles: false, tapasMesada: false, placasTabiques: false,
+        chapa: false, juntas: false, madera: false }
+      : base;
+  }, [realista, capas, soloHierro]);
   const opacidadesVista = useMemo(() => (realista ? { ...opacidades, paneles: 1, osb: 1, hierros: 1 } : opacidades), [realista, opacidades]);
   // v1.55: "Color por perfil": la lista de perfiles en uso con su color (también es la leyenda). null = color por función.
   const [colorPorPerfil, setColorPorPerfil] = useEstadoGuardado('colorPorPerfil', false, (v) => typeof v === 'boolean');
@@ -2080,6 +2093,10 @@ export default function LoftCanvas({
         <button className={`btn-ctrl${realista ? ' activo' : ''}`} aria-pressed={realista} onClick={() => setRealista((v) => !v)}
           title="Paneles sólidos, sombras y reflejos, sin las ayudas de dibujo (juntas, cotas, etiquetas)">
           ✨ Realista
+        </button>
+        <button className={`btn-ctrl${soloHierro ? ' activo' : ''}`} aria-pressed={soloHierro} onClick={() => setSoloHierro((v) => !v)}
+          title="Oculta maderas, revestimientos, aberturas y muebles: quedan los marcos, montantes y perfiles C">
+          🔩 Ver estructura de hierro
         </button>
         <button className={`btn-ctrl${colorPorPerfil ? ' activo' : ''}`} aria-pressed={colorPorPerfil} onClick={() => setColorPorPerfil((v) => !v)}
           title="Pinta cada pieza del color de su caño o perfil (el mismo perfil, el mismo color), en vez de por columna, viga, tirante…">

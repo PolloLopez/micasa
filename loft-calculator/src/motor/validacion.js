@@ -446,6 +446,7 @@ export function validarAbertura(abertura, params) {
     return `La etiqueta puede tener hasta ${LARGO_MAXIMO_ETIQUETA} letras`;
   }
   if (abertura.travesanos !== undefined && typeof abertura.travesanos !== 'boolean') return 'Travesaños: valor inválido';
+  if (abertura.futura !== undefined && typeof abertura.futura !== 'boolean') return 'A futuro: valor inválido'; // v1.59
   if (!(ancho > 0) || !(alto > 0)) return 'Ancho y alto deben ser mayores a 0';
   if (offsetHorizontal < 0 || alturaAntepecho < 0) return 'Las distancias no pueden ser negativas';
 

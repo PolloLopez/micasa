@@ -1,4 +1,4 @@
-# Manual de Pollo Calculator (v1.58.0)
+# Manual de Pollo Calculator (v1.59.0)
 
 Guía corta para usar el sistema y chequear que todo ande. Cada parte termina con **✔ Chequeá**: lo que tenés que ver.
 
@@ -52,7 +52,10 @@ luz, + Cámara séptica, + Pozo séptico). Abajo, "Lo que lleva" cada parte y lo
 - **"Mostrarla abierta en el 3D"**: la puerta queda abierta; si no, está cerrada y se abre sola cuando pasa alguien. La de
   abrir muestra en el piso hacia dónde abre (celeste; rojo si algo la traba).
 
+- **A futuro** (en cada abertura): arma su marco pero la pared va revestida entera (se corta después).
+
 ✔ Chequeá:
+- Tildá "A futuro" en una ventana: en el 3D queda naranja transparente y el revestimiento no se descuenta.
 - Poné un sillón con "Distancia al lateral" negativa: la ficha dice **"⚠ Se sale por el lateral…"** y en el 3D se ve
   con **contorno rojo**.
 - Dos muebles encimados: dice **"choca con …"**.
@@ -67,6 +70,7 @@ luz, + Cámara séptica, + Pozo séptico). Abajo, "Lo que lleva" cada parte y lo
 | Ver frente | Vuelve a la vista de frente |
 | ☀ Sol | Sol del día y la hora que elijas, con sombras |
 | ✨ Realista | Paneles sólidos, reflejos, sin ayudas de dibujo |
+| 🔩 Ver estructura de hierro | Oculta maderas, revestimientos, aberturas y muebles: quedan marcos, montantes y perfiles C |
 | 🎨 Color por perfil | Cada pieza del color de su caño (el mismo perfil, el mismo color), con leyenda de piezas y metros |
 | 🏠 Ver adentro | Oculta las paredes (y el techo) que te tapan mientras girás |
 | 👁 Primera persona | Ves a la altura de los ojos (arrastrás para mirar, W A S D para caminar, Esc sale) |
@@ -116,7 +120,8 @@ cambia la cantidad y el presupuesto.
   séptico, electricista, plomero (y los que agregues). Elegís cómo cobra cada uno (monto, por m², por metro de tabique,
   por pilotín, por kg…) y te muestra cuánto da.
 - Sub-pestañas: **Lista de materiales** (para pedir), **Por proveedor**, **Cortes** (cómo cortar cada barra),
-  **Precios y detalle**.
+  **Precios y detalle** (ahí también el total con cada proveedor).
+- **Comparar revestimientos** (abajo): la obra con cada panel en las 4 paredes y la diferencia; "Usar en las 4 paredes".
 
 ✔ Chequeá: con mano de obra por m², 5 % de imprevistos, 15 % de ganancia e IVA 10,5 %, el precio de la obra es mayor
 que los materiales y la pestaña "Presupuesto" muestra ese precio.
