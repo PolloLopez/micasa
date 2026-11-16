@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.61.0] - 2026-11-16
+### Agregado
+- **Techo en el mismo plano con marco perimetral**: el marco (borde del techo) queda entero y las vigas y las correas
+  terminan contra su cara; en las esquinas, las puntas van entre los bordes. Todo al ras de las vigas.
+- **Nadie se encima**: personas y perros ocupan su lugar. El que camina, si el siguiente paso lo mete en otro,
+  espera; si sigue trabado, busca otro camino esquivándolo. Si adonde iba ya hay alguien, se queda al lado. Los que
+  quedaron encimados quietos se separan solos.
+- **Sillón por cuerpos** (de fábrica 3; en su ficha, de 1 a 5, y el ancho acompaña): en el 3D se ven los almohadones
+  de cada cuerpo y cada cuerpo es un lugar para sentarse. **La cama de 2 plazas tiene 2 lugares.** Dos personas van a
+  lugares distintos; si está lleno, avisa "está ocupado".
+- **Los perros se suben al sillón y a la cama**: tocando el perro y después el mueble, o solos: a veces, al salir a dar
+  una vuelta, se suben a un lugar libre y se echan un rato.
+
 ## [1.60.0] - 2026-11-16
 ### Arreglado
 - **La app se caía al cambiar "Tirantes y transversales"** (proyecto de Leandro): una pieza editada a mano (ej. un

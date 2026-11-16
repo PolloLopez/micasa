@@ -17,7 +17,7 @@
 // ==========================================================
 
 import * as THREE from 'three';
-import { mapaDelNivel, buscarCamino, moverConChoque, libreMasCercano, puntoLibre, techoEn, TAMANIO_CELDA } from './motor/recorrido.js';
+import { mapaDelNivel, buscarCamino, moverConChoque, libreMasCercano, puntoLibre, techoEn, TAMANIO_CELDA, lugaresParaUsar } from './motor/recorrido.js';
 import { crearPerro, animarPerro, ojosDelPerro } from './perros3d.js';
 
 const PIEL = '#d9a57e';
@@ -30,6 +30,11 @@ const DURACION_ACCION = 1.8; // segundos agachada, estirada o alcanzando
 const VELOCIDAD_PERRO = 0.9;
 const CERCA_DE_LA_PUERTA = 1.0; // una persona a menos de esto la abre (y queda abierta mientras esté cerca)
 const ESPERA_PUERTA_CERRADA = 1.5; // segundos que la puerta queda abierta después de que se van
+// v1.61: nadie se superpone: cada uno ocupa un círculo (la persona por los hombros, el perro por su largo).
+const RADIO_PERSONA = 0.22;
+const radioDe = (datos) => (esPerro(datos) ? Math.max(0.15, 0.65 * datos.altura) : RADIO_PERSONA);
+const ESPERA_PARA_RODEAR = 1.2; // segundos trabado por otro antes de buscar otro camino
+const PROBABILIDAD_SUBIRSE = 0.3; // un perro que sale a dar una vuelta, a veces se sube al sillón o a la cama
 
 // ---------- la figura ----------
 
@@ -259,6 +264,7 @@ export function crearPersonasEnEscena(escena) {
   /** id → { datos, figura | null, pos: [x, z], rumbo, camino, accion, mirarA, tiempoAccion, fase, pose } */
   const personas = new Map();
   let mapas = {}; // nivel → mapa (se rehacen al cambiar la obra)
+  let lugares = []; // v1.61: los lugares de los muebles (sillón, cama, silla…) con su nivel, para no ocuparlos dos
   let elegida = null;
   /** v1.47.1: puertas de los tabiques: id → { centro, nivel, apertura (0 cerrada a 1 abierta), espera } */
   const puertas = new Map();
@@ -278,6 +284,7 @@ export function crearPersonasEnEscena(escena) {
     // v1.47.1: por debajo de la escalera pasa la persona más alta de cada piso (sin chocar la cabeza).
     const masAlta = (nivel) => Math.max(0, ...lista.filter((x) => !esPerro(x) && x.nivel === nivel).map((x) => x.altura)) || 1.75;
     mapas = { piso: mapaDelNivel(params, 'piso', estructura, { altoPersona: masAlta('piso') }) };
+    lugares = (params.muebles ?? []).flatMap((m) => lugaresParaUsar(params, m).map((l) => ({ ...l, nivel: m.nivel ?? 'piso' })));
     if (params.anchoEntrepiso > 0) mapas.piso2 = mapaDelNivel(params, 'piso2', estructura, { altoPersona: masAlta('piso2') });
     const ids = new Set(lista.map((p) => p.id));
     [...personas.keys()].filter((id) => id !== 'visitante' && !ids.has(id)).forEach((id) => {
@@ -330,9 +337,18 @@ export function crearPersonasEnEscena(escena) {
    * Manda a una persona a un punto (caminando por donde se puede). Al llegar mira hacia `mirarA` y hace `accion`
    * ('agacharse', 'estirarse', 'alcanzar' o null). @returns false si no hay forma de llegar
    */
-  function ordenar(id, hasta, { accion = null, mirarA = null, uso = null } = {}) {
+  function ordenar(id, hasta, { accion = null, mirarA = null, uso = null, usos = null } = {}) {
     const p = personas.get(id);
     if (!p) return false;
+    // v1.61: con varios lugares (los cuerpos del sillón, los lados de la cama), el primero libre; si están todos
+    // ocupados, avisa. Al pedir otra cosa, deja libre el lugar donde estaba.
+    p.usando = null;
+    if (usos && usos.length > 0) {
+      const libre = usos.find((l) => !ocupado(l.clave, id));
+      if (!libre) return { ocupado: true };
+      uso = libre;
+      hasta = libre.acercarse;
+    }
     // v1.50: si no hay forma de llegar, va lo más cerca que puede (y avisa cuánto le faltó).
     const camino = buscarCamino(mapaDe(p.datos.nivel), p.pos, hasta, { loMasCerca: true });
     const lejos = Math.hypot(hasta[0] - p.pos[0], hasta[1] - p.pos[1]) > 0.4;
@@ -341,9 +357,50 @@ export function crearPersonasEnEscena(escena) {
       Object.assign(p, { camino, accion: null, mirarA: hasta, tiempoAccion: 0, uso: null, usando: null });
       return { parcial: true, falta: camino.falta };
     }
-    // v1.49: `uso`: sentarse o acostarse al llegar (ver lugarParaUsar); los perros no.
-    Object.assign(p, { camino, accion, mirarA, tiempoAccion: 0, uso: esPerro(p.datos) ? null : uso, usando: null });
+    // v1.49: `uso`: sentarse o acostarse al llegar (ver lugarParaUsar). v1.61: los perros también se suben (al sillón
+    // y a la cama; a la silla, al inodoro y a la ducha no).
+    const sePuede = uso && (!esPerro(p.datos) || ['sillon', 'cama'].includes(uso.forma));
+    Object.assign(p, { camino, accion, mirarA, tiempoAccion: 0, uso: sePuede ? uso : null, usando: null, trabado: 0 });
     return true;
+  }
+
+  /** v1.61: ¿alguien (que no sea `salvo`) está usando ese lugar o va hacia él? */
+  function ocupado(clave, salvo = null) {
+    if (!clave) return false;
+    return [...personas.entries()].some(([id, q]) => id !== salvo && (q.usando?.clave === clave || q.uso?.clave === clave));
+  }
+
+  /** v1.61: ¿otro ya está sentado o echado en ese lugar? (llegaron dos a la vez: el segundo se queda parado al lado) */
+  const ocupadoPorOtro = (id, uso) => [...personas.entries()].some(([otroId, q]) => otroId !== id && q.usando?.clave && q.usando.clave === uso.clave);
+
+  /** v1.61: el otro (en el mismo piso y caminando, no sentado ni acostado) con el que chocaría en `pos`, o null. */
+  function chocaConOtro(id, p, pos) {
+    const r = radioDe(p.datos);
+    for (const [otroId, q] of personas) {
+      if (otroId === id || !q.figura || q.datos.nivel !== p.datos.nivel || q.usando) continue; // el visitante invisible no tapa
+      if (Math.hypot(q.pos[0] - pos[0], q.pos[1] - pos[1]) < r + radioDe(q.datos) - 1e-6) return q;
+    }
+    return null;
+  }
+
+  /** v1.61: el mapa del piso con los demás como obstáculos (para buscar otro camino cuando alguien tapa el paso). */
+  function mapaConOtros(id, p) {
+    const base = mapaDe(p.datos.nivel);
+    if (!base) return base;
+    const libre = base.libre.map((columna) => [...columna]);
+    personas.forEach((q, otroId) => {
+      if (otroId === id || q.datos.nivel !== p.datos.nivel || q.usando) return;
+      const r = radioDe(p.datos) + radioDe(q.datos);
+      const [i0, k0] = [Math.floor((q.pos[0] - r - base.x0) / TAMANIO_CELDA), Math.floor((q.pos[1] - r - base.z0) / TAMANIO_CELDA)];
+      for (let i = Math.max(0, i0); i <= Math.min(base.columnas - 1, i0 + Math.ceil((2 * r) / TAMANIO_CELDA)); i++) {
+        for (let k = Math.max(0, k0); k <= Math.min(base.filas - 1, k0 + Math.ceil((2 * r) / TAMANIO_CELDA)); k++) {
+          const cx = base.x0 + (i + 0.5) * TAMANIO_CELDA;
+          const cz = base.z0 + (k + 0.5) * TAMANIO_CELDA;
+          if (Math.hypot(cx - q.pos[0], cz - q.pos[1]) < r) libre[i][k] = false;
+        }
+      }
+    });
+    return { ...base, libre };
   }
 
   /** v1.47.1: las puertas de los tabiques que hay ahora (se llama cada vez que se redibuja la obra). */
@@ -370,6 +427,15 @@ export function crearPersonasEnEscena(escena) {
     p.descanso -= dt;
     if (p.descanso > 0) return;
     p.descanso = 3 + Math.random() * 5;
+    // v1.61: a veces se sube al sillón o a la cama (a un lugar libre) y se echa un rato.
+    if (p.usando) { p.usando = null; return; } // se baja
+    const libres = lugares.filter((l) => l.nivel === p.datos.nivel && ['sillon', 'cama'].includes(l.forma) && !ocupado(l.clave));
+    if (libres.length > 0 && Math.random() < PROBABILIDAD_SUBIRSE) {
+      const l = libres[Math.floor(Math.random() * libres.length)];
+      const camino = buscarCamino(mapaConOtros(null, p), p.pos, l.acercarse);
+      if (camino.length) { Object.assign(p, { camino, accion: null, mirarA: null, tiempoAccion: 0, uso: l }); p.descanso = 8 + Math.random() * 8; }
+      return;
+    }
     const angulo = Math.random() * Math.PI * 2;
     const r = 0.8 + Math.random() * 2;
     const camino = buscarCamino(mapaDe(p.datos.nivel), p.pos, [p.pos[0] + Math.cos(angulo) * r, p.pos[1] + Math.sin(angulo) * r]);
@@ -396,6 +462,7 @@ export function crearPersonasEnEscena(escena) {
   function actualizar(dt, control = null) {
     const mezcla = 1 - Math.exp(-dt * 10);
     moverPuertas(dt);
+    separarQuietos(dt); // v1.61
     personas.forEach((p, id) => {
       const mapa = mapaDe(p.datos.nivel);
       const perro = esPerro(p.datos);
@@ -429,24 +496,49 @@ export function crearPersonasEnEscena(escena) {
         // Siguiendo su camino, punto por punto.
         p.esperando = 0;
         let paso = (perro ? VELOCIDAD_PERRO : VELOCIDAD) * dt;
+        let trabado = false;
         while (paso > 0 && p.camino.length > 0) {
           const [tx, tz] = p.camino[0];
           const d = Math.hypot(tx - p.pos[0], tz - p.pos[1]);
           if (d > 1e-6) rumboBuscado = Math.atan2(tx - p.pos[0], tz - p.pos[1]);
+          const siguiente = d <= paso ? [tx, tz] : [p.pos[0] + ((tx - p.pos[0]) / d) * paso, p.pos[1] + ((tz - p.pos[1]) / d) * paso];
+          // v1.61: si con este paso se mete en otro, no avanza (espera o rodea). Si ya estaban encimados, puede alejarse.
+          const otro = chocaConOtro(id, p, siguiente);
+          const seAleja = otro && Math.hypot(otro.pos[0] - siguiente[0], otro.pos[1] - siguiente[1]) > Math.hypot(otro.pos[0] - p.pos[0], otro.pos[1] - p.pos[1]);
+          if (otro && !seAleja) { trabado = otro; break; }
           if (d <= paso) { p.pos = [tx, tz]; p.camino.shift(); paso -= d; caminado += d; } else {
-            p.pos = [p.pos[0] + ((tx - p.pos[0]) / d) * paso, p.pos[1] + ((tz - p.pos[1]) / d) * paso];
+            p.pos = siguiente;
             caminado += paso;
             paso = 0;
           }
         }
-        pose = 'caminar';
+        if (trabado) {
+          p.trabado = (p.trabado ?? 0) + dt;
+          const destino = p.camino[p.camino.length - 1];
+          const cercaDelFinal = Math.hypot(destino[0] - p.pos[0], destino[1] - p.pos[1]) < radioDe(p.datos) + radioDe(trabado.datos) + 0.15;
+          if (cercaDelFinal && !p.uso) {
+            p.camino = []; // el lugar al que iba lo ocupa otro: se queda al lado
+          } else if (p.trabado > ESPERA_PARA_RODEAR) {
+            // Busca otro camino, con los demás como obstáculos (si no hay, sigue esperando).
+            const otroCamino = buscarCamino(mapaConOtros(id, p), p.pos, destino);
+            if (otroCamino.length) p.camino = otroCamino;
+            p.trabado = 0;
+          }
+        } else p.trabado = 0;
+        pose = caminado > 1e-4 ? 'caminar' : 'quieta';
         if (p.camino.length === 0 && p.accion) p.tiempoAccion = DURACION_ACCION; // llegó: ahora la acción
-        if (p.camino.length === 0 && p.uso) { p.usando = p.uso.accion ? p.uso : null; p.uso = null; } // llegó: se sienta o se acuesta
+        if (p.camino.length === 0 && p.uso) { // llegó: se sienta o se acuesta (el perro se queda un rato arriba)
+          p.usando = p.uso.accion && !ocupadoPorOtro(id, p.uso) ? p.uso : null;
+          p.uso = null;
+          if (perro && p.usando) p.descanso = 10 + Math.random() * 10;
+        }
       } else if (p.uso && p.camino.length === 0) {
-        p.usando = p.uso.accion ? p.uso : null; // ya estaba al lado
+        p.usando = p.uso.accion && !ocupadoPorOtro(id, p.uso) ? p.uso : null; // ya estaba al lado
         p.uso = null;
+        if (perro && p.usando) p.descanso = 10 + Math.random() * 10;
       } else if (p.usando) {
-        pose = p.usando.accion === 'acostarse' ? 'acostado' : 'sentado';
+        // v1.61: el perro, arriba del sillón o de la cama, se echa.
+        pose = perro || p.usando.accion === 'acostarse' ? 'acostado' : 'sentado';
         rumboBuscado = p.usando.rumbo;
       } else if (p.tiempoAccion > 0) {
         p.tiempoAccion -= dt;
@@ -464,15 +556,35 @@ export function crearPersonasEnEscena(escena) {
       p.pose = pose;
       if (p.figura) {
         const u = p.usando && (pose === 'sentado' || pose === 'acostado') ? p.usando : null;
-        const acostada = u?.accion === 'acostarse';
+        const acostada = !perro && u?.accion === 'acostarse';
         // Sentada: la cadera sobre el asiento; acostada: sobre el colchón, el cuerpo de espaldas (unos 10 cm de alto).
+        // v1.61: el perro, echado arriba del asiento o del colchón (las patas dobladas: baja el cuerpo).
         const [x, z] = u ? u.sitio : p.pos;
-        p.figura.raiz.position.set(x, (mapa?.y ?? 0) + (acostada ? u.altura + 0.1 * p.datos.altura / 1.7 : 0), z);
+        const yPerro = perro && u ? u.altura - 0.45 * p.datos.altura : 0;
+        p.figura.raiz.position.set(x, (mapa?.y ?? 0) + (acostada ? u.altura + 0.1 * p.datos.altura / 1.7 : yPerro), z);
         p.figura.raiz.rotation.y = p.rumbo;
         p.figura.raiz.rotation.x += ((acostada ? -Math.PI / 2 : 0) - p.figura.raiz.rotation.x) * mezcla;
         if (perro) animarPerro(p.figura, pose === 'agacharse' ? 'olfatear' : pose, p.fase, dt, mezcla);
         else aplicarPose(p.figura, angulosDePose(pose, p.fase), mezcla, u && !acostada ? u.altura : null);
       }
+    });
+  }
+
+  /**
+   * v1.61: si dos quedaron encimados quietos (por ejemplo al arrancar o al moverse un mueble), el perro (o el que no
+   * está elegido) se corre de a poco hacia un lugar libre.
+   */
+  function separarQuietos(dt) {
+    const lista = [...personas.entries()].filter(([, q]) => !q.usando && q.camino.length === 0);
+    lista.forEach(([id, p]) => {
+      const otro = chocaConOtro(id, p, p.pos);
+      if (!otro || (id === elegida && !esPerro(p.datos))) return;
+      const [dx, dz] = [p.pos[0] - otro.pos[0], p.pos[1] - otro.pos[1]];
+      const d = Math.hypot(dx, dz) || 1e-3;
+      const mapa = mapaDe(p.datos.nivel);
+      const paso = Math.min(0.5 * dt, 0.05);
+      const nuevo = mapa ? moverConChoque(mapa, p.pos, [(dx / d) * paso + (d < 1e-2 ? paso : 0), (dz / d) * paso]) : p.pos;
+      p.pos = nuevo;
     });
   }
 

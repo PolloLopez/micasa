@@ -122,11 +122,20 @@ function cajasDe(forma, ancho, alto, prof, mat, opciones = {}) {
       const asiento = Math.min(0.42, alto * 0.55);
       const brazo = Math.min(0.18, ancho / 6);
       const respaldo = Math.min(0.2, prof / 3);
+      // v1.61: un almohadón de asiento y uno de respaldo por cuerpo (con una ranura entre ellos: se ven los cuerpos).
+      const n = Number.isInteger(opciones.cuerpos) && opciones.cuerpos >= 1 ? opciones.cuerpos : Math.max(1, Math.min(4, Math.round(ancho / 0.6)));
+      const util = ancho - 2 * brazo;
+      const cuerpo = util / n;
+      const almohadones = Array.from({ length: n }, (_, k) => -util / 2 + cuerpo * (k + 0.5)).flatMap((x) => [
+        [cuerpo - 0.02, 0.1, prof - respaldo - 0.02, x, asiento + 0.05, respaldo / 2, mat],
+        [cuerpo - 0.02, (alto - asiento) * 0.75, 0.1, x, asiento + 0.1 + (alto - asiento) * 0.375, -prof / 2 + respaldo + 0.05, mat],
+      ]);
       return [
         [ancho, asiento, prof, 0, asiento / 2, 0, mat],
         [ancho, alto - asiento, respaldo, 0, asiento + (alto - asiento) / 2, -prof / 2 + respaldo / 2, mat],
         [brazo, alto * 0.75 - asiento, prof, -ancho / 2 + brazo / 2, asiento + (alto * 0.75 - asiento) / 2, 0, mat],
         [brazo, alto * 0.75 - asiento, prof, ancho / 2 - brazo / 2, asiento + (alto * 0.75 - asiento) / 2, 0, mat],
+        ...almohadones,
       ];
     }
     case 'placard':

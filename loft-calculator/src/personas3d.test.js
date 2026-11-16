@@ -109,3 +109,57 @@ describe('v1.49: sentarse', () => {
     expect(personas.estado(1).usando).toBeNull();
   });
 });
+
+describe('v1.61: cada uno en su lugar (sin encimarse) y los perros arriba del sillón y la cama', async () => {
+  const { lugaresParaUsar } = await import('./motor/recorrido.js');
+  const { muebleNuevo } = await import('./motor/interiores.js');
+  const params = { ...PARAMS_INICIALES, anchoEntrepiso: 0, mesadas: [], tabiques: [], muebles: [] };
+  const sillon = { ...muebleNuevo('sillon', [], 1), distanciaLateral: 1, distanciaFrente: 2.5 };
+  const cama = { ...muebleNuevo('cama2', [], 2), distanciaLateral: 4.5, distanciaFrente: 0.3 };
+  const conMuebles = { ...params, muebles: [sillon, cama] };
+  const beto = { ...ana, id: 2, nombre: 'Beto', sexo: 'hombre', altura: 1.8 };
+  const toby = { id: 3, especie: 'perro', nombre: 'Toby', tamanio: 'mediano', altura: 0.5, nivel: 'piso', colorRopa: '' };
+
+  it('el sillón de 3 cuerpos tiene 3 lugares y la cama de 2 plazas, 2', () => {
+    expect(sillon.cuerpos).toBe(3);
+    const l = lugaresParaUsar(conMuebles, sillon);
+    expect(l.map((x) => x.clave)).toEqual(['1:0', '1:1', '1:2']);
+    expect(Math.hypot(l[0].sitio[0] - l[1].sitio[0], l[0].sitio[1] - l[1].sitio[1])).toBeCloseTo((1.8 - 0.36) / 3, 5);
+    expect(lugaresParaUsar(conMuebles, cama)).toHaveLength(2);
+    expect(lugaresParaUsar(conMuebles, { ...sillon, cuerpos: undefined, ancho: 1.2 })).toHaveLength(2); // los de antes: por el ancho
+  });
+
+  it('dos que van al sillón se sientan en cuerpos distintos; el perro se sube y se echa; lleno, avisa', () => {
+    const personas = crearPersonasEnEscena(new THREE.Scene());
+    personas.sincronizar([ana, beto, toby], conMuebles, null);
+    const usos = lugaresParaUsar(conMuebles, sillon);
+    expect(personas.ordenar(1, usos[0].acercarse, { usos })).toBe(true);
+    expect(personas.ordenar(2, usos[0].acercarse, { usos })).toBe(true);
+    expect(personas.ordenar(3, usos[0].acercarse, { usos })).toBe(true);
+    for (let i = 0; i < 250; i++) personas.actualizar(1 / 30); // a los ~8 s (el perro se queda arriba entre 10 y 20 s)
+    const [a, b, t] = [1, 2, 3].map((id) => personas.estado(id));
+    expect(a.usando).toBe('sentarse');
+    expect(b.usando).toBe('sentarse');
+    expect(t.usando).not.toBeNull(); // el perro arriba del sillón
+    const sitios = [a, b, t].map((e) => `${e.x.toFixed(2)},${e.z.toFixed(2)}`);
+    expect(new Set(sitios).size).toBe(3); // cada uno en un cuerpo
+    expect(personas.ordenar(1, usos[0].acercarse, { usos: usos.slice(1) })).toEqual({ ocupado: true });
+  });
+
+  it('caminando, nunca quedan encimados (dos que se cruzan, se esquivan o esperan)', () => {
+    const personas = crearPersonasEnEscena(new THREE.Scene());
+    personas.sincronizar([ana, beto], params, null);
+    const inicioA = personas.estado(1);
+    const inicioB = personas.estado(2);
+    // Cada uno va adonde está el otro (se cruzan de frente).
+    personas.ordenar(1, [inicioB.x + 1.5, inicioB.z]);
+    personas.ordenar(2, [inicioA.x - 1.5, inicioA.z]);
+    let minimo = Infinity;
+    for (let i = 0; i < 600; i++) {
+      personas.actualizar(1 / 30);
+      const [a, b] = [personas.estado(1), personas.estado(2)];
+      minimo = Math.min(minimo, Math.hypot(a.x - b.x, a.z - b.z));
+    }
+    expect(minimo).toBeGreaterThan(0.4); // dos radios de 22 cm (con un poco de tolerancia de los pasos)
+  });
+});

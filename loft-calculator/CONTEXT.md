@@ -228,6 +228,7 @@ techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 
 - 2026-10-23 v1.25.0: proveedores, precios en efectivo/tarjeta por proveedor, comparar presupuestos y "lo más barato de cada material".
 - 2026-10-23 v1.26.0: pestaña Planos (paredes y plantas acotadas, listas de corte, revestimiento), en el PDF y en Excel.
 - 2026-10-25 v1.30.0: link compacto (la mitad) y links cortos en Firebase para ver/editar que guardan los cambios.
+- 2026-11-16 v1.61.0: red 'techo' con borde-techo (rango -2/-1); lugaresParaUsar + cuerposDelSillon (recorrido.js); personas3d: chocaConOtro, mapaConOtros, separarQuietos, ocupado/ocupadoPorOtro, perros con uso (pose 'acostado' en perros3d); mueble.cuerpos.
 - 2026-11-16 v1.60.0: piezaEditadaEnLaEstructura (suma tramos "id~n"); uniones.ras { piso, piso2, techo } y enrasar() al final de aplicarUniones; enteras.vigasCorreas + red 'techo'; PlanoDePared soloContorno y opción de impresión paredesSinEstructura (PARA_PANELES).
 - 2026-11-12 v1.59.0: LoftCanvas soloHierro (capasVista sin superficies ni madera); abertura.futura (generarParedes no la descuenta; materiales.aberturaFutura); motor/comparativa.js + ComparativaRevestimientos (calcula la obra con cada panel al abrirse).
 - 2026-11-12 v1.58.0: motor/equipos.js (params.equipos = { aires, salamandras, solar, precios }; alcanceDelAire, canoDeSalida, dimensionarSolar; materialesDeEquipos se suma como "sistema" 'equipos' a la lista de instalaciones de App); PanelEquipos.jsx; split, condensadora y salamandra en el 3D (capa Muebles).

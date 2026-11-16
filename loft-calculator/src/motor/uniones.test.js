@@ -265,3 +265,22 @@ describe('v1.60: al ras del borde y el techo en el mismo plano', () => {
     expect(apoyadas.techo.correas[0].desde[1] - vigas.techo.correas.find((p) => p.id.startsWith(apoyadas.techo.correas[0].id)).desde[1]).toBeGreaterThan(0.05);
   });
 });
+
+describe('v1.61: techo en el mismo plano con marco perimetral', () => {
+  it('el marco queda entero: las vigas y las correas terminan contra él, y en las esquinas las puntas van entre los bordes', () => {
+    const enteras = { ...completarUniones(P.uniones).enteras, vigasCorreas: 'vigas' };
+    const e = generarEstructura({ ...P, techoConBorde: true, uniones: { ...completarUniones(P.uniones), enteras } }, ABERTURAS_INICIALES, CATALOGO);
+    const bordes = e.techo.bordes;
+    expect(bordes).toHaveLength(4); // enteros (sin tramos)
+    expect(bordes.every((p) => !p.id.includes('~'))).toBe(true);
+    const mitadBorde = medidaVista({ tipo: 'borde-techo' }, CATALOGO) / 2;
+    // Las puntas, entre los bordes que van como las correas: más cortas que de eje a eje.
+    const puntas = bordes.filter((p) => p.id.startsWith('borde-techo'));
+    puntas.forEach((p) => expect(p.largo).toBeLessThan(p.largoEje ?? Infinity));
+    // Las vigas de adentro ya no llegan a los ejes de los bordes: terminan en su cara.
+    const viga = e.techo.vigas[0];
+    expect(viga.largo).toBeCloseTo(viga.largoEje - 2 * mitadBorde, 3);
+    // Las correas de adentro se cortan en cada viga y terminan contra las puntas.
+    expect(e.techo.correas.every((p) => p.id.includes('~'))).toBe(true);
+  });
+});

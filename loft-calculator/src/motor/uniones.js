@@ -88,7 +88,7 @@ const REDES = {
   pared: ['marco-piso', 'solera', 'columna', 'jamba', 'dintel', 'alfeizar', 'montante', 'montante-dintel', 'montante-antepecho', 'horizontal', 'travesano'],
   piso: ['marco-piso', 'piso', 'transv-piso'],
   piso2: ['marco-piso2', 'viga-cierre', 'piso2', 'transv-piso2'],
-  techo: ['viga-techo', 'correa-techo'], // v1.60: solo en el mismo plano (apoyadas no se cortan)
+  techo: ['borde-techo', 'viga-techo', 'correa-techo'], // v1.60: solo en el mismo plano (apoyadas no se cortan)
 };
 const PERIMETRALES = ['marco-piso', 'solera', 'marco-piso2'];
 const MONTANTES = ['montante', 'montante-dintel', 'montante-antepecho'];
@@ -118,8 +118,11 @@ function rangoEn(red, p, ctx) {
   }
   if (p.tipo === 'viga-cierre') return 1;
   // v1.60: techo en el mismo plano: lo entero gana; apoyadas, no se tocan (van una arriba de la otra).
-  if (p.tipo === 'viga-techo' || p.tipo === 'correa-techo') {
+  if (p.tipo === 'viga-techo' || p.tipo === 'correa-techo' || p.tipo === 'borde-techo') {
     if (enteras.vigasCorreas === 'apoyadas') return null;
+    // v1.61: el marco perimetral queda entero y lo de adentro termina contra él; en sus esquinas, los bordes que van
+    // como las correas (ids "correa-techo:…") quedan enteros y las puntas van entre ellos.
+    if (p.tipo === 'borde-techo') return p.id.startsWith('correa-techo') ? -2 : -1;
     return (p.tipo === 'viga-techo') === (enteras.vigasCorreas === 'vigas') ? 0 : 1;
   }
   // Pisos: tirantes entre bordes, o enteros con los bordes cortados entre ellos.
@@ -305,7 +308,7 @@ function ajustarPieza(p, otras, catalogo, ctx) {
 const LISTAS = [
   ['columnas'], ['refuerzosAberturas'], ['montantes'], ['marcos'], ['correas'],
   ['piso', 'tirantes'], ['piso', 'transversales'], ['piso2', 'tirantes'], ['piso2', 'transversales'],
-  ['techo', 'vigas'], ['techo', 'correas'], // v1.60
+  ['techo', 'vigas'], ['techo', 'correas'], ['techo', 'bordes'], // v1.60 (v1.61: + el marco perimetral)
 ];
 
 /**
@@ -330,7 +333,8 @@ function enrasar(e, catalogo, config) {
   });
   if (config.ras.techo === 'ras' && config.enteras.vigasCorreas !== 'apoyadas' && e.techo) {
     const altoViga = medidaAlto({ tipo: 'viga-techo' }, catalogo);
-    nueva.techo = { ...e.techo, correas: e.techo.correas.map((p) => mover(p, (altoViga - medidaAlto(p, catalogo)) / 2)) };
+    const alRas = (p) => mover(p, (altoViga - medidaAlto(p, catalogo)) / 2);
+    nueva.techo = { ...e.techo, correas: e.techo.correas.map(alRas), bordes: (e.techo.bordes ?? []).map(alRas) }; // v1.61: + el marco
   }
   return nueva;
 }

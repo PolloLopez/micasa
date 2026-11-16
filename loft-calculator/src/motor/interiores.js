@@ -516,6 +516,7 @@ export function muebleNuevo(tipo, muebles, id) {
     mostrarEtiqueta: true, // v1.38.1: cartel con el nombre en el 3D
     color: '', // v1.38.2: color propio ('' = el de su material)
     ...(t.forma === 'lavarropas' ? { cargaFrontal: true } : {}), // v1.39: carga frontal (puerta redonda) o superior
+    ...(t.forma === 'sillon' ? { cuerpos: 3 } : {}), // v1.61: sillón de 3 cuerpos (uno por persona o perro)
     ...(t.forma === 'cama' ? { ...CAJONES_CAMA } : {}), // v1.40.1: cajones a los costados y a los pies
     puerta: t.puerta ?? 'ninguna', // v1.42.1: cómo abre (para ver el lugar que necesita la puerta abierta)
     elevacion: t.elevacion ?? 0, // v1.42.1: del piso a la parte de abajo del mueble (alacena colgada)
@@ -836,6 +837,7 @@ export function validarMueble(m, params) {
   if (!num(m.distanciaFrente, -1, 50) || !num(m.distanciaLateral, -1, 50)) return 'Distancias inválidas';
   if (!['izquierdo', 'derecho'].includes(m.desdeLateral) || !['frente', 'fondo'].includes(m.desdeFrente)) return 'Elegí desde qué pared se mide';
   if (m.cargaFrontal !== undefined && typeof m.cargaFrontal !== 'boolean') return 'Valor inválido';
+  if (m.cuerpos !== undefined && !(Number.isInteger(m.cuerpos) && m.cuerpos >= 1 && m.cuerpos <= 5)) return 'Cuerpos: de 1 a 5'; // v1.61
   if (['cajonesIzquierda', 'cajonesDerecha', 'cajonesPies'].some((c) => m[c] !== undefined && typeof m[c] !== 'boolean')) return 'Valor inválido';
   if (m.aperturaCajones !== undefined && !num(m.aperturaCajones, 0.05, 1.5)) return 'Los cajones abren de 5 cm a 1,50 m';
   if (m.puerta !== undefined && !PUERTAS_MUEBLE.some(([v]) => v === m.puerta)) return 'Elegí cómo abre la puerta';

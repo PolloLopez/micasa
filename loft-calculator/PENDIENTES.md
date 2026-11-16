@@ -3,7 +3,7 @@
 Última limpieza: 2026-11-11 (v1.49.0). Espejo en Trello: tablero "Desarrollo", tarjetas `[CALC]`.
 
 ## 📌 Estado y próximos pasos (11/11)
-**En GitHub: hasta v1.53.0. v1.54.0 a v1.60.0 por subir** (desde v1.54 el deploy es automático al pushear). Manual de uso para chequear: `MANUAL.md`.
+**En GitHub: hasta v1.53.0. v1.54.0 a v1.61.0 por subir** (desde v1.54 el deploy es automático al pushear). Manual de uso para chequear: `MANUAL.md`.
 
 🟡 **Para chequear en pantalla** (probado con tests, no visto): el sol con "Ver adentro" entra solo por las aberturas;
 la persona se sienta en el sillón y se acuesta en la cama; las puertas de los tabiques se abren al pasar.
@@ -28,7 +28,9 @@ Lo que falta, en orden de prioridad (detalle en cada sección de abajo):
 - ✅ v1.60.0 Arreglado el cuelgue al cambiar tirantes y transversales (pieza editada cortada en tramos).
 - ✅ v1.60.0 Paredes para el proveedor de paneles (sin estructura). Perfiles C al ras del borde por piso; techo en el
   mismo plano o apoyado.
-  - 🟡 [ ] Con el techo en el mismo plano, el marco perimetral (borde) todavía no se cruza con las vigas y correas.
+  - ✅ v1.61.0 Techo en el mismo plano: el marco perimetral queda entero y las vigas y correas terminan contra él.
+- ✅ v1.61.0 Personas y perros sin encimarse; sillón por cuerpos y cama de 2 lugares; los perros se suben.
+  - 🟢 [ ] Que dos que se cruzan en un pasillo angosto (una puerta) se den paso (hoy esperan y buscan otro camino).
   - 🟢 [ ] Mirar en pantalla, en tu proyecto, que con "al ras" el OSB apoye parejo.
 
 ## 🧱 Pedido del 12/11 (orden elegido: finanzas → obra civil → instalaciones → visual)

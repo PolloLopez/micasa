@@ -1,4 +1,4 @@
-# Manual de Pollo Calculator (v1.60.0)
+# Manual de Pollo Calculator (v1.61.0)
 
 Guía corta para usar el sistema y chequear que todo ande. Cada parte termina con **✔ Chequeá**: lo que tenés que ver.
 
@@ -91,7 +91,10 @@ En **Techo**: "Vigas y correas" (apoyadas o en el mismo plano) y su altura.
 - la **cama** → se acuesta; el **sillón, una silla o el inodoro** → se sienta; el **plato de ducha** → se mete.
 - **🎮 Manejar con el teclado**: W A S D, Shift corre, C se agacha. **👁 Ver con sus ojos**.
 
-Los perros caminan solos y olfatean. Las puertas de los tabiques se abren cuando pasa una persona.
+Los perros caminan solos, olfatean y a veces se suben al sillón o a la cama. Tocando un perro y después el sillón o la
+cama, se sube y se echa. Nadie se encima: el que encuentra a otro en el camino espera o lo rodea. El sillón tiene un
+lugar por cuerpo (en su ficha: **Cuerpos**) y la cama de 2 plazas, dos; lleno, avisa "está ocupado". Las puertas de los
+tabiques se abren cuando pasa una persona.
 
 ✔ Chequeá:
 - Con **🎨 Color por perfil**, las columnas y las vigas que son del mismo caño quedan del mismo color, y la leyenda
@@ -100,6 +103,7 @@ Los perros caminan solos y olfatean. Las puertas de los tabiques se abren cuando
 - Una ventana con ✥ Mover y → se corre por su pared; ↑ sube el antepecho.
 - **☀ Sol + 🏠 Ver adentro**: la luz entra **solo por las ventanas y puertas** (no por la pared que se ocultó).
 - La persona se **sienta** en el sillón y se **acuesta** en la cama; se levanta al darle otra orden.
+- Mandá a dos personas al sillón: se sientan en cuerpos distintos. Dos que se cruzan no se atraviesan.
 - Pasando por un tabique con puerta, la puerta **se abre** y después se cierra sola.
 
 ---

@@ -393,3 +393,35 @@ export function lugarParaUsar(params, m) {
   if (m.tipo === 'ducha') return { accion: null, acercarse: centro, sitio: centro, rumbo: angulo, altura: 0 };
   return null;
 }
+
+/** v1.61: cuántos cuerpos tiene un sillón (los de antes, según su ancho: ≈ 60 cm por cuerpo). */
+export const cuerposDelSillon = (m) => (Number.isInteger(m.cuerpos) && m.cuerpos >= 1 ? m.cuerpos : Math.max(1, Math.min(4, Math.round(m.ancho / 0.6))));
+
+/**
+ * v1.61 (pedido de Leandro): los LUGARES de un mueble, para que dos no se sienten o se acuesten en el mismo lugar.
+ * Sillón: uno por cuerpo; cama de 2 plazas: dos (cada lado); el resto, uno (como lugarParaUsar). Los perros también
+ * se suben al sillón y a la cama (y se echan arriba).
+ * @returns {{ clave, accion, acercarse, sitio, rumbo, altura }[]}  clave = 'idMueble:n' (para saber si está ocupado)
+ */
+export function lugaresParaUsar(params, m) {
+  const forma = TIPOS_MUEBLE[m.tipo]?.forma;
+  const base = lugarParaUsar(params, m);
+  if (!base) return [];
+  const uno = { ...base, forma }; // la forma: para saber dónde se puede subir un perro
+  const { centro, angulo } = ubicarMueble(params, m);
+  const [c, s] = [Math.cos(angulo), Math.sin(angulo)];
+  // Un punto del mueble: lx a lo ancho (a su derecha), lz hacia el frente.
+  const punto = (lx, lz) => [centro[0] + lx * c + lz * s, centro[1] - lx * s + lz * c];
+  const p = m.profundidad;
+  const repartir = (n, ancho) => Array.from({ length: n }, (_, k) => -ancho / 2 + (ancho / n) * (k + 0.5));
+  if (forma === 'sillon') {
+    const n = cuerposDelSillon(m);
+    const util = m.ancho - 2 * Math.min(0.18, m.ancho / 6); // sin los brazos
+    return repartir(n, util).map((lx, k) => ({ ...uno, clave: `${m.id}:${k}`, sitio: punto(lx, p * 0.08), acercarse: punto(lx, p / 2 + 0.3) }));
+  }
+  if (forma === 'cama') {
+    const n = m.ancho >= 1.2 ? 2 : 1;
+    return repartir(n, m.ancho).map((lx, k) => ({ ...uno, clave: `${m.id}:${k}`, sitio: punto(lx, p / 2 - 0.12), acercarse: punto(lx, p / 2 + 0.3) }));
+  }
+  return [{ ...uno, clave: `${m.id}:0` }];
+}

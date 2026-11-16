@@ -40,7 +40,7 @@ import { juntasDePano, pedazosDePared } from './motor/revestimientos.js';
 import { medirEntre, puntoMasCercanoEnPieza } from './motor/medicion.js';
 import { cotasGenerales } from './motor/cotas3d.js';
 import { vistasFijas, vistasPorPartes } from './motor/vistasFijas.js';
-import { accionPorAltura, ladosQueTapan, lugarParaUsar, puertasTapadas, textoDePuertaTapada } from './motor/recorrido.js';
+import { accionPorAltura, ladosQueTapan, lugaresParaUsar, puertasTapadas, textoDePuertaTapada } from './motor/recorrido.js';
 import { carasDelTabique } from './motor/tabiques.js';
 import { crearPersonasEnEscena } from './personas3d.js';
 import { implantacion } from './motor/terreno.js';
@@ -1409,11 +1409,13 @@ export default function LoftCanvas({
         let idMueble = null;
         for (let o = visibles[0]?.object; o; o = o.parent) if (o.userData?.idMueble !== undefined) { idMueble = o.userData.idMueble; break; }
         const mueble = idMueble !== null ? (paramsRef.current.muebles ?? []).find((m) => m.id === idMueble) : null;
-        const uso = mueble && (mueble.nivel ?? 'piso') === est.nivel ? lugarParaUsar(paramsRef.current, mueble) : null;
+        // v1.61: cada lugar del mueble (los cuerpos del sillón, los lados de la cama): va al primero libre.
+        const usos = mueble && (mueble.nivel ?? 'piso') === est.nivel ? lugaresParaUsar(paramsRef.current, mueble) : [];
         // v1.50: si no llega, va lo más cerca que puede y dice por qué (por ejemplo, una puerta tapada por la mesada).
         // v1.51.1: en palabras claras: a qué no llega, cuánto le faltó y qué traba cada puerta (de qué lado y cuánto lugar deja).
         const explicar = (r, destino) => {
           if (r === true) return null;
+          if (r?.ocupado) return `${mueble?.nombre || 'Ese mueble'} está ocupado: no queda lugar libre.`; // v1.61
           const tabiques = paramsRef.current.tabiques ?? [];
           const tapadas = puertasTapadas(paramsRef.current, est.nivel).map((x) => {
             const t = tabiques.find((tb) => tb.nombre === x.tabique);
@@ -1422,8 +1424,8 @@ export default function LoftCanvas({
           const falta = r ? ` Se quedó a ${r.falta.toFixed(2).replace('.', ',')} m.` : '';
           return `No puede llegar ${destino}.${falta}${tapadas.length ? ` ${tapadas.join(' ')}` : ' Algo le corta el paso (muebles, mesadas o tabiques sin puerta).'}`;
         };
-        if (uso) {
-          setAvisoPersona(explicar(personas.ordenar(personaActual, uso.acercarse, { uso }), `a ${mueble.nombre || 'ese mueble'}`));
+        if (usos.length > 0) {
+          setAvisoPersona(explicar(personas.ordenar(personaActual, usos[0].acercarse, { usos }), `a ${mueble.nombre || 'ese mueble'}`));
           return;
         }
         const accion = visibles[0] ? accionPorAltura(punto.y - est.y, est.altura) : null;

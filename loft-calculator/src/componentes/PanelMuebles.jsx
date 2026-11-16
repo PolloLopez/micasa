@@ -8,6 +8,7 @@
 // (medido desde el eje de la pared). No van al presupuesto.
 // ==========================================================
 
+import { cuerposDelSillon } from '../motor/recorrido.js';
 import { useState } from 'react';
 import Tarjeta from './Tarjeta.jsx';
 import FichaPlegable from './FichaPlegable.jsx';
@@ -108,6 +109,13 @@ function Mueble({ m, i, params, unidad, cambiar, onQuitar, abiertaAlInicio }) {
           <input type="checkbox" checked={m.cargaFrontal !== false} onChange={(e) => cambiar(`${ruta}.cargaFrontal`)(e.target.checked)} />
           Carga frontal (sin tildar: carga superior)
         </label>
+      )}
+      {/* v1.61: el sillón por cuerpos (cada uno es un lugar para sentarse); al cambiarlo, el ancho acompaña (≈ 60 cm por cuerpo). */}
+      {tipo.forma === 'sillon' && (
+        <div className="grid-params">
+          <CampoSelect etiqueta="Cuerpos" valor={String(cuerposDelSillon(m))} opciones={[1, 2, 3, 4, 5].map((n) => [String(n), `${n} cuerpo${n > 1 ? 's' : ''}`])}
+            onCambio={(v) => cambiar(ruta)({ ...m, cuerpos: Number(v), ancho: Math.round((Number(v) * 0.6 + 0.24) * 100) / 100 })} />
+        </div>
       )}
       {tipo.forma === 'cama' && (<>
         {/* v1.40.1: cajones (izquierda y derecha mirando la cama desde los pies) y cuánto salen abiertos. */}

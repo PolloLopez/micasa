@@ -103,9 +103,13 @@ export function animarPerro(figura, pose, fase, dt, mezcla) {
   const j = figura.juntas;
   figura.tiempo += dt;
   const s = Math.sin(fase);
+  // v1.61: echado (arriba del sillón o de la cama): las patas de adelante estiradas hacia adelante y las de atrás
+  // dobladas hacia atrás (el cuerpo baja: lo acomoda personas3d), la cabeza apenas levantada.
   const objetivo = pose === 'caminar'
     ? { delIzq: -0.5 * s, traDer: -0.5 * s, delDer: 0.5 * s, traIzq: 0.5 * s, cuello: 0.1 }
-    : { delIzq: 0, traDer: 0, delDer: 0, traIzq: 0, cuello: pose === 'olfatear' ? 0.75 : 0 };
+    : pose === 'acostado'
+      ? { delIzq: -1.35, delDer: -1.35, traIzq: 1.35, traDer: 1.35, cuello: -0.2 }
+      : { delIzq: 0, traDer: 0, delDer: 0, traIzq: 0, cuello: pose === 'olfatear' ? 0.75 : 0 };
   Object.entries(objetivo).forEach(([k, v]) => { j[k].rotation.x += (v - j[k].rotation.x) * mezcla; });
   // La cola: más rápido cuando camina o olfatea (contento).
   const rapidez = pose === 'quieta' ? 6 : 14;
