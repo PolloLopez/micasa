@@ -15,6 +15,7 @@
 // ==========================================================
 
 import { INSUMO, LADOS } from './constantes.js';
+import { inicioAbertura } from './validacion.js';
 import { geometriaLados, nombreDePared } from './geometria.js';
 import { listarPiezas, NOMBRE_TIPO_PIEZA } from './estructura.js';
 import { INSUMO_DE_TIPO } from './piezasAgregadas.js';
@@ -110,9 +111,13 @@ export function vistaDePared(e, params, lado, catalogo, aberturas = []) {
     alturas: pared?.alturas ?? [0, 0],
     piezas,
     huecos: pared?.huecos ?? [],
-    aberturas: aberturas.filter((op) => op.lado === lado).map((op, i) => {
-      const h = pared?.huecos?.[i];
-      return { numero: numeroDe(op), tipo: op.tipo, etiqueta: op.etiqueta ?? '', ancho: op.ancho, alto: op.alto, antepecho: op.alturaAntepecho, desde: h?.desde ?? 0 };
+    // v1.60: cada abertura con su lugar en la pared. Las "a futuro" no tienen hueco (la pared va revestida entera):
+    // los huecos de la pared son solo las demás, en el mismo orden (antes se emparejaban mal por posición).
+    aberturas: aberturas.filter((op) => op.lado === lado).map((op) => {
+      const desde = inicioAbertura(op, params);
+      const antepecho = op.alturaAntepecho ?? 0;
+      return { numero: numeroDe(op), tipo: op.tipo, etiqueta: op.etiqueta ?? '', ancho: op.ancho, alto: op.alto, antepecho, desde,
+        hasta: desde + op.ancho, arriba: antepecho + op.alto, futura: op.futura === true };
     }),
     cotas: {
       columnas: unicos([0, geo.largo, ...verticales.map((p) => p.x1)]), // posiciones a lo largo

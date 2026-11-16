@@ -522,6 +522,7 @@ kbd {
 .dibujo-plano { width: 100%; height: auto; background: #f8fafc; border-radius: 6px; margin: 6px 0 10px; }
 .dibujo-plano .contorno { fill: #e2e8f0; stroke: #94a3b8; stroke-width: 0.02; }
 .dibujo-plano .hueco { fill: #bae6fd; stroke: #0284c7; stroke-width: 0.02; stroke-dasharray: 0.08 0.05; }
+.dibujo-plano .hueco-futuro { fill: none; stroke: #f59e0b; stroke-width: 0.025; stroke-dasharray: 0.06 0.06; } /* v1.59: abertura a futuro */
 .dibujo-plano text { fill: #0f172a; font-family: system-ui, sans-serif; }
 .dibujo-plano .cota line { stroke: #334155; stroke-width: 0.012; }
 .dibujo-plano .lado-planta { fill: #475569; font-style: italic; }

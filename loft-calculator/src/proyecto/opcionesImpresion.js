@@ -13,11 +13,17 @@ export const OPCIONES_IMPRESION_INICIALES = {
   // v1.57: el plano de cada instalación con sus tramos y su lista de materiales (sale si tiene puntos).
   instElectrica: true, instAgua: true, instDesague: true, instGas: true,
   instEquipos: true, // v1.58: aires, salamandra y solar
+  // v1.60: las paredes solo con su contorno y las aberturas (para el proveedor de paneles: sin la estructura ni sus medidas).
+  paredesSinEstructura: false,
 };
 
 /** v1.42: "Solo planos": las paredes, las plantas y sus listas; nada del 3D ni del presupuesto. */
 export const SOLO_PLANOS = Object.fromEntries(Object.keys(OPCIONES_IMPRESION_INICIALES)
   .map((k) => [k, ['paredes', 'plantas', 'listaCanos', 'listaAberturas'].includes(k) || k.startsWith('parte') || k.startsWith('inst')]));
+
+/** v1.60: para quien cotiza los paneles: las paredes con su contorno y sus aberturas, sin estructura, sin plantas ni caños. */
+export const PARA_PANELES = Object.fromEntries(Object.keys(OPCIONES_IMPRESION_INICIALES)
+  .map((k) => [k, ['paredes', 'listaAberturas', 'paredesSinEstructura'].includes(k)]));
 
 /** Lo guardado sirve si tiene todas las claves con true/false. */
 export const opcionesImpresionValidas = (o) => o !== null && typeof o === 'object'

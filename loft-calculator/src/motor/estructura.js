@@ -515,7 +515,9 @@ function entramadoPiso(rect, separacionCargada, transversalesCargada, y, nivel, 
 
   const transversales = [];
   // v1.35: con transversales enteros (o tirantes apoyados encima) cada fila es UNA pieza de borde a borde.
-  const corridos = completarUniones(params.uniones).enteras.tirantesTransversales !== 'tirantes';
+  // v1.60: cada piso con su forma (antes el piso 2 miraba la de planta baja).
+  const enteras = completarUniones(params.uniones).enteras;
+  const corridos = (nivel === 'piso2' ? enteras.tirantesTransversales2 : enteras.tirantesTransversales) !== 'tirantes';
   if (separacionTransversales > 0 && corridos) {
     interiores(luz, separacionTransversales).forEach((b) => {
       transversales.push(pieza(`transv-${nivel}:fila:${cm(b)}`, `transv-${nivel}`, [nivel], punto(0, b), punto(largoReparto, b)));
@@ -667,7 +669,11 @@ function generarTecho(params, lados) {
     0, ...interiores(luz, pasoHorizontal), luz,
     ...(sMax > luz + EPSILON ? [...enAlero(luz, sMax), sMax] : []),
   ];
-  const ALTO_VIGA = 0.1; // las correas apoyan arriba de las vigas
+  // Las correas apoyan arriba de las vigas; v1.60: en el mismo plano, a la altura de las vigas (las uniones las
+  // cortan o cortan a las vigas, y las ponen al ras).
+  const formaTecho = completarUniones(params.uniones).enteras.vigasCorreas;
+  const ALTO_VIGA = formaTecho === 'apoyadas' ? 0.1 : 0;
+  const ALTO_PANEL = formaTecho === 'apoyadas' ? 0.13 : 0.09; // el panel, arriba de todo
   const todasLasCorreas = posiciones.map((s) =>
     pieza(`correa-techo:${cm(s)}`, 'correa-techo', ['techo'], puntoTecho(dMin, s, ALTO_VIGA), puntoTecho(dMax, s, ALTO_VIGA))
   );
@@ -692,10 +698,10 @@ function generarTecho(params, lados) {
   const qMin = -alero.inicio;
   const qMax = bajo.largo + alero.fin;
   const esquinas = [
-    puntoTecho(qMin, pMin, ALTO_VIGA + 0.03),
-    puntoTecho(qMax, pMin, ALTO_VIGA + 0.03),
-    puntoTecho(qMax, pMax, ALTO_VIGA + 0.03),
-    puntoTecho(qMin, pMax, ALTO_VIGA + 0.03),
+    puntoTecho(qMin, pMin, ALTO_PANEL),
+    puntoTecho(qMax, pMin, ALTO_PANEL),
+    puntoTecho(qMax, pMax, ALTO_PANEL),
+    puntoTecho(qMin, pMax, ALTO_PANEL),
   ];
   const largoTecho = qMax - qMin;
   const faldon = (pMax - pMin) * factorPendiente;

@@ -33,7 +33,7 @@ import PanelMesadas from './componentes/PanelMesadas.jsx';
 import PanelMuebles from './componentes/PanelMuebles.jsx';
 import PanelTabiques from './componentes/PanelTabiques.jsx';
 import PanelPersonas from './componentes/PanelPersonas.jsx';
-import { OPCIONES_PISO } from './motor/uniones.js';
+import { OPCIONES_PISO, FORMAS_TECHO, ALTURAS_NIVEL, completarUniones } from './motor/uniones.js';
 import { PILOTINES_CON_MODULO } from './motor/ejes.js';
 import { implantacion as calcularImplantacion } from './motor/terreno.js';
 import { moduloActivo } from './modulos.js';
@@ -42,7 +42,7 @@ import PanelMontaje from './componentes/PanelMontaje.jsx';
 import TablaPresupuesto from './componentes/TablaPresupuesto.jsx';
 import { useEstadoGuardado } from './hooks/useEstadoGuardado.js';
 import { validarParametros, validarAbertura, copiarAbertura, moverAbertura, LARGO_MAXIMO_ETIQUETA } from './motor/validacion.js';
-import { esEdicionVacia } from './motor/edicionPiezas.js';
+import { esEdicionVacia, piezaEditadaEnLaEstructura } from './motor/edicionPiezas.js';
 import { duplicarPieza, PREFIJO_AGREGADA } from './motor/piezasAgregadas.js';
 import { generarEstructura, listarPiezas, infoSeparacion } from './motor/estructura.js';
 import { CAMPOS_CON_CANTIDAD, MAXIMO_CANTIDAD, cantidadDe } from './motor/cantidades.js';
@@ -249,6 +249,7 @@ export default function App() {
   );
   // v1.33: con el catálogo, las piezas que se cruzan se cortan contra la que queda entera (uniones).
   const estructura = useMemo(() => generarEstructura(paramsObra, aberturasValidas, catalogo), [paramsObra, aberturasValidas, catalogo]);
+  const piezasDeLaEstructura = useMemo(() => listarPiezas(estructura), [estructura]); // v1.60: para las piezas editadas
   const esGrada = params.tipoProyecto === 'grada'; // proyecto de grada: otra pantalla de datos
   const esMontaje = params.tipoProyecto === 'montaje'; // montaje industrial: mesas, tanques...
   const esConstruccion = !esGrada && !esMontaje;
@@ -442,6 +443,9 @@ export default function App() {
     if (material === 'madera') nuevos = conValor(nuevos, `uniones.enteras.tirantesTransversales${piso}`, 'apoyados');
     return aplicarSiValido(nuevos, `tirantesPiso${piso}`);
   };
+
+  /** v1.60: la altura de un nivel (al ras o eje con eje); los proyectos de antes no tienen `ras`: se completa. */
+  const cambiarRas = (nivel) => (valor) => cambiar('uniones.ras')({ ...completarUniones(params.uniones).ras, [nivel]: valor });
 
   /** Valida unos parámetros nuevos y, si están bien, los deja. Devuelve el error (para el campo `ruta`) o null. */
   const aplicarSiValido = (nuevos, ruta) => {
@@ -1129,6 +1133,9 @@ export default function App() {
             <div className="grid-params grid-uniones">
               <CampoSelect etiqueta="Tirantes y transversales" valor={params.uniones?.enteras?.tirantesTransversales ?? 'tirantes'}
                 opciones={OPCIONES_PISO[0][2]} onCambio={cambiar('uniones.enteras.tirantesTransversales')} />
+              {/* v1.60: los perfiles C de adentro al ras de arriba del borde (o eje con eje, como antes). */}
+              <CampoSelect etiqueta="Altura de tirantes y transversales" valor={completarUniones(params.uniones).ras.piso}
+                opciones={ALTURAS_NIVEL} onCambio={cambiarRas('piso')} />
             </div>
             {/* v1.42.1: tirantes de hierro o de madera (sobre las transversales de perfil C) y cubierta. */}
             <div className="grid-params">
@@ -1187,6 +1194,8 @@ export default function App() {
                 {/* v1.43.1: el piso 2 se arma aparte de la planta baja. */}
                 <CampoSelect etiqueta="Tirantes y transversales (piso 2)" valor={params.uniones?.enteras?.tirantesTransversales2 ?? 'tirantes'}
                   opciones={OPCIONES_PISO[1][2]} onCambio={cambiar('uniones.enteras.tirantesTransversales2')} />
+                <CampoSelect etiqueta="Altura (piso 2)" valor={completarUniones(params.uniones).ras.piso2}
+                  opciones={ALTURAS_NIVEL} onCambio={cambiarRas('piso2')} />
                 <CampoSelect etiqueta="Cubierta del piso 2" valor={params.cubiertaPiso2 ?? 'osb'}
                   opciones={[['osb', 'Placas OSB'], ['machimbre', 'Machimbre clavado']]} onCambio={cambiar('cubiertaPiso2')} />
               </div>
@@ -1239,6 +1248,15 @@ export default function App() {
                 Vigas sobre las columnas (entre dos columnas, parejas a no más de la separación)
               </label>
             )}
+            {/* v1.60: el techo se arma como los pisos: correas apoyadas o en el mismo plano (y al ras de las vigas). */}
+            <div className="grid-params grid-uniones">
+              <CampoSelect etiqueta="Vigas y correas" valor={completarUniones(params.uniones).enteras.vigasCorreas}
+                opciones={FORMAS_TECHO} onCambio={cambiar('uniones.enteras.vigasCorreas')} />
+              {completarUniones(params.uniones).enteras.vigasCorreas !== 'apoyadas' && (
+                <CampoSelect etiqueta="Altura de las correas" valor={completarUniones(params.uniones).ras.techo}
+                  opciones={[['ras', 'Arriba al ras de las vigas'], ['eje', 'Eje con eje (centradas)']]} onCambio={cambiarRas('techo')} />
+              )}
+            </div>
             {/* v1.28: marco perimetral (correas de los bordes + piezas de las puntas) con perfil propio. */}
             <label className="casilla-opcional">
               <input type="checkbox" checked={params.techoConBorde === true}
@@ -1355,12 +1373,15 @@ export default function App() {
                 <ul className="opening-list">
                   {Object.keys(params.piezasEditadas).map((id) => {
                     const original = estructura.editadasEncontradas.find((p) => p.id === id);
-                    const actual = original && listarPiezas(estructura).find((p) => p.id === id);
+                    // v1.60: si las uniones la cortaron en tramos (ej. al cambiar tirantes y transversales) se suman;
+                    // antes se buscaba solo el id entero y, al no estar, la app se caía.
+                    const actual = original ? piezaEditadaEnLaEstructura(piezasDeLaEstructura, id) : null;
                     return (
                       <li key={id} className="abertura pieza-eliminada">
                         <span>
-                          {original
+                          {original && actual
                             ? <>{describirPieza(original, params)} · {original.largo.toFixed(2)} → {actual.largo.toFixed(2)} m
+                              {actual.tramos > 1 && <> (en {actual.tramos} tramos)</>}
                               {actual.insumo && <> · {catalogo.find((p) => p.id === actual.insumo)?.nombre}</>}
                               {actual.recorteIgnorado && <strong className="error"> · el recorte ya no entra</strong>}</>
                             : <em>Ya no existe en el modelo (cambió una medida)</em>}

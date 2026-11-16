@@ -1547,7 +1547,8 @@ export default function LoftCanvas({
       observador.disconnect();
       controles.dispose();
       vaciarGrupo(grupo);
-      Object.values(materiales).forEach((m) => m.dispose());
+      // v1.60: materiales.porPerfil es un Map de materiales (v1.55), no un material: se libera cada uno.
+      Object.values(materiales).forEach((m) => (m instanceof Map ? m.forEach((x) => x.dispose()) : m.dispose?.()));
       materialesPanel.forEach((m) => { m.exterior.dispose(); m.interior.dispose(); });
       grilla.geometry.dispose();
       pisoSombras.geometry.dispose();

@@ -333,7 +333,7 @@ export default function HojasImpresion({
           {primera === 3 && cabecera}
           <h2>Paredes (vistas desde afuera)</h2>
           <div className="grilla-planos">
-            {vistas.paredes.map((v) => <div key={v.lado} className="plano-impresion"><PlanoDePared vista={v} params={params} /></div>)}
+            {vistas.paredes.map((v) => <div key={v.lado} className="plano-impresion"><PlanoDePared vista={v} params={params} soloContorno={opciones.paredesSinEstructura === true} /></div>)}
           </div>
         </section>
       )}

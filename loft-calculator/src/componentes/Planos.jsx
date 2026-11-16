@@ -86,20 +86,30 @@ function CotasVerticales({ alturas, x, alto }) {
 }
 
 /** Dibujo de una pared vista desde afuera, acotada. */
-function DibujoPared({ vista }) {
+/**
+ * @param soloContorno v1.60 (para el proveedor de paneles): sin la estructura ni sus cotas; quedan el contorno, las
+ *        aberturas que se cortan (las "a futuro" no: la pared va entera) y las cotas de cada abertura.
+ */
+function DibujoPared({ vista, soloContorno = false }) {
   const [h1, h2] = vista.alturas;
   const alto = Math.max(h1, h2);
   const margenIzq = 1.1;
   const margenAbajo = 1.0;
   const y = (h) => alto - h; // en el SVG la y crece hacia abajo
-  const alturasCota = [...new Set([0, ...vista.cotas.fajas, h1].map((h) => Math.round(h * 100) / 100))].sort((p, q) => p - q);
+  const redondo = (lista) => [...new Set(lista.map((h) => Math.round(h * 100) / 100))].sort((p, q) => p - q);
+  const reales = vista.aberturas.filter((a) => !a.futura);
+  const futuras = vista.aberturas.filter((a) => a.futura);
+  const alturasCota = soloContorno
+    ? redondo([0, ...reales.flatMap((a) => [a.antepecho, a.arriba]), h1])
+    : redondo([0, ...vista.cotas.fajas, h1]);
+  const posicionesAbajo = soloContorno ? redondo([0, vista.largo, ...reales.flatMap((a) => [a.desde, a.hasta])]) : vista.cotas.columnas;
   return (
     <svg className="dibujo-plano" viewBox={`${-margenIzq} -0.4 ${vista.largo + margenIzq + 0.4} ${alto + 0.4 + margenAbajo}`}
       role="img" aria-label={`Pared ${vista.lado} vista desde afuera`}>
       <polygon className="contorno" points={`0,${y(0)} ${vista.largo},${y(0)} ${vista.largo},${y(h2)} 0,${y(h1)}`} />
       {/* Aberturas: el hueco con su número y medidas. */}
       {vista.huecos.map((h, i) => {
-        const a = vista.aberturas[i];
+        const a = reales[i];
         return (
           <g key={`h${i}`}>
             <rect className="hueco" x={h.desde} y={y(h.arriba)} width={h.hasta - h.desde} height={h.arriba - h.abajo} />
@@ -112,13 +122,20 @@ function DibujoPared({ vista }) {
           </g>
         );
       })}
+      {/* v1.59: las aberturas a futuro: solo el marco (punteado), la pared va entera. No salen en el plano para paneles. */}
+      {!soloContorno && futuras.map((a) => (
+        <g key={`f${a.numero}`}>
+          <rect className="hueco-futuro" x={a.desde} y={y(a.arriba)} width={a.ancho} height={a.alto} />
+          <text x={a.desde + a.ancho / 2} y={y(a.antepecho + a.alto / 2)} fontSize={TEXTO * 0.8} textAnchor="middle" dominantBaseline="middle">#{a.numero} a futuro</text>
+        </g>
+      ))}
       {/* Piezas */}
-      {vista.piezas.map((p) => {
+      {!soloContorno && vista.piezas.map((p) => {
         const t = trazo(p.tipo);
         return <line key={p.id} x1={p.x1} y1={y(p.y1)} x2={p.x2} y2={y(p.y2)} stroke={t.color} strokeWidth={p.esquina ? t.ancho * 1.2 : t.ancho} strokeLinecap="square" />;
       })}
       {/* Cotas: columnas y jambas abajo; total; fajas a la izquierda. */}
-      <CotasHorizontales posiciones={vista.cotas.columnas} y={y(0) + 0.4} />
+      <CotasHorizontales posiciones={posicionesAbajo} y={y(0) + 0.4} />
       <CotasHorizontales posiciones={[0, vista.largo]} y={y(0) + 0.8} />
       <CotasVerticales alturas={alturasCota} x={-0.4} alto={alto} />
       <CotasVerticales alturas={[0, h1]} x={-0.85} alto={alto} />
@@ -197,23 +214,25 @@ function TablaPiezas({ lista }) {
  * Una pared completa: título, dibujo acotado, piezas, aberturas y revestimiento.
  * La usan la pestaña Planos y las hojas del PDF (v1.28).
  */
-export function PlanoDePared({ vista: v, params }) {
+export function PlanoDePared({ vista: v, params, soloContorno = false }) {
+  // v1.60: para el proveedor de paneles: solo lo que se corta en el panel (sin piezas ni aberturas a futuro).
+  const aberturas = soloContorno ? v.aberturas.filter((a) => !a.futura) : v.aberturas;
   return (
     <>
       <h3 className="subtitulo">
         Pared {nombreDePared(v.lado, params)} · {f2(v.largo)} m · alto {f2(v.alturas[0])}
         {Math.abs(v.alturas[0] - v.alturas[1]) > 0.005 ? ` a ${f2(v.alturas[1])}` : ''} m
       </h3>
-      <DibujoPared vista={v} />
-      <TablaPiezas lista={v.lista} />
-      {v.aberturas.length > 0 && (
+      <DibujoPared vista={v} soloContorno={soloContorno} />
+      {!soloContorno && <TablaPiezas lista={v.lista} />}
+      {aberturas.length > 0 && (
         <div className="table-wrap">
         <table className="tabla-plano">
           <thead><tr><th>Abertura</th><th className="num">Ancho</th><th className="num">Alto</th><th className="num">Antepecho</th><th className="num">Desde esq. izq.</th></tr></thead>
           <tbody>
-            {v.aberturas.map((a) => (
+            {aberturas.map((a) => (
               <tr key={a.numero}>
-                <td>#{a.numero} {a.tipo}{a.etiqueta ? ` · ${a.etiqueta}` : ''}</td>
+                <td>#{a.numero} {a.tipo}{a.etiqueta ? ` · ${a.etiqueta}` : ''}{a.futura ? ' (a futuro: solo el marco)' : ''}</td>
                 <td className="num">{f2(a.ancho)}</td><td className="num">{f2(a.alto)}</td>
                 <td className="num">{f2(a.antepecho)}</td><td className="num">{f2(a.desde)}</td>
               </tr>
@@ -263,6 +282,8 @@ function PlanosInstalaciones({ params, estructura }) {
 }
 
 export default function Planos({ vistas, params, estructura = null, onExportar, implantacion = null }) {
+  // v1.60: las paredes como las ve el proveedor de paneles (contorno y aberturas, sin la estructura ni sus medidas).
+  const [paraPaneles, setParaPaneles] = useEstadoGuardado('planosParaPaneles', false, (v) => typeof v === 'boolean');
   if (!vistas.paredes.length && !vistas.plantas.length) {
     return (
       <Tarjeta id="planos" titulo="Planos">
@@ -279,6 +300,10 @@ export default function Planos({ vistas, params, estructura = null, onExportar, 
           de abajo son entre columnas y jambas; las de la izquierda, entre horizontales (fajas). Con
           <strong> Imprimir / Exportar</strong> elegís qué sale en el PDF o en el Excel (las 4 paredes juntas y las plantas juntas).
         </p>
+        <label className="casilla-opcional no-print">
+          <input type="checkbox" checked={paraPaneles} onChange={(e) => setParaPaneles(e.target.checked)} />
+          Paredes para el proveedor de paneles: solo el contorno y las aberturas (sin la estructura ni sus medidas)
+        </label>
         <button type="button" className="btn-print no-print" onClick={onExportar}>Imprimir o exportar…</button>
       </Tarjeta>
       {/* v1.32: la casa en su lote (si se cargó el terreno). */}
@@ -289,7 +314,7 @@ export default function Planos({ vistas, params, estructura = null, onExportar, 
         </section>
       )}
       {vistas.paredes.map((v) => (
-        <section key={v.lado} className="card plano"><PlanoDePared vista={v} params={params} /></section>
+        <section key={v.lado} className="card plano"><PlanoDePared vista={v} params={params} soloContorno={paraPaneles} /></section>
       ))}
       {vistas.plantas.map((p) => (
         <section key={p.nivel} className="card plano"><PlanoDePlanta vista={p} /></section>

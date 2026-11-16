@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.60.0] - 2026-11-16
+### Arreglado
+- **La app se caía al cambiar "Tirantes y transversales"** (proyecto de Leandro): una pieza editada a mano (ej. un
+  tirante recortado) quedaba cortada en tramos por las uniones al cambiar la forma, la lista de "Editadas" no la
+  encontraba y la pantalla se rompía. Ahora suma sus tramos ("en 2 tramos"). También: al cerrarse, el 3D no liberaba
+  los materiales del color por perfil (otro error), y el piso 2 armaba sus transversales con la forma de planta baja.
+- Los planos de pared emparejaban mal los huecos cuando había una abertura "a futuro".
+### Agregado
+- **Paredes para el proveedor de paneles**: solo el contorno, las aberturas a cortar y sus cotas (desde la esquina y
+  desde el piso), sin la estructura, sus medidas ni las piezas; las aberturas "a futuro" no salen (la pared va entera).
+  En Planos (casilla) y al imprimir o exportar (opción nueva; el atajo "Para quien cotiza paneles" la usa).
+- **Perfiles C al ras del borde**: los tirantes y transversales de cada piso van con la cara de arriba al ras del
+  borde (antes eje con eje: si el borde era más alto, quedaban más abajo). Con tirantes apoyados, los transversales
+  al ras y los tirantes arriba. Se elige en planta baja y en el piso 2 ("Eje con eje" deja todo como antes).
+- **Techo como los pisos** (tarjeta Techo y Uniones): correas apoyadas sobre las vigas (como siempre) o en el mismo
+  plano, con las vigas enteras o las correas enteras (se cortan y se sueldan), al ras de las vigas o eje con eje.
+
 ## [1.59.0] - 2026-11-12
 ### Agregado
 - **🔩 Ver estructura de hierro** (barra del 3D): oculta maderas (tirantes, escalones, machimbre), revestimientos,

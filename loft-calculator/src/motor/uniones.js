@@ -45,9 +45,20 @@ export const OPCIONES_ENTERAS = {
   tirantesTransversales: ['tirantes', 'transversales', 'apoyados'],
   // v1.43.1: el piso 2 se arma aparte (ej. planta baja todo perfil C en el mismo plano y el altillo con tirantes de madera apoyados).
   tirantesTransversales2: ['tirantes', 'transversales', 'apoyados'],
+  // v1.60 (pedido de Leandro): el techo también se elige: correas apoyadas sobre las vigas (como siempre) o en el
+  // mismo plano, con las vigas enteras o las correas enteras.
+  vigasCorreas: ['apoyadas', 'vigas', 'correas'],
 };
+
+/**
+ * v1.60: a qué altura van los perfiles de adentro de cada nivel. 'ras' = la cara de arriba al ras del borde (en el
+ * techo, de las vigas): el OSB o el panel apoya parejo. 'eje' = eje con eje (como antes de v1.60: si el borde es más
+ * alto, el tirante queda más abajo).
+ */
+export const ALTURAS_NIVEL = [['ras', 'Arriba al ras del borde'], ['eje', 'Eje con eje (centrados)']];
+export const RAS_INICIAL = { piso: 'ras', piso2: 'ras', techo: 'ras' };
 export const ENTERAS_INICIALES = Object.fromEntries(Object.entries(OPCIONES_ENTERAS).map(([k, v]) => [k, v[0]]));
-export const UNIONES_INICIALES = { modo: 'red', luz: 0, enteras: { ...ENTERAS_INICIALES } }; // 'eje' = eje a eje (como antes)
+export const UNIONES_INICIALES = { modo: 'red', luz: 0, enteras: { ...ENTERAS_INICIALES }, ras: { ...RAS_INICIAL } }; // 'eje' = eje a eje (como antes)
 export const MARCOS_ABERTURA = ['jambas', 'dintel'];
 
 /** v1.35: textos de las 3 formas de armar tirantes y transversales (tarjetas Pisos y Uniones). */
@@ -59,6 +70,12 @@ const FORMAS_PISO = [
 export const OPCIONES_PISO = [
   ['tirantesTransversales', 'Tirantes y transversales (planta baja)', FORMAS_PISO],
   ['tirantesTransversales2', 'Tirantes y transversales (piso 2)', FORMAS_PISO],
+];
+/** v1.60: las formas del techo (tarjeta Techo y Uniones). */
+export const FORMAS_TECHO = [
+  ['apoyadas', 'Correas apoyadas sobre las vigas'],
+  ['vigas', 'Mismo plano: vigas enteras, correas entre ellas'],
+  ['correas', 'Mismo plano: correas enteras, vigas cortadas'],
 ]; // qué queda entero en el marco de una abertura
 
 /** v1.43.1: alto de un tirante de madera para apoyarlo sobre los transversales (5" ≈ 12,7 cm). */
@@ -71,6 +88,7 @@ const REDES = {
   pared: ['marco-piso', 'solera', 'columna', 'jamba', 'dintel', 'alfeizar', 'montante', 'montante-dintel', 'montante-antepecho', 'horizontal', 'travesano'],
   piso: ['marco-piso', 'piso', 'transv-piso'],
   piso2: ['marco-piso2', 'viga-cierre', 'piso2', 'transv-piso2'],
+  techo: ['viga-techo', 'correa-techo'], // v1.60: solo en el mismo plano (apoyadas no se cortan)
 };
 const PERIMETRALES = ['marco-piso', 'solera', 'marco-piso2'];
 const MONTANTES = ['montante', 'montante-dintel', 'montante-antepecho'];
@@ -99,6 +117,11 @@ function rangoEn(red, p, ctx) {
     return (ctx.ejeLargo === 'x') === vaEnX ? 0 : 1;
   }
   if (p.tipo === 'viga-cierre') return 1;
+  // v1.60: techo en el mismo plano: lo entero gana; apoyadas, no se tocan (van una arriba de la otra).
+  if (p.tipo === 'viga-techo' || p.tipo === 'correa-techo') {
+    if (enteras.vigasCorreas === 'apoyadas') return null;
+    return (p.tipo === 'viga-techo') === (enteras.vigasCorreas === 'vigas') ? 0 : 1;
+  }
   // Pisos: tirantes entre bordes, o enteros con los bordes cortados entre ellos.
   // v1.35: con los tirantes APOYADOS sobre los transversales no se cruzan con nada (van en otro nivel).
   // v1.43.1: cada piso con su forma (planta baja: tirantesTransversales; piso 2: tirantesTransversales2).
@@ -282,7 +305,35 @@ function ajustarPieza(p, otras, catalogo, ctx) {
 const LISTAS = [
   ['columnas'], ['refuerzosAberturas'], ['montantes'], ['marcos'], ['correas'],
   ['piso', 'tirantes'], ['piso', 'transversales'], ['piso2', 'tirantes'], ['piso2', 'transversales'],
+  ['techo', 'vigas'], ['techo', 'correas'], // v1.60
 ];
+
+/**
+ * v1.60: sube o baja los perfiles de adentro para que su cara de arriba quede al ras del borde (en el techo, de las
+ * vigas). Con los tirantes apoyados, los transversales quedan al ras y los tirantes arriba de ellos.
+ * Solo mueve las piezas en altura: los largos (y el presupuesto) no cambian.
+ */
+function enrasar(e, catalogo, config) {
+  const mover = (p, dy) => (Math.abs(dy) < 1e-6 ? p : { ...p, desde: [p.desde[0], p.desde[1] + dy, p.desde[2]], hasta: [p.hasta[0], p.hasta[1] + dy, p.hasta[2]] });
+  const nueva = { ...e };
+  ['piso', 'piso2'].forEach((nivel) => {
+    if (config.ras[nivel] !== 'ras' || !e[nivel]) return;
+    const bordes = (e.marcos ?? []).filter((p) => p.tipo === (nivel === 'piso2' ? 'marco-piso2' : 'marco-piso'));
+    if (bordes.length === 0) return;
+    const altoBorde = Math.max(...bordes.map((p) => medidaAlto(p, catalogo)));
+    const altoTransversal = medidaAlto({ tipo: `transv-${nivel}` }, catalogo);
+    nueva[nivel] = {
+      ...e[nivel],
+      transversales: e[nivel].transversales.map((p) => mover(p, (altoBorde - medidaAlto(p, catalogo)) / 2)),
+      tirantes: e[nivel].tirantes.map((p) => mover(p, (altoBorde - (p.apoyado ? altoTransversal : medidaAlto(p, catalogo))) / 2)),
+    };
+  });
+  if (config.ras.techo === 'ras' && config.enteras.vigasCorreas !== 'apoyadas' && e.techo) {
+    const altoViga = medidaAlto({ tipo: 'viga-techo' }, catalogo);
+    nueva.techo = { ...e.techo, correas: e.techo.correas.map((p) => mover(p, (altoViga - medidaAlto(p, catalogo)) / 2)) };
+  }
+  return nueva;
+}
 
 /**
  * Aplica las uniones a una estructura de construcción (después de marcar los perfiles de pared,
@@ -302,7 +353,7 @@ export function aplicarUniones(e, params, catalogo, aberturas = []) {
   if (config.modo !== 'red' || !catalogo) {
     // Eje a eje: sin descuentos, pero los tirantes apoyados igual van un nivel más arriba.
     const base = apoyados ? apoyarTirantes(e, catalogo, false, niveles) : e;
-    return { ...base, uniones: { modo: 'eje', metrosDescontados: 0, cortes: 0 } };
+    return { ...(catalogo ? enrasar(base, catalogo, config) : base), uniones: { modo: 'eje', metrosDescontados: 0, cortes: 0 } };
   }
   const ctx = {
     ejeLargo: params.largo >= params.ancho ? 'x' : 'z',
@@ -335,8 +386,9 @@ export function aplicarUniones(e, params, catalogo, aberturas = []) {
   if (apoyados) {
     [...final.piso.tirantes, ...final.piso2.tirantes].filter((p) => p.apoyado).forEach((p) => { metrosDescontados -= p.largo - p.largoEje; });
   }
-  final.uniones = { modo: 'red', metrosDescontados: Math.round(metrosDescontados * 100) / 100, cortes };
-  return final;
+  const enrasada = enrasar(final, catalogo, config); // v1.60
+  enrasada.uniones = { modo: 'red', metrosDescontados: Math.round(metrosDescontados * 100) / 100, cortes };
+  return enrasada;
 }
 
 /** Completa la configuración de uniones (proyectos de antes: con red, que es lo correcto, y la jerarquía de fábrica). */
@@ -350,6 +402,8 @@ export function completarUniones(u) {
       .map(([par, opciones]) => [par, opciones.includes(enteras[par]) ? enteras[par]
         // v1.43.1: los proyectos de antes arman el piso 2 igual que la planta baja (como era).
         : par === 'tirantesTransversales2' && opciones.includes(enteras.tirantesTransversales) ? enteras.tirantesTransversales : opciones[0]])),
+    // v1.60: de fábrica al ras del borde (también los proyectos de antes: así se arma de verdad).
+    ras: Object.fromEntries(Object.keys(RAS_INICIAL).map((n) => [n, ['ras', 'eje'].includes(base.ras?.[n]) ? base.ras[n] : RAS_INICIAL[n]])),
   };
 }
 
@@ -359,6 +413,7 @@ export function validarUniones(u) {
   if (!u || typeof u !== 'object') return { uniones: 'Faltan los datos de las uniones' };
   if (!['red', 'eje'].includes(u.modo)) errores['uniones.modo'] = 'Elegí con descuentos o eje a eje';
   if (!Number.isFinite(u.luz) || u.luz < 0 || u.luz > 0.02) errores['uniones.luz'] = 'Entre 0 y 20 mm';
+  if (u.ras !== undefined && Object.keys(RAS_INICIAL).some((n) => !['ras', 'eje'].includes(u.ras?.[n]))) errores['uniones.ras'] = 'Elegí al ras o eje con eje';
   if (u.enteras !== undefined) {
     Object.entries(OPCIONES_ENTERAS).forEach(([par, opciones]) => {
       if (!opciones.includes(u.enteras?.[par])) errores[`uniones.enteras.${par}`] = `Elegí ${opciones.join(' o ')}`;

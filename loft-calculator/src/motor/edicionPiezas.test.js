@@ -123,3 +123,13 @@ describe('etiquetas de las paredes en el 3D', () => {
     expect(validarParametros(m)).toEqual({});
   });
 });
+
+describe('v1.60: pieza editada que las uniones cortaron en tramos', async () => {
+  const { piezaEditadaEnLaEstructura } = await import('./edicionPiezas.js');
+  it('entera, en tramos (se suman) o que ya no está', () => {
+    const piezas = [{ id: 'piso:240~1', largo: 1.2 }, { id: 'piso:240~2', largo: 2.3, recorteIgnorado: true }, { id: 'piso:280', largo: 4 }];
+    expect(piezaEditadaEnLaEstructura(piezas, 'piso:280')).toMatchObject({ largo: 4, tramos: 1 });
+    expect(piezaEditadaEnLaEstructura(piezas, 'piso:240')).toMatchObject({ largo: 3.5, tramos: 2, recorteIgnorado: true });
+    expect(piezaEditadaEnLaEstructura(piezas, 'piso:24')).toBeNull(); // "piso:24" no es "piso:240"
+  });
+});

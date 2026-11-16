@@ -7,7 +7,7 @@
 // ==========================================================
 
 import { useEffect, useRef } from 'react';
-import { SOLO_PLANOS } from '../proyecto/opcionesImpresion.js';
+import { SOLO_PLANOS, PARA_PANELES } from '../proyecto/opcionesImpresion.js';
 
 /** Las partes, agrupadas como se ven en la ventana. `soloPdf`: no existen en el Excel. */
 const GRUPOS = [
@@ -22,7 +22,9 @@ const GRUPOS = [
   },
   { titulo: 'Datos', partes: [['resumen', 'Datos de la obra'], ['presupuesto', 'Presupuesto'], ['cortes', 'Cómo cortar cada barra'],
     ['seguimiento', 'Seguimiento de la obra: contratado, pagado, lo que falta, terreno y acreedores (pestaña Obra)']] },
-  { titulo: 'Planos', partes: [['paredes', 'Paredes acotadas (las 4 juntas)'], ['plantas', 'Piso, entrepiso y techo'],
+  { titulo: 'Planos', partes: [['paredes', 'Paredes acotadas (las 4 juntas)'],
+    ['paredesSinEstructura', 'Paredes solo con el contorno y las aberturas (sin la estructura ni sus medidas: para el proveedor de paneles)'],
+    ['plantas', 'Piso, entrepiso y techo'],
     // v1.42: las listas que acompañan a los planos.
     ['listaCanos', 'Caños y perfiles: tipo, barras y dónde va cada uno'], ['listaAberturas', 'Aberturas: tipo, medidas y ubicación']] },
   // v1.42: qué partes de la obra van en los planos y en los caños (ej. quien cotiza los paneles exteriores solo quiere
@@ -43,10 +45,11 @@ export default function DialogoImprimir({ opciones, onCambiar, cantidadMedidas, 
     if (ventana && !ventana.open) ventana.showModal();
   }, []);
 
-  const algoParaPdf = Object.entries(opciones).some(([k, v]) => v && k !== 'cotas' && !k.startsWith('parte'));
+  const algoParaPdf = Object.entries(opciones).some(([k, v]) => v && k !== 'cotas' && k !== 'paredesSinEstructura' && !k.startsWith('parte'));
   const algoParaExcel = ['resumen', 'presupuesto', 'cortes', 'paredes', 'plantas', 'medidas', 'listaCanos', 'listaAberturas', 'seguimiento', 'instElectrica', 'instAgua', 'instDesague', 'instGas', 'instEquipos'].some((k) => opciones[k]);
   const deshabilitada = (clave) => (clave === 'medidas' && cantidadMedidas === 0)
-    || (!esConstruccion && ['paredes', 'plantas', 'cotas', 'vistasFijas', 'vistasPartes', 'listaAberturas'].includes(clave));
+    || (!esConstruccion && ['paredes', 'plantas', 'cotas', 'vistasFijas', 'vistasPartes', 'listaAberturas'].includes(clave))
+    || (clave === 'paredesSinEstructura' && !opciones.paredes); // v1.60: solo cambia cómo salen las paredes
 
   return (
     <dialog ref={ventanaRef} className="dialogo dialogo-imprimir no-print" aria-labelledby="imprimir-titulo"
@@ -57,8 +60,8 @@ export default function DialogoImprimir({ opciones, onCambiar, cantidadMedidas, 
       {/* v1.42: atajo para sacar solo los planos (paredes, plantas, caños y aberturas). */}
       <div className="fila-casillas">
         <button type="button" className="btn-mini" onClick={() => onCambiar({ ...SOLO_PLANOS })}>Solo planos</button>
-        <button type="button" className="btn-mini" title="Paredes con sus aberturas, sin pisos, altillo, techo ni divisiones"
-          onClick={() => onCambiar({ ...SOLO_PLANOS, plantas: false, partePisos: false, parteEntrepiso: false, parteTecho: false, parteInteriores: false })}>
+        <button type="button" className="btn-mini" title="Paredes con su contorno y las aberturas a cortar, sin la estructura ni sus medidas"
+          onClick={() => onCambiar({ ...PARA_PANELES })}>
           Para quien cotiza paneles</button>
         <button type="button" className="btn-mini" onClick={() => onCambiar(Object.fromEntries(Object.keys(opciones).map((k) => [k, k !== 'formularios'])))}>Todo</button>
       </div>

@@ -1,4 +1,4 @@
-# Manual de Pollo Calculator (v1.59.0)
+# Manual de Pollo Calculator (v1.60.0)
 
 Guía corta para usar el sistema y chequear que todo ande. Cada parte termina con **✔ Chequeá**: lo que tenés que ver.
 
@@ -26,7 +26,12 @@ pilotines **hormigonados en obra**, el **tapial** (los lados del lote, el alto y
 profundidad del pilar, la cámara y el pozo. El pilar de luz, la cámara y el pozo se agregan en **Terreno** (+ Pilar de
 luz, + Cámara séptica, + Pozo séptico). Abajo, "Lo que lleva" cada parte y lo que hay que comprar.
 
+En **Pisos**: "Altura de tirantes y transversales" (al ras del borde o eje con eje), en planta baja y en el piso 2.
+En **Techo**: "Vigas y correas" (apoyadas o en el mismo plano) y su altura.
+
 ✔ Chequeá:
+- Con "Arriba al ras del borde", los perfiles C del piso quedan con la cara de arriba pareja con el borde.
+- Cambiar "Tirantes y transversales" ya no traba la app (aunque tengas piezas editadas a mano).
 - Si la escalera no entra, su tarjeta avisa "La escalera se sale de la planta".
 - Con terreno, tildá "Lateral izquierdo" y "Fondo" en el tapial: en el 3D aparece el muro y el largo es la suma de esos
   lados. Subí el cemento de la dosificación: suben las bolsas.
@@ -171,7 +176,8 @@ que los materiales y la pestaña "Presupuesto" muestra ese precio.
 
 ## 8. Planos e Imprimir / Exportar
 
-- **Planos**: cada pared y planta acotadas.
+- **Planos**: cada pared y planta acotadas. Con **"Paredes para el proveedor de paneles"** quedan solo el contorno y las
+  aberturas con sus cotas (sin la estructura). Al imprimir, el atajo **Para quien cotiza paneles** hace lo mismo.
 - **Imprimir / Exportar**: elegís qué sale (PDF o Excel). Atajos: **Solo planos**, **Por partes** (cada piso desde
   arriba y el adentro desde cada lado, sin esa pared).
 

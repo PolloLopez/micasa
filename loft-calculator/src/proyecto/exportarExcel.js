@@ -32,16 +32,20 @@ export function nombreDePared(lado, params) {
 }
 
 /** Filas de una pared (para la hoja "Paredes", una abajo de la otra). */
-function filasDePared(v, params) {
+/** @param sinEstructura v1.60: para el proveedor de paneles (sin columnas, fajas ni piezas; sin las aberturas a futuro). */
+function filasDePared(v, params, sinEstructura = false) {
   const [h1, h2] = v.alturas;
+  const aberturas = sinEstructura ? v.aberturas.filter((a) => !a.futura) : v.aberturas;
   return [
     { negrita: true, celdas: [`Pared ${nombreDePared(v.lado, params)} — vista desde afuera`, `Largo ${m(v.largo)} m · alto ${m(h1)} m${Math.abs(h1 - h2) > 0.005 ? ` a ${m(h2)} m` : ''}`] },
-    ['Columnas y jambas en (m desde la esquina izq.)', ...v.cotas.columnas],
-    ['Horizontales (fajas) a (m desde el piso)', ...(v.cotas.fajas.length ? v.cotas.fajas : ['sin fajas'])],
-    ...filasDePiezas(v.lista),
-    ...(v.aberturas.length ? [
+    ...(sinEstructura ? [] : [
+      ['Columnas y jambas en (m desde la esquina izq.)', ...v.cotas.columnas],
+      ['Horizontales (fajas) a (m desde el piso)', ...(v.cotas.fajas.length ? v.cotas.fajas : ['sin fajas'])],
+      ...filasDePiezas(v.lista),
+    ]),
+    ...(aberturas.length ? [
       { negrita: true, celdas: ['Abertura', 'Tipo', 'Ancho (m)', 'Alto (m)', 'Antepecho (m)', 'Desde esquina izq. (m)'] },
-      ...v.aberturas.map((a) => [`#${a.numero}${a.etiqueta ? ` ${a.etiqueta}` : ''}`, a.tipo, a.ancho, a.alto, a.antepecho, m(a.desde)]),
+      ...aberturas.map((a) => [`#${a.numero}${a.etiqueta ? ` ${a.etiqueta}` : ''}${a.futura ? ' (a futuro: solo el marco)' : ''}`, a.tipo, a.ancho, a.alto, a.antepecho, m(a.desde)]),
     ] : []),
     ...(v.revestimiento.length ? [
       { negrita: true, celdas: ['Revestimiento', 'Tipo', 'Qué pedir'] },
@@ -122,7 +126,7 @@ export function hojasDeObra({ nombre, params, vistas, items, total, gruposCortes
       filas: [
         ['Cada pared vista desde afuera: medidas desde la esquina izquierda y desde el piso.'],
         [],
-        ...vistas.paredes.flatMap((v) => filasDePared(v, params)),
+        ...vistas.paredes.flatMap((v) => filasDePared(v, params, partes.paredesSinEstructura === true)),
       ],
     });
   }

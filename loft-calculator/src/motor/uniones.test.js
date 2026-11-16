@@ -111,10 +111,12 @@ describe('perfil propio del marco de cada abertura', () => {
 describe('datos de las uniones', () => {
   it('los proyectos viejos pasan a la red; se valida la luz', () => {
     const { uniones, ...viejo } = P;
-    const deFabrica = { solerasColumnas: 'soleras', columnasFajas: 'columnas', montantesFajas: 'montantes', bordesTirantes: 'bordes', tirantesTransversales: 'tirantes', tirantesTransversales2: 'tirantes' };
-    expect(migrarParams(viejo).uniones).toEqual({ modo: 'red', luz: 0, enteras: deFabrica });
-    expect(completarUniones({ modo: 'eje', luz: 0.002, enteras: { columnasFajas: 'fajas', otra: 'x' } }))
-      .toEqual({ modo: 'eje', luz: 0.002, enteras: { ...deFabrica, columnasFajas: 'fajas' } });
+    const deFabrica = { solerasColumnas: 'soleras', columnasFajas: 'columnas', montantesFajas: 'montantes', bordesTirantes: 'bordes', tirantesTransversales: 'tirantes', tirantesTransversales2: 'tirantes', vigasCorreas: 'apoyadas' };
+    const ras = { piso: 'ras', piso2: 'ras', techo: 'ras' }; // v1.60
+    expect(migrarParams(viejo).uniones).toEqual({ modo: 'red', luz: 0, enteras: deFabrica, ras });
+    expect(completarUniones({ modo: 'eje', luz: 0.002, enteras: { columnasFajas: 'fajas', otra: 'x' }, ras: { piso2: 'eje' } }))
+      .toEqual({ modo: 'eje', luz: 0.002, enteras: { ...deFabrica, columnasFajas: 'fajas' }, ras: { ...ras, piso2: 'eje' } });
+    expect(validarUniones({ modo: 'red', luz: 0, ras: { ...ras, techo: 'abajo' } })).toEqual({ 'uniones.ras': 'Elegí al ras o eje con eje' });
     expect(validarUniones({ modo: 'red', luz: 0, enteras: { ...deFabrica, bordesTirantes: 'vigas' } }))
       .toEqual({ 'uniones.enteras.bordesTirantes': 'Elegí bordes o tirantes' });
     expect(validarUniones({ modo: 'red', luz: 0.05 })).toEqual({ 'uniones.luz': 'Entre 0 y 20 mm' });
@@ -214,17 +216,52 @@ describe('tirantes y transversales del piso', () => {
 
   it('tirantes apoyados: nada se corta, suben un nivel y llegan a la cara de afuera de los bordes', () => {
     const e = con('apoyados');
-    const base = tirantes(eje());
+    // v1.60: la base, eje con eje (sin enrasar); con los apoyados, los transversales van al ras del borde y los tirantes arriba.
+    const base = tirantes(generarEstructura({ ...P, uniones: { modo: 'eje', luz: 0, ras: { piso: 'eje', piso2: 'eje', techo: 'eje' } } }, ABERTURAS_INICIALES, CATALOGO));
     expect(tirantes(e).length).toBe(base.length);
     const t = tirantes(e)[0];
     const t0 = base.find((p) => p.id === t.id);
     const sube = (medidaAlto({ tipo: 'transv-piso' }, CATALOGO) + medidaAlto({ tipo: 'piso' }, CATALOGO)) / 2;
-    expect(t.desde[1]).toBeCloseTo(t0.desde[1] + sube, 6);
+    const ras = (medidaAlto({ tipo: 'marco-piso' }, CATALOGO) - medidaAlto({ tipo: 'transv-piso' }, CATALOGO)) / 2;
+    expect(t.desde[1]).toBeCloseTo(t0.desde[1] + sube + ras, 6);
     expect(t.largo).toBeCloseTo(t0.largo + 2 * mitad('marco-piso'), 4);
     expect(filas(e).every((p) => p.id.includes(':fila:'))).toBe(true);
     // En eje a eje también suben (es la forma), pero sin alargarse.
     const ejeApoyado = tirantes(con('apoyados', 'eje')).find((p) => p.id === t.id);
     expect(ejeApoyado.largo).toBe(t0.largo);
     expect(ejeApoyado.desde[1]).toBeCloseTo(t.desde[1], 6);
+  });
+});
+
+describe('v1.60: al ras del borde y el techo en el mismo plano', () => {
+  const conUniones = (uniones) => generarEstructura({ ...P, uniones: { ...completarUniones(P.uniones), ...uniones } }, ABERTURAS_INICIALES, CATALOGO);
+  it('los tirantes y transversales quedan con la cara de arriba al ras del borde (o eje con eje, como antes)', () => {
+    const e = conUniones({});
+    const borde = e.marcos.find((p) => p.tipo === 'marco-piso');
+    const arriba = (p) => p.desde[1] + medidaAlto(p, CATALOGO) / 2;
+    expect(arriba(e.piso.tirantes[0])).toBeCloseTo(arriba(borde), 6);
+    expect(arriba(e.piso.transversales[0])).toBeCloseTo(arriba(borde), 6);
+    const ejeConEje = conUniones({ ras: { piso: 'eje', piso2: 'eje', techo: 'eje' } });
+    expect(ejeConEje.piso.tirantes[0].desde[1]).toBeCloseTo(borde.desde[1], 6);
+    // Solo se mueven en altura: los largos son los mismos.
+    expect(e.piso.tirantes.map((p) => p.largo)).toEqual(ejeConEje.piso.tirantes.map((p) => p.largo));
+  });
+
+  it('techo en el mismo plano: vigas enteras (las correas se cortan entre ellas) o correas enteras', () => {
+    const apoyadas = conUniones({});
+    const vigas = conUniones({ enteras: { ...completarUniones(P.uniones).enteras, vigasCorreas: 'vigas' } });
+    const correas = conUniones({ enteras: { ...completarUniones(P.uniones).enteras, vigasCorreas: 'correas' } });
+    const n = apoyadas.techo.vigas.length;
+    expect(apoyadas.techo.correas.every((p) => !p.id.includes('~'))).toBe(true);
+    expect(vigas.techo.vigas.length).toBe(n);
+    expect(vigas.techo.correas.length).toBe(apoyadas.techo.correas.length * (n + 1)); // cada correa en n+1 tramos
+    expect(correas.techo.correas.length).toBe(apoyadas.techo.correas.length);
+    expect(correas.techo.vigas.length).toBeGreaterThan(n); // las vigas se cortan en cada correa
+    // Las correas a la altura de las vigas (al ras arriba), no 10 cm más arriba.
+    const viga = vigas.techo.vigas[0];
+    const correa = vigas.techo.correas[0];
+    const arribaViga = viga.desde[1] + medidaAlto(viga, CATALOGO) / 2;
+    expect(correa.hasta[1] + medidaAlto(correa, CATALOGO) / 2).toBeLessThan(arribaViga + 0.5); // sobre el mismo faldón
+    expect(apoyadas.techo.correas[0].desde[1] - vigas.techo.correas.find((p) => p.id.startsWith(apoyadas.techo.correas[0].id)).desde[1]).toBeGreaterThan(0.05);
   });
 });

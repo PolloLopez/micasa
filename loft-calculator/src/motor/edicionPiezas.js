@@ -119,3 +119,20 @@ export function aplicarEdicion(original, edicion) {
 export function esVertical(p) {
   return Math.abs(p.hasta[1] - p.desde[1]) > 0.99 * p.largo;
 }
+
+/**
+ * v1.60: cómo quedó en la estructura una pieza editada a mano. Si después las uniones la cortaron en tramos
+ * ("piso:240" → "piso:240~1", "piso:240~2", por ejemplo al cambiar cómo se arman tirantes y transversales), suma
+ * los tramos. null si ya no está. (Antes se buscaba solo el id entero y la pantalla se caía.)
+ * @returns {{ largo, tramos, insumo, recorteIgnorado } | null}
+ */
+export function piezaEditadaEnLaEstructura(piezas, id) {
+  const entera = piezas.find((p) => p.id === id);
+  if (entera) return { largo: entera.largo, tramos: 1, insumo: entera.insumo, recorteIgnorado: entera.recorteIgnorado };
+  const tramos = piezas.filter((p) => p.id.startsWith(`${id}~`));
+  if (tramos.length === 0) return null;
+  return {
+    largo: tramos.reduce((a, p) => a + p.largo, 0), tramos: tramos.length,
+    insumo: tramos[0].insumo, recorteIgnorado: tramos.some((p) => p.recorteIgnorado),
+  };
+}
