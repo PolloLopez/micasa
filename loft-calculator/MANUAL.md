@@ -217,6 +217,7 @@ que los materiales y la pestaña "Presupuesto" muestra ese precio.
   arriba y el adentro desde cada lado, sin esa pared).
 
 - Las **plantas** muestran pilotines y zapatas (punteados), tabiques con su puerta, mesadas y muebles.
+- En el plano de una pared sale también el **borde del entrepiso** que apoya sobre ella (con su altura acotada).
 - **Seguimiento de la obra** (en Datos): lo contratado, lo pagado y lo que falta, con los pagos de cada rubro.
 
 ✔ Chequeá: el PDF con "Por partes" trae la hoja "Vistas por partes"; si cargaste mano de obra, sale **Precio de la obra**;

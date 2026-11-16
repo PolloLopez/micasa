@@ -228,6 +228,7 @@ techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 
 - 2026-10-23 v1.25.0: proveedores, precios en efectivo/tarjeta por proveedor, comparar presupuestos y "lo más barato de cada material".
 - 2026-10-23 v1.26.0: pestaña Planos (paredes y plantas acotadas, listas de corte, revestimiento), en el PDF y en Excel.
 - 2026-10-25 v1.30.0: link compacto (la mitad) y links cortos en Firebase para ver/editar que guardan los cambios.
+- 2026-11-16 v1.66.0: planos.js esDeLaPared(p, lado, geo) + enElPlanoDeLaPared (piezas 'piso2' sobre la línea de la pared, ±0,10 m); cotas.fajas suma los marco-piso2.
 - 2026-11-16 v1.65.0: motor/resumenPrecios.js (textoDePrecio, preciosCargados, PRECIO_SOSPECHOSO); SeccionPlegable.jsx (useEstadoGuardado 'seccionMateriales.*'); ListaProveedores con FichaPlegable + PreciosDelProveedor; tiraEnPunto (cortesPaneles.js) + userData.panelPared en los paños + estado tiraElegida y materiales.tira en LoftCanvas.
 - 2026-11-16 v1.64.0: criterio de resaltado {tipo:'pieza', id:[…]} (resaltado.js) + materiales.fantasma en LoftCanvas para las eliminadasEncontradas; componentes/FilaPiezaCambiada.jsx; detallesDePieza (descripcionPiezas.js); soloHierro apaga capas.tabiques.
 - 2026-11-16 v1.63.0: motor/cortesPaneles.js (cortesDeTiras, retazosEntreParedes usado en cuentaRevestimiento si tipo.aprovecharRetazos, sugerenciaParaAbertura/sugerenciasDeAberturas); vistaDePared.paneles; optimizadorCortes con varias estrategias + RETAZO_UTIL y retazos/metrosTirados; barra del 3D en .grupo-ctrl.

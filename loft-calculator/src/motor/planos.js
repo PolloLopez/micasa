@@ -64,8 +64,23 @@ export function listaDePiezas(piezas, catalogo) {
 
 // ---------------- Paredes ----------------
 
+/**
+ * v1.66 (Leandro: "en el 2do piso el marco queda sobre el frente reutilizando un estructural, y en el plano del
+ * frente no sale"): las piezas del entrepiso (grupo 'piso2') que quedan EN el plano de una pared (el borde del
+ * entrepiso apoyado sobre ella) también son de esa pared: se ven en su plano. Tolerancia: medio caño de la pared.
+ */
+const TOLERANCIA_PLANO = 0.1;
+function enElPlanoDeLaPared(p, geo) {
+  if (!geo || !p.grupos.includes('piso2')) return false;
+  const [dx, dz] = geo.direccion;
+  const fuera = ([x, , z]) => Math.abs(-(x - geo.p1[0]) * dz + (z - geo.p1[1]) * dx); // distancia a la línea de la pared
+  const aLoLargo = ([x, , z]) => (x - geo.p1[0]) * dx + (z - geo.p1[1]) * dz; // desde la esquina p1
+  const dentro = (q) => aLoLargo(q) > -TOLERANCIA_PLANO && aLoLargo(q) < geo.largo + TOLERANCIA_PLANO;
+  return [p.desde, p.hasta].every((q) => fuera(q) < TOLERANCIA_PLANO && dentro(q));
+}
+
 /** ¿La pieza es de esta pared? (el marco de piso está en el grupo 'piso': su pared sale del id). */
-const esDeLaPared = (p, lado) => p.grupos.includes(lado) || p.id === `marco-piso:${lado}`;
+const esDeLaPared = (p, lado, geo = null) => p.grupos.includes(lado) || p.id === `marco-piso:${lado}` || enElPlanoDeLaPared(p, geo);
 
 /**
  * Tiras o placas de un revestimiento en una pared (con las aberturas descontadas).
@@ -112,13 +127,15 @@ export function vistaDePared(e, params, lado, catalogo, aberturas = []) {
     (x - geo.p1[0]) * geo.direccion[0] + (z - geo.p1[1]) * geo.direccion[1],
     y - y0,
   ];
-  const piezas = listarPiezas(e).filter((p) => esDeLaPared(p, lado)).map((p) => {
+  const piezas = listarPiezas(e).filter((p) => esDeLaPared(p, lado, geo)).map((p) => {
     const [x1, y1] = enPared(p.desde);
     const [x2, y2] = enPared(p.hasta);
     return { id: p.id, tipo: p.tipo, esquina: Boolean(p.esquina), nombre: nombreDeTipo(p), perfil: perfilDePieza(p, catalogo), largo: p.largo, x1, y1, x2, y2 };
   });
   const verticales = piezas.filter((p) => ['columna', 'jamba'].includes(p.tipo) && Math.abs(p.x1 - p.x2) < 1e-6);
   const fajas = piezas.filter((p) => p.tipo === 'horizontal');
+  // v1.66: el borde del entrepiso apoyado en la pared también se acota en altura (como una faja).
+  const delEntrepiso = piezas.filter((p) => p.tipo === 'marco-piso2' && Math.abs(p.y1 - p.y2) < 1e-6);
   const numeroDe = (op) => aberturas.findIndex((a) => a.id === op.id) + 1;
   return {
     lado,
@@ -136,9 +153,9 @@ export function vistaDePared(e, params, lado, catalogo, aberturas = []) {
     }),
     cotas: {
       columnas: unicos([0, geo.largo, ...verticales.map((p) => p.x1)]), // posiciones a lo largo
-      fajas: unicos(fajas.map((p) => Math.min(p.y1, p.y2))), // alturas de las horizontales
+      fajas: unicos([...fajas, ...delEntrepiso].map((p) => Math.min(p.y1, p.y2))), // alturas de las horizontales (y del entrepiso)
     },
-    lista: listaDePiezas(listarPiezas(e).filter((p) => esDeLaPared(p, lado)), catalogo),
+    lista: listaDePiezas(listarPiezas(e).filter((p) => esDeLaPared(p, lado, geo)), catalogo),
     paneles: pared ? panelesDePared(pared, catalogo, nombreDePared(lado, params)) : null, // v1.63: tamaños y cortes
     revestimiento: pared ? [
       revestimientoDePared(pared, pared.panel, 'exterior', catalogo),

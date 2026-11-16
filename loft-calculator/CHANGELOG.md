@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.66.0] - 2026-11-16
+### Arreglado
+- **Planos de pared**: el borde del entrepiso apoyado sobre una pared (ej. el Frente) no salía en el plano de esa pared
+  porque es del grupo "piso 2". Ahora toda pieza del entrepiso que queda en el plano de la pared se dibuja, va a su
+  lista de piezas y su altura se acota como una faja. La viga de cierre (adentro) sigue solo en la planta.
+
 ## [1.65.0] - 2026-11-16
 ### Agregado
 - **Tocar un panel en el 3D**: un clic en una pared revestida pinta esa tira (o placa) y muestra su número (igual que en

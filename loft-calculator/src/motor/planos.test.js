@@ -101,3 +101,26 @@ describe('v1.50: interiores y fundación en las plantas', () => {
     expect([techo.pilotines, techo.tabiques, techo.muebles].every((l) => l.length === 0)).toBe(true);
   });
 });
+
+describe('v1.66: el borde del entrepiso apoyado en una pared sale en el plano de esa pared', () => {
+  const e = generarEstructura(P, ABERTURAS_INICIALES, CATALOGO_INICIAL);
+  const vistas = ['A', 'B', 'C', 'D'].map((l) => vistaDePared(e, P, l, CATALOGO_INICIAL, ABERTURAS_INICIALES));
+  const delEntrepiso = (v) => v.piezas.filter((p) => p.tipo === 'marco-piso2');
+  it('las paredes que tocan el entrepiso lo muestran, a la altura del piso 2 (y acotado)', () => {
+    const conMarco = vistas.filter((v) => delEntrepiso(v).length > 0);
+    expect(conMarco.length).toBeGreaterThanOrEqual(2); // la de apoyo y las dos laterales que cruza
+    conMarco.forEach((v) => {
+      delEntrepiso(v).forEach((p) => {
+        expect(p.y1).toBeCloseTo(p.y2);
+        expect(p.y1).toBeGreaterThan(1.5);
+        expect(v.cotas.fajas.some((y) => Math.abs(y - p.y1) < 1e-6)).toBe(true);
+        // dentro de la pared, a lo largo
+        expect(Math.min(p.x1, p.x2)).toBeGreaterThan(-0.15);
+        expect(Math.max(p.x1, p.x2)).toBeLessThan(v.largo + 0.15);
+      });
+    });
+  });
+  it('la viga de cierre (adentro, lejos de las paredes) no sale en ninguna', () => {
+    vistas.forEach((v) => expect(v.piezas.some((p) => p.tipo === 'viga-cierre')).toBe(false));
+  });
+});
