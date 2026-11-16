@@ -38,6 +38,7 @@ export default function BarraPestanas({ pestanas, activa, onElegir }) {
           className={`pestana-boton${p.soloMovil ? ' solo-movil' : ''}`}
           aria-selected={activa === p.clave} aria-controls={p.soloMovil ? undefined : `pestana-${p.clave}`}
           tabIndex={activa === p.clave ? 0 : -1} title={p.detalle ? `${p.nombre} · ${p.detalleCompleto ?? p.detalle}` : p.nombre}
+          aria-label={p.detalle ? `${p.nombre}, ${p.detalleCompleto ?? p.detalle}` : p.nombre}
           onClick={() => onElegir(p.clave)} onKeyDown={(ev) => alTeclear(ev, i)}>
           <span className="icono-pestana" aria-hidden="true">{ICONOS[p.clave] ?? '•'}</span>
           <span className="nombre-largo">{p.nombre}</span>

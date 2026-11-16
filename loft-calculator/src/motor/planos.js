@@ -16,6 +16,7 @@
 
 import { INSUMO, LADOS } from './constantes.js';
 import { inicioAbertura } from './validacion.js';
+import { cortesDeTiras, retazosEntreParedes } from './cortesPaneles.js';
 import { geometriaLados, nombreDePared } from './geometria.js';
 import { listarPiezas, NOMBRE_TIPO_PIEZA } from './estructura.js';
 import { INSUMO_DE_TIPO } from './piezasAgregadas.js';
@@ -85,6 +86,20 @@ function revestimientoDePared(pared, idTipo, cara, catalogo) {
 }
 
 /**
+ * v1.63: los paneles del exterior de una pared (a medida): cada tira con su ancho, lo que se pide y sus cortes, y
+ * dónde caen las juntas (para dibujarlas y acomodar las aberturas). null si el revestimiento es de placas o no hay.
+ */
+function panelesDePared(pared, catalogo, donde) {
+  const tipo = catalogo.find((i) => i.id === pared.panel);
+  if (!tipo) return null;
+  const t = { ...REVESTIMIENTO_POR_DEFECTO, ...tipo };
+  if (t.venta === 'estandar') return null;
+  const pano = { largo: pared.largo, h1: pared.alturas[0], h2: pared.alturas[1], huecos: pared.huecos ?? [], donde };
+  const c = cortesDeTiras(pano, t);
+  return { nombre: tipo.nombre, anchoUtil: t.anchoUtil, ...c, juntas: c.tiras.slice(1).map((x) => x.x0), pano, tipo: t };
+}
+
+/**
  * Una pared vista desde afuera, lista para dibujar y acotar.
  * @param aberturas  las del proyecto (para numerarlas igual que en la pantalla: #1, #2…)
  */
@@ -124,6 +139,7 @@ export function vistaDePared(e, params, lado, catalogo, aberturas = []) {
       fajas: unicos(fajas.map((p) => Math.min(p.y1, p.y2))), // alturas de las horizontales
     },
     lista: listaDePiezas(listarPiezas(e).filter((p) => esDeLaPared(p, lado)), catalogo),
+    paneles: pared ? panelesDePared(pared, catalogo, nombreDePared(lado, params)) : null, // v1.63: tamaños y cortes
     revestimiento: pared ? [
       revestimientoDePared(pared, pared.panel, 'exterior', catalogo),
       pared.panelInterior ? revestimientoDePared(pared, pared.panelInterior, 'interior', catalogo) : null,
@@ -208,8 +224,19 @@ function extrasDePlanta(e, params, nivel, enPlanta) {
 /** Todas las vistas de una construcción (para imprimir y para el Excel). */
 export function todasLasVistas(e, params, catalogo, aberturas) {
   if (!e.paredes?.length) return { paredes: [], plantas: [] };
+  const paredes = LADOS.map((lado) => vistaDePared(e, params, lado, catalogo, aberturas));
+  // v1.63: las tiras angostas que salen del retazo de otra pared (del mismo panel), marcadas en cada una.
+  const porTipo = new Map();
+  paredes.filter((v) => v.paneles).forEach((v) => porTipo.set(v.paneles.tipo.id, [...(porTipo.get(v.paneles.tipo.id) ?? []), v]));
+  porTipo.forEach((vistas) => {
+    if (vistas.length < 2 || vistas[0].paneles.tipo.aprovecharRetazos === false) return;
+    const { reusos } = retazosEntreParedes(vistas.map((v) => v.paneles.pano), vistas[0].paneles.tipo);
+    reusos.forEach((r) => vistas.forEach((v) => v.paneles.tiras.forEach((x) => {
+      if (`${v.paneles.pano.donde}, tira ${x.n}` === r.para) x.deRetazo = r.de;
+    })));
+  });
   return {
-    paredes: LADOS.map((lado) => vistaDePared(e, params, lado, catalogo, aberturas)),
+    paredes,
     plantas: ['piso', 'piso2', 'techo'].map((nivel) => vistaDePlanta(e, params, nivel, catalogo)).filter(Boolean),
   };
 }

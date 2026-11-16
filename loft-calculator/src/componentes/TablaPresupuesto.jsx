@@ -6,6 +6,7 @@
 // en la tarjeta Materiales: acá solo se cuenta y se pone precio.
 // ==========================================================
 
+import { RETAZO_UTIL } from '../motor/optimizadorCortes.js';
 import { useState } from 'react';
 import CampoNumero from './CampoNumero.jsx';
 import CampoSelect from './CampoSelect.jsx';
@@ -41,6 +42,10 @@ function DiagramaCortes({ grupo }) {
       <summary>
         {titulo} ({grupo.perfil}): {cortes.totalBarras} barras de {grupo.largoBarra} m (reales {largo.toFixed(2)} m)
         {grupo.compartido && ahorro > 0 && <strong className="ahorro"> · comparten barras: {ahorro} menos</strong>}
+        {/* v1.63: lo que sobra se separa en retazos (desde 30 cm, se guardan) y lo que se tira. */}
+        {cortes.metrosRetazos !== undefined && (
+          <small className="sobrantes-grupo"> · retazos {cortes.metrosRetazos.toFixed(2)} m · se tira {cortes.metrosTirados.toFixed(2)} m</small>
+        )}
       </summary>
       {grupo.compartido && (
         <div className="leyenda-cortes">
@@ -51,7 +56,7 @@ function DiagramaCortes({ grupo }) {
         {cortes.barras.map((b) => (
           <div key={b.numero} className="bar-item">
             <div className="bar-title">
-              Barra #{b.numero} · sobrante {(largo - b.usado).toFixed(2)} m
+              Barra #{b.numero} · sobrante {(largo - b.usado).toFixed(2)} m{largo - b.usado >= RETAZO_UTIL ? ' (retazo: guardalo)' : ''}
             </div>
             <div className="bar-graphic">
               {b.piezas.map((p, i) => (
@@ -66,6 +71,25 @@ function DiagramaCortes({ grupo }) {
         ))}
       </div>
     </details>
+  );
+}
+
+/** v1.63: en total, cuántas barras, cuánto queda en retazos y cuánto se tira (de todos los hierros). */
+function ResumenSobrantes({ grupos }) {
+  const suma = (k) => grupos.reduce((a, g) => a + (g.cortes[k] ?? 0), 0);
+  const barras = grupos.reduce((a, g) => a + g.cortes.totalBarras, 0);
+  const retazos = grupos.flatMap((g) => (g.cortes.retazos ?? []).map((r) => ({ largo: r, perfil: g.perfil })));
+  return (
+    <div className="resumen-sobrantes">
+      <p><strong>{barras} barras</strong> · se usan {suma('metrosNetos').toFixed(2)} m · retazos {suma('metrosRetazos').toFixed(2)} m · se
+        tira {suma('metrosTirados').toFixed(2)} m</p>
+      {retazos.length > 0 && (
+        <details>
+          <summary>Retazos que quedan ({retazos.length})</summary>
+          <ul className="lista-retazos">{retazos.map((r, i) => <li key={i}>{r.largo.toFixed(2)} m · {r.perfil}</li>)}</ul>
+        </details>
+      )}
+    </div>
   );
 }
 
@@ -387,7 +411,9 @@ export default function TablaPresupuesto({
         <p className="nota">
           Cómo cortar cada barra (optimizador de cortes, merma de 3 mm por corte). Las piezas más largas que la barra se
           empalman; las partes con el mismo perfil comparten barras (se puede apagar en Materiales). Tocá un grupo para abrirlo.
+          Lo que sobra desde {RETAZO_UTIL * 100} cm es un <strong>retazo</strong> (sirve para otra cosa); lo más corto se tira.
         </p>
+        {gruposConBarras.length > 0 && <ResumenSobrantes grupos={gruposConBarras} />}
         {gruposConBarras.length === 0
           ? <p className="vacio">No hay barras para cortar.</p>
           : gruposConBarras.map((g) => <DiagramaCortes key={g.id} grupo={g} />)}

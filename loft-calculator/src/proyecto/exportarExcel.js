@@ -51,6 +51,12 @@ function filasDePared(v, params, sinEstructura = false) {
       { negrita: true, celdas: ['Revestimiento', 'Tipo', 'Qué pedir'] },
       ...v.revestimiento.map((r) => [r.cara, r.nombre, r.detalle]),
     ] : []),
+    // v1.63: cada tira de panel con su ancho, lo que se pide y sus cortes.
+    ...(v.paneles ? [
+      { negrita: true, celdas: ['Tira (desde la esquina izq.)', 'Ancho (m)', 'Pedir (m)', 'Cortes'] },
+      ...v.paneles.tiras.map((t) => [`Tira ${t.n}`, Math.round(t.ancho * 100) / 100,
+        t.deRetazo ? `del retazo de ${t.deRetazo}` : t.pedidos.map((l) => l.toFixed(2)).join(' + '), t.cortes.join(' · ') || 'entera']),
+    ] : []),
     [],
   ];
 }

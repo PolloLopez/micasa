@@ -35,6 +35,8 @@
 //     las que el hueco corta en parte, sí (se recortan).
 // ==========================================================
 
+import { retazosEntreParedes } from './cortesPaneles.js';
+
 export const VENTAS = ['medida', 'estandar'];
 export const UBICACIONES = ['cara', 'eje'];
 
@@ -48,6 +50,7 @@ export const REVESTIMIENTO_POR_DEFECTO = {
   largoPlaca: 2.44, // m
   espesor: 50, // mm (para el dibujo)
   ubicacion: 'cara',
+  aprovecharRetazos: true, // v1.63: la tira angosta de una pared sale del retazo de otra (ver cortesPaneles.js)
 };
 
 /** Límites de cada dato (los usa la pantalla y la migración). */
@@ -185,14 +188,25 @@ export function cuentaRevestimiento(tipo, panos) {
     };
   }
 
-  const piezas = panos.flatMap((p) => tirasDePano(p, t));
+  let piezas = panos.flatMap((p) => tirasDePano(p, t));
+  // v1.63: la tira angosta de una pared sale del retazo (a lo ancho) de la de otra: se compra una menos.
+  // Se apaga con aprovecharRetazos: false en el tipo de revestimiento.
+  let retazos = '';
+  if (t.aprovecharRetazos !== false && panos.length > 1) {
+    const { reusos, ahorroPedidos } = retazosEntreParedes(panos, t);
+    ahorroPedidos.forEach((largo) => {
+      const i = piezas.findIndex((l) => Math.abs(l - largo) < 1e-6);
+      if (i >= 0) piezas = [...piezas.slice(0, i), ...piezas.slice(i + 1)];
+    });
+    if (reusos.length) retazos = ` · ${reusos.length} tira${reusos.length > 1 ? 's' : ''} angosta${reusos.length > 1 ? 's' : ''} sale${reusos.length > 1 ? 'n' : ''} de retazos`;
+  }
   const m2 = Math.ceil(piezas.reduce((acc, l) => acc + l, 0) * t.anchoUtil * 100 - 1e-6) / 100;
   return {
     cantidad: m2,
     unidad: 'm²',
     piezas,
     neto,
-    detalle: `${resumirLargos(piezas)} (ancho útil ${t.anchoUtil.toFixed(2)} m) · ${neto.toFixed(2)} m² netos · ${donde}`,
+    detalle: `${resumirLargos(piezas)} (ancho útil ${t.anchoUtil.toFixed(2)} m) · ${neto.toFixed(2)} m² netos${retazos} · ${donde}`,
   };
 }
 

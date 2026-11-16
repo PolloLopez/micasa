@@ -874,3 +874,34 @@ input[type=date] { color-scheme: dark; }
 /* v1.59: comparativa de revestimientos */
 .comparativa-revestimientos { margin: 0.8rem 0; padding: 0.5rem 0.7rem; border: 1px solid var(--borde); border-radius: 8px; }
 .comparativa-revestimientos .fila-actual td { font-weight: 700; }
+
+/* ==========================================================
+   v1.63 — Barra del 3D rediseñada: grupos (cámara · qué se ve · herramientas), botones con ícono y nombre corto.
+   Con el visor angosto (container query) quedan solo los íconos; el cartelito (title) dice qué hace cada uno.
+   ========================================================== */
+.canvas-box { container-type: inline-size; container-name: visor; }
+.canvas-controls { gap: 6px; padding: 5px; border-radius: 12px; right: 12px; max-width: max-content;
+  background: color-mix(in srgb, #0f172a 82%, transparent); backdrop-filter: blur(6px); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35); }
+.grupo-ctrl { display: flex; gap: 2px; padding: 2px; border-radius: 9px; background: rgba(148, 163, 184, 0.08); }
+.canvas-controls .btn-ctrl { display: inline-flex; align-items: center; gap: 5px; background: transparent; border: none; color: #e2e8f0;
+  padding: 5px 8px; border-radius: 7px; font-size: 0.76rem; font-weight: 600; line-height: 1; transition: background 0.15s; }
+.canvas-controls .btn-ctrl:hover { background: rgba(148, 163, 184, 0.18); }
+.canvas-controls .btn-ctrl.activo { background: var(--primario, #0284c7); border: none; color: #fff; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4); }
+.btn-ayuda-ctrl { min-width: 26px; justify-content: center; font-weight: 800; }
+.canvas-controls .ctrl-tip { flex-basis: 100%; padding: 2px 6px 3px; font-size: 0.72rem; }
+@container visor (max-width: 820px) {
+  .canvas-controls .etiqueta-ctrl { display: none; }
+  .canvas-controls .btn-ctrl { padding: 6px 7px; font-size: 0.95rem; }
+}
+/* Capas: los mismos chips redondeados que la barra. */
+.capas { border-radius: 12px; background: color-mix(in srgb, #0f172a 85%, transparent); backdrop-filter: blur(6px); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35); }
+.capas .chip-capas { border-radius: 999px; }
+.sugerencia-paneles { background: rgba(250, 204, 21, 0.08); border-left: 3px solid #facc15; padding: 4px 8px; border-radius: 4px; }
+/* v1.63: juntas de los paneles en el plano de pared */
+.dibujo-plano .junta-panel { stroke: #0ea5e9; stroke-width: 0.012; stroke-dasharray: 0.05 0.05; opacity: 0.8; }
+.dibujo-plano .numero-tira { fill: #0369a1; }
+.tabla-paneles td:last-child { font-size: 0.78em; }
+.resumen-sobrantes { background: var(--fondo); border: 1px solid var(--borde); border-radius: 8px; padding: 6px 10px; font-size: 0.82rem; margin-bottom: 8px; }
+.resumen-sobrantes p { margin: 2px 0; }
+.lista-retazos { columns: 2; font-size: 0.78rem; margin: 4px 0 0 1rem; }
+.sobrantes-grupo { color: var(--texto-tenue); }

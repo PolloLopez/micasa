@@ -1,4 +1,4 @@
-# Manual de Pollo Calculator (v1.62.0)
+# Manual de Pollo Calculator (v1.63.0)
 
 Guía corta para usar el sistema y chequear que todo ande. Cada parte termina con **✔ Chequeá**: lo que tenés que ver.
 
@@ -59,6 +59,8 @@ En **Techo**: "Vigas y correas" (apoyadas o en el mismo plano) y su altura.
   abrir muestra en el piso hacia dónde abre (celeste; rojo si algo la traba).
 
 - **A futuro** (en cada abertura): arma su marco pero la pared va revestida entera (se corta después).
+- **💡 Corriéndola N cm…** (en cada abertura, si conviene): su borde cae en una junta de los paneles y ahorrás panel.
+  **Correrla** la mueve.
 
 ✔ Chequeá:
 - Tildá "A futuro" en una ventana: en el 3D queda naranja transparente y el revestimiento no se descuenta.
@@ -69,6 +71,9 @@ En **Techo**: "Vigas y correas" (apoyadas o en el mismo plano) y su altura.
 ---
 
 ## 4. El 3D
+
+La barra está en tres grupos: **cámara** (Girar, Frente, Terreno), **qué se ve** (Realista, Sol, Adentro, Solo hierro,
+Por perfil) y **herramientas** (Recorrer, Medir, **?** = cómo moverse). Con el 3D angosto quedan los íconos.
 
 | Botón | Qué hace |
 |---|---|
@@ -181,7 +186,8 @@ que los materiales y la pestaña "Presupuesto" muestra ese precio.
 
 ## 8. Planos e Imprimir / Exportar
 
-- **Planos**: cada pared y planta acotadas. Con **"Paredes para el proveedor de paneles"** quedan solo el contorno y las
+- **Planos**: cada pared y planta acotadas. Abajo de cada pared, la tabla de **tiras de panel** (ancho, qué pedir y qué
+  cortar) y en el dibujo las juntas punteadas. Con **"Paredes para el proveedor de paneles"** quedan solo el contorno y las
   aberturas con sus cotas (sin la estructura). Al imprimir, el atajo **Para quien cotiza paneles** hace lo mismo.
 - **Imprimir / Exportar**: elegís qué sale (PDF o Excel). Atajos: **Solo planos**, **Por partes** (cada piso desde
   arriba y el adentro desde cada lado, sin esa pared).

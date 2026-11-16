@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.63.0] - 2026-11-16
+### Agregado
+- **Tamaños y cortes de los paneles** (Planos, en cada pared; también en el PDF y el Excel): cada tira de izquierda a
+  derecha con su ancho, lo que se pide y qué cortarle (a lo largo la angosta, inclinado arriba, el recorte de una
+  abertura que la toma en parte, con su medida y posición), y cuánto se compra, se usa y se tira. Las juntas de los
+  paneles se ven punteadas en el plano de la pared, con el número de cada tira.
+- **Retazos de paneles entre paredes**: la tira angosta de una pared sale de lo que sobra a lo ancho de la de otra (si
+  no es más alta): se compra una menos. Se puede apagar en la ficha del revestimiento ("Aprovechar retazos").
+- **Ventanas en base a los paneles**: en cada abertura, "💡 Corriéndola N cm…": cuánto correrla para que su borde caiga
+  en una junta y cuántos m² de panel se ahorran, con un botón para correrla.
+- **Cortes de hierro**: se prueban varias formas de acomodar las piezas (primer y mejor ajuste, llenar cada barra con
+  la mejor combinación, vaciar las barras menos usadas y órdenes mezclados) y se queda con la de menos barras y
+  sobrantes más largos. Los sobrantes desde 30 cm son **retazos** (se guardan); en Cortes, el total de barras, metros
+  usados, retazos y lo que se tira, y la lista de retazos.
+### Cambiado
+- **Barra del 3D en tres grupos** (cámara · qué se ve · herramientas), con ícono y nombre corto (solo íconos si el 3D
+  es angosto); la ayuda de cómo moverse va en "?" (y sola al medir o recorrer). Capas con el mismo estilo.
+
 ## [1.62.0] - 2026-11-16
 ### Cambiado
 - **Un color por cada hierro, de fábrica** (pedido de Leandro: el mismo 80x80x2 se veía de dos colores): "🎨 Color por

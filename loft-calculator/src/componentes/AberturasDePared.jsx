@@ -23,7 +23,7 @@ import { nombreDePared } from '../motor/geometria.js';
  * @param perfiles      (v1.33) lista de perfiles para elegir el del marco de esta abertura (sin ella no se muestra)
  * @param perfilGeneral nombre del perfil general de "Marcos de aberturas" (para la opción vacía)
  */
-export function FilaAbertura({ abertura, numero, params, unidad, onActualizar, onQuitar, onDuplicar, conAcciones = true, perfiles = null, perfilGeneral = '' }) {
+export function FilaAbertura({ abertura, numero, params, unidad, onActualizar, onQuitar, onDuplicar, conAcciones = true, perfiles = null, perfilGeneral = '', sugerencia = null }) {
   const [errorSelect, setErrorSelect] = useState(null);
 
   // Prueba el cambio: si la abertura deja de entrar, devuelve el error y no guarda.
@@ -92,6 +92,18 @@ export function FilaAbertura({ abertura, numero, params, unidad, onActualizar, o
         )}
       </div>
       {errorSelect && <p className="error" role="alert">{errorSelect}</p>}
+      {/* v1.63: correrla para que su borde caiga en una junta de los paneles (menos recortes). */}
+      {sugerencia && (
+        <p className="nota sugerencia-paneles">
+          💡 Corriéndola {Math.round(Math.abs(sugerencia.correr) * 100)} cm a la {sugerencia.correr > 0 ? 'derecha' : 'izquierda'} (vista desde afuera)
+          {' '}su borde cae en una junta de los paneles: te ahorrás {sugerencia.ahorroM2.toFixed(2).replace('.', ',')} m² de panel.{' '}
+          <button type="button" className="btn-mini" onClick={() => {
+            // La distancia se mide desde la esquina elegida: desde la derecha, correr a la derecha la achica.
+            const d = abertura.ladoReferencia === 'derecha' ? -sugerencia.correr : sugerencia.correr;
+            setErrorSelect(cambiar('offsetHorizontal')(Math.round((abertura.offsetHorizontal + d) * 1000) / 1000));
+          }}>Correrla</button>
+        </p>
+      )}
       {conAcciones && (
         <div className="pie-acciones no-print">
           <button className="btn-sec btn-chico" onClick={() => onDuplicar(abertura)} title="Crea una igual al lado (después la podés mover o pasar a otra pared)">
@@ -108,7 +120,7 @@ export function FilaAbertura({ abertura, numero, params, unidad, onActualizar, o
  * Lista de aberturas de UNA pared, con sus botones para agregar.
  * @param aberturas todas las aberturas (para numerar igual que el 3D y no superponer)
  */
-export default function AberturasDePared({ lado, aberturas, params, unidad, onAgregar, onActualizar, onQuitar, perfiles = null, perfilGeneral = '' }) {
+export default function AberturasDePared({ lado, aberturas, params, unidad, onAgregar, onActualizar, onQuitar, perfiles = null, perfilGeneral = '', sugerencias = {} }) {
   const [error, setError] = useState(null);
   const deEstaPared = aberturas.map((op, i) => ({ op, numero: i + 1 })).filter(({ op }) => op.lado === lado);
 
@@ -133,7 +145,8 @@ export default function AberturasDePared({ lado, aberturas, params, unidad, onAg
         <ul className="opening-list">
           {deEstaPared.map(({ op, numero }) => (
             <FilaAbertura key={op.id} abertura={op} numero={numero} params={params} unidad={unidad}
-              onActualizar={onActualizar} onQuitar={onQuitar} onDuplicar={duplicar} perfiles={perfiles} perfilGeneral={perfilGeneral} />
+              onActualizar={onActualizar} onQuitar={onQuitar} onDuplicar={duplicar} perfiles={perfiles} perfilGeneral={perfilGeneral}
+              sugerencia={sugerencias[op.id] ?? null} />
           ))}
         </ul>
       )}

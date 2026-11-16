@@ -122,6 +122,15 @@ function DibujoPared({ vista, soloContorno = false }) {
           </g>
         );
       })}
+      {/* v1.63: las juntas de los paneles (punteadas) y el número de cada tira arriba: para acomodar las aberturas. */}
+      {vista.paneles && (
+        <g className="juntas-paneles">
+          {vista.paneles.juntas.map((x) => <line key={`j${x}`} x1={x} y1={y(0)} x2={x} y2={y(Math.max(h1, h2))} className="junta-panel" />)}
+          {vista.paneles.tiras.map((t) => (
+            <text key={`t${t.n}`} x={t.x0 + t.ancho / 2} y={y(Math.max(h1, h2)) - 0.08} fontSize={TEXTO * 0.7} textAnchor="middle" className="numero-tira">{t.n}</text>
+          ))}
+        </g>
+      )}
       {/* v1.59: las aberturas a futuro: solo el marco (punteado), la pared va entera. No salen en el plano para paneles. */}
       {!soloContorno && futuras.map((a) => (
         <g key={`f${a.numero}`}>
@@ -192,6 +201,31 @@ function DibujoPlanta({ vista }) {
   );
 }
 
+/** v1.63: los tamaños y cortes de cada tira de panel de la pared (de izquierda a derecha, vista desde afuera). */
+function TablaPaneles({ paneles: p }) {
+  const m = (n) => n.toFixed(2).replace('.', ',');
+  return (
+    <div className="table-wrap">
+      <table className="tabla-plano tabla-paneles">
+        <thead><tr><th>Tira</th><th className="num">Ancho</th><th>Pedir</th><th>Cortes</th></tr></thead>
+        <tbody>
+          {p.tiras.map((t) => (
+            <tr key={t.n}>
+              <td>{t.n}</td>
+              <td className="num">{m(t.ancho)}</td>
+              <td>{t.deRetazo ? <em>sale del retazo de {t.deRetazo}</em> : t.pedidos.map((l) => `${m(l)} m`).join(' + ')}</td>
+              <td>{t.cortes.length ? t.cortes.join(' · ') : 'entera'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="nota">{p.nombre}: tiras de {m(p.anchoUtil)} m de ancho útil, desde la esquina izquierda. Se compran {m(p.comprado)} m², se usan
+        {' '}{m(p.usado)} m² y se tiran {m(p.desperdicio)} m² ({p.comprado > 0 ? Math.round((p.desperdicio / p.comprado) * 100) : 0} %).
+        Correr una ventana para que su borde caiga en una junta (punteada) achica los recortes.</p>
+    </div>
+  );
+}
+
 /** Tabla de piezas para cortar. */
 function TablaPiezas({ lista }) {
   return (
@@ -244,6 +278,7 @@ export function PlanoDePared({ vista: v, params, soloContorno = false }) {
       {v.revestimiento.map((r) => (
         <p key={r.cara} className="revestimiento-plano"><strong>Revestimiento {r.cara} ({r.nombre}):</strong> {r.detalle}</p>
       ))}
+      {v.paneles && <TablaPaneles paneles={v.paneles} />}
     </>
   );
 }

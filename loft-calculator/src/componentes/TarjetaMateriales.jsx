@@ -75,6 +75,11 @@ function Revestimiento({ tipo, unidad, usos, unicoQueda, proveedores, onCambiar,
           {medida('largoMaximo', 'Largo máximo')}
           <CampoOpcional casilla="Con solape (si no, a tope)" etiqueta="Solape" unidad={unidad} valor={tipo.solape} valorPorDefecto={0.15}
             onCambio={conLimites({ ...LIMITES_REVESTIMIENTO.solape, max: Math.min(LIMITES_REVESTIMIENTO.solape.max, tipo.largoMaximo - 0.01) }, cambiar('solape'))} />
+          {/* v1.63: la tira angosta de una pared se corta (a lo largo) del retazo de la de otra pared: se compra una menos. */}
+          <label className="casilla-opcional">
+            <input type="checkbox" checked={tipo.aprovecharRetazos !== false} onChange={(e) => cambiar('aprovecharRetazos')(e.target.checked)} />
+            Aprovechar retazos entre paredes (la tira angosta sale de lo que sobra de otra)
+          </label>
         </>) : (<>
           {medida('anchoPlaca', 'Ancho de placa')}
           {medida('largoPlaca', 'Largo de placa')}

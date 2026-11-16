@@ -58,6 +58,7 @@ import PanelObraCivil from './componentes/PanelObraCivil.jsx';
 import PanelInstalaciones from './componentes/PanelInstalaciones.jsx';
 import { materialesDeInstalaciones } from './motor/instalaciones.js';
 import { materialesDeEquipos } from './motor/equipos.js';
+import { sugerenciasDeAberturas } from './motor/cortesPaneles.js';
 import PanelEquipos from './componentes/PanelEquipos.jsx';
 import ComparativaRevestimientos from './componentes/ComparativaRevestimientos.jsx';
 import SelectorPerfil from './componentes/SelectorPerfil.jsx';
@@ -264,6 +265,8 @@ export default function App() {
   // v1.33: con el catálogo, las piezas que se cruzan se cortan contra la que queda entera (uniones).
   const estructura = useMemo(() => generarEstructura(paramsObra, aberturasValidas, catalogo), [paramsObra, aberturasValidas, catalogo]);
   const piezasDeLaEstructura = useMemo(() => listarPiezas(estructura), [estructura]); // v1.60: para las piezas editadas
+  // v1.63: para cada abertura, cuánto correrla para que caiga en las juntas de los paneles (y cuánto se ahorra).
+  const sugerenciasPaneles = useMemo(() => sugerenciasDeAberturas(estructura, aberturasValidas, catalogo), [estructura, aberturasValidas, catalogo]);
   const esGrada = params.tipoProyecto === 'grada'; // proyecto de grada: otra pantalla de datos
   const esMontaje = params.tipoProyecto === 'montaje'; // montaje industrial: mesas, tanques...
   const esConstruccion = !esGrada && !esMontaje;
@@ -1514,7 +1517,8 @@ export default function App() {
                   <AberturasDePared lado={lado} aberturas={aberturasValidas} params={params} unidad={unidad}
                     onAgregar={agregarAbertura} onActualizar={actualizarAbertura} onQuitar={quitarAbertura}
                     perfiles={perfilesDeLista(catalogoConPrecios)}
-                    perfilGeneral={catalogoResuelto.find((i) => i.id === INSUMO.MARCO_ABERTURA)?.perfil ?? ''} />
+                    perfilGeneral={catalogoResuelto.find((i) => i.id === INSUMO.MARCO_ABERTURA)?.perfil ?? ''}
+                    sugerencias={sugerenciasPaneles} />
                   </div>
                 </ZonaResaltable>
               );

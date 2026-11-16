@@ -183,6 +183,7 @@ function datosDeRevestimiento(p) {
     largoPlaca: numero('largoPlaca'),
     espesor: numero('espesor'),
     ubicacion: UBICACIONES.includes(p.ubicacion) ? p.ubicacion : d.ubicacion,
+    aprovecharRetazos: p.aprovecharRetazos !== false, // v1.63: las tiras angostas salen de los retazos de otra pared
   };
 }
 

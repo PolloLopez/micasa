@@ -1091,6 +1091,7 @@ export default function LoftCanvas({
   // v1.59: "Ver estructura de hierro": sin maderas, revestimientos, aberturas ni muebles (los marcos, montantes y
   // perfiles C a la vista). No toca las casillas de Capas: al apagarlo vuelve todo como estaba.
   const [soloHierro, setSoloHierro] = useState(false);
+  const [verAyudaVisor, setVerAyudaVisor] = useState(false); // v1.63: la ayuda de cómo moverse, con "?"
   const capasVista = useMemo(() => {
     const base = realista
       ? { ...capas, juntas: false, cotas: false, medidasFijas: false, etiquetasParedes: false, etiquetasAberturas: false,
@@ -2089,54 +2090,75 @@ export default function LoftCanvas({
           sinTerreno={!obraConTerreno} orientacion={params.terreno?.orientacion ?? 0}
           onOrientacion={(g) => onCambiarParam?.('terreno.orientacion', g)} />
       )}
+      {/* v1.63 (pedido de Leandro: "fuimos agregando y ya no es claro"): la barra del 3D en tres grupos (cámara, qué se ve,
+          herramientas), botones con ícono y nombre corto (el cartelito dice qué hace cada uno). La ayuda de cómo
+          moverse, con "?" (y sola mientras se mide o se recorre). */}
       <div className="canvas-controls no-print">
-        <button className="btn-ctrl" onClick={() => setAutoRotar((v) => !v)}>
-          {autoRotar ? '⏸ Pausar giro' : '▶ Girar'}
-        </button>
-        <button className="btn-ctrl" onClick={() => visorRef.current && mirarAlFrente(visorRef.current.camara, visorRef.current.controles, medidasVista(params, estructura))}>
-          Ver frente
-        </button>
-        {conTerreno && <button className="btn-ctrl" onClick={verTerreno}>Ver terreno</button>}
-        {moduloSol && (
-          <button className={`btn-ctrl${sol.activo ? ' activo' : ''}`} aria-pressed={sol.activo}
-            onClick={() => cambiarSol({ activo: !sol.activo, animando: false })} title="Luz del sol del día y la hora que elijas, con sombras">
-            ☀ Sol
+        <div className="grupo-ctrl" role="group" aria-label="Cámara">
+          <button className={`btn-ctrl${autoRotar ? ' activo' : ''}`} aria-pressed={autoRotar} onClick={() => setAutoRotar((v) => !v)}
+            title={autoRotar ? 'Pausar el giro' : 'Girar la vista sola'}>
+            <span aria-hidden="true">{autoRotar ? '⏸' : '▶'}</span><span className="etiqueta-ctrl">{autoRotar ? 'Pausar' : 'Girar'}</span>
           </button>
+          <button className="btn-ctrl" title="Volver a la vista de frente"
+            onClick={() => visorRef.current && mirarAlFrente(visorRef.current.camara, visorRef.current.controles, medidasVista(params, estructura))}>
+            <span aria-hidden="true">🎯</span><span className="etiqueta-ctrl">Frente</span>
+          </button>
+          {conTerreno && (
+            <button className="btn-ctrl" onClick={verTerreno} title="Ver todo el lote desde la calle">
+              <span aria-hidden="true">🗺️</span><span className="etiqueta-ctrl">Terreno</span>
+            </button>
+          )}
+        </div>
+        <div className="grupo-ctrl" role="group" aria-label="Qué se ve">
+          <button className={`btn-ctrl${realista ? ' activo' : ''}`} aria-pressed={realista} onClick={() => setRealista((v) => !v)}
+            title="Realista: paneles sólidos, sombras y reflejos, sin las ayudas de dibujo (juntas, cotas, etiquetas)">
+            <span aria-hidden="true">✨</span><span className="etiqueta-ctrl">Realista</span>
+          </button>
+          {moduloSol && (
+            <button className={`btn-ctrl${sol.activo ? ' activo' : ''}`} aria-pressed={sol.activo}
+              onClick={() => cambiarSol({ activo: !sol.activo, animando: false })} title="Sol: la luz del día y la hora que elijas, con sombras">
+              <span aria-hidden="true">☀️</span><span className="etiqueta-ctrl">Sol</span>
+            </button>
+          )}
+          {esConstruccion && (
+            <button className={`btn-ctrl${verAdentro ? ' activo' : ''}`} aria-pressed={verAdentro} onClick={() => setVerAdentro((v) => !v)}
+              title="Ver adentro: las paredes (y el techo) que quedan entre vos y la casa se ocultan solas mientras girás">
+              <span aria-hidden="true">🏠</span><span className="etiqueta-ctrl">Adentro</span>
+            </button>
+          )}
+          <button className={`btn-ctrl${soloHierro ? ' activo' : ''}`} aria-pressed={soloHierro} onClick={() => setSoloHierro((v) => !v)}
+            title="Ver estructura de hierro: sin maderas, revestimientos, aberturas, muebles, mesadas, instalaciones ni personas">
+            <span aria-hidden="true">🔩</span><span className="etiqueta-ctrl">Solo hierro</span>
+          </button>
+          <button className={`btn-ctrl${colorPorPerfil ? ' activo' : ''}`} aria-pressed={colorPorPerfil} onClick={() => setColorPorPerfil((v) => !v)}
+            title="Color por perfil: cada pieza del color de su caño (el mismo perfil, el mismo color). Apagado: por columna, viga, tirante…">
+            <span aria-hidden="true">🎨</span><span className="etiqueta-ctrl">Por perfil</span>
+          </button>
+        </div>
+        <div className="grupo-ctrl" role="group" aria-label="Herramientas">
+          {esConstruccion && (
+            <button className={`btn-ctrl${modoPersona === 'primera' ? ' activo' : ''}`} aria-pressed={modoPersona === 'primera'}
+              onClick={() => (modoPersona === 'primera' ? setModoPersona(null) : entrarEnPrimeraPersona())}
+              title="Primera persona: recorrer la casa a la altura de los ojos (arrastrá para mirar, W A S D para caminar)">
+              <span aria-hidden="true">👁</span><span className="etiqueta-ctrl">Recorrer</span>
+            </button>
+          )}
+          <button className={`btn-ctrl${midiendo ? ' activo' : ''}`} aria-pressed={midiendo} title={midiendo ? 'Terminar de medir' : 'Medir: tocá dos puntos'}
+            onClick={() => { setMidiendo((v) => !v); setSeleccionada(null); setAberturaSeleccionada(null); }}>
+            <span aria-hidden="true">📏</span><span className="etiqueta-ctrl">{midiendo ? 'Terminar' : 'Medir'}</span>
+          </button>
+          <button className={`btn-ctrl btn-ayuda-ctrl${verAyudaVisor ? ' activo' : ''}`} aria-pressed={verAyudaVisor} onClick={() => setVerAyudaVisor((v) => !v)}
+            title="Cómo moverse en el 3D" aria-label="Cómo moverse en el 3D">?</button>
+        </div>
+        {(avisoVisor || midiendo || modoPersona === 'primera' || verAyudaVisor) && (
+          <span className="ctrl-tip">
+            {avisoVisor ?? (midiendo
+              ? 'Tocá dos hierros o dos puntos. Entre dos columnas mide de eje a eje. Esc para salir.'
+              : modoPersona === 'primera'
+                ? 'Arrastrá para mirar · W A S D o flechas para caminar · Shift corre · C agacharse · Esc para salir'
+                : 'Arrastrá para girar · botón derecho para mover · rueda para acercar al mouse · doble clic: girar alrededor de ese punto · clic en un hierro o una abertura para seleccionarlo · Ctrl+C / Ctrl+V')}
+          </span>
         )}
-        <button className={`btn-ctrl${realista ? ' activo' : ''}`} aria-pressed={realista} onClick={() => setRealista((v) => !v)}
-          title="Paneles sólidos, sombras y reflejos, sin las ayudas de dibujo (juntas, cotas, etiquetas)">
-          ✨ Realista
-        </button>
-        <button className={`btn-ctrl${soloHierro ? ' activo' : ''}`} aria-pressed={soloHierro} onClick={() => setSoloHierro((v) => !v)}
-          title="Oculta maderas, revestimientos, aberturas y muebles: quedan los marcos, montantes y perfiles C">
-          🔩 Ver estructura de hierro
-        </button>
-        <button className={`btn-ctrl${colorPorPerfil ? ' activo' : ''}`} aria-pressed={colorPorPerfil} onClick={() => setColorPorPerfil((v) => !v)}
-          title="Pinta cada pieza del color de su caño o perfil (el mismo perfil, el mismo color), en vez de por columna, viga, tirante…">
-          🎨 Color por perfil
-        </button>
-        {esConstruccion && (<>
-          <button className={`btn-ctrl${verAdentro ? ' activo' : ''}`} aria-pressed={verAdentro} onClick={() => setVerAdentro((v) => !v)}
-            title="Las paredes (y el techo) que quedan entre vos y la casa se ocultan solas mientras girás, para ver adentro">
-            🏠 Ver adentro
-          </button>
-          <button className={`btn-ctrl${modoPersona === 'primera' ? ' activo' : ''}`} aria-pressed={modoPersona === 'primera'}
-            onClick={() => (modoPersona === 'primera' ? setModoPersona(null) : entrarEnPrimeraPersona())}
-            title="Recorrer la casa a la altura de los ojos: arrastrá para mirar, WASD para caminar">
-            👁 Primera persona
-          </button>
-        </>)}
-        <button className={`btn-ctrl${midiendo ? ' activo' : ''}`} aria-pressed={midiendo}
-          onClick={() => { setMidiendo((v) => !v); setSeleccionada(null); setAberturaSeleccionada(null); }}>
-          📏 {midiendo ? 'Terminar de medir' : 'Medir'}
-        </button>
-        <span className="ctrl-tip">
-          {avisoVisor ?? (midiendo
-            ? 'Tocá dos hierros o dos puntos. Entre dos columnas mide de eje a eje. Esc para salir.'
-            : modoPersona === 'primera'
-              ? 'Arrastrá para mirar · W A S D o flechas para caminar · Shift corre · C agacharse · Esc para salir'
-              : 'Arrastrá para girar · botón derecho para mover · rueda para acercar al mouse · doble clic: girar alrededor de ese punto · clic en un hierro o una abertura para seleccionarlo · Ctrl+C / Ctrl+V')}
-        </span>
         {/* v1.27: qué se está resaltando (al pasar el mouse o fijado con 👁). */}
         {cartelResaltado && (
           <div className="cartel-resaltado no-print" role="status">
