@@ -22,11 +22,27 @@ export const PALETA_PERFILES = [
 export const COLOR_SIN_PERFIL = '#94a3b8';
 export const SIN_PERFIL = 'Sin perfil en el catálogo';
 
-/** El nombre del perfil con el que se compra una pieza (ej. "Caño cuadrado 80x80x2") o SIN_PERFIL. */
+/**
+ * v1.62: el mismo caño se llama igual aunque esté cargado distinto: "rectangular 80x80" es el cuadrado 80x80, "2" es
+ * "2.0" y el "x" con o sin espacios. Así el 80x80x2 tiene un solo color.
+ */
+export function normalizarNombrePerfil(texto) {
+  return String(texto ?? '').trim()
+    .replace(/\s*[x×]\s*/gi, 'x')
+    // Solo los de 3 medidas (lado x lado x espesor); los perfiles C de 4 (con labio) quedan como están.
+    .replace(/(?<![\dx.,])(\d+(?:[.,]\d+)?)x(\d+(?:[.,]\d+)?)x(\d+(?:[.,]\d+)?)(?![\dx.,])/g, (_, a, b, e) => `${a}x${b}x${Number(e.replace(',', '.')).toFixed(1)}`)
+    .replace(/^Caño (cuadrado|rectangular)\b/i, 'Caño estructural');
+}
+
+/** El nombre del perfil con el que se compra una pieza (ej. "Caño estructural 80x80x2.0") o SIN_PERFIL. */
 export function perfilDePieza(p, catalogo = []) {
-  const { perfil: id } = compraDePieza(p, catalogo ?? []);
-  const hierro = id && catalogo.find((i) => i.id === id && i.categoria === 'hierro');
-  return hierro ? nombrePerfil(hierro) : SIN_PERFIL;
+  const lista = catalogo ?? [];
+  const { perfil: id, renglon } = compraDePieza(p, lista);
+  const hierro = id && lista.find((i) => i.id === id && i.categoria === 'hierro');
+  if (hierro) return normalizarNombrePerfil(nombrePerfil(hierro));
+  // v1.62: un uso sin perfil de la lista elegido, pero con su texto (ej. "Caño estructural 80x80x2.0"): ese nombre.
+  const uso = renglon && lista.find((i) => i.id === String(renglon).split('@')[0]);
+  return uso?.perfil?.trim() ? normalizarNombrePerfil(uso.perfil) : SIN_PERFIL;
 }
 
 /**

@@ -1096,14 +1096,18 @@ export default function LoftCanvas({
       ? { ...capas, juntas: false, cotas: false, medidasFijas: false, etiquetasParedes: false, etiquetasAberturas: false,
         etiquetasTerreno: false, etiquetasMesadas: false, etiquetasTabiques: false, etiquetasMuebles: false }
       : capas;
+    // v1.62: también sin mesadas (de mampostería), sin las instalaciones y sin personas ni perros (ver el efecto de abajo).
     return soloHierro
       ? { ...base, paneles: false, osb: false, aberturas: false, escalones: false, muebles: false, tapasMesada: false, placasTabiques: false,
-        chapa: false, juntas: false, madera: false }
+        chapa: false, juntas: false, madera: false, mesadas: false, etiquetasMesadas: false, etiquetasMuebles: false,
+        instElectrica: false, instAgua: false, instDesague: false, instGas: false }
       : base;
   }, [realista, capas, soloHierro]);
   const opacidadesVista = useMemo(() => (realista ? { ...opacidades, paneles: 1, osb: 1, hierros: 1 } : opacidades), [realista, opacidades]);
   // v1.55: "Color por perfil": la lista de perfiles en uso con su color (también es la leyenda). null = color por función.
-  const [colorPorPerfil, setColorPorPerfil] = useEstadoGuardado('colorPorPerfil', false, (v) => typeof v === 'boolean');
+  // v1.62 (pedido de Leandro: "el mismo 80x80x2 de dos colores es confuso"): de fábrica prendido. Clave nueva para
+  // que también se prenda en los navegadores que lo tenían guardado apagado (antes venía apagado).
+  const [colorPorPerfil, setColorPorPerfil] = useEstadoGuardado('colorPorPerfil.v162', true, (v) => typeof v === 'boolean');
   const perfilesVista = useMemo(() => (colorPorPerfil && estructura ? coloresPorPerfil(listarPiezas(estructura), catalogo) : null),
     [colorPorPerfil, estructura, catalogo]);
 
@@ -1951,6 +1955,12 @@ export default function LoftCanvas({
   // ---------- v1.45: PERSONAS ----------
   const esConstruccion = params.tipoProyecto === 'construccion';
   const listaPersonas = esConstruccion ? (params.personas ?? []) : [];
+  // v1.62: con "Ver estructura de hierro", las personas y los perros no se ven.
+  useEffect(() => {
+    const visor = visorRef.current;
+    if (visor?.personas) visor.personas.grupo.visible = !soloHierro;
+  }, [soloHierro]);
+
   // Con cada cambio de la obra o de las personas, se rehace el mapa de por dónde se camina.
   useEffect(() => {
     const visor = visorRef.current;

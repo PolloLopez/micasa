@@ -90,6 +90,12 @@ import { historialVacio, registrarCambio, deshacer, rehacer } from './proyecto/h
 import { describirPieza } from './descripcionPiezas.js';
 import './App.css';
 
+// v1.62: ancho del panel de datos (px): de fábrica, el mínimo para que se lea y el máximo (dejando lugar al 3D).
+const ANCHO_PANEL_INICIAL = 520;
+const ANCHO_PANEL_MINIMO = 340;
+const ANCHO_PANEL_MAXIMO = 1600;
+const limitarAnchoPanel = (px) => Math.round(Math.max(ANCHO_PANEL_MINIMO, Math.min(px, ANCHO_PANEL_MAXIMO, window.innerWidth - 320))); // al menos 320 px de 3D
+
 // Versión de la app (la inyecta Vite desde package.json; ver vite.config.js).
 // eslint-disable-next-line no-undef
 const VERSION_APP = typeof __VERSION_APP__ === 'string' ? __VERSION_APP__ : '';
@@ -146,6 +152,14 @@ function conValor(obj, ruta, valor) {
 /** Total completo para la pestaña (v1.28.1: antes "$ 9,4 M", ahora "$ 9.483.620"). */
 function pesosCompletos(n) {
   return n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
+}
+
+/** v1.62: plata en pocas letras para las pestañas ("$ 16,4 M", "$ 850 mil"); el número entero va en el cartelito. */
+function pesosCortos(n) {
+  const coma = (x) => x.toLocaleString('es-AR', { maximumFractionDigits: 1 });
+  if (Math.abs(n) >= 1e6) return `$ ${coma(n / 1e6)} M`;
+  if (Math.abs(n) >= 1e3) return `$ ${Math.round(n / 1e3).toLocaleString('es-AR')} mil`;
+  return `$ ${Math.round(n)}`;
 }
 
 export default function App() {
@@ -333,16 +347,24 @@ export default function App() {
   // ahí se ve solo el modelo; en las demás, solo los datos (el 3D tapaba toda la pantalla).
   const [pestanaGuardada, setPestanaGuardada] = useEstadoGuardado('pestana', 'estructura', (v) => typeof v === 'string');
   const [vistaMovil, setVistaMovil] = useState('datos');
+  // v1.62: el ancho del panel de datos en la compu (el 3D usa el resto). Se arrastra el borde entre los dos.
+  const [anchoPanel, setAnchoPanel] = useEstadoGuardado('anchoPanel', ANCHO_PANEL_INICIAL,
+    (v) => Number.isFinite(v) && v >= ANCHO_PANEL_MINIMO && v <= ANCHO_PANEL_MAXIMO);
+  const [arrastrandoDivisor, setArrastrandoDivisor] = useState(false);
+  const empezarArrastreDivisor = (ev) => { ev.currentTarget.setPointerCapture(ev.pointerId); setArrastrandoDivisor(true); };
+  const arrastrarDivisor = (ev) => { if (arrastrandoDivisor) setAnchoPanel(limitarAnchoPanel(window.innerWidth - ev.clientX - 3)); };
+  const soltarDivisor = () => setArrastrandoDivisor(false);
   const pestanas = [
     { clave: '3d', nombre: '3D', soloMovil: true },
-    { clave: 'estructura', nombre: esGrada ? 'Grada' : esMontaje ? 'Montaje' : 'Estructura', corto: esGrada ? 'Grada' : esMontaje ? 'Montaje' : 'Estruct.' },
+    { clave: 'estructura', nombre: esGrada ? 'Grada' : esMontaje ? 'Montaje' : 'Estructura', corto: esGrada ? 'Grada' : esMontaje ? 'Montaje' : 'Estructura' },
     ...(esConstruccion ? [{ clave: 'paredes', nombre: 'Paredes y aberturas', corto: 'Paredes' }] : []),
     { clave: 'materiales', nombre: 'Materiales' },
-    { clave: 'presupuesto', nombre: 'Presupuesto', corto: 'Presup.', detalle: pesosCompletos(cierre.total) },
-    ...(esConstruccion ? [{ clave: 'instalaciones', nombre: 'Instalaciones', corto: 'Instal.' }] : []), // v1.57
+    { clave: 'presupuesto', nombre: 'Presupuesto', corto: 'Presup.', detalle: pesosCortos(cierre.total), detalleCompleto: pesosCompletos(cierre.total) },
+    ...(esConstruccion ? [{ clave: 'instalaciones', nombre: 'Instalaciones', corto: 'Instalac.' }] : []), // v1.57
     { clave: 'planos', nombre: 'Planos' }, // v1.26: paredes y plantas acotadas, para imprimir y exportar
     // v1.47: pagos, contratos y avance de la obra.
-    { clave: 'obra', nombre: 'Obra', corto: 'Obra', detalle: resumenObra.rubros > 0 ? `pagado ${pesosCompletos(resumenObra.pagado)}` : undefined },
+    { clave: 'obra', nombre: 'Obra', corto: 'Obra', detalle: resumenObra.rubros > 0 ? `✓ ${pesosCortos(resumenObra.pagado)}` : undefined, // lo pagado (el cartelito lo dice entero)
+      detalleCompleto: resumenObra.rubros > 0 ? `pagado ${pesosCompletos(resumenObra.pagado)}` : undefined },
   ];
   // Si la guardada no existe en este tipo de proyecto (ej. "Paredes" en una grada), se usa la primera.
   const pestanaActiva = pestanas.some((p) => p.clave === pestanaGuardada && !p.soloMovil) ? pestanaGuardada : 'estructura';
@@ -1064,7 +1086,7 @@ export default function App() {
         </div>
       )}
 
-      <main className={`layout${ver3D ? '' : ' sin-visor'} movil-${vistaMovil}`}>
+      <main className={`layout${ver3D ? '' : ' sin-visor'} movil-${vistaMovil}`} style={{ '--ancho-panel': `${anchoPanel}px` }}>
         <div className="columna-visor">
           <LoftCanvas params={paramsObra} estructura={estructura} aberturas={aberturasValidas} paneles={paneles}
             colores={colores} catalogo={catalogoResuelto} unidad={unidad}
@@ -1078,6 +1100,14 @@ export default function App() {
             pedidoVerTerreno={pedidoVerTerreno} onCambiarParam={(ruta, valor) => cambiar(ruta)(valor)} />
         </div>
 
+        {/* v1.62: arrastrando este borde se cambia el ancho del 3D y del panel (en la compu). */}
+        <div className={`divisor-visor no-print${arrastrandoDivisor ? ' arrastrando' : ''}`} role="separator" aria-orientation="vertical"
+          aria-label="Ancho del 3D y del panel (arrastrá; doble clic vuelve al de fábrica)" tabIndex={0}
+          aria-valuenow={anchoPanel} aria-valuemin={ANCHO_PANEL_MINIMO} aria-valuemax={ANCHO_PANEL_MAXIMO}
+          title="Arrastrá para cambiar el ancho · doble clic: de fábrica"
+          onPointerDown={empezarArrastreDivisor} onPointerMove={arrastrarDivisor} onPointerUp={soltarDivisor} onPointerCancel={soltarDivisor}
+          onDoubleClick={() => setAnchoPanel(ANCHO_PANEL_INICIAL)}
+          onKeyDown={(ev) => { const paso = ev.key === 'ArrowLeft' ? 20 : ev.key === 'ArrowRight' ? -20 : 0; if (paso) { ev.preventDefault(); setAnchoPanel(limitarAnchoPanel(anchoPanel + paso)); } }} />
         <div className="columna-panel">
           {/* Pestañas (v1.18): una sección a la vez. En el celular la barra va fija abajo, con "3D". */}
           <BarraPestanas pestanas={pestanas} activa={vistaMovil === '3d' ? '3d' : pestanaActiva} onElegir={elegirPestana} />

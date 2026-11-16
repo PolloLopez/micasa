@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.62.0] - 2026-11-16
+### Cambiado
+- **Un color por cada hierro, de fábrica** (pedido de Leandro: el mismo 80x80x2 se veía de dos colores): "🎨 Color por
+  perfil" arranca prendido (también si estaba guardado apagado). El mismo caño se reconoce aunque esté cargado distinto
+  (rectangular 80x80 = cuadrado 80x80, "2" = "2.0", con o sin espacios, o elegido solo con su texto).
+- **"Ver estructura de hierro" también saca las personas, los perros, las mesadas y las instalaciones.**
+- **Pestañas nuevas**: una barra en un renglón con ícono y nombre corto (con el panel ancho, el nombre completo); el
+  total del presupuesto y lo pagado en pocas letras ("$ 16,4 M"; el número entero, al pasar el mouse).
+### Agregado
+- **Ancho del 3D regulable** (en la compu): se arrastra el borde entre el 3D y el panel (o con ← →); doble clic vuelve
+  al de fábrica. Se acuerda en el navegador.
+
 ## [1.61.0] - 2026-11-16
 ### Agregado
 - **Techo en el mismo plano con marco perimetral**: el marco (borde del techo) queda entero y las vigas y las correas

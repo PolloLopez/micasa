@@ -1,15 +1,23 @@
 // ==========================================================
-// BarraPestanas (v1.18): elige qué sección del panel se ve
-// (Estructura · Paredes y aberturas · Materiales · Presupuesto).
-// En la compu va arriba del panel; en el celular, fija abajo y con
-// una pestaña más, "3D", para pasar del modelo a los datos con el
-// pulgar (ver App.css). Accesible: role="tab" + aria-selected, y
-// con el teclado se pasa de una pestaña a otra con ← y →.
+// BarraPestanas (v1.18; v1.62 rediseñada): elige qué sección del panel se ve
+// ----------------------------------------------------------
+// v1.62 (pedido de Leandro: "fuimos agregando y ya no es claro ni sencillo"):
+// una barra tipo "segmentada", en UN renglón: cada pestaña con su ícono y su
+// nombre corto; la elegida, resaltada. Si el panel es ancho (se puede
+// ensanchar arrastrando el borde del 3D), se ve el nombre completo. El
+// total del presupuesto y lo pagado van como un dato chico abajo.
+// En el celular va fija abajo, con una más ("3D"). Accesible: role="tab" +
+// aria-selected; con el teclado se pasa de una a otra con ← y →.
 // ==========================================================
 
+/** Un ícono por sección (los emojis se ven en cualquier compu y celular, sin bajar nada). */
+const ICONOS = {
+  '3d': '🧊', estructura: '🏗️', paredes: '🧱', materiales: '🔩', presupuesto: '💲', instalaciones: '🔌', planos: '📐', obra: '📋',
+};
+
 /**
- * @param pestanas [{ clave, nombre, corto?, detalle?, soloMovil? }]
- *   corto: nombre para el celular (poco lugar); detalle: segunda línea (ej. el total).
+ * @param pestanas [{ clave, nombre, corto?, detalle?, detalleCompleto?, soloMovil? }]
+ *   corto: nombre para poco lugar; detalle: el dato chico de abajo (ej. el total).
  * @param activa   clave de la pestaña elegida
  */
 export default function BarraPestanas({ pestanas, activa, onElegir }) {
@@ -29,8 +37,9 @@ export default function BarraPestanas({ pestanas, activa, onElegir }) {
         <button key={p.clave} id={`boton-${p.clave}`} type="button" role="tab"
           className={`pestana-boton${p.soloMovil ? ' solo-movil' : ''}`}
           aria-selected={activa === p.clave} aria-controls={p.soloMovil ? undefined : `pestana-${p.clave}`}
-          tabIndex={activa === p.clave ? 0 : -1}
+          tabIndex={activa === p.clave ? 0 : -1} title={p.detalle ? `${p.nombre} · ${p.detalleCompleto ?? p.detalle}` : p.nombre}
           onClick={() => onElegir(p.clave)} onKeyDown={(ev) => alTeclear(ev, i)}>
+          <span className="icono-pestana" aria-hidden="true">{ICONOS[p.clave] ?? '•'}</span>
           <span className="nombre-largo">{p.nombre}</span>
           <span className="nombre-corto">{p.corto ?? p.nombre}</span>
           {p.detalle && <span className="detalle-pestana">{p.detalle}</span>}

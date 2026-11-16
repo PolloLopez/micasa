@@ -1,4 +1,4 @@
-# Manual de Pollo Calculator (v1.61.0)
+# Manual de Pollo Calculator (v1.62.0)
 
 Guía corta para usar el sistema y chequear que todo ande. Cada parte termina con **✔ Chequeá**: lo que tenés que ver.
 
@@ -8,7 +8,8 @@ Página: https://pollolopez.github.io/micasa/
 
 ## 1. Lo básico
 
-- Arriba están las pestañas: **Estructura · Paredes y aberturas · Materiales · Presupuesto · Instalaciones · Planos · Obra**.
+- Arriba están las pestañas (con su ícono): **Estructura · Paredes y aberturas · Materiales · Presupuesto · Instalaciones · Planos · Obra**.
+- **El borde entre el 3D y el panel se arrastra** para darle más lugar a uno o al otro (doble clic: vuelve como estaba).
 - A la izquierda (o con **Ocultar 3D**) está el modelo 3D.
 - **Guardar** guarda en este navegador. **Compartir** copia un link para otra persona. **Mis proyectos** abre los guardados.
 - **Ctrl+Z** deshace, **Ctrl+Y** rehace. **?** abre la ayuda.
@@ -75,8 +76,8 @@ En **Techo**: "Vigas y correas" (apoyadas o en el mismo plano) y su altura.
 | Ver frente | Vuelve a la vista de frente |
 | ☀ Sol | Sol del día y la hora que elijas, con sombras |
 | ✨ Realista | Paneles sólidos, reflejos, sin ayudas de dibujo |
-| 🔩 Ver estructura de hierro | Oculta maderas, revestimientos, aberturas y muebles: quedan marcos, montantes y perfiles C |
-| 🎨 Color por perfil | Cada pieza del color de su caño (el mismo perfil, el mismo color), con leyenda de piezas y metros |
+| 🔩 Ver estructura de hierro | Oculta maderas, revestimientos, aberturas, muebles, mesadas, instalaciones, personas y perros: quedan marcos, montantes y perfiles C |
+| 🎨 Color por perfil | (Prendido de fábrica) cada pieza del color de su caño: el mismo perfil, el mismo color, con leyenda de piezas y metros |
 | 🏠 Ver adentro | Oculta las paredes (y el techo) que te tapan mientras girás |
 | 👁 Primera persona | Ves a la altura de los ojos (arrastrás para mirar, W A S D para caminar, Esc sale) |
 | 📏 Medir | Tocás dos puntos y te da la medida |

@@ -38,3 +38,21 @@ describe('un color por perfil', () => {
     expect(a.map((x) => [x.perfil, x.color])).toEqual(b.map((x) => [x.perfil, x.color]));
   });
 });
+
+describe('v1.62: el mismo caño, un solo nombre (y un solo color)', async () => {
+  const { normalizarNombrePerfil } = await import('./coloresPerfil.js');
+  it('rectangular 80x80 = cuadrado 80x80; 2 = 2.0; con o sin espacios', () => {
+    expect(normalizarNombrePerfil('Caño estructural 80x80x2')).toBe('Caño estructural 80x80x2.0');
+    expect(normalizarNombrePerfil('Caño estructural 80 x 80 x 2,0')).toBe('Caño estructural 80x80x2.0');
+    expect(normalizarNombrePerfil('Caño cuadrado 80x80x2.0')).toBe('Caño estructural 80x80x2.0');
+    const catalogo2 = [
+      { id: 'r80', categoria: 'hierro', tipo: 'rectangular', a: 80, b: 80, espesor: 2 },
+      { id: 'c80', categoria: 'hierro', tipo: 'cuadrado', a: 80, espesor: 2 },
+      { id: INSUMO.COLUMNA, categoria: 'perfil', perfilId: 'r80' },
+      { id: INSUMO.VIGA_TECHO, categoria: 'perfil', perfilId: 'c80' },
+      { id: INSUMO.CORREA, categoria: 'perfil', perfilId: null, perfil: 'Caño estructural 80 x 80 x 2' },
+    ];
+    const lista = coloresPorPerfil([{ insumo: INSUMO.COLUMNA, largo: 1 }, { insumo: INSUMO.VIGA_TECHO, largo: 2 }, { insumo: INSUMO.CORREA, largo: 3 }], catalogo2);
+    expect(lista).toEqual([{ perfil: 'Caño estructural 80x80x2.0', piezas: 3, metros: 6, color: PALETA_PERFILES[0] }]);
+  });
+});
