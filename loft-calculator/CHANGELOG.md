@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.63.1] - 2026-11-16
+### Cambiado
+- Ficha del revestimiento: "Ancho útil" y "Solape" parecían lo mismo. Ahora dicen qué es cada uno: **Ancho útil (lo que
+  cubre cada tira, sin el encastre)** es a lo ancho; el solape pasa a **"Tiras en tramos encimados"**, que es a lo
+  largo y solo cuenta si la pared es más alta que el largo máximo de una tira.
+
 ## [1.63.0] - 2026-11-16
 ### Agregado
 - **Tamaños y cortes de los paneles** (Planos, en cada pared; también en el PDF y el Excel): cada tira de izquierda a

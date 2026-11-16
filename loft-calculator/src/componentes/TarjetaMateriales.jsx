@@ -71,9 +71,13 @@ function Revestimiento({ tipo, unidad, usos, unicoQueda, proveedores, onCambiar,
         <CampoSelect etiqueta="Cómo se vende" valor={tipo.venta} onCambio={cambiar('venta')}
           opciones={[['medida', 'A medida'], ['estandar', 'Placa fija']]} />
         {tipo.venta === 'medida' ? (<>
-          {medida('anchoUtil', 'Ancho útil')}
-          {medida('largoMaximo', 'Largo máximo')}
-          <CampoOpcional casilla="Con solape (si no, a tope)" etiqueta="Solape" unidad={unidad} valor={tipo.solape} valorPorDefecto={0.15}
+          {/* v1.63.1 (Leandro: "ancho útil y solape parecen lo mismo"): son dos cosas distintas, ahora dicho en la etiqueta.
+              Ancho útil = lo que cubre cada tira a lo ancho (ya descontado el machimbre). El solape es solo a lo LARGO,
+              cuando la pared es más alta que el largo máximo y la tira va en dos tramos encimados. */}
+          {medida('anchoUtil', 'Ancho útil (lo que cubre cada tira, sin el encastre)')}
+          {medida('largoMaximo', 'Largo máximo de una tira')}
+          <CampoOpcional casilla="Tiras en tramos encimados (solo si la pared pasa el largo máximo; si no, a tope)" etiqueta="Encimado entre tramos"
+            unidad={unidad} valor={tipo.solape} valorPorDefecto={0.15}
             onCambio={conLimites({ ...LIMITES_REVESTIMIENTO.solape, max: Math.min(LIMITES_REVESTIMIENTO.solape.max, tipo.largoMaximo - 0.01) }, cambiar('solape'))} />
           {/* v1.63: la tira angosta de una pared se corta (a lo largo) del retazo de la de otra pared: se compra una menos. */}
           <label className="casilla-opcional">
