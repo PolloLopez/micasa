@@ -37,6 +37,7 @@ import { INSUMO } from './motor/constantes.js';
 import EditorPieza from './componentes/EditorPieza.jsx';
 import { FilaAbertura } from './componentes/AberturasDePared.jsx';
 import { juntasDePano, pedazosDePared } from './motor/revestimientos.js';
+import { tiraEnPunto } from './motor/cortesPaneles.js';
 import { medirEntre, puntoMasCercanoEnPieza } from './motor/medicion.js';
 import { cotasGenerales } from './motor/cotas3d.js';
 import { vistasFijas, vistasPorPartes } from './motor/vistasFijas.js';
@@ -175,7 +176,40 @@ function crearMateriales(colores) {
   materiales.fantasma = new THREE.MeshStandardMaterial({
     color: COLOR_RESALTADO, emissive: COLOR_RESALTADO, emissiveIntensity: 0.9, depthTest: false, transparent: true, opacity: 0.75, depthWrite: false,
   });
+  // v1.65: la tira de panel tocada (amarilla como la selección, a medias: se ven las juntas y la ventana).
+  materiales.tira = new THREE.MeshBasicMaterial({ color: COLOR_SELECCION, transparent: true, opacity: 0.45, depthWrite: false, side: THREE.DoubleSide });
   return materiales;
+}
+
+/**
+ * v1.65: la pared, el tipo de panel y la tira elegida (con su lugar), o null si ya no está (cambió la obra).
+ * @param elegida { lado, cara: 'exterior' | 'interior', x, h }
+ */
+function datosDeTira(e, materialesPanel, elegida) {
+  const pared = e?.paredes?.find((p) => p.lado === elegida.lado);
+  if (!pared) return null;
+  const idPanel = elegida.cara === 'interior' ? pared.panelInterior : pared.panel;
+  const tipo = materialesPanel.get(idPanel)?.tipo;
+  if (!tipo) return null;
+  const pano = { largo: pared.largo, h1: pared.alturas[0], h2: pared.alturas[1], huecos: pared.huecos ?? [] };
+  const tira = tiraEnPunto(pano, tipo, elegida.x, elegida.h);
+  if (!tira) return null;
+  const fuera = tipo.ubicacion === 'eje' ? 0 : MEDIA_SECCION_PARED + (tipo.espesor ?? 50) / 2000;
+  return { pared, tipo, tira, signo: elegida.cara === 'interior' ? -1 : 1, fuera: elegida.cara === 'interior' ? Math.max(fuera, 0.01) : fuera };
+}
+
+/**
+ * v1.65: de un toque sobre un paño (raycast) a { lado, cara, x, h } en coordenadas de la pared (desde su esquina
+ * izquierda vista desde afuera). Usa la estructura dibujada (guardada en el grupo).
+ */
+function tiraTocadaEn(estructura, toque) {
+  const { lado, cara } = toque.object.userData.panelPared;
+  const pared = estructura?.paredes?.find((p) => p.lado === lado);
+  if (!pared) return null;
+  const [a, b] = pared.esquinas;
+  const dir = [(b[0] - a[0]) / pared.largo, (b[2] - a[2]) / pared.largo];
+  const x = (toque.point.x - a[0]) * dir[0] + (toque.point.z - a[2]) * dir[1];
+  return { lado, cara, x: Math.min(pared.largo, Math.max(0, x)), h: toque.point.y - a[1] };
 }
 
 /** Controles de opacidad de la leyenda. */
@@ -342,7 +376,7 @@ function cartel(texto, esFrente) {
 /** Arma todas las mallas del modelo dentro de `grupo`. */
 function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
   const { params, estructura: e, aberturas, capas, gruposVisibles, seleccionada, catalogo, aberturaSeleccionada, medida, resaltado, medidasFijas = [],
-    perfiles = null, opacidadHierros = 1 } = opciones;
+    perfiles = null, opacidadHierros = 1, tiraElegida = null } = opciones;
   // v1.55: con "Color por perfil", cada pieza del color de su caño (el mismo perfil, el mismo color).
   const colorDePerfil = perfiles ? new Map(perfiles.map((x) => [x.perfil, x.color])) : null;
   const materialDePerfil = (p) => {
@@ -508,11 +542,19 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
       // Afuera = desde el centro de la planta hacia el centro de la pared (horizontal).
       const centro = pared.esquinas.reduce((acc, p) => [acc[0] + p[0] / 4, 0, acc[2] + p[2] / 4], [0, 0, 0]);
       const afuera = corrimientoDe(pared.panel);
+      // v1.65: cada paño sabe de qué pared y cara es, para elegir una tira tocándolo (ver tiraEnPunto).
+      const marcarPanel = (desde, cara) => {
+        for (let i = desde; i < grupo.children.length; i++) grupo.children[i].traverse((o) => { o.userData.panelPared = { lado: pared.lado, cara }; });
+      };
+      let desde = grupo.children.length;
       dibujar(estirar(pared.esquinas, afuera), pared.panel, centro, afuera, pared.huecos, afuera);
+      marcarPanel(desde, 'exterior');
       // Revestimiento interior: su cara "exterior" (color principal) mira hacia adentro del ambiente.
       if (pared.panelInterior) {
         const adentro = corrimientoDe(pared.panelInterior) || 0.01;
+        desde = grupo.children.length;
         dibujar(estirar(pared.esquinas, -adentro), pared.panelInterior, centro.map((c) => -c), adentro, pared.huecos, -adentro);
+        marcarPanel(desde, 'interior');
       }
       marcar(antes, [pared.lado]);
     });
@@ -713,6 +755,26 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
       cartelito.position.set(centro[0], y + m.alto + 0.3, centro[1]);
       grupo.add(cartelito);
     });
+  }
+
+  // v1.65: la tira (o placa) tocada en el 3D, pintada encima del paño.
+  const elegidaEnPared = tiraElegida && capas.paneles ? datosDeTira(e, materialesPanel, tiraElegida) : null;
+  if (elegidaEnPared) {
+    const { pared, tira, signo, fuera } = elegidaEnPared;
+    const [a, b] = pared.esquinas;
+    const dir = [(b[0] - a[0]) / pared.largo, (b[2] - a[2]) / pared.largo];
+    const n = Math.hypot(a[0] + b[0], a[2] + b[2]) || 1;
+    const d = fuera + 0.015; // un poco por delante del paño
+    const punto = (x, h) => [a[0] + dir[0] * x + ((a[0] + b[0]) / n) * d * signo, a[1] + h, a[2] + dir[1] * x + ((a[2] + b[2]) / n) * d * signo];
+    const [h1, h2] = pared.alturas;
+    const altoEn = (x) => h1 + ((h2 - h1) * x) / pared.largo;
+    const x1 = tira.x0 + tira.ancho;
+    const y0 = tira.placa ? tira.y0 : 0;
+    const arriba = (x) => (tira.placa ? Math.min(altoEn(x), tira.y0 + tira.alto) : altoEn(x));
+    const malla = cuadrilatero([punto(tira.x0, y0), punto(x1, y0), punto(x1, arriba(x1)), punto(tira.x0, arriba(tira.x0))], materiales.tira);
+    malla.renderOrder = 998;
+    malla.userData.ladosPared = [pared.lado];
+    grupo.add(malla);
   }
 
   // Juntas de los paneles (v1.16): dónde termina cada tira o placa, para acomodar las aberturas.
@@ -1023,6 +1085,7 @@ export default function LoftCanvas({
   const [seleccionada, setSeleccionada] = useState(null); // id de la pieza seleccionada
   const [editandoId, setEditandoId] = useState(null); // pieza con el formulario de edición abierto
   const [aberturaSeleccionada, setAberturaSeleccionada] = useState(null); // id de la abertura tocada (v1.16)
+  const [tiraElegida, setTiraElegida] = useState(null); // v1.65: { lado, cara, x, h } la tira de panel tocada
   // v1.49: mover la abertura elegida (como los muebles: recién con "✥ Mover").
   const [moviendoAbertura, setMoviendoAbertura] = useState(false);
   const [avisoAbertura, setAvisoAbertura] = useState(null);
@@ -1040,6 +1103,11 @@ export default function LoftCanvas({
   medidasFijasRef.current = medidasFijas;
   const paramsRef = useRef(params); // para las vistas fijas (la foto se saca fuera del render)
   paramsRef.current = params;
+  const estructuraRef = useRef(estructura); // v1.65: para saber qué tira se tocó (el clic se maneja fuera del render)
+  estructuraRef.current = estructura;
+  // v1.65: los datos de la tira elegida (con los tipos de panel de la obra; null si ya no existe).
+  const datosTira = tiraElegida ? datosDeTira(estructura, new Map((paneles ?? []).map((p) => [p.id, { tipo: p }])), tiraElegida) : null;
+  const metros = (n) => `${n.toFixed(2).replace('.', ',')} m`;
   const midiendoRef = useRef(false);
   const portapapelesRef = useRef(null); // lo copiado con Ctrl+C: { clase: 'abertura' | 'pieza', dato }
   const [avisoVisor, setAvisoVisor] = useState(null); // texto corto ("Copiado: …")
@@ -1094,7 +1162,7 @@ export default function LoftCanvas({
       params, estructura, aberturas, capas: capasVista, gruposVisibles: limpio ? { ...gruposVisibles, ...ocultar } : gruposVisibles,
       seleccionada: limpio ? null : seleccionada, catalogo, aberturaSeleccionada: limpio ? null : aberturaSeleccionada,
       medida: limpio ? null : medida, resaltado: limpio ? null : resaltado, medidasFijas: limpio ? [] : medidasFijas,
-      perfiles: perfilesVista, opacidadHierros: opacidadesVista.hierros,
+      perfiles: perfilesVista, opacidadHierros: opacidadesVista.hierros, tiraElegida: limpio ? null : tiraElegida,
     });
     juntarPuertas(visor);
   };
@@ -1455,6 +1523,10 @@ export default function LoftCanvas({
       // v1.42.1: también los muebles (el id está en el grupo del mueble, no en cada caja).
       const idMuebleDe = (obj) => { for (let o = obj; o; o = o.parent) if (o.userData?.idMueble !== undefined) return o.userData.idMueble; return null; };
       const tocado = tocados.find((i) => i.object.userData.idPieza || i.object.userData.idAbertura || idMuebleDe(i.object) !== null);
+      // v1.65: si no se tocó un hierro, una abertura ni un mueble, ¿se tocó un panel? (el primero que se ve)
+      const visible = (o) => { for (let x = o; x; x = x.parent) if (x.visible === false) return false; return true; };
+      const enPanel = !tocado ? tocados.find((i) => i.object.userData.panelPared && visible(i.object)) : null;
+      setTiraElegida(enPanel ? tiraTocadaEn(estructuraRef.current, enPanel) : null);
       setSeleccionada(tocado?.object.userData.idPieza ?? null);
       setAberturaSeleccionada(tocado?.object.userData.idAbertura ?? null);
       setMuebleElegido(tocado && !tocado.object.userData.idPieza && !tocado.object.userData.idAbertura ? idMuebleDe(tocado.object) : null);
@@ -1597,7 +1669,7 @@ export default function LoftCanvas({
     }));
     dibujarModelo(visor.grupo, visor.materiales, visor.materialesPanel,
       { params, estructura, aberturas, capas: capasVista, gruposVisibles, seleccionada, catalogo, aberturaSeleccionada, medida, resaltado, medidasFijas,
-        perfiles: perfilesVista, opacidadHierros: opacidadesVista.hierros });
+        perfiles: perfilesVista, opacidadHierros: opacidadesVista.hierros, tiraElegida });
     visor.corte.version += 1; // v1.45: hay que volver a ver qué paredes tapan
     juntarPuertas(visor);
     // Se reacomoda la cámara si cambia el frente o el tipo de proyecto (construcción / grada).
@@ -1606,7 +1678,7 @@ export default function LoftCanvas({
       mirarAlFrente(visor.camara, visor.controles, medidasVista(params, estructura));
       visor.frente = encuadre;
     }
-  }, [params, estructura, aberturas, capasVista, paneles, gruposVisibles, seleccionada, opacidadesVista.paneles, catalogo, aberturaSeleccionada, medida, resaltado, medidasFijas, perfilesVista, opacidadesVista.hierros]);
+  }, [params, estructura, aberturas, capasVista, paneles, gruposVisibles, seleccionada, opacidadesVista.paneles, catalogo, aberturaSeleccionada, medida, resaltado, medidasFijas, perfilesVista, opacidadesVista.hierros, tiraElegida]);
 
   // 2a) v1.45.1: "Lo enterrado" apagado = se corta todo lo que está debajo del suelo (un plano de corte en y = 0,
   // un poquito más abajo para no cortar el piso que recibe las sombras, que está a −1 cm).
@@ -1804,6 +1876,7 @@ export default function LoftCanvas({
       if (enCampo || hayDialogoAbierto()) return; // no pisar el copiar/pegar de los campos ni actuar debajo de un diálogo
       if (ev.key === 'Escape') {
         setMidiendo(false);
+        setTiraElegida(null);
         setSeleccionada(null);
         setAberturaSeleccionada(null);
         setEditandoId(null);
@@ -2233,6 +2306,31 @@ export default function LoftCanvas({
             <button className="btn-del-texto eliminar-aparte"
               onClick={() => { onQuitarAbertura(aberturaElegida.id); setAberturaSeleccionada(null); }}>Eliminar abertura</button>
           </div>
+        </div>
+      )}
+
+      {/* v1.65: tira (o placa) de panel tocada: su tamaño, lo que se pide y qué cortarle. */}
+      {datosTira && (
+        <div className="seleccion no-print" role="dialog" aria-label="Panel seleccionado">
+          <div className="seleccion-cabecera">
+            <strong>{datosTira.tipo.nombre} · {nombreDePared(datosTira.pared.lado, params)}{datosTira.signo < 0 ? ' (por dentro)' : ''}</strong>
+            <button type="button" className="btn-cerrar" onClick={() => setTiraElegida(null)} aria-label="Cerrar" title="Cerrar (Esc)">✕</button>
+          </div>
+          {datosTira.tira.placa ? (
+            <p>Placa columna {datosTira.tira.columna} de {datosTira.tira.columnas}, fila {datosTira.tira.fila} de {datosTira.tira.filas}
+              {' '}(desde abajo a la izquierda, vista desde afuera): {metros(datosTira.tira.ancho)} × {metros(datosTira.tira.alto)}
+              {datosTira.tira.ancho < datosTira.tipo.anchoPlaca - 0.005 || datosTira.tira.alto < datosTira.tipo.largoPlaca - 0.005 ? ' (cortada)' : ' (entera)'}</p>
+          ) : (<>
+            <p>Tira <strong>{datosTira.tira.n} de {datosTira.tira.total}</strong> (de izquierda a derecha, vista desde afuera) ·
+              {' '}{metros(datosTira.tira.ancho)} de ancho · {datosTira.tira.pedidos.length === 1
+                ? <>se pide de <strong>{metros(datosTira.tira.pedidos[0])}</strong></>
+                : <>se pide en {datosTira.tira.pedidos.length} pedazos: <strong>{datosTira.tira.pedidos.map(metros).join(' + ')}</strong></>}</p>
+            {datosTira.tira.cortes.length > 0
+              ? <ul className="cortes-tira">{datosTira.tira.cortes.map((c) => <li key={c}>{c}</li>)}</ul>
+              : <p className="nota">Va entera: sin cortes.</p>}
+            {datosTira.tira.desperdicio > 0.005 && <p className="nota">Se tiran ≈ {datosTira.tira.desperdicio.toFixed(2).replace('.', ',')} m² de esta tira.</p>}
+          </>)}
+          <p className="nota">La lista de todas las tiras está en Planos → Paredes para el proveedor de paneles.</p>
         </div>
       )}
 

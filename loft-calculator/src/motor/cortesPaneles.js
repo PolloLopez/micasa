@@ -156,3 +156,31 @@ export function sugerenciasDeAberturas(estructura, aberturas, catalogo) {
   });
   return resultado;
 }
+
+/**
+ * v1.65 (Leandro: "no estoy pudiendo seleccionar los paneles"): qué tira (o placa) hay en un punto de
+ * la pared tocado en el 3D.
+ * @param pano  { largo, h1, h2, huecos }
+ * @param x     distancia desde la esquina izquierda de la pared (vista desde afuera), en m
+ * @param h     altura desde abajo de la pared, en m
+ * @returns {{ n, total, x0, ancho, alto, pedidos, cortes, desperdicio } | { placa: true, fila, columna, filas, columnas, x0, y0, ancho, alto } | null}
+ */
+export function tiraEnPunto(pano, tipo, x, h) {
+  const t = { ...REVESTIMIENTO_POR_DEFECTO, ...tipo };
+  if (x < -EPS || x > pano.largo + EPS) return null;
+  if (t.venta === 'estandar') {
+    // Placa fija: una grilla de placas desde abajo a la izquierda.
+    const alto = Math.max(pano.h1, pano.h2);
+    const columnas = Math.max(1, Math.ceil(pano.largo / t.anchoPlaca - EPS));
+    const filas = Math.max(1, Math.ceil(alto / t.largoPlaca - EPS));
+    const columna = Math.min(columnas - 1, Math.max(0, Math.floor(x / t.anchoPlaca)));
+    const fila = Math.min(filas - 1, Math.max(0, Math.floor(h / t.largoPlaca)));
+    const x0 = columna * t.anchoPlaca;
+    const y0 = fila * t.largoPlaca;
+    return { placa: true, fila: fila + 1, columna: columna + 1, filas, columnas, x0, y0,
+      ancho: Math.min(t.anchoPlaca, pano.largo - x0), alto: Math.min(t.largoPlaca, alto - y0) };
+  }
+  const { tiras } = cortesDeTiras(pano, t);
+  const tira = tiras.find((s) => x >= s.x0 - EPS && x <= s.x0 + s.ancho + EPS);
+  return tira ? { ...tira, total: tiras.length } : null;
+}

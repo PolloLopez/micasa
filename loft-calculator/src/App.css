@@ -795,7 +795,7 @@ kbd {
 .fila-hueco-v2 { border-top: 1px dashed var(--borde); padding-top: 4px; margin-bottom: 4px; }
 
 /* v1.42.1: fichas plegables (mesadas, tabiques, muebles) y lo elegido en el 3D */
-.ficha-plegable header { display: flex; align-items: center; gap: 8px; }
+.ficha-plegable header { display: flex; align-items: center; gap: 8px; padding: 0; background: none; border-bottom: none; justify-content: flex-start; } /* v1.65: sin el estilo del header de la app */
 .titulo-ficha { flex: 1; display: flex; align-items: center; gap: 8px; background: none; border: none; color: inherit; text-align: left; padding: 2px 0; cursor: pointer; font: inherit; }
 .titulo-ficha small { color: var(--texto-tenue); }
 .titulo-ficha .flecha { display: inline-block; transition: transform 0.15s; }
@@ -909,3 +909,16 @@ input[type=date] { color-scheme: dark; }
 .resumen-sobrantes p { margin: 2px 0; }
 .lista-retazos { columns: 2; font-size: 0.78rem; margin: 4px 0 0 1rem; }
 .sobrantes-grupo { color: var(--texto-tenue); }
+
+/* v1.65: pestaña Materiales con apartados y fichas plegables. */
+.seccion-plegable { margin-top: 10px; }
+.seccion-plegable .subtitulo { margin: 0; }
+.titulo-seccion { display: flex; align-items: center; gap: 8px; width: 100%; background: none; border: none; color: inherit;
+  font: inherit; text-transform: inherit; letter-spacing: inherit; text-align: left; padding: 6px 0; cursor: pointer; }
+.titulo-seccion .flecha { display: inline-block; transition: transform 0.15s; }
+.seccion-plegable:not(.cerrada) .titulo-seccion .flecha { transform: rotate(90deg); }
+.resumen-seccion { margin-left: auto; color: var(--texto-tenue); font-weight: normal; text-transform: none; letter-spacing: 0; }
+.lista-fichas, .lista-proveedores { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.ficha-plegable .titulo-ficha { flex-wrap: wrap; }
+.muestra-chica { display: inline-block; width: 12px; height: 12px; border-radius: 3px; border: 1px solid var(--borde, #555); }
+.tabla-precios-proveedor td:first-child { min-width: 160px; }

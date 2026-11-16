@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.65.0] - 2026-11-16
+### Agregado
+- **Tocar un panel en el 3D**: un clic en una pared revestida pinta esa tira (o placa) y muestra su número (igual que en
+  Planos), ancho, largo a pedir (o los pedazos) y sus cortes. `tiraEnPunto` en motor/cortesPaneles.js.
+- **Materiales**: cada proveedor trae adentro la lista de **todos los precios de la obra** en él (con "ver solo los que
+  faltan"): se carga la lista de un corralón de una vez. "+ Agregar material" en "Materiales que agregás vos".
+### Cambiado
+- **Materiales**: cada apartado se pliega y cada proveedor, material, accesorio y revestimiento es una ficha plegable con
+  su precio en el encabezado: el del proveedor elegido y, si no lo vende o hay otro más barato, desde cuánto y dónde
+  (motor/resumenPrecios.js). Con su proyecto, la pestaña pasó de ≈ 15.500 px de alto a ≈ 6.600.
+- Un perfil arranca desplegado solo si no tiene precio en **ningún** proveedor (antes, en el elegido: con uno que no
+  vende hierro se abrían todos).
+- Las fichas plegables (también las de equipos, mesadas y muebles) ya no heredan el estilo del encabezado de la app
+  (tenían un recuadro de más).
+- Precios de más de mil millones marcados con ⚠ (error de tipeo).
+
 ## [1.64.0] - 2026-11-16
 ### Agregado
 - **Piezas agregadas, eliminadas y editadas**: cada renglón muestra sus características (perfil, largo, vertical /

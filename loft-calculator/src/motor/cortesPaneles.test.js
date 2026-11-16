@@ -1,6 +1,6 @@
 // Tests de los cortes de los paneles (v1.63). Correr con: npm test
 import { describe, it, expect } from 'vitest';
-import { cortesDeTiras, retazosEntreParedes, sugerenciaParaAbertura } from './cortesPaneles.js';
+import { cortesDeTiras, retazosEntreParedes, sugerenciaParaAbertura, tiraEnPunto } from './cortesPaneles.js';
 
 const panel = { venta: 'medida', anchoUtil: 1, largoMaximo: 12, solape: 0 };
 
@@ -48,5 +48,23 @@ describe('ventanas en base a los paneles', () => {
     // Ya alineada: nada que sugerir.
     expect(sugerenciaParaAbertura({ ...pano, huecos: [{ desde: 1, hasta: 2.2, abajo: 1, arriba: 2 }] }, 0, panel)).toBeNull();
     expect(sugerenciaParaAbertura(pano, 0, { ...panel, venta: 'estandar' })).toBeNull();
+  });
+});
+
+describe('v1.65: tiraEnPunto (tocar un panel en el 3D)', () => {
+  const tipo = { venta: 'medida', anchoUtil: 1, largoMaximo: 12, solape: 0 };
+  const pano = { largo: 7.5, h1: 2.5, h2: 2.5, huecos: [] };
+  it('la tira que está en ese lugar, con sus datos', () => {
+    const t = tiraEnPunto(pano, tipo, 3.4, 1);
+    expect(t.n).toBe(4);
+    expect(t.total).toBe(8);
+    expect(t.ancho).toBeCloseTo(1);
+    expect(tiraEnPunto(pano, tipo, 7.3, 1).ancho).toBeCloseTo(0.5); // la última, cortada a lo largo
+    expect(tiraEnPunto(pano, tipo, 8, 1)).toBeNull();
+  });
+  it('placa fija: fila y columna', () => {
+    const p = tiraEnPunto({ largo: 3, h1: 2.6, h2: 2.6 }, { venta: 'estandar', anchoPlaca: 1.22, largoPlaca: 2.44 }, 2.5, 2.5);
+    expect([p.placa, p.columna, p.columnas, p.fila, p.filas]).toEqual([true, 3, 3, 2, 2]);
+    expect(p.ancho).toBeCloseTo(3 - 2.44);
   });
 });

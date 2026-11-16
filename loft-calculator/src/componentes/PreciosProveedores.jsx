@@ -18,7 +18,7 @@ const pesos = (n) => n.toLocaleString('es-AR', { style: 'currency', currency: 'A
  * Campo de precio que puede quedar vacío (= sin precio).
  * Guarda al salir del campo o con Enter; si lo escrito no es un número >= 0 avisa y no guarda.
  */
-function CampoPrecio({ etiqueta, valor, ayuda, onCambio }) {
+export function CampoPrecio({ etiqueta, valor, ayuda, onCambio }) {
   const [texto, setTexto] = useState(null); // null = no se está editando: muestra el valor guardado
   const [error, setError] = useState(null);
   const mostrado = texto ?? (valor === null || valor === undefined ? '' : String(valor));

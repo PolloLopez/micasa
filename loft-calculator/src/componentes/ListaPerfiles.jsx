@@ -15,6 +15,7 @@ import PreciosProveedores from './PreciosProveedores.jsx';
 import { TIPOS_PERFIL, LIMITES_PERFIL, nombrePerfil, kgPorMetro, revisarPerfil } from '../motor/perfiles.js';
 import { BotonResaltar } from './Resaltar.jsx';
 import { usePasarParaResaltar } from './contextoResaltado.js';
+import { textoDePrecio } from '../motor/resumenPrecios.js';
 
 const pesos = (n) => n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
 const OPCIONES_TIPO = Object.entries(TIPOS_PERFIL).map(([valor, { nombre }]) => [valor, nombre]);
@@ -23,7 +24,7 @@ const OPCIONES_TIPO = Object.entries(TIPOS_PERFIL).map(([valor, { nombre }]) => 
  * Un perfil de la lista, editable.
  * Cada cambio se revisa antes de guardarse: si las medidas no tienen sentido, queda el error en el campo.
  */
-function FilaPerfil({ perfil, usadoEn, repetido, proveedores, onActualizar, onQuitar, onCambiarPrecio }) {
+function FilaPerfil({ perfil, usadoEn, repetido, proveedores, idElegido, pago, onActualizar, onQuitar, onCambiarPrecio }) {
   const tipo = TIPOS_PERFIL[perfil.tipo];
 
   /** Cambia un campo si el perfil sigue siendo válido. @returns error o null (para CampoNumero). */
@@ -49,7 +50,9 @@ function FilaPerfil({ perfil, usadoEn, repetido, proveedores, onActualizar, onQu
 
   const enUso = usadoEn.length > 0;
   // Plegado: una línea con lo importante. Arranca abierto si hay que revisarlo o si es nuevo (sin precio).
-  const [abierto, setAbierto] = useState(Boolean(perfil.revisarPrecio) || perfil.sinPrecio || perfil.precio === 0);
+  // v1.65: "sin precio" = en NINGÚN proveedor (antes, en el elegido: con uno que no vende hierro se abrían todos).
+  const precio = textoDePrecio(perfil, proveedores, idElegido, pago);
+  const [abierto, setAbierto] = useState(Boolean(perfil.revisarPrecio) || precio.texto === 'sin precio');
   const nombre = nombrePerfil(perfil) || 'Perfil sin nombre';
   // v1.27: con el mouse encima (o 👁) se resaltan en el 3D las piezas hechas con este perfil.
   const criterio = enUso ? { tipo: 'perfil', id: perfil.id, nombre } : null;
@@ -61,7 +64,8 @@ function FilaPerfil({ perfil, usadoEn, repetido, proveedores, onActualizar, onQu
         <span className="flecha">{abierto ? '▾' : '▸'}</span>
         <strong>{nombre}</strong>
         <span className="peso-perfil">
-          {kgPorMetro(perfil) > 0 ? `≈ ${kgPorMetro(perfil).toFixed(2)} kg/m · ` : ''}barra {perfil.largoBarra} m · {perfil.sinPrecio ? 'sin precio' : pesos(perfil.precio)}
+          {kgPorMetro(perfil) > 0 ? `≈ ${kgPorMetro(perfil).toFixed(2)} kg/m · ` : ''}barra {perfil.largoBarra} m · {/* v1.65: el precio en el proveedor elegido y, si no lo tiene, el más barato */}
+          <span className={precio.falta ? 'falta' : ''}>{precio.texto}{precio.sospechoso ? ' · ⚠ precio para revisar' : ''}</span>
           {perfil.revisarPrecio && ' · ⚠'}
         </span>
       </button>
@@ -125,7 +129,7 @@ function FilaPerfil({ perfil, usadoEn, repetido, proveedores, onActualizar, onQu
 /**
  * @param todos  todos los perfiles del catálogo (también los que no se muestran), para avisar repetidos
  */
-export default function ListaPerfiles({ perfiles, todos = perfiles, usadoEn, proveedores, onActualizar, onAgregar, onQuitar, onCambiarPrecio }) {
+export default function ListaPerfiles({ perfiles, todos = perfiles, usadoEn, proveedores, idElegido = null, pago = 'efectivo', onActualizar, onAgregar, onQuitar, onCambiarPrecio }) {
   // Mismo nombre y largo de barra que otro perfil: 'visible' (está en esta lista) u 'oculto' (grada/montaje).
   const clave = (p) => `${nombrePerfil(p).toLowerCase()}|${p.largoBarra}`;
   const repetido = (p) => {
@@ -138,7 +142,7 @@ export default function ListaPerfiles({ perfiles, todos = perfiles, usadoEn, pro
       {perfiles.length === 0 && <p className="nota">Todavía no hay perfiles: agregá los hierros que usás.</p>}
       <ul className="lista-perfiles">
         {perfiles.map((p) => (
-          <FilaPerfil key={p.id} perfil={p} usadoEn={usadoEn[p.id] ?? []} repetido={repetido(p)} proveedores={proveedores}
+          <FilaPerfil key={p.id} perfil={p} usadoEn={usadoEn[p.id] ?? []} repetido={repetido(p)} proveedores={proveedores} idElegido={idElegido} pago={pago}
             onCambiarPrecio={onCambiarPrecio}
             onActualizar={onActualizar} onQuitar={onQuitar} />
         ))}

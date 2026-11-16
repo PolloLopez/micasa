@@ -93,6 +93,11 @@ Por perfil) y **herramientas** (Recorrer, Medir, **?** = cómo moverse). Con el 
 | 📏 Medir | Tocás dos puntos y te da la medida |
 | ▸ Capas | Prender y apagar partes (por ejemplo **Lo enterrado**, para no ver pilotines bajo tierra) |
 
+**Tocar un panel**: un clic en una pared revestida (donde no hay un hierro) pinta de amarillo esa **tira** y un cartel
+dice cuál es (tira 4 de 8, de izquierda a derecha vista desde afuera, igual que en Planos), su ancho, de qué largo se
+pide (o en cuántos pedazos) y qué cortarle (a lo largo, inclinado arriba, el hueco de una ventana). En placa fija dice
+la columna y la fila. Esc o ✕ lo suelta.
+
 **Mover un mueble o una abertura**: tocalo → en el cartelito **✥ Mover** → arrastralo o usá las flechas
 (1 cm; con Shift, 10 cm). **R** gira el mueble. Esc termina. Sin "✥ Mover" no se mueve (así no se corre sin querer).
 
@@ -123,9 +128,23 @@ tabiques se abren cuando pasa una persona.
 
 Perfiles de tu lista, largo de barra, revestimientos, proveedores y precios.
 
+Cada apartado (Proveedores, Perfiles, Qué perfil va en cada parte, Otros materiales, Materiales que agregás vos,
+Revestimientos) se pliega tocando su título, y cada material o proveedor es una ficha plegable. Plegada, cada ficha
+dice lo importante: el material, su precio en el proveedor elegido en el Presupuesto y, si ese no lo vende o hay uno
+más barato, **desde cuánto y dónde**. Arriba avisa cuántos materiales no tienen precio en ningún proveedor.
+
+**Cargar los precios de un proveedor de una vez**: abrí el proveedor. Abajo de sus datos está **la lista de todos los
+materiales de la obra** con su precio ahí (efectivo y tarjeta). Tildá "Ver solo los que no tienen precio acá" y
+cargá lo que te pasó en su lista. Un precio absurdo (mil millones o más) sale marcado con ⚠ para revisar.
+
+**Agregar un material**: en "Materiales que agregás vos", **+ Agregar material** (arranca abierto): nombre,
+descripción, cantidad a mano o estimada, unidad y precio en cada proveedor. Entra al Presupuesto.
+
 **Accesorios y consumibles**: cada uno es **"Estimada sola"** (se calcula con los kilos de hierro, su superficie o los
 m² de paneles por un coeficiente que podés cambiar) o **"A mano"**. Vienen: electrodos, tornillería, sellador y antióxido.
 
+✔ Chequeá: abrí un proveedor, cargá un precio en su lista: el encabezado pasa de "2 de 30 precios" a "3 de 30" y el
+material muestra ese precio.
 ✔ Chequeá: en cada consumible estimado aparece "≈ N unidades (medida x coeficiente)". Si cambiás el coeficiente,
 cambia la cantidad y el presupuesto.
 

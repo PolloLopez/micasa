@@ -10,8 +10,13 @@
 //     va respecto de la estructura y sus dos colores.
 // El presupuesto (TablaPresupuesto) queda solo con cantidades y precios.
 // Todo se guarda en el catálogo (viaja con el proyecto).
+// v1.65 (Leandro: "agregando materiales y proveedores desde ahí, que sean
+// expansibles"): cada apartado se pliega y cada material o proveedor es una
+// ficha plegable con su precio en el encabezado. Cada proveedor trae adentro
+// la lista de TODOS los precios de la obra en él.
 // ==========================================================
 
+import { useState } from 'react';
 import CampoNumero from './CampoNumero.jsx';
 import CampoOpcional from './CampoOpcional.jsx';
 import CampoSelect from './CampoSelect.jsx';
@@ -26,6 +31,10 @@ import { perfilesDeLista } from '../motor/perfiles.js';
 import { aplicarProveedor, proveedoresDe } from '../motor/proveedores.js';
 import PreciosProveedores from './PreciosProveedores.jsx';
 import ListaProveedores from './ListaProveedores.jsx';
+import FichaPlegable from './FichaPlegable.jsx';
+import SeccionPlegable from './SeccionPlegable.jsx';
+import { textoDePrecio } from '../motor/resumenPrecios.js';
+import { nombrePerfil } from '../motor/perfiles.js';
 import { BASES_CONSUMIBLE, ESTIMACION_DE_FABRICA, esEstimado } from '../motor/consumibles.js';
 
 /** Valida un número contra sus límites y, si está bien, lo guarda. */
@@ -36,8 +45,13 @@ const conLimites = ({ min, max }, actualizar, enTexto = (n) => `${n} m`) => (v) 
   return null;
 };
 
+/** El precio en una línea, para el encabezado plegado (ver motor/resumenPrecios.js). */
+function PrecioCorto({ precio }) {
+  return <small className={precio.falta || precio.sospechoso ? 'falta' : ''}>{precio.texto}{precio.sospechoso ? ' · ⚠ precio para revisar' : ''}</small>;
+}
+
 /** Un tipo de revestimiento con todos sus datos. */
-function Revestimiento({ tipo, unidad, usos, unicoQueda, proveedores, onCambiar, onQuitar, onCambiarPrecio }) {
+function Revestimiento({ tipo, unidad, usos, unicoQueda, proveedores, precio, nuevo, onCambiar, onQuitar, onCambiarPrecio }) {
   const cambiar = (campo) => (valor) => onCambiar(tipo.id, campo, valor);
   const medida = (campo, etiqueta) => (
     <CampoNumero key={campo} etiqueta={etiqueta} unidad={unidad} valor={tipo[campo]}
@@ -46,7 +60,10 @@ function Revestimiento({ tipo, unidad, usos, unicoQueda, proveedores, onCambiar,
   const motivoNoBorrar = usos.length > 0 ? `En uso: ${usos.join(', ')}` : unicoQueda ? 'Tiene que quedar al menos uno' : null;
 
   return (
-    <li className="abertura">
+    <FichaPlegable clave={`revestimiento:${tipo.id}`} className="rubro" abiertaAlInicio={nuevo}
+      encabezado={<><span className="muestra-chica" style={{ background: tipo.color }} aria-hidden="true" /><strong>{tipo.nombre}</strong>
+        <small>{tipo.venta === 'estandar' ? 'placa fija' : 'a medida'} · {tipo.espesor} mm · {usos.length > 0 ? `en ${usos.length} lugar${usos.length === 1 ? '' : 'es'}` : 'sin uso'}</small>
+        <PrecioCorto precio={precio} /></>}>
       <div className="abertura-titulo">
         {/* Dos colores: la cara de afuera y la de adentro (se ven distintas en el 3D). */}
         <label className="color-cara" title="Color exterior">
@@ -103,7 +120,7 @@ function Revestimiento({ tipo, unidad, usos, unicoQueda, proveedores, onCambiar,
           disabled={Boolean(motivoNoBorrar)} title={motivoNoBorrar ?? 'Eliminar revestimiento'}
           aria-label={`Eliminar ${tipo.nombre}`}>Eliminar</button>
       </div>
-    </li>
+    </FichaPlegable>
   );
 }
 
@@ -112,7 +129,7 @@ function Revestimiento({ tipo, unidad, usos, unicoQueda, proveedores, onCambiar,
  * v1.48: la cantidad se carga a mano o se estima sola (medida de la obra x coeficiente, ver motor/consumibles.js).
  * @param calculado el renglón del presupuesto (cantidad y cómo se estimó), o null si no entra
  */
-function Accesorio({ accesorio: a, calculado, proveedores, onCambiar, onQuitar, onCambiarPrecio }) {
+function Accesorio({ accesorio: a, calculado, proveedores, precio, nuevo, onCambiar, onQuitar, onCambiarPrecio }) {
   const estimado = esEstimado(a);
   const cambiarCoeficiente = (v) => {
     if (v < 0 || v > 1000) return 'Entre 0 y 1000';
@@ -130,11 +147,15 @@ function Accesorio({ accesorio: a, calculado, proveedores, onCambiar, onQuitar, 
     onCambiar(a.id, { cantidad: v });
     return null;
   };
+  const cantidad = estimado ? (calculado?.cantidad ?? 0) : a.cantidad;
   return (
-    <li className="abertura accesorio">
+    <FichaPlegable clave={`accesorio:${a.id}`} className="rubro accesorio" abiertaAlInicio={nuevo}
+      encabezado={<><strong>{a.nombre || 'Sin nombre'}</strong>
+        <small className={cantidad > 0 ? '' : 'falta'}>{cantidad > 0 ? `${cantidad} ${a.unidad}${estimado ? ' (estimada)' : ''}` : 'cantidad 0: no entra al presupuesto'}</small>
+        <PrecioCorto precio={precio} /></>}>
       <div className="grid-params">
         <div className="group">
-          <label htmlFor={`acc-nombre-${a.id}`}>Accesorio</label>
+          <label htmlFor={`acc-nombre-${a.id}`}>Nombre</label>
           <input id={`acc-nombre-${a.id}`} type="text" maxLength={60} value={a.nombre} onChange={texto('nombre', 60)} />
         </div>
         <div className="group">
@@ -167,7 +188,7 @@ function Accesorio({ accesorio: a, calculado, proveedores, onCambiar, onQuitar, 
       <div className="pie-acciones no-print">
         <button className="btn-del eliminar-aparte" onClick={() => onQuitar(a.id)} aria-label={`Eliminar ${a.nombre}`}>Eliminar</button>
       </div>
-    </li>
+    </FichaPlegable>
   );
 }
 
@@ -204,131 +225,152 @@ export default function TarjetaMateriales({
     .filter((id) => !usadoEn[id]));
   const visibles = perfiles.filter((p) => !deOtroProyecto.has(p.id));
 
+  // v1.65: lo que había al abrir la pestaña; lo que se agrega después arranca con su ficha abierta.
+  const [idsAlAbrir] = useState(() => new Set(catalogo.map((c) => c.id)));
+  const esNuevo = (id) => !idsAlAbrir.has(id);
+  const precioDe = (item) => textoDePrecio(item, proveedores, proveedor, pago);
+  const delCatalogo = (item) => catalogo.find((c) => c.id === item.id) ?? item;
+  // Todos los materiales de ESTA obra que llevan precio (para la lista de precios de cada proveedor).
+  const materialesDeLaObra = [
+    ...visibles.map((p) => ({ ...p, nombre: nombrePerfil(p), unidadPrecio: 'barra' })),
+    ...otros.map((item) => ({ ...delCatalogo(item), nombre: item.nombre, unidadPrecio: item.unidad })),
+    ...accesorios.map((a) => ({ ...a, unidadPrecio: a.unidad || 'u' })),
+    ...(revestimientos ?? []).map((t) => ({ ...t, unidadPrecio: t.venta === 'estandar' ? 'placa' : 'm²' })),
+  ];
+  const sinPrecio = materialesDeLaObra.filter((m) => precioDe(m).texto === 'sin precio').length;
+
   return (
     <Tarjeta id="materiales" titulo="Materiales">
       <p className="nota">
         Qué es cada material: perfil, medidas y cómo se vende. Las cantidades están en el <strong>Presupuesto</strong>.
+        Tocá un título para plegarlo o desplegarlo; cada renglón muestra su precio en el proveedor elegido
+        en el Presupuesto (y el más barato, si es otro).
+        {sinPrecio > 0 && <strong className="falta"> {sinPrecio} material{sinPrecio === 1 ? '' : 'es'} sin precio en ningún proveedor.</strong>}
       </p>
 
-      {/* v1.25: proveedores. Los precios de cada material se cargan en ese material. */}
-      <h3 className="subtitulo">Proveedores</h3>
-      <p className="nota">
-        Cargá tus proveedores y, en cada material, el precio de cada uno (efectivo y, si cambia, con tarjeta).
-        En el <strong>Presupuesto</strong> elegís con cuál calcular y comparás los totales.
-      </p>
-      <ListaProveedores proveedores={proveedores} onActualizar={onActualizarProveedor}
-        onAgregar={onAgregarProveedor} onQuitar={onQuitarProveedor} />
+      {/* v1.25: proveedores. v1.65: cada uno plegable, con todos los precios de la obra adentro. */}
+      <SeccionPlegable clave="proveedores" titulo="Proveedores" resumen={`${proveedores.length}`}>
+        <p className="nota">
+          Abrí un proveedor para cargar <strong>todos sus precios de una vez</strong> (con su lista en la mano), o cargalos
+          en cada material. Vacío = ese proveedor no lo vende. En el <strong>Presupuesto</strong> elegís con cuál calcular.
+        </p>
+        <ListaProveedores proveedores={proveedores} materiales={materialesDeLaObra} idElegido={proveedor}
+          onActualizar={onActualizarProveedor} onAgregar={onAgregarProveedor} onQuitar={onQuitarProveedor} onCambiarPrecio={onCambiarPrecio} />
+      </SeccionPlegable>
 
       {/* v1.21: lista de perfiles. Cada parte de la obra elige uno; el precio y el largo de barra son del perfil. */}
-      <h3 className="subtitulo">Perfiles (los hierros que usás)</h3>
-      <p className="nota">
-        Cargá cada hierro una sola vez: tipo, medidas en mm, largo de barra y precio. El peso sale de las medidas
-        (aproximado). Las partes que usan el mismo perfil comparten barras y precio.
-      </p>
-      <ListaPerfiles perfiles={visibles} todos={perfiles} usadoEn={usadoEn} proveedores={proveedores} onCambiarPrecio={onCambiarPrecio}
-        onActualizar={onActualizarPerfil} onAgregar={onAgregarPerfil} onQuitar={onQuitarPerfil} />
+      <SeccionPlegable clave="perfiles" titulo="Perfiles (los hierros que usás)" resumen={`${visibles.length}`}>
+        <p className="nota">
+          Cargá cada hierro una sola vez: tipo, medidas en mm, largo de barra y precio. El peso sale de las medidas
+          (aproximado). Las partes que usan el mismo perfil comparten barras y precio.
+        </p>
+        <ListaPerfiles perfiles={visibles} todos={perfiles} usadoEn={usadoEn} proveedores={proveedores} onCambiarPrecio={onCambiarPrecio}
+          idElegido={proveedor} pago={pago} onActualizar={onActualizarPerfil} onAgregar={onAgregarPerfil} onQuitar={onQuitarPerfil} />
+      </SeccionPlegable>
 
-      <h3 className="subtitulo">Qué perfil va en cada parte</h3>
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr><th>Parte</th><th>Perfil</th></tr>
-          </thead>
-          <tbody>
-            {usosPerfil.map((item) => (
-              <tr key={item.id} {...pasar(criterioDe(item))}>
-                <td className="item-name">
-                  {item.nombre}
-                  {item.largosPiezas?.length > 0 && <BotonResaltar criterio={criterioDe(item)} />}
-                </td>
-                <td>
-                  <SelectorPerfil etiqueta={`Perfil de ${item.nombre}`} conEtiqueta={false} valor={item.perfilId}
-                    perfiles={perfiles} onElegir={(id) => onCambiarInsumo(item.id, 'perfilId', id)} />
-                  {/* Con qué otras partes corta de las mismas barras. */}
-                  {item.compartenCon && (
-                    <small className="comparte" title={item.compartenCon.join(', ')}>
-                      Comparte barras con {item.compartenCon.length > 2 ? `otros ${item.compartenCon.length} renglones del mismo perfil` : item.compartenCon.join(', ')}
-                    </small>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="grid-params">
-        <CampoNumero etiqueta="Excedente de las barras" sufijo="%" decimales={1}
-          valor={excedenteBarras} onCambio={onCambiarExcedente} />
-      </div>
-      <p className="nota">
-        Las barras suelen venir entre 1 % y 2 % más largas que su medida nominal, <strong>según el proveedor</strong>:
-        cargá el de tu proveedor. El optimizador corta sobre ese largo real.
-      </p>
-      {/* v1.20: las partes del mismo perfil cortan de las mismas barras (como en el taller). */}
-      <label className="casilla-opcional">
-        <input type="checkbox" checked={compartirCortes} onChange={(e) => onCambiarCompartir(e.target.checked)} />
-        Compartir barras entre partes del mismo perfil
-      </label>
-
-      {otros.length > 0 && (<>
-        <h3 className="subtitulo">Otros materiales</h3>
+      <SeccionPlegable clave="usosPerfil" titulo="Qué perfil va en cada parte" resumen={`${usosPerfil.length} partes`}>
         <div className="table-wrap">
           <table>
             <thead>
-              <tr><th>Material</th><th>Descripción</th></tr>
+              <tr><th>Parte</th><th>Perfil</th></tr>
             </thead>
             <tbody>
-              {otros.map((item) => (
-                <tr key={item.id}>
-                  <td className="item-name">{item.nombre}</td>
+              {usosPerfil.map((item) => (
+                <tr key={item.id} {...pasar(criterioDe(item))}>
+                  <td className="item-name">
+                    {item.nombre}
+                    {item.largosPiezas?.length > 0 && <BotonResaltar criterio={criterioDe(item)} />}
+                  </td>
                   <td>
-                    <input className="perfil" type="text" value={item.perfil}
-                      aria-label={`Descripción de ${item.nombre}`}
-                      onChange={(e) => onCambiarInsumo(item.id, 'perfil', e.target.value)} />
-                    {/* v1.25: precio en cada proveedor (el renglón del catálogo, no el del presupuesto). */}
-                    <PreciosProveedores material={catalogo.find((c) => c.id === item.id) ?? item} proveedores={proveedores}
-                      unidad={item.unidad} onCambiar={(idProveedor, campo, valor) => onCambiarPrecio(item.id, idProveedor, campo, valor)} />
+                    <SelectorPerfil etiqueta={`Perfil de ${item.nombre}`} conEtiqueta={false} valor={item.perfilId}
+                      perfiles={perfiles} onElegir={(id) => onCambiarInsumo(item.id, 'perfilId', id)} />
+                    {/* Con qué otras partes corta de las mismas barras. */}
+                    {item.compartenCon && (
+                      <small className="comparte" title={item.compartenCon.join(', ')}>
+                        Comparte barras con {item.compartenCon.length > 2 ? `otros ${item.compartenCon.length} renglones del mismo perfil` : item.compartenCon.join(', ')}
+                      </small>
+                    )}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      </>)}
 
-      {/* v1.29: accesorios. v1.48: la cantidad se estima sola con las medidas de la obra, o se carga a mano. */}
-      <h3 className="subtitulo">Accesorios y consumibles (tornillería, electrodos, selladores, antióxido…)</h3>
-      <p className="nota">
-        Lo que se compra aparte de la estructura. "Estimada sola" calcula la cantidad con los kilos de hierro, su
-        superficie o los m² de paneles por un coeficiente que podés cambiar; "a mano" usa la que cargues. Cargá el
-        precio de cada proveedor (sin precio = ese proveedor no lo vende). Con cantidad 0 no entra al presupuesto.
-      </p>
-      <ul className="opening-list">
-        {accesorios.map((a) => (
-          <Accesorio key={a.id} accesorio={a} calculado={items.find((i) => i.id === a.id) ?? null} proveedores={proveedores} onCambiar={onActualizarPerfil}
-            onQuitar={onQuitarAccesorio} onCambiarPrecio={onCambiarPrecio} />
-        ))}
-      </ul>
-      <button className="btn-add no-print" onClick={onAgregarAccesorio}>+ Agregar accesorio</button>
-
-      {revestimientos && (<>
-        <h3 className="subtitulo">Revestimientos (paneles, chapas, placas)</h3>
+        <div className="grid-params">
+          <CampoNumero etiqueta="Excedente de las barras" sufijo="%" decimales={1}
+            valor={excedenteBarras} onCambio={onCambiarExcedente} />
+        </div>
         <p className="nota">
-          Cada pared elige su revestimiento exterior y, si lleva, el interior; el techo, el suyo.
-          <strong> A medida</strong>: se piden tiras del alto de la pared (si pasa el largo máximo, van en tramos).
-          <strong> Placa fija</strong>: se cuentan placas enteras. <strong>Ubicación</strong>: sobre los perfiles (tapa
-          la estructura) o embutido entre perfiles; lo decide el herrero según el revestimiento.
+          Las barras suelen venir entre 1 % y 2 % más largas que su medida nominal, <strong>según el proveedor</strong>:
+          cargá el de tu proveedor. El optimizador corta sobre ese largo real.
         </p>
-        <ul className="opening-list">
-          {revestimientos.map((tipo) => (
-            <Revestimiento key={tipo.id} tipo={tipo} unidad={unidad} usos={usosDeRevestimiento(tipo.id)}
-              unicoQueda={revestimientos.length === 1} onCambiar={onCambiarInsumo} onQuitar={onQuitarRevestimiento}
-              proveedores={proveedores} onCambiarPrecio={onCambiarPrecio} />
+        {/* v1.20: las partes del mismo perfil cortan de las mismas barras (como en el taller). */}
+        <label className="casilla-opcional">
+          <input type="checkbox" checked={compartirCortes} onChange={(e) => onCambiarCompartir(e.target.checked)} />
+          Compartir barras entre partes del mismo perfil
+        </label>
+      </SeccionPlegable>
+
+      {/* v1.65: antes una tabla; ahora cada material plegable con su precio en el encabezado. */}
+      {otros.length > 0 && (
+        <SeccionPlegable clave="otros" titulo="Otros materiales de la obra" resumen={`${otros.length}`}>
+          <p className="nota">Los que salen solos de la obra (OSB, pilotines, madera, mesadas, obra civil…). La cantidad la calcula la app.</p>
+          <div className="lista-fichas">
+            {otros.map((item) => (
+              <FichaPlegable key={item.id} clave={`material:${item.id}`} className="rubro"
+                encabezado={<><strong>{item.nombre}</strong><small>{item.cantidad} {item.unidad}</small><PrecioCorto precio={precioDe(delCatalogo(item))} /></>}>
+                <div className="grid-params">
+                  <div className="group">
+                    <label htmlFor={`desc-otro-${item.id}`}>Descripción</label>
+                    <input id={`desc-otro-${item.id}`} className="perfil" type="text" value={item.perfil}
+                      onChange={(e) => onCambiarInsumo(item.id, 'perfil', e.target.value)} />
+                  </div>
+                </div>
+                {/* v1.25: precio en cada proveedor (el renglón del catálogo, no el del presupuesto). */}
+                <PreciosProveedores material={delCatalogo(item)} proveedores={proveedores}
+                  unidad={item.unidad} onCambiar={(idProveedor, campo, valor) => onCambiarPrecio(item.id, idProveedor, campo, valor)} />
+              </FichaPlegable>
+            ))}
+          </div>
+        </SeccionPlegable>
+      )}
+
+      {/* v1.29: accesorios. v1.48: la cantidad se estima sola o se carga a mano. v1.65: acá se agrega cualquier material. */}
+      <SeccionPlegable clave="accesorios" titulo="Materiales que agregás vos (accesorios, consumibles y lo que falte)" resumen={`${accesorios.length}`}>
+        <p className="nota">
+          Todo lo que se compra y la app no calcula sola: tornillería, electrodos, selladores, antióxido, o cualquier
+          material nuevo. "Estimada sola" calcula la cantidad con los kilos de hierro, su superficie o los m² de paneles
+          por un coeficiente; "a mano" usa la que cargues. Con cantidad 0 no entra al presupuesto.
+        </p>
+        <div className="lista-fichas">
+          {accesorios.map((a) => (
+            <Accesorio key={a.id} accesorio={a} calculado={items.find((i) => i.id === a.id) ?? null} proveedores={proveedores}
+              precio={precioDe(a)} nuevo={esNuevo(a.id)} onCambiar={onActualizarPerfil}
+              onQuitar={onQuitarAccesorio} onCambiarPrecio={onCambiarPrecio} />
           ))}
-        </ul>
-        <button className="btn-add no-print" onClick={onAgregarRevestimiento}>+ Agregar revestimiento</button>
-      </>)}
+        </div>
+        <button className="btn-add no-print" onClick={onAgregarAccesorio}>+ Agregar material</button>
+      </SeccionPlegable>
+
+      {revestimientos && (
+        <SeccionPlegable clave="revestimientos" titulo="Revestimientos (paneles, chapas, placas)" resumen={`${revestimientos.length}`}>
+          <p className="nota">
+            Cada pared elige su revestimiento exterior y, si lleva, el interior; el techo, el suyo.
+            <strong> A medida</strong>: se piden tiras del alto de la pared (si pasa el largo máximo, van en tramos).
+            <strong> Placa fija</strong>: se cuentan placas enteras. <strong>Ubicación</strong>: sobre los perfiles (tapa
+            la estructura) o embutido entre perfiles; lo decide el herrero según el revestimiento.
+          </p>
+          <div className="lista-fichas">
+            {revestimientos.map((tipo) => (
+              <Revestimiento key={tipo.id} tipo={tipo} unidad={unidad} usos={usosDeRevestimiento(tipo.id)}
+                unicoQueda={revestimientos.length === 1} onCambiar={onCambiarInsumo} onQuitar={onQuitarRevestimiento}
+                proveedores={proveedores} precio={precioDe(tipo)} nuevo={esNuevo(tipo.id)} onCambiarPrecio={onCambiarPrecio} />
+            ))}
+          </div>
+          <button className="btn-add no-print" onClick={onAgregarRevestimiento}>+ Agregar revestimiento</button>
+        </SeccionPlegable>
+      )}
     </Tarjeta>
   );
 }
