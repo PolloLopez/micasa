@@ -26,3 +26,22 @@ export function describirPieza(pieza, ladoFrente) {
   const donde = pieza.grupos.map((g) => nombreGrupo(g, ladoFrente)).join(' y ');
   return `${tipo} · ${donde} · ${pieza.largo.toFixed(2)} m`;
 }
+
+/**
+ * v1.64: las características de una pieza, para verla antes de restaurarla o quitarla.
+ * @param perfil  nombre del perfil con que se cotiza (ver perfilDePieza en coloresPerfil.js)
+ * @returns string[]  ej. ["Caño 80x80x2", "2,45 m", "vertical", "de 0,00 a 2,45 m de altura"]
+ */
+export function detallesDePieza(pieza, perfil) {
+  const m = (n) => `${n.toFixed(2).replace('.', ',')} m`;
+  const { desde, hasta } = pieza;
+  const detalles = [perfil, m(pieza.largo)];
+  if (!desde || !hasta) return detalles;
+  const horizontal = Math.hypot(hasta[0] - desde[0], hasta[2] - desde[2]);
+  const subida = Math.abs(hasta[1] - desde[1]);
+  detalles.push(horizontal < 1e-6 ? 'vertical' : subida < 1e-6 ? 'horizontal' : 'inclinada');
+  const [abajo, arriba] = [Math.min(desde[1], hasta[1]), Math.max(desde[1], hasta[1])];
+  const n = (x) => x.toFixed(2).replace('.', ',');
+  detalles.push(subida < 1e-6 ? `a ${m(abajo)} de altura` : `de ${n(abajo)} a ${m(arriba)} de altura`);
+  return detalles;
+}

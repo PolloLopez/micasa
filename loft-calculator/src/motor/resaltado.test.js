@@ -67,3 +67,22 @@ describe('criterios', () => {
     expect(mismoCriterio(null, { tipo: 'grupo', id: 'A' })).toBe(false);
   });
 });
+
+describe('v1.64: resaltar una pieza por su id (lista de agregadas, eliminadas y editadas)', () => {
+  const p = (id) => ({ id, grupos: [] });
+  it('la pieza y sus tramos, nada más', () => {
+    const c = { tipo: 'pieza', id: ['col:1,2'] };
+    expect(piezaResaltada(p('col:1,2'), c, [])).toBe(true);
+    expect(piezaResaltada(p('col:1,2~2'), c, [])).toBe(true);
+    expect(piezaResaltada(p('col:1,20'), c, [])).toBe(false);
+    expect(contarResaltadas([p('col:1,2'), p('col:1,2~1'), p('viga:3')], c, [])).toBe(2);
+  });
+  it('una eliminada se encuentra entre las eliminadas (para dibujarla como fantasma)', () => {
+    const entera = generarEstructura(P, ABERTURAS_INICIALES);
+    const col = listarPiezas(entera).find((x) => x.tipo === 'columna');
+    const sin = generarEstructura({ ...P, piezasEliminadas: [col.id] }, ABERTURAS_INICIALES);
+    const c = { tipo: 'pieza', id: [col.id] };
+    expect(contarResaltadas(listarPiezas(sin), c, CATALOGO_INICIAL)).toBe(0);
+    expect(contarResaltadas(sin.eliminadasEncontradas, c, CATALOGO_INICIAL)).toBe(1);
+  });
+});

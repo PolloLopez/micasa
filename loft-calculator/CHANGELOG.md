@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.64.0] - 2026-11-16
+### Agregado
+- **Piezas agregadas, eliminadas y editadas**: cada renglón muestra sus características (perfil, largo, vertical /
+  horizontal / inclinada y a qué altura) y un 👁. Con el mouse encima la pieza se pinta en el 3D; una **eliminada** se
+  dibuja como fantasma rosa en su lugar, para verla antes de restaurarla. Nuevo criterio de resaltado `{ tipo: 'pieza' }`
+  (incluye sus tramos `id~n`).
+### Cambiado
+- **Ver estructura de hierro** también oculta los tabiques (el baño de montantes PGC) y sus etiquetas.
+
 ## [1.63.1] - 2026-11-16
 ### Cambiado
 - Ficha del revestimiento: "Ancho útil" y "Solape" parecían lo mismo. Ahora dicen qué es cada uno: **Ancho útil (lo que

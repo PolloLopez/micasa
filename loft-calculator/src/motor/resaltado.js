@@ -8,6 +8,8 @@
 //   { tipo: 'perfil',  id: 'perfil-3' }   piezas hechas con ese perfil
 //   { tipo: 'renglon', id: 'columna' }    piezas que suman a ese renglón
 //                                         (también 'columna@perfil-3', los por pared)
+//   { tipo: 'pieza',   id: ['col:-375,225'] }  (v1.64) esas piezas (y sus tramos 'id~n'),
+//                      también las ELIMINADAS: el 3D las dibuja como fantasma
 //   { tipo: 'grupo',   id: 'A' | 'piso' | 'piso2' | 'techo' | 'escalera' | … }
 //                      (o una lista: id: ['piso', 'piso2'])
 //
@@ -44,6 +46,11 @@ export function piezaResaltada(p, criterio, catalogo) {
     // El marco de piso de una pared está en el grupo 'piso': se la reconoce por el id.
     const grupos = Array.isArray(criterio.id) ? criterio.id : [criterio.id];
     return grupos.some((g) => p.grupos.includes(g) || p.id === `marco-piso:${g}`);
+  }
+  if (criterio.tipo === 'pieza') {
+    // Una pieza editada o cortada por las uniones queda en tramos 'id~1', 'id~2'…: también cuentan.
+    const ids = Array.isArray(criterio.id) ? criterio.id : [criterio.id];
+    return ids.some((id) => p.id === id || p.id.startsWith(`${id}~`));
   }
   const compra = compraDePieza(p, catalogo);
   if (criterio.tipo === 'perfil') return compra.perfil === criterio.id;

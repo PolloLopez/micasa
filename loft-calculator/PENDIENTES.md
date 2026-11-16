@@ -3,7 +3,7 @@
 Última limpieza: 2026-11-11 (v1.49.0). Espejo en Trello: tablero "Desarrollo", tarjetas `[CALC]`.
 
 ## 📌 Estado y próximos pasos (11/11)
-**En GitHub: hasta v1.61.0. v1.62.0 a v1.63.1 por subir** (desde v1.54 el deploy es automático al pushear). Manual de uso para chequear: `MANUAL.md`.
+**En GitHub: hasta v1.61.0. v1.62.0 a v1.64.0 por subir** (desde v1.54 el deploy es automático al pushear). Manual de uso para chequear: `MANUAL.md`.
 
 🟡 **Para chequear en pantalla** (probado con tests, no visto): el sol con "Ver adentro" entra solo por las aberturas;
 la persona se sienta en el sillón y se acuesta en la cama; las puertas de los tabiques se abren al pasar.

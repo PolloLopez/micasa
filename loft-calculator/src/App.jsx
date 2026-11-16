@@ -88,7 +88,9 @@ import {
 } from './proyecto/biblioteca.js';
 import MisProyectos from './componentes/MisProyectos.jsx';
 import { historialVacio, registrarCambio, deshacer, rehacer } from './proyecto/historial.js';
-import { describirPieza } from './descripcionPiezas.js';
+import { describirPieza, detallesDePieza } from './descripcionPiezas.js';
+import FilaPiezaCambiada from './componentes/FilaPiezaCambiada.jsx';
+import { perfilDePieza } from './motor/coloresPerfil.js';
 import './App.css';
 
 // v1.62: ancho del panel de datos (px): de fábrica, el mínimo para que se lea y el máximo (dejando lugar al 3D).
@@ -434,7 +436,9 @@ export default function App() {
     },
   }), [resaltadoFijo]);
   const cantidadResaltadas = useMemo(
-    () => (resaltado ? contarResaltadas(listarPiezas(estructura), resaltado, catalogoResuelto) : 0),
+    // v1.64: una pieza eliminada se dibuja como fantasma: también cuenta.
+    () => (resaltado ? contarResaltadas(resaltado.tipo === 'pieza' ? [...listarPiezas(estructura), ...(estructura.eliminadasEncontradas ?? [])]
+      : listarPiezas(estructura), resaltado, catalogoResuelto) : 0),
     [resaltado, estructura, catalogoResuelto]);
   const cartelResaltado = resaltado
     ? `${resaltado.nombre}: ${cantidadResaltadas === 0 ? 'no hay piezas' : `${cantidadResaltadas} pieza${cantidadResaltadas === 1 ? '' : 's'}`}${resaltado === resaltadoFijo ? ' (fijado)' : ''}`
@@ -1388,13 +1392,10 @@ export default function App() {
                   {params.piezasAgregadas.map((agregada) => {
                     const actual = listarPiezas(estructura).find((p) => p.id === agregada.id) ?? agregada;
                     return (
-                      <li key={agregada.id} className="abertura pieza-eliminada">
-                        <span>
-                          {describirPieza(actual, params)} · {catalogo.find((p) => p.id === agregada.insumo)?.nombre}
-                          <small className="detalle"> · {agregada.id}</small>
-                        </span>
-                        <button className="btn-sec no-print" onClick={() => eliminarPieza(agregada.id)}>Quitar</button>
-                      </li>
+                      <FilaPiezaCambiada key={agregada.id} id={agregada.id}
+                        titulo={`${describirPieza(actual, params)} · ${catalogo.find((p) => p.id === agregada.insumo)?.nombre ?? ''}`}
+                        detalles={detallesDePieza(actual, perfilDePieza(actual, catalogoResuelto))}
+                        accion={{ texto: 'Quitar', alHacer: () => eliminarPieza(agregada.id) }} />
                     );
                   })}
                 </ul>
@@ -1410,18 +1411,14 @@ export default function App() {
                     // antes se buscaba solo el id entero y, al no estar, la app se caía.
                     const actual = original ? piezaEditadaEnLaEstructura(piezasDeLaEstructura, id) : null;
                     return (
-                      <li key={id} className="abertura pieza-eliminada">
-                        <span>
-                          {original && actual
-                            ? <>{describirPieza(original, params)} · {original.largo.toFixed(2)} → {actual.largo.toFixed(2)} m
-                              {actual.tramos > 1 && <> (en {actual.tramos} tramos)</>}
-                              {actual.insumo && <> · {catalogo.find((p) => p.id === actual.insumo)?.nombre}</>}
-                              {actual.recorteIgnorado && <strong className="error"> · el recorte ya no entra</strong>}</>
-                            : <em>Ya no existe en el modelo (cambió una medida)</em>}
-                          <small className="detalle"> · {id}</small>
-                        </span>
-                        <button className="btn-sec no-print" onClick={() => editarPieza(id, {})}>Deshacer</button>
-                      </li>
+                      <FilaPiezaCambiada key={id} id={id}
+                        titulo={original && actual ? `${describirPieza(original, params)} · ${original.largo.toFixed(2)} → ${actual.largo.toFixed(2)} m` : 'Ya no existe en el modelo (cambió una medida)'}
+                        detalles={original && actual ? detallesDePieza(original, perfilDePieza(original, catalogoResuelto)) : []}
+                        accion={{ texto: 'Deshacer', alHacer: () => editarPieza(id, {}) }}>
+                        {actual?.tramos > 1 && <> (en {actual.tramos} tramos)</>}
+                        {actual?.insumo && <> · {catalogo.find((p) => p.id === actual.insumo)?.nombre}</>}
+                        {actual?.recorteIgnorado && <strong className="error"> · el recorte ya no entra</strong>}
+                      </FilaPiezaCambiada>
                     );
                   })}
                 </ul>
@@ -1434,14 +1431,12 @@ export default function App() {
                 <ul className="opening-list">
                   {params.piezasEliminadas.map((id) => {
                     const pieza = estructura.eliminadasEncontradas.find((p) => p.id === id);
+                    // v1.64: con el mouse encima se ve en el 3D como fantasma, con sus características, antes de restaurarla.
                     return (
-                      <li key={id} className="abertura pieza-eliminada">
-                        <span>
-                          {pieza ? describirPieza(pieza, params) : <em>Ya no existe en el modelo (cambió una medida)</em>}
-                          <small className="detalle"> · {id}</small>
-                        </span>
-                        <button className="btn-sec no-print" onClick={() => restaurarPieza(id)}>Restaurar</button>
-                      </li>
+                      <FilaPiezaCambiada key={id} id={id}
+                        titulo={pieza ? describirPieza(pieza, params) : 'Ya no existe en el modelo (cambió una medida)'}
+                        detalles={pieza ? detallesDePieza(pieza, perfilDePieza(pieza, catalogoResuelto)) : []}
+                        accion={{ texto: 'Restaurar', alHacer: () => restaurarPieza(id) }} />
                     );
                   })}
                 </ul>

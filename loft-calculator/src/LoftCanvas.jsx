@@ -171,6 +171,10 @@ function crearMateriales(colores) {
   materiales.resaltado = new THREE.MeshStandardMaterial({
     color: COLOR_RESALTADO, emissive: COLOR_RESALTADO, emissiveIntensity: 0.7, depthTest: false, transparent: true, opacity: 0.95,
   });
+  // v1.64: pieza ELIMINADA vista desde la lista (para decidir si se restaura): el mismo rosa, algo transparente y más gruesa.
+  materiales.fantasma = new THREE.MeshStandardMaterial({
+    color: COLOR_RESALTADO, emissive: COLOR_RESALTADO, emissiveIntensity: 0.9, depthTest: false, transparent: true, opacity: 0.75, depthWrite: false,
+  });
   return materiales;
 }
 
@@ -380,6 +384,14 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
     if (!p.nivel && p.grupos.length > 0 && p.grupos.every((g) => DE_PARED.has(g))) malla.userData.ladosPared = p.grupos;
     grupo.add(malla);
   });
+  // v1.64: las eliminadas que se miran desde la lista se dibujan como fantasma en su lugar (no se pueden elegir).
+  if (resaltado?.tipo === 'pieza') {
+    (e.eliminadasEncontradas ?? []).filter((p) => piezaResaltada(p, resaltado, catalogo)).forEach((p) => {
+      const malla = barra(p, seccionDe(p, catalogo, ESTILO_PIEZA[p.tipo] ?? { seccion: 0.08 }) * 1.8, materiales.fantasma);
+      malla.renderOrder = 997;
+      grupo.add(malla);
+    });
+  }
 
   // Escalones y piso del descanso (madera): cajas finas orientadas según el tramo.
   if (e.escalera && capas.escalones && grupoVisible('escalera')) {
@@ -1100,6 +1112,8 @@ export default function LoftCanvas({
     // v1.62: también sin mesadas (de mampostería), sin las instalaciones y sin personas ni perros (ver el efecto de abajo).
     return soloHierro
       ? { ...base, paneles: false, osb: false, aberturas: false, escalones: false, muebles: false, tapasMesada: false, placasTabiques: false,
+        // v1.64 (Leandro): los tabiques (el baño de montantes PGC) tampoco: no son de la estructura de hierro.
+        tabiques: false, etiquetasTabiques: false,
         chapa: false, juntas: false, madera: false, mesadas: false, etiquetasMesadas: false, etiquetasMuebles: false,
         instElectrica: false, instAgua: false, instDesague: false, instGas: false }
       : base;

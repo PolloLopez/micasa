@@ -30,8 +30,13 @@ luz, + Cámara séptica, + Pozo séptico). Abajo, "Lo que lleva" cada parte y lo
 En **Pisos**: "Altura de tirantes y transversales" (al ras del borde o eje con eje), en planta baja y en el piso 2.
 En **Techo**: "Vigas y correas" (apoyadas o en el mismo plano) y su altura.
 
+**Piezas agregadas, eliminadas y editadas**: cada renglón dice el perfil, el largo, si es vertical u horizontal y a qué
+altura. Pasá el mouse por encima (o tocá el 👁) y la pieza se pinta de rosa en el 3D; si está **eliminada** aparece
+como fantasma en su lugar, así ves cuál es antes de tocar **Restaurar**.
+
 ✔ Chequeá:
 - Con "Arriba al ras del borde", los perfiles C del piso quedan con la cara de arriba pareja con el borde.
+- Pasando el mouse por una pieza eliminada, aparece rosa en el 3D y el cartel dice "1 pieza".
 - Cambiar "Tirantes y transversales" ya no traba la app (aunque tengas piezas editadas a mano).
 - Si la escalera no entra, su tarjeta avisa "La escalera se sale de la planta".
 - Con terreno, tildá "Lateral izquierdo" y "Fondo" en el tapial: en el 3D aparece el muro y el largo es la suma de esos
@@ -81,7 +86,7 @@ Por perfil) y **herramientas** (Recorrer, Medir, **?** = cómo moverse). Con el 
 | Ver frente | Vuelve a la vista de frente |
 | ☀ Sol | Sol del día y la hora que elijas, con sombras |
 | ✨ Realista | Paneles sólidos, reflejos, sin ayudas de dibujo |
-| 🔩 Ver estructura de hierro | Oculta maderas, revestimientos, aberturas, muebles, mesadas, instalaciones, personas y perros: quedan marcos, montantes y perfiles C |
+| 🔩 Ver estructura de hierro | Oculta maderas, revestimientos, aberturas, muebles, mesadas, instalaciones, tabiques (el baño de montantes), personas y perros: quedan marcos, montantes y perfiles C |
 | 🎨 Color por perfil | (Prendido de fábrica) cada pieza del color de su caño: el mismo perfil, el mismo color, con leyenda de piezas y metros |
 | 🏠 Ver adentro | Oculta las paredes (y el techo) que te tapan mientras girás |
 | 👁 Primera persona | Ves a la altura de los ojos (arrastrás para mirar, W A S D para caminar, Esc sale) |
