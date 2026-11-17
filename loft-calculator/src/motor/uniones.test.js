@@ -111,7 +111,7 @@ describe('perfil propio del marco de cada abertura', () => {
 describe('datos de las uniones', () => {
   it('los proyectos viejos pasan a la red; se valida la luz', () => {
     const { uniones, ...viejo } = P;
-    const deFabrica = { solerasColumnas: 'soleras', columnasFajas: 'columnas', montantesFajas: 'montantes', bordesTirantes: 'bordes', tirantesTransversales: 'tirantes', tirantesTransversales2: 'tirantes', vigasCorreas: 'apoyadas' };
+    const deFabrica = { solerasColumnas: 'soleras', columnasFajas: 'columnas', montantesFajas: 'montantes', bordesTirantes: 'bordes', bordesTirantes2: 'bordes', tirantesTransversales: 'tirantes', tirantesTransversales2: 'tirantes', vigasCorreas: 'apoyadas' };
     const ras = { piso: 'ras', piso2: 'ras', techo: 'ras' }; // v1.60
     expect(migrarParams(viejo).uniones).toEqual({ modo: 'red', luz: 0, enteras: deFabrica, ras });
     expect(completarUniones({ modo: 'eje', luz: 0.002, enteras: { columnasFajas: 'fajas', otra: 'x' }, ras: { piso2: 'eje' } }))
@@ -282,5 +282,21 @@ describe('v1.61: techo en el mismo plano con marco perimetral', () => {
     expect(viga.largo).toBeCloseTo(viga.largoEje - 2 * mitadBorde, 3);
     // Las correas de adentro se cortan en cada viga y terminan contra las puntas.
     expect(e.techo.correas.every((p) => p.id.includes('~'))).toBe(true);
+  });
+});
+
+describe('v1.68: borde y tirantes por piso', () => {
+  it('el piso 2 elige el suyo; los proyectos de antes copian el de la planta baja', () => {
+    expect(completarUniones({ modo: 'red', luz: 0, enteras: { bordesTirantes: 'tirantes' } }).enteras.bordesTirantes2).toBe('tirantes');
+    expect(completarUniones({ modo: 'red', luz: 0, enteras: { bordesTirantes: 'tirantes', bordesTirantes2: 'bordes' } }).enteras.bordesTirantes2).toBe('bordes');
+  });
+  it('con los tirantes enteros solo en el piso 2, el borde de la planta baja no cambia', () => {
+    const conEntrepiso = { ...P, anchoEntrepiso: 3 };
+    const base = completarUniones(conEntrepiso.uniones);
+    const conBorde2 = (v) => generarEstructura({ ...conEntrepiso, uniones: { ...base, enteras: { ...base.enteras, bordesTirantes2: v } } }, ABERTURAS_INICIALES, CATALOGO);
+    const cuantos = (e, tipo) => listarPiezas(e).filter((p) => p.tipo === tipo).length;
+    const [antes, despues] = [conBorde2('bordes'), conBorde2('tirantes')];
+    expect(cuantos(despues, 'marco-piso')).toBe(cuantos(antes, 'marco-piso')); // planta baja igual
+    expect(cuantos(despues, 'marco-piso2')).toBeGreaterThan(cuantos(antes, 'marco-piso2')); // piso 2: borde en tramos
   });
 });

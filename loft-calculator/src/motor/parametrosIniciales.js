@@ -74,6 +74,9 @@ export const PARAMS_INICIALES = {
 
   // Compras
   excedenteBarras: 1, // % que las barras traen de más (vienen entre 1 % y 2 % más largas)
+  mermaCorte: 3, // v1.68: mm que se lleva el disco en cada corte (antes fijo)
+  retazoMinimo: 0.3, // v1.68: m: un sobrante desde este largo es un retazo que se guarda (antes fijo)
+  empalmesSobreApoyo: true, // v1.68: la unión de una pieza empalmada cae sobre un apoyo (si no, donde rinda más)
   compartirCortes: true, // v1.19.1: renglones del mismo perfil cortan de las mismas barras
   proveedorElegido: '', // v1.25: id del proveedor con el que se calcula ('' = el primero); 'mas-barato' = cada material al menor precio
   formaPago: 'efectivo', // v1.25: 'efectivo' | 'tarjeta'

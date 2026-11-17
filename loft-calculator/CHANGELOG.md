@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.68.0] - 2026-11-17
+### Agregado
+- **Hoja de corte**: cada barra numerada (Barra 2.3 = grupo 2, barra 3) y cada pieza con su letra. El mismo código (2.3b)
+  sale al tocar la pieza en el 3D y, con "Número de corte en cada pieza", en los planos. Con el mouse sobre una barra
+  (o su 👁) se pintan sus piezas en el 3D. motor/hojaDeCorte.js.
+- **Empalmes sobre un apoyo**: una pieza más larga que la barra se une donde cruza otra (viga, transversal, columna) y
+  el optimizador prueba las formas posibles y se queda con la que gasta menos barras. Se puede apagar ("donde rinda
+  más"). motor/empalmes.js.
+- **Disco y retazo editables** (Materiales → Qué perfil va en cada parte): mm por corte (antes 3 fijos) y desde qué
+  largo un sobrante se guarda (antes 30 cm fijos).
+- **Revestimientos**: ancho total y encastre (el ancho útil sale solo: total − encastre, ej. 1000 − 50 = 950 mm);
+  costado mínimo al lado de una abertura (antes 30 cm fijos); dónde va la tira angosta (derecha, izquierda o repartida).
+- **Rellenos de recortes**: cada relleno al costado de una abertura sale del recorte de otra tira (dice de cuál) o del
+  sobrante de una angosta; si no hay, se compra (entra en la cuenta).
+- Las juntas de los rellenos se ven en el 3D.
+### Cambiado
+- **Pisos**: cada piso con sus preguntas: cómo se cruzan tirantes y transversales (mismo plano o apoyados), qué queda
+  entero, la altura y **borde y tirantes** (ahora por piso; antes uno para los dos). Se sacaron de Materiales → Uniones
+  (estaban repetidos), igual que vigas y correas (quedan en Techo). componentes/ArmadoPiso.jsx.
+- El optimizador recuerda los últimos resultados (el presupuesto con cada proveedor no se vuelve a calcular).
+
 ## [1.67.0] - 2026-11-16
 ### Agregado
 - **Plano de cada panel** (Planos, debajo de cada pared, y en el PDF): un dibujo por pedazo a pedir con su ancho y largo,

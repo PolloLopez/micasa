@@ -189,3 +189,9 @@ export const PERFILES_DE_PARED = {
   perfilMarcos: INSUMO.MARCO,
 };
 export const CAMPOS_PERFIL_PARED = Object.keys(PERFILES_DE_PARED);
+
+/** v1.68: datos de corte del herrero (si faltan, los de fábrica: proyectos y pruebas de antes). */
+export const LIMITES_CORTE = {
+  mermaCorte: { min: 0, max: 10 }, // mm que se lleva el disco en cada corte
+  retazoMinimo: { min: 0, max: 3 }, // m desde los que un sobrante es retazo (se guarda)
+};

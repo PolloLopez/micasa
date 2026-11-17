@@ -935,5 +935,12 @@ input[type=date] { color-scheme: dark; }
 .panel-despiece figcaption { max-width: 170px; }
 .panel-despiece .contorno-panel { fill: #e0f2fe; stroke: #0f172a; stroke-width: 1.2; }
 .panel-despiece .lado-superpone { stroke: #16a34a; stroke-width: 5; }
+.panel-despiece .franja-superpone { fill: #16a34a; opacity: 0.55; }
 .panel-despiece .cota-panel { font-size: 10px; fill: #0f172a; }
 .panel-despiece .cota-recorte { font-size: 9px; fill: #b91c1c; font-weight: 600; }
+
+/* v1.68: hoja de corte. */
+.codigos-corte text { fill: #0f172a; font-weight: 600; paint-order: stroke; stroke: #fff; stroke-width: 0.03; }
+.piece-block.tramo-empalme { outline: 2px dashed #f59e0b; outline-offset: -2px; }
+.codigo-corte { color: #facc15; font-weight: 600; }
+.ancho-util { grid-column: 1 / -1; margin: 0; }

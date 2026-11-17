@@ -1,6 +1,7 @@
 // Tests de los cortes de los paneles (v1.63). Correr con: npm test
 import { describe, it, expect } from 'vitest';
-import { cortesDeTiras, retazosEntreParedes, sugerenciaParaAbertura, tiraEnPunto, pedazosDeLaTira } from './cortesPaneles.js';
+import { franjasDeTiras, juntasDePano } from './revestimientos.js';
+import { cortesDeTiras, retazosEntreParedes, sugerenciaParaAbertura, tiraEnPunto, pedazosDeLaTira, rellenosDeLaObra } from './cortesPaneles.js';
 
 const panel = { venta: 'medida', anchoUtil: 1, largoMaximo: 12, solape: 0 };
 
@@ -21,7 +22,7 @@ describe('tamaños y cortes de cada tira', () => {
     // v1.67: de 1 a 2 la ventana deja 0,20 m al costado (menos de 0,30): la tira va en dos pedazos (abajo 1,00 y
     // arriba 0,60) y el costado se rellena con un retazo de 0,20 × 1,00.
     expect(tiras[1].pedidos).toEqual([1, 0.6]);
-    expect(tiras[1].cortes).toEqual(['va en 2 pedazos (abajo y arriba de la abertura)', 'relleno al costado izquierdo de la abertura: 0,20 × 1,00 m (de un retazo)']);
+    expect(tiras[1].cortes).toEqual(['va en 2 pedazos (abajo y arriba de la abertura)', 'relleno al costado izquierdo de la abertura: 0,20 × 1,00 m']);
     expect(tiras[2].pedidos).toEqual([2.6]); // de 2 a 3: la ventana llega hasta 2,70, le quedan 0,30: se recorta
     expect(tiras[2].cortes[0]).toBe('recortar 0,70 × 1,00 m (a 0,00 m de su borde izquierdo, de 1,00 a 2,00 m del piso)');
     expect(desperdicio).toBeCloseTo(0.7, 6); // lo recortado de la 3 (de ahí sale el relleno de la 2)
@@ -78,7 +79,7 @@ describe('v1.67: tiras partidas por una abertura y el plano de cada pedazo', () 
   const { tiras } = cortesDeTiras(pano, panel);
   it('la tira 7 va en dos pedazos (abajo 1,20 y arriba 2,25) con un relleno de 0,10 × 0,80 a la izquierda', () => {
     expect(tiras[6].pedidos).toEqual([1.2, 2.25]);
-    expect(tiras[6].rellenos).toEqual([{ lado: 'izquierdo', ancho: expect.closeTo(0.1, 6), abajo: 1.2, arriba: 2 }]);
+    expect(tiras[6].rellenos).toEqual([{ lado: 'izquierdo', ancho: expect.closeTo(0.1, 6), abajo: 1.2, arriba: 2, x0: 6, x1: 6.1 }]);
     expect(tiras[6].cortes.some((c) => c.startsWith('recortar'))).toBe(false);
     // La 8 (de 7 a 7,50, angosta): la ventana le deja 0,20 a la derecha: también partida.
     expect(tiras[7].pedidos).toEqual([1.2, 2.25]);
@@ -98,5 +99,35 @@ describe('v1.67: tiras partidas por una abertura y el plano de cada pedazo', () 
     expect(pedazo.recortes).toEqual([{ x0: expect.closeTo(0.4, 6), x1: 1, y0: 0, y1: 2 }]);
     expect(pedazo.arriba[0]).toBeCloseTo(2.8);
     expect(pedazo.arriba[1]).toBeCloseTo(3);
+  });
+});
+
+describe('v1.68: costado mínimo, dónde va la tira angosta y de dónde salen los rellenos', () => {
+  const pano = { largo: 7.5, h1: 4.25, h2: 4.25, huecos: [{ desde: 6.1, hasta: 7.3, abajo: 1.2, arriba: 2 }], donde: 'Frente' };
+  it('el costado mínimo es de cada revestimiento (0 = solo si la tapa de lado a lado)', () => {
+    expect(cortesDeTiras(pano, { ...panel, costadoMinimo: 0 }).tiras[6].pedidos).toEqual([4.25]);
+    expect(cortesDeTiras(pano, { ...panel, costadoMinimo: 0.05 }).tiras[6].pedidos).toEqual([4.25]); // le quedan 0,10
+    expect(cortesDeTiras(pano, { ...panel, costadoMinimo: 0.15 }).tiras[6].pedidos).toEqual([1.2, 2.25]);
+  });
+  it('la tira angosta a la derecha (de fábrica), a la izquierda o repartida en las dos puntas', () => {
+    const anchos = (tiraAngosta) => franjasDeTiras(7.5, { anchoUtil: 1, tiraAngosta }).map((f) => Number((f.x1 - f.x0).toFixed(3)));
+    expect(anchos('derecha')).toEqual([1, 1, 1, 1, 1, 1, 1, 0.5]);
+    expect(anchos('izquierda')).toEqual([0.5, 1, 1, 1, 1, 1, 1, 1]);
+    expect(anchos('repartida')).toEqual([0.75, 1, 1, 1, 1, 1, 1, 0.75]);
+    expect(franjasDeTiras(3, { anchoUtil: 1, tiraAngosta: 'repartida' }).length).toBe(3); // justa: sin angosta
+    // Las juntas siguen el reparto.
+    expect(juntasDePano({ largo: 7.5, h1: 3, h2: 3 }, { ...panel, tiraAngosta: 'izquierda' }).verticales[0]).toBeCloseTo(0.5);
+  });
+  it('el relleno sale del recorte de otra tira si entra; si no, se compra', () => {
+    // Puerta de 0,80 de 2,60 a 3,40 (le saca 0,40 a la tira 3 y 0,40 a la 4): recortes de 0,40 × 2,00.
+    const conPuerta = { ...pano, huecos: [...pano.huecos, { desde: 2.6, hasta: 3.4, abajo: 0, arriba: 2 }] };
+    const { rellenos, comprar } = rellenosDeLaObra([conPuerta], panel);
+    expect(rellenos.map((r) => [r.para, r.de])).toEqual([
+      ['Frente, tira 8 (costado derecho)', 'recorte de Frente, tira 3'], ['Frente, tira 7 (costado izquierdo)', 'recorte de Frente, tira 3']]);
+    expect(comprar).toEqual([]);
+    // Sin puerta, ningún recorte: se compra un pedazo de 0,80 para los dos (entran uno al lado del otro).
+    const sinPuerta = rellenosDeLaObra([pano], panel);
+    expect(sinPuerta.rellenos.every((r) => r.de === null)).toBe(true);
+    expect(sinPuerta.comprar).toEqual([0.8]);
   });
 });

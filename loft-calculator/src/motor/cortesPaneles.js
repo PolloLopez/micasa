@@ -19,7 +19,7 @@
 // Las cuentas de compra siguen en revestimientos.js (tirasDePano).
 // ==========================================================
 
-import { pedazosDeTira, cortarEnTramos, tirasDePano, intervalosDeTira, rellenosDeTira, parteLaTira, REVESTIMIENTO_POR_DEFECTO } from './revestimientos.js';
+import { pedazosDeTira, cortarEnTramos, tirasDePano, intervalosDeTira, rellenosDeTira, parteLaTira, franjasDeTiras, REVESTIMIENTO_POR_DEFECTO } from './revestimientos.js';
 
 const EPS = 1e-6;
 const m2 = (n) => n.toFixed(2).replace('.', ',');
@@ -42,23 +42,24 @@ function tapa(h, x0, x1, alto) {
 export function cortesDeTiras(pano, tipo) {
   const t = { ...REVESTIMIENTO_POR_DEFECTO, ...tipo };
   const u = t.anchoUtil;
-  const cantidad = Math.max(1, Math.ceil(pano.largo / u - EPS));
+  const costado = t.costadoMinimo; // v1.68: por revestimiento
   const tiras = [];
-  for (let i = 0; i < cantidad; i++) {
-    const x0 = i * u;
-    const x1 = Math.min(pano.largo, (i + 1) * u);
+  franjasDeTiras(pano.largo, t).forEach(({ x0, x1 }, i) => { // v1.68: la angosta donde se eligió
     const ancho = x1 - x0;
     const [a0, a1] = [altoEn(pano, x0), altoEn(pano, x1)];
     const alto = Math.max(a0, a1);
-    const pedidos = pedazosDeTira(x0, x1, alto, pano.huecos ?? []).flatMap((p) => cortarEnTramos(p, t.largoMaximo, t.solape));
+    const pedidos = pedazosDeTira(x0, x1, alto, pano.huecos ?? [], costado).flatMap((p) => cortarEnTramos(p, t.largoMaximo, t.solape));
     const cortes = [];
     if (ancho < u - 0.005) cortes.push(`cortar a lo largo: queda de ${m2(ancho)} m de ancho`);
     if (Math.abs(a0 - a1) > 0.005) cortes.push(`corte inclinado arriba: de ${m2(a0)} a ${m2(a1)} m`);
     // La que la parte (de lado a lado, o dejándole un costado de menos de 30 cm, v1.67): ya va en pedazos.
-    const entera = (h) => parteLaTira(h, x0, x1);
-    if (pedidos.length > 1 && (pano.huecos ?? []).some(entera)) cortes.push(`va en ${pedidos.length} pedazos (abajo y arriba de la abertura)`);
-    const rellenos = rellenosDeTira(x0, x1, alto, pano.huecos ?? []);
-    rellenos.forEach((r) => cortes.push(`relleno al costado ${r.lado} de la abertura: ${m2(r.ancho)} × ${m2(r.arriba - r.abajo)} m (de un retazo)`));
+    const entera = (h) => parteLaTira(h, x0, x1, costado);
+    if ((pano.huecos ?? []).some((h) => entera(h) && tapa(h, x0, x1, alto))) {
+      // v1.68: una puerta que la parte deja solo el pedazo de arriba.
+      cortes.push(pedidos.length > 1 ? `va en ${pedidos.length} pedazos (abajo y arriba de la abertura)` : 'va solo arriba de la abertura');
+    }
+    const rellenos = rellenosDeTira(x0, x1, alto, pano.huecos ?? [], costado);
+    rellenos.forEach((r) => cortes.push(`relleno al costado ${r.lado} de la abertura: ${m2(r.ancho)} × ${m2(r.arriba - r.abajo)} m`));
     let huecos = 0;
     (pano.huecos ?? []).forEach((h) => {
       const r = tapa(h, x0, x1, alto);
@@ -71,7 +72,7 @@ export function cortesDeTiras(pano, tipo) {
     const usado = Math.max(0, (ancho * (a0 + a1)) / 2 - huecos);
     const comprado = pedidos.reduce((a, l) => a + l, 0) * u;
     tiras.push({ n: i + 1, x0, ancho, alto, a0, a1, pedidos, cortes, rellenos, usado, comprado, desperdicio: Math.max(0, comprado - usado) });
-  }
+  });
   const suma = (k) => tiras.reduce((a, x) => a + x[k], 0);
   return { tiras, comprado: suma('comprado'), usado: suma('usado'), desperdicio: suma('desperdicio') };
 }
@@ -105,7 +106,8 @@ export function retazosEntreParedes(panos, tipo) {
       sobrantes.push({ ancho: u - x.ancho, alto: x.alto, de: `${x.donde}, tira ${x.n}` });
     }
   });
-  return { reusos, ahorroPedidos, ahorroM2: ahorroPedidos.reduce((a, l) => a + l, 0) * u };
+  // v1.68: lo que quedó de los retazos (sirve para los rellenos al costado de las aberturas).
+  return { reusos, ahorroPedidos, ahorroM2: ahorroPedidos.reduce((a, l) => a + l, 0) * u, sobrantes: sobrantes.filter((s) => s.ancho > 0.01) };
 }
 
 /**
@@ -125,10 +127,9 @@ export function sugerenciaParaAbertura(pano, indice, tipo) {
   const actual = m2De(pano.huecos);
   const ancho = h.hasta - h.desde;
   const candidatos = [];
-  for (let k = Math.floor((h.desde - u) / u); k <= Math.ceil((h.hasta + u) / u); k++) {
-    const junta = k * u;
-    candidatos.push(junta - h.desde, junta - h.hasta); // el borde izquierdo o el derecho en la junta
-  }
+  // v1.68: las juntas según el reparto de las tiras (y las dos puntas de la pared).
+  const juntas = [...franjasDeTiras(pano.largo, t).map((f) => f.x0), pano.largo];
+  juntas.forEach((junta) => candidatos.push(junta - h.desde, junta - h.hasta)); // el borde izquierdo o el derecho en la junta
   let mejor = { correr: 0, m2: actual };
   candidatos.filter((d) => Math.abs(d) <= u / 2 + EPS && Math.abs(d) > 0.005).forEach((d) => {
     const nuevo = { ...h, desde: h.desde + d, hasta: h.hasta + d };
@@ -203,7 +204,7 @@ export function pedazosDeLaTira(pano, tipo, tira) {
   const x1 = tira.x0 + tira.ancho;
   const huecos = pano.huecos ?? [];
   const superpone = t.ladoSolape === 'derecha' ? 'derecha' : 'izquierda';
-  const intervalos = intervalosDeTira(tira.x0, x1, tira.alto, huecos);
+  const intervalos = intervalosDeTira(tira.x0, x1, tira.alto, huecos, t.costadoMinimo);
   const pedazos = [];
   intervalos.forEach((iv, k) => {
     // Si pasa el largo máximo, en tramos encimados (como cortarEnTramos).
@@ -215,7 +216,7 @@ export function pedazosDeLaTira(pano, tipo, tira) {
       const ultimoDeArriba = k === intervalos.length - 1 && j === largos.length - 1;
       // El borde de arriba: inclinado solo en el pedazo de más arriba (el de la pared con pendiente).
       const arriba = ultimoDeArriba ? [Math.min(y1, tira.a0 ?? y1) - y0, Math.min(y1, tira.a1 ?? y1) - y0] : [y1 - y0, y1 - y0];
-      const recortes = huecos.filter((h) => !parteLaTira(h, tira.x0, x1)).map((h) => ({
+      const recortes = huecos.filter((h) => !parteLaTira(h, tira.x0, x1, t.costadoMinimo)).map((h) => ({
         x0: Math.max(h.desde, tira.x0) - tira.x0, x1: Math.min(h.hasta, x1) - tira.x0,
         y0: Math.max(h.abajo, y0) - y0, y1: Math.min(h.arriba, y1) - y0,
       })).filter((r) => r.x1 - r.x0 > EPS && r.y1 - r.y0 > EPS);
@@ -227,4 +228,49 @@ export function pedazosDeLaTira(pano, tipo, tira) {
     });
   });
   return pedazos;
+}
+
+/**
+ * v1.68 (Leandro: "rellenos de recortes"): de dónde sale cada relleno (el costado angosto al lado de una abertura
+ * que parte una tira). Primero de lo que se RECORTA de otras tiras (el hueco de una ventana que toma una tira en
+ * parte es un pedazo de panel que sobra) y de lo que quedó de las tiras angostas; si no alcanza, se compra.
+ * Cada relleno toma el pedazo más chico donde entra (mismo sentido: el largo del panel, para arriba).
+ * @param panos     [{ largo, h1, h2, huecos, donde }] del mismo revestimiento
+ * @param sobrantes [{ ancho, alto, de }] lo que quedó de los retazos (retazosEntreParedes)
+ * @returns {{ rellenos: { para, ancho, alto, de: string|null }[], comprar: number[] }}
+ *   de = de dónde sale (null: se compra); comprar = largos de tira a pedir para los que no salen de un recorte
+ */
+export function rellenosDeLaObra(panos, tipo, sobrantes = []) {
+  const t = { ...REVESTIMIENTO_POR_DEFECTO, ...tipo };
+  const fuentes = sobrantes.map((s) => ({ ...s }));
+  const pedidos = [];
+  panos.forEach((pano) => {
+    const donde = pano.donde ?? '';
+    cortesDeTiras(pano, t).tiras.forEach((tira) => {
+      const x1 = tira.x0 + tira.ancho;
+      (pano.huecos ?? []).filter((h) => !parteLaTira(h, tira.x0, x1, t.costadoMinimo)).forEach((h) => {
+        const r = tapa(h, tira.x0, x1, tira.alto);
+        if (r) fuentes.push({ ancho: r.hasta - r.desde, alto: r.arriba - r.abajo, de: `recorte de ${donde}, tira ${tira.n}` });
+      });
+      (tira.rellenos ?? []).forEach((r) => pedidos.push({ para: `${donde}, tira ${tira.n} (costado ${r.lado})`, ancho: r.ancho, alto: r.arriba - r.abajo }));
+    });
+  });
+  // Los más grandes primero (son los que menos opciones tienen).
+  pedidos.sort((a, b) => b.ancho * b.alto - a.ancho * a.alto);
+  const sinFuente = [];
+  const rellenos = pedidos.map((p) => {
+    const f = fuentes.filter((s) => s.ancho >= p.ancho - EPS && s.alto >= p.alto - EPS).sort((a, b) => a.ancho * a.alto - b.ancho * b.alto)[0];
+    if (!f) { sinFuente.push(p); return { ...p, de: null }; }
+    f.ancho -= p.ancho; // lo que queda de ese pedazo (cortado a lo largo)
+    return { ...p, de: f.de };
+  });
+  // Los que no salen de un recorte: se piden pedazos de tira, varios rellenos uno al lado del otro en cada uno.
+  const comprar = [];
+  let libre = 0;
+  [...sinFuente].sort((a, b) => b.alto - a.alto).forEach((p) => {
+    if (libre >= p.ancho - EPS) { libre -= p.ancho; return; }
+    comprar.push(Number(p.alto.toFixed(4)));
+    libre = t.anchoUtil - p.ancho;
+  });
+  return { rellenos, comprar };
 }

@@ -9,7 +9,6 @@
 import Tarjeta from './Tarjeta.jsx';
 import CampoSelect from './CampoSelect.jsx';
 import CampoNumero from './CampoNumero.jsx';
-import { OPCIONES_PISO, FORMAS_TECHO } from '../motor/uniones.js';
 
 /**
  * @param uniones   params.uniones ({ modo: 'red'|'eje', luz en m })
@@ -21,9 +20,8 @@ const PARES = [
   ['solerasColumnas', 'Soleras y columnas', [['soleras', 'Soleras enteras, columnas entre ellas'], ['columnas', 'Columnas enteras, soleras cortadas']]],
   ['columnasFajas', 'Columnas y fajas', [['columnas', 'Columnas enteras, fajas en tramos'], ['fajas', 'Fajas enteras, columnas cortadas']]],
   ['montantesFajas', 'Montantes y fajas', [['montantes', 'Montantes enteros, fajas cortadas'], ['fajas', 'Fajas enteras, montantes cortados']]],
-  ['bordesTirantes', 'Bordes y tirantes (pisos)', [['bordes', 'Bordes enteros, tirantes entre ellos'], ['tirantes', 'Tirantes enteros, bordes cortados']]],
-  ...OPCIONES_PISO,
-  ['vigasCorreas', 'Vigas y correas (techo)', FORMAS_TECHO], // v1.60
+  // v1.68: los pisos (tirantes, transversales, borde) se eligen en Estructura → Pisos, cada piso el suyo; y vigas y
+  // correas en Estructura → Techo. Antes estaban también acá (repetido: Leandro lo veía redundante).
 ];
 
 export default function TarjetaUniones({ uniones, resultado, cambiar }) {
@@ -50,6 +48,8 @@ export default function TarjetaUniones({ uniones, resultado, cambiar }) {
               opciones={opciones} onCambio={cambiar(`uniones.enteras.${par}`)} />
           ))}
         </div>
+        <p className="nota"><strong>Pisos</strong> (qué queda entero, altura, borde y tirantes) y <strong>techo</strong> (vigas y correas)
+          se eligen en Estructura, en cada piso y en Techo.</p>
         <ul className="jerarquia-uniones">
           <li>Los lados <strong>largos</strong> de soleras, marcos y bordes quedan enteros y llegan a la esquina; los cortos van entre ellos.</li>
           <li>El <strong>marco de cada abertura</strong> (jambas enteras o dintel y alféizar enteros) se elige en la abertura, en Paredes.</li>

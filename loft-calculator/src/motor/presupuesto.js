@@ -15,6 +15,7 @@ import { armarListaDePerfiles, resolverCatalogo, nombrePerfil, kgPorMetro } from
 import { conProveedores, aplicarProveedor, renglonesDeFlete } from './proveedores.js';
 import { compartirCortes } from './cortesCompartidos.js';
 import { optimizarCortes } from './optimizadorCortes.js';
+import { apoyosDePieza } from './empalmes.js';
 import { listarPiezas } from './estructura.js';
 import { textoPilotin } from './ejes.js';
 import { INSUMO, PLACA_OSB, DESPERDICIO_PLACAS } from './constantes.js';
@@ -161,22 +162,27 @@ export const CATALOGO_INICIAL = conProveedores([
 export const tiposDePanel = (catalogo) => catalogo.filter((p) => p.categoria === 'panel');
 
 const buscar = (catalogo, id) => catalogo.find((p) => p.id === id);
-const largos = (piezas) => piezas.map((p) => p.largo);
 
 /**
  * Ítem de perfil: la cantidad de barras sale del optimizador de cortes.
  * Las barras vienen un `excedente` % más largas que su largo nominal,
  * y el optimizador corta sobre ese largo real.
  */
-function itemPerfil(producto, piezas, excedente) {
+function itemPerfil(producto, piezasObra, excedente, corte = {}, todas = []) {
   const largoReal = producto.largoBarra * (1 + excedente / 100);
-  const cortes = optimizarCortes(piezas, largoReal);
+  // v1.68: cada pieza con su id (hoja de corte y 3D) y, si es más larga que la barra, dónde se apoya (empalmes).
+  const piezasCorte = piezasObra.map((p) => ({
+    largo: p.largo, id: p.id ?? null,
+    apoyos: corte.sobreApoyo !== false && p.largo > largoReal && p.desde && p.hasta ? apoyosDePieza(p, todas) : null,
+  }));
+  const piezas = piezasCorte.map((p) => p.largo);
+  const cortes = optimizarCortes(piezasCorte, largoReal, corte);
   const detalle = piezas.length === 0
     ? 'no lleva'
     : `${piezas.length} piezas · desperdicio ${cortes.porcentajeDesperdicio.toFixed(1)} %` +
       (cortes.piezasEmpalmadas > 0 ? ` · ${cortes.piezasEmpalmadas} empalmadas` : '');
   // largosPiezas: para volver a optimizar junto con otros renglones del mismo perfil (cortesCompartidos.js).
-  return { ...producto, cantidad: cortes.totalBarras, detalle, cortes, largoReal, largosPiezas: piezas };
+  return { ...producto, cantidad: cortes.totalBarras, detalle, cortes, largoReal, largosPiezas: piezas, piezasCorte, opcionesCorte: corte };
 }
 
 /** Ítem simple: cantidad ya calculada. */
@@ -219,10 +225,16 @@ function panosPorRevestimiento(estructura) {
  *     Sin `proveedor` se usa el `precio` que ya tiene cada material (lo usan los tests).
  * @returns {{items: object[], total: number, gruposCortes: object[]}}
  */
-export function calcularPresupuesto(estructura, catalogo, { excedenteBarras = 0, compartir = true, proveedor, pago } = {}) {
+export function calcularPresupuesto(estructura, catalogo, { excedenteBarras = 0, compartir = true, proveedor, pago, mermaCorte, retazoMinimo, empalmesSobreApoyo = true } = {}) {
   const conPrecios = proveedor === undefined ? catalogo : aplicarProveedor(catalogo, proveedor, pago);
+  // v1.68: el disco (mm) y desde qué largo un sobrante es retazo, del herrero (sin ellos, los de fábrica).
+  const corte = {
+    ...(Number.isFinite(mermaCorte) ? { merma: mermaCorte / 1000 } : {}),
+    ...(Number.isFinite(retazoMinimo) ? { retazoUtil: retazoMinimo } : {}),
+    sobreApoyo: empalmesSobreApoyo !== false, // v1.68: las uniones de las empalmadas sobre un apoyo (o donde rinda más)
+  };
   // v1.21: cada uso toma nombre, largo de barra y precio de su perfil de la lista.
-  const r = calcularRenglones(estructura, resolverCatalogo(conPrecios), excedenteBarras);
+  const r = calcularRenglones(estructura, resolverCatalogo(conPrecios), excedenteBarras, corte);
   // v1.29: el flete de cada proveedor al que se le compra algo, como un renglón más (cuenta en el total).
   const fletes = proveedor === undefined ? [] : renglonesDeFlete(r, conPrecios);
   return conCortesCompartidos([...r, ...fletes], compartir);
@@ -245,8 +257,9 @@ function conCortesCompartidos(items, compartir) {
 }
 
 /** Renglones del presupuesto, cada perfil con sus barras calculadas por separado. */
-function calcularRenglones(estructura, catalogo, excedenteBarras) {
+function calcularRenglones(estructura, catalogo, excedenteBarras, corte = {}) {
   const e = estructura;
+  const todas = listarPiezas(e); // v1.68: para buscar los apoyos de las piezas que van empalmadas
   const s = e.superficies;
   const insumo = (id) => buscar(catalogo, id);
   // Piezas editadas a mano con otro perfil (`pieza.insumo`) salen de su renglón
@@ -269,9 +282,9 @@ function calcularRenglones(estructura, catalogo, excedenteBarras) {
       porPerfil.get(p.perfilPared).push(p);
     });
     derivados.set(id, [...porPerfil.entries()].map(([perfilId, ps]) => itemPerfil(
-      renglonDePared(producto, perfilDeLista(perfilId), ps), largos(ps), excedenteBarras)));
+      renglonDePared(producto, perfilDeLista(perfilId), ps), ps, excedenteBarras, corte, todas)));
     const resto = deEsteRenglon.filter((p) => !otroPerfil(p));
-    return itemPerfil(producto, largos([...resto, ...reasignadas.filter((p) => p.insumo === id)]), excedenteBarras);
+    return itemPerfil(producto, [...resto, ...reasignadas.filter((p) => p.insumo === id)], excedenteBarras, corte, todas);
   };
   // Cada renglón seguido de sus renglones por pared (si hay).
   const conDerivados = (lista) => lista.flatMap((i) => [i, ...(derivados.get(i.id) ?? [])]);

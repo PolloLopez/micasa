@@ -33,7 +33,7 @@ import PanelMesadas from './componentes/PanelMesadas.jsx';
 import PanelMuebles from './componentes/PanelMuebles.jsx';
 import PanelTabiques from './componentes/PanelTabiques.jsx';
 import PanelPersonas from './componentes/PanelPersonas.jsx';
-import { OPCIONES_PISO, FORMAS_TECHO, ALTURAS_NIVEL, completarUniones } from './motor/uniones.js';
+import { FORMAS_TECHO, completarUniones } from './motor/uniones.js';
 import { PILOTINES_CON_MODULO } from './motor/ejes.js';
 import { implantacion as calcularImplantacion } from './motor/terreno.js';
 import { moduloActivo } from './modulos.js';
@@ -89,6 +89,8 @@ import {
 import MisProyectos from './componentes/MisProyectos.jsx';
 import { historialVacio, registrarCambio, deshacer, rehacer } from './proyecto/historial.js';
 import { describirPieza, detallesDePieza } from './descripcionPiezas.js';
+import ArmadoPiso from './componentes/ArmadoPiso.jsx';
+import { codigosDeCorte } from './motor/hojaDeCorte.js';
 import FilaPiezaCambiada from './componentes/FilaPiezaCambiada.jsx';
 import { perfilDePieza } from './motor/coloresPerfil.js';
 import './App.css';
@@ -277,12 +279,15 @@ export default function App() {
   const proveedorElegido = params.proveedorElegido === MAS_BARATO || proveedores.some((p) => p.id === params.proveedorElegido)
     ? params.proveedorElegido : proveedores[0]?.id;
   const formaPago = params.formaPago ?? 'efectivo';
-  const opcionesPresupuesto = { excedenteBarras: params.excedenteBarras, compartir: params.compartirCortes };
+  // v1.68: + el disco (mm por corte) y desde qué largo un sobrante es retazo.
+  const opcionesPresupuesto = { excedenteBarras: params.excedenteBarras, compartir: params.compartirCortes, mermaCorte: params.mermaCorte, retazoMinimo: params.retazoMinimo, empalmesSobreApoyo: params.empalmesSobreApoyo };
   const { items: itemsEstructura, total: totalEstructura, gruposCortes } = useMemo(
     () => calcularPresupuesto(estructura, catalogo, { ...opcionesPresupuesto, proveedor: proveedorElegido, pago: formaPago }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [estructura, catalogo, params.excedenteBarras, params.compartirCortes, proveedorElegido, formaPago]
+    [estructura, catalogo, params.excedenteBarras, params.compartirCortes, params.mermaCorte, params.retazoMinimo, params.empalmesSobreApoyo, proveedorElegido, formaPago]
   );
+  // v1.68: el código de corte de cada pieza (grupo.barra + letra: "2.3b"), para la hoja de corte, el 3D y los planos.
+  const codigosCorte = useMemo(() => codigosDeCorte(gruposCortes), [gruposCortes]);
   // v1.57: instalaciones (eléctrica, agua, desagües, gas): un renglón por sistema en el presupuesto, con el total de su
   // lista de materiales (los precios se cargan en la pestaña Instalaciones, no por proveedor).
   // v1.58: + los equipos (aires, salamandra, solar) como un "sistema" más (su renglón y su lista).
@@ -1095,7 +1100,7 @@ export default function App() {
 
       <main className={`layout${ver3D ? '' : ' sin-visor'} movil-${vistaMovil}`} style={{ '--ancho-panel': `${anchoPanel}px` }}>
         <div className="columna-visor">
-          <LoftCanvas params={paramsObra} estructura={estructura} aberturas={aberturasValidas} paneles={paneles}
+          <LoftCanvas params={paramsObra} estructura={estructura} codigosCorte={codigosCorte} aberturas={aberturasValidas} paneles={paneles}
             colores={colores} catalogo={catalogoResuelto} unidad={unidad}
             opacidades={opacidades} onCambiarOpacidad={cambiarOpacidad} capturaRef={capturaRef} onMedidasFijas={setMedidasFijas}
             onCambiarColor={cambiarColor} onEliminarPieza={eliminarPieza} onEditarPieza={editarPieza} onElegir={elegirDesde3D}
@@ -1166,14 +1171,8 @@ export default function App() {
               {separacion('separacionPiso', 'Sep. estructura de piso', 'Tirantes de piso', ['tirante', 'tirantes'])}
               {separacion('separacionTransversalesPiso', 'Transversales cada', 'Filas de transversales', ['fila de transversales', 'filas de transversales'], { casilla: 'Lleva transversales', valorPorDefecto: 1.5 })}
             </div>
-            {/* v1.35: cómo se arman tirantes y transversales (lo mismo que en Materiales → Uniones). */}
-            <div className="grid-params grid-uniones">
-              <CampoSelect etiqueta="Tirantes y transversales" valor={params.uniones?.enteras?.tirantesTransversales ?? 'tirantes'}
-                opciones={OPCIONES_PISO[0][2]} onCambio={cambiar('uniones.enteras.tirantesTransversales')} />
-              {/* v1.60: los perfiles C de adentro al ras de arriba del borde (o eje con eje, como antes). */}
-              <CampoSelect etiqueta="Altura de tirantes y transversales" valor={completarUniones(params.uniones).ras.piso}
-                opciones={ALTURAS_NIVEL} onCambio={cambiarRas('piso')} />
-            </div>
+            {/* v1.68: cómo se arma este piso (qué queda entero, a qué altura, borde y tirantes): solo acá, por piso. */}
+            <ArmadoPiso nivel="piso" uniones={params.uniones} transversales={estructura.piso.transversales.length > 0} cambiar={cambiar} />
             {/* v1.42.1: tirantes de hierro o de madera (sobre las transversales de perfil C) y cubierta. */}
             <div className="grid-params">
               <CampoSelect etiqueta="Tirantes" valor={params.tirantesPiso ?? 'hierro'}
@@ -1228,14 +1227,13 @@ export default function App() {
                 {/* v1.42.1: el altillo con perfiles C y tirantes de madera con machimbre clavado. */}
                 <CampoSelect etiqueta="Tirantes del piso 2" valor={params.tirantesPiso2 ?? 'hierro'}
                   opciones={[['hierro', 'De hierro (perfil)'], ['madera', 'De madera']]} onCambio={(v) => cambiarTirantes('2', v)} />
-                {/* v1.43.1: el piso 2 se arma aparte de la planta baja. */}
-                <CampoSelect etiqueta="Tirantes y transversales (piso 2)" valor={params.uniones?.enteras?.tirantesTransversales2 ?? 'tirantes'}
-                  opciones={OPCIONES_PISO[1][2]} onCambio={cambiar('uniones.enteras.tirantesTransversales2')} />
-                <CampoSelect etiqueta="Altura (piso 2)" valor={completarUniones(params.uniones).ras.piso2}
-                  opciones={ALTURAS_NIVEL} onCambio={cambiarRas('piso2')} />
                 <CampoSelect etiqueta="Cubierta del piso 2" valor={params.cubiertaPiso2 ?? 'osb'}
                   opciones={[['osb', 'Placas OSB'], ['machimbre', 'Machimbre clavado']]} onCambio={cambiar('cubiertaPiso2')} />
               </div>
+            )}
+            {/* v1.68: el piso 2 se arma aparte de la planta baja (v1.43.1), con las mismas preguntas. */}
+            {params.anchoEntrepiso > 0 && (
+              <ArmadoPiso nivel="piso2" uniones={params.uniones} transversales={(estructura.piso2?.transversales.length ?? 0) > 0} cambiar={cambiar} />
             )}
             {(params.tirantesPiso === 'madera' || (params.anchoEntrepiso > 0 && params.tirantesPiso2 === 'madera')) && (
               <p className="nota">Con tirantes de madera, la estructura de perfil C son las transversales y el borde, y los tirantes
@@ -1540,6 +1538,7 @@ export default function App() {
           <TarjetaMateriales items={items} catalogo={catalogo} revestimientos={esConstruccion ? paneles : null}
             unidad={unidad} usosDeRevestimiento={usosDePanel} excedenteBarras={params.excedenteBarras}
             onCambiarExcedente={cambiar('excedenteBarras')} onCambiarInsumo={cambiarInsumo}
+            mermaCorte={params.mermaCorte ?? 3} retazoMinimo={params.retazoMinimo ?? 0.3} empalmesSobreApoyo={params.empalmesSobreApoyo !== false} onCambiarCorte={cambiar}
             compartirCortes={params.compartirCortes !== false} onCambiarCompartir={cambiar('compartirCortes')}
             onActualizarPerfil={actualizarInsumo} onAgregarPerfil={agregarPerfil} onQuitarPerfil={quitarPerfil}
             onAgregarRevestimiento={agregarTipoPanel} onQuitarRevestimiento={quitarTipoPanel}
@@ -1567,7 +1566,7 @@ export default function App() {
           {/* v1.26: planos de cada pared y planta (en pantalla y en el PDF) + Excel. */}
           <section id="pestana-planos" role="tabpanel" aria-labelledby="boton-planos"
             className={`pestana${pestanaActiva === 'planos' ? '' : ' oculta'}`}>
-            <Planos vistas={vistas} params={params} estructura={estructura} implantacion={implantacion} onExportar={() => setDialogoImprimir(true)} />
+            <Planos vistas={vistas} params={params} estructura={estructura} implantacion={implantacion} codigosCorte={codigosCorte} onExportar={() => setDialogoImprimir(true)} />
           </section>
           <section id="pestana-instalaciones" role="tabpanel" aria-labelledby="boton-instalaciones"
             className={`pestana${pestanaActiva === 'instalaciones' ? '' : ' oculta'}`}>

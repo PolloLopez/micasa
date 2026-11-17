@@ -9,7 +9,7 @@
 // ==========================================================
 
 import {
-  LIMITES, LIMITES_PARED, LIMITES_ESCALERA, LIMITES_GRADA, LIMITES_COMPONENTE, LIMITES_MESA, LIMITES_TANQUE, LADOS, ALTURA_PISO_2, CAMPOS_PERFIL_PARED } from './constantes.js';
+  LIMITES, LIMITES_CORTE, LIMITES_PARED, LIMITES_ESCALERA, LIMITES_GRADA, LIMITES_COMPONENTE, LIMITES_MESA, LIMITES_TANQUE, LADOS, ALTURA_PISO_2, CAMPOS_PERFIL_PARED } from './constantes.js';
 import { calcularEscalones, DESCANSOS_POR_FORMA } from './escalera.js';
 import { revisarEdicion, PERFILES_ASIGNABLES } from './edicionPiezas.js';
 import { revisarAgregadas } from './piezasAgregadas.js';
@@ -83,6 +83,8 @@ export function validarParametros(params) {
   };
 
   Object.entries(LIMITES).forEach(([campo, limites]) => anotar(campo, revisarNumero(params[campo], limites)));
+  // v1.68: disco y retazo mínimo (opcionales: sin ellos, los de fábrica).
+  Object.entries(LIMITES_CORTE).forEach(([campo, limites]) => params[campo] !== undefined && anotar(campo, revisarNumero(params[campo], limites)));
   // v1.25: proveedor ('' = el primero) y forma de pago. Proyectos sin estos datos los completa migrarParams.
   if (params.formaPago !== undefined && !['efectivo', 'tarjeta'].includes(params.formaPago)) anotar('formaPago', 'Elegí efectivo o tarjeta');
   if (params.proveedorElegido !== undefined && (typeof params.proveedorElegido !== 'string' || params.proveedorElegido.length > 40)) {

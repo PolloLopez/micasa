@@ -58,6 +58,19 @@ function Revestimiento({ tipo, unidad, usos, unicoQueda, proveedores, precio, nu
       onCambio={conLimites(LIMITES_REVESTIMIENTO[campo], cambiar(campo))} />
   );
   const motivoNoBorrar = usos.length > 0 ? `En uso: ${usos.join(', ')}` : unicoQueda ? 'Tiene que quedar al menos uno' : null;
+  // v1.68: ancho total y encastre (el útil = total − encastre). Sin ancho total cargado (proyectos de antes): total = útil.
+  const total = tipo.anchoTotal > 0 ? tipo.anchoTotal : tipo.anchoUtil;
+  const encastre = Math.max(0, total - tipo.anchoUtil);
+  const cambiarAnchos = (nuevoTotal, nuevoEncastre) => {
+    const util = Number((nuevoTotal - nuevoEncastre).toFixed(4));
+    const { min, max } = LIMITES_REVESTIMIENTO.anchoUtil;
+    if (!(nuevoEncastre >= 0) || nuevoEncastre >= nuevoTotal) return 'El encastre tiene que ser menor que el ancho total';
+    if (util < min || util > max) return `El ancho útil queda en ${util.toFixed(2)} m: tiene que estar entre ${min} y ${max} m`;
+    if (nuevoTotal > LIMITES_REVESTIMIENTO.anchoTotal.max) return `Máximo ${LIMITES_REVESTIMIENTO.anchoTotal.max} m`;
+    onCambiar(tipo.id, 'anchoTotal', nuevoTotal);
+    onCambiar(tipo.id, 'anchoUtil', util);
+    return null;
+  };
 
   return (
     <FichaPlegable clave={`revestimiento:${tipo.id}`} className="rubro" abiertaAlInicio={nuevo}
@@ -91,11 +104,22 @@ function Revestimiento({ tipo, unidad, usos, unicoQueda, proveedores, precio, nu
           {/* v1.63.1 (Leandro: "ancho útil y solape parecen lo mismo"): son dos cosas distintas, ahora dicho en la etiqueta.
               Ancho útil = lo que cubre cada tira a lo ancho (ya descontado el machimbre). El solape es solo a lo LARGO,
               cuando la pared es más alta que el largo máximo y la tira va en dos tramos encimados. */}
-          {medida('anchoUtil', 'Ancho útil (lo que cubre cada tira, sin el encastre)')}
+          {/* v1.68 (Leandro: "no es claro el ancho total con el ancho útil: sería lo mismo que restar el encastre"):
+              se cargan los dos datos del catálogo del panel (ancho total y encastre) y el ancho útil sale solo.
+              Ej. Alpanel: 1000 mm − 50 mm de encastre = 950 mm útiles. */}
+          <CampoNumero etiqueta="Ancho total de la tira (catálogo)" unidad={unidad} valor={total}
+            onCambio={(v) => cambiarAnchos(v, encastre)} />
+          <CampoNumero etiqueta="Encastre (lo que monta sobre la de al lado)" sufijo="mm" decimales={0} valor={Math.round(encastre * 1000)}
+            onCambio={(mm) => cambiarAnchos(total, mm / 1000)} />
+          <p className="nota ancho-util" role="status">Cubre <strong>{tipo.anchoUtil.toFixed(3).replace('.', ',')} m</strong> por tira (ancho útil = total − encastre).</p>
           {medida('largoMaximo', 'Largo máximo de una tira')}
           <CampoOpcional casilla="Tiras en tramos encimados (solo si la pared pasa el largo máximo; si no, a tope)" etiqueta="Encimado entre tramos"
             unidad={unidad} valor={tipo.solape} valorPorDefecto={0.15}
             onCambio={conLimites({ ...LIMITES_REVESTIMIENTO.solape, max: Math.min(LIMITES_REVESTIMIENTO.solape.max, tipo.largoMaximo - 0.01) }, cambiar('solape'))} />
+          {/* v1.68: dónde va la tira cortada a lo largo y cuánto costado mínimo se deja al lado de una abertura. */}
+          <CampoSelect etiqueta="La tira angosta (cortada a lo largo) va" valor={tipo.tiraAngosta ?? 'derecha'} onCambio={cambiar('tiraAngosta')}
+            opciones={[['derecha', 'A la derecha (vista desde afuera)'], ['izquierda', 'A la izquierda'], ['repartida', 'Repartida: media en cada punta']]} />
+          {medida('costadoMinimo', 'Costado mínimo al lado de una abertura (menos: la tira se parte)')}
           {/* v1.67: para el plano de cada panel: qué costado encastra encima de la tira de al lado. */}
           <CampoSelect etiqueta="Lado que superpone (vista desde afuera)" valor={tipo.ladoSolape ?? 'izquierda'} onCambio={cambiar('ladoSolape')}
             opciones={[['izquierda', 'Izquierdo: se coloca de izquierda a derecha'], ['derecha', 'Derecho: se coloca de derecha a izquierda']]} />
@@ -205,7 +229,7 @@ export default function TarjetaMateriales({
   onCambiarExcedente, onCambiarInsumo, onAgregarRevestimiento, onQuitarRevestimiento,
   compartirCortes, onCambiarCompartir, onActualizarPerfil, onAgregarPerfil, onQuitarPerfil,
   proveedor, pago, onCambiarPrecio, onActualizarProveedor, onAgregarProveedor, onQuitarProveedor,
-  onAgregarAccesorio, onQuitarAccesorio,
+  onAgregarAccesorio, onQuitarAccesorio, mermaCorte = 3, retazoMinimo = 0.3, empalmesSobreApoyo = true, onCambiarCorte = null,
 }) {
   // v1.25: para mostrar, cada material con el precio del proveedor y la forma de pago elegidos.
   const conPrecios = aplicarProveedor(catalogo, proveedor, pago);
@@ -303,6 +327,11 @@ export default function TarjetaMateriales({
         <div className="grid-params">
           <CampoNumero etiqueta="Excedente de las barras" sufijo="%" decimales={1}
             valor={excedenteBarras} onCambio={onCambiarExcedente} />
+          {/* v1.68: lo que se lleva el disco y desde qué largo un sobrante se guarda (antes fijos: 3 mm y 30 cm). */}
+          {onCambiarCorte && (<>
+            <CampoNumero etiqueta="Ancho del disco (se pierde en cada corte)" sufijo="mm" decimales={1} valor={mermaCorte} onCambio={onCambiarCorte('mermaCorte')} />
+            <CampoNumero etiqueta="Retazo que se guarda, desde" sufijo="m" decimales={2} valor={retazoMinimo} onCambio={onCambiarCorte('retazoMinimo')} />
+          </>)}
         </div>
         <p className="nota">
           Las barras suelen venir entre 1 % y 2 % más largas que su medida nominal, <strong>según el proveedor</strong>:
@@ -313,6 +342,13 @@ export default function TarjetaMateriales({
           <input type="checkbox" checked={compartirCortes} onChange={(e) => onCambiarCompartir(e.target.checked)} />
           Compartir barras entre partes del mismo perfil
         </label>
+        {/* v1.68: la unión de una pieza más larga que la barra, sobre un apoyo (más firme) o donde rinda más barras. */}
+        {onCambiarCorte && (
+          <label className="casilla-opcional">
+            <input type="checkbox" checked={empalmesSobreApoyo} onChange={(e) => onCambiarCorte('empalmesSobreApoyo')(e.target.checked)} />
+            Empalmes con la unión sobre un apoyo (viga, transversal, columna). Sin tildar: donde rinda más las barras.
+          </label>
+        )}
       </SeccionPlegable>
 
       {/* v1.65: antes una tabla; ahora cada material plegable con su precio en el encabezado. */}

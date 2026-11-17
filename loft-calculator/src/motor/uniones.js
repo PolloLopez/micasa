@@ -41,6 +41,8 @@ export const OPCIONES_ENTERAS = {
   columnasFajas: ['columnas', 'fajas'],
   montantesFajas: ['montantes', 'fajas'],
   bordesTirantes: ['bordes', 'tirantes'],
+  // v1.68: el piso 2 elige el suyo (antes uno para los dos pisos).
+  bordesTirantes2: ['bordes', 'tirantes'],
   // v1.35: tirantes y transversales del piso: en el mismo plano (uno entero) o tirantes apoyados encima.
   tirantesTransversales: ['tirantes', 'transversales', 'apoyados'],
   // v1.43.1: el piso 2 se arma aparte (ej. planta baja todo perfil C en el mismo plano y el altillo con tirantes de madera apoyados).
@@ -131,7 +133,8 @@ function rangoEn(red, p, ctx) {
   const forma = p.tipo === 'piso2' || p.tipo === 'transv-piso2' ? enteras.tirantesTransversales2 : enteras.tirantesTransversales;
   if (p.tipo === 'piso' || p.tipo === 'piso2') {
     if (forma === 'apoyados') return null;
-    return enteras.bordesTirantes === 'tirantes' ? -1 : 2;
+    const bordes = p.tipo === 'piso2' ? enteras.bordesTirantes2 : enteras.bordesTirantes; // v1.68: por piso
+    return bordes === 'tirantes' ? -1 : 2;
   }
   // Transversales: entre tirantes (3) o enteros de borde a borde (1.5: cortan a los tirantes, no a los bordes).
   if (p.tipo === 'transv-piso' || p.tipo === 'transv-piso2') return forma === 'tirantes' ? 3 : 1.5;
@@ -405,7 +408,9 @@ export function completarUniones(u) {
     enteras: Object.fromEntries(Object.entries(OPCIONES_ENTERAS)
       .map(([par, opciones]) => [par, opciones.includes(enteras[par]) ? enteras[par]
         // v1.43.1: los proyectos de antes arman el piso 2 igual que la planta baja (como era).
-        : par === 'tirantesTransversales2' && opciones.includes(enteras.tirantesTransversales) ? enteras.tirantesTransversales : opciones[0]])),
+        : par === 'tirantesTransversales2' && opciones.includes(enteras.tirantesTransversales) ? enteras.tirantesTransversales
+          // v1.68: los proyectos de antes: el piso 2 con lo mismo que la planta baja.
+          : par === 'bordesTirantes2' && opciones.includes(enteras.bordesTirantes) ? enteras.bordesTirantes : opciones[0]])),
     // v1.60: de fábrica al ras del borde (también los proyectos de antes: así se arma de verdad).
     ras: Object.fromEntries(Object.keys(RAS_INICIAL).map((n) => [n, ['ras', 'eje'].includes(base.ras?.[n]) ? base.ras[n] : RAS_INICIAL[n]])),
   };

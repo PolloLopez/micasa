@@ -35,7 +35,7 @@
 //     las que el hueco corta en parte, sí (se recortan).
 // ==========================================================
 
-import { retazosEntreParedes } from './cortesPaneles.js';
+import { retazosEntreParedes, rellenosDeLaObra } from './cortesPaneles.js';
 
 export const VENTAS = ['medida', 'estandar'];
 export const UBICACIONES = ['cara', 'eje'];
@@ -52,6 +52,9 @@ export const REVESTIMIENTO_POR_DEFECTO = {
   ubicacion: 'cara',
   aprovecharRetazos: true, // v1.63: la tira angosta de una pared sale del retazo de otra (ver cortesPaneles.js)
   ladoSolape: 'izquierda', // v1.67: el lado (vista desde afuera) con que cada tira monta sobre la anterior: se coloca de izquierda a derecha
+  costadoMinimo: 0.3, // v1.68: con menos que esto al costado de una abertura, la tira se parte (ver parteLaTira)
+  tiraAngosta: 'derecha', // v1.68: dónde va la tira cortada a lo largo: 'derecha', 'izquierda' o 'repartida' (media en cada punta)
+  anchoTotal: 0, // v1.68: ancho total de la tira con su encastre (0 = no se sabe): el solape del costado = total − útil
 };
 
 /** Límites de cada dato (los usa la pantalla y la migración). */
@@ -62,7 +65,35 @@ export const LIMITES_REVESTIMIENTO = {
   anchoPlaca: { min: 0.2, max: 3 },
   largoPlaca: { min: 0.2, max: 6 },
   espesor: { min: 1, max: 300 },
+  costadoMinimo: { min: 0, max: 1 },
+  anchoTotal: { min: 0, max: 3.5 },
 };
+export const TIRA_ANGOSTA = ['derecha', 'izquierda', 'repartida'];
+
+/**
+ * v1.68: dónde empieza y termina cada tira a lo ancho del paño (de izquierda a derecha, vista desde afuera).
+ * La tira que sobra (cortada a lo largo) va a la derecha (como siempre), a la izquierda o repartida: con
+ * 'repartida' las dos puntas son iguales, de (sobrante + ancho útil) / 2, así ninguna queda muy angosta.
+ * @returns {{ x0, x1 }[]}
+ */
+export function franjasDeTiras(largo, tipo) {
+  const u = tipo.anchoUtil;
+  const enteras = Math.floor(largo / u + EPSILON);
+  const sobra = largo - enteras * u;
+  const anchos = [];
+  if (sobra < 0.005) anchos.push(...Array(Math.max(1, enteras)).fill(u));
+  else if (tipo.tiraAngosta === 'izquierda') anchos.push(sobra, ...Array(enteras).fill(u));
+  else if (tipo.tiraAngosta === 'repartida' && enteras >= 1) {
+    const punta = (sobra + u) / 2;
+    anchos.push(punta, ...Array(enteras - 1).fill(u), punta);
+  } else anchos.push(...Array(enteras).fill(u), sobra);
+  let x = 0;
+  return anchos.map((a, i) => {
+    const franja = { x0: x, x1: i === anchos.length - 1 ? largo : x + a };
+    x += a;
+    return franja;
+  });
+}
 
 const EPSILON = 1e-6;
 const alCm = (m) => Math.ceil(m * 100 - 1e-6) / 100; // redondeo hacia arriba al cm
@@ -98,7 +129,7 @@ const PEDAZO_MINIMO = 0.05; // m: un pedazo más chico que esto no se pide
 export const COSTADO_MINIMO = 0.3; // m
 
 /** ¿La abertura parte esta tira en dos? (la tapa de lado a lado, o le deja costados de menos de COSTADO_MINIMO) */
-export const parteLaTira = (h, x0, x1) => h.desde - x0 < COSTADO_MINIMO - EPSILON && x1 - h.hasta < COSTADO_MINIMO - EPSILON
+export const parteLaTira = (h, x0, x1, costado = COSTADO_MINIMO) => h.desde - x0 < costado - EPSILON && x1 - h.hasta < costado - EPSILON
   && Math.min(h.hasta, x1) - Math.max(h.desde, x0) > EPSILON;
 
 /**
@@ -106,8 +137,8 @@ export const parteLaTira = (h, x0, x1) => h.desde - x0 < COSTADO_MINIMO - EPSILO
  * aberturas la parten (ver parteLaTira), los pedazos entre los huecos.
  * @returns {{ y0, y1 }[]} desde abajo
  */
-export function intervalosDeTira(x0, x1, alto, huecos = []) {
-  const queLaParten = huecos.filter((h) => parteLaTira(h, x0, x1)).sort((a, b) => a.abajo - b.abajo);
+export function intervalosDeTira(x0, x1, alto, huecos = [], costado = COSTADO_MINIMO) {
+  const queLaParten = huecos.filter((h) => parteLaTira(h, x0, x1, costado)).sort((a, b) => a.abajo - b.abajo);
   const intervalos = [];
   let desde = 0;
   queLaParten.forEach((h) => {
@@ -119,8 +150,8 @@ export function intervalosDeTira(x0, x1, alto, huecos = []) {
 }
 
 /** Largos de cada pedazo de una tira (ver intervalosDeTira). */
-export function pedazosDeTira(x0, x1, alto, huecos = []) {
-  return intervalosDeTira(x0, x1, alto, huecos).map((i) => Number((i.y1 - i.y0).toFixed(4)));
+export function pedazosDeTira(x0, x1, alto, huecos = [], costado = COSTADO_MINIMO) {
+  return intervalosDeTira(x0, x1, alto, huecos, costado).map((i) => Number((i.y1 - i.y0).toFixed(4)));
 }
 
 /**
@@ -128,13 +159,13 @@ export function pedazosDeTira(x0, x1, alto, huecos = []) {
  * Salen de un retazo (lo recortado de otra abertura, el sobrante de la tira angosta…): no se compran aparte.
  * @returns {{ lado: 'izquierdo' | 'derecho', ancho, abajo, arriba }[]}
  */
-export function rellenosDeTira(x0, x1, alto, huecos = []) {
-  return huecos.filter((h) => parteLaTira(h, x0, x1)).flatMap((h) => {
+export function rellenosDeTira(x0, x1, alto, huecos = [], costado = COSTADO_MINIMO) {
+  return huecos.filter((h) => parteLaTira(h, x0, x1, costado)).flatMap((h) => {
     const abajo = Math.max(0, h.abajo);
     const arriba = Math.min(alto, h.arriba);
     const lados = [];
-    if (h.desde - x0 > 0.005) lados.push({ lado: 'izquierdo', ancho: h.desde - x0, abajo, arriba });
-    if (x1 - h.hasta > 0.005) lados.push({ lado: 'derecho', ancho: x1 - h.hasta, abajo, arriba });
+    if (h.desde - x0 > 0.005) lados.push({ lado: 'izquierdo', ancho: h.desde - x0, abajo, arriba, x0, x1: h.desde });
+    if (x1 - h.hasta > 0.005) lados.push({ lado: 'derecho', ancho: x1 - h.hasta, abajo, arriba, x0: h.hasta, x1 });
     return lados.filter((r) => r.arriba - r.abajo > PEDAZO_MINIMO);
   });
 }
@@ -146,16 +177,13 @@ export function rellenosDeTira(x0, x1, alto, huecos = []) {
  * @returns {number[]} largos a pedir (ya partidos en tramos si hace falta)
  */
 export function tirasDePano(pano, tipo) {
-  const cantidad = Math.max(1, Math.ceil(pano.largo / tipo.anchoUtil - EPSILON));
   const largos = [];
-  for (let i = 0; i < cantidad; i++) {
-    const x0 = i * tipo.anchoUtil;
-    const x1 = Math.min(pano.largo, (i + 1) * tipo.anchoUtil);
+  franjasDeTiras(pano.largo, tipo).forEach(({ x0, x1 }) => {
     const alto = Math.max(altoEn(pano, x0), altoEn(pano, x1));
-    pedazosDeTira(x0, x1, alto, pano.huecos).forEach((pedazo) => {
+    pedazosDeTira(x0, x1, alto, pano.huecos, tipo.costadoMinimo ?? COSTADO_MINIMO).forEach((pedazo) => {
       largos.push(...cortarEnTramos(pedazo, tipo.largoMaximo, tipo.solape));
     });
-  }
+  });
   return largos;
 }
 
@@ -224,13 +252,22 @@ export function cuentaRevestimiento(tipo, panos) {
   // v1.63: la tira angosta de una pared sale del retazo (a lo ancho) de la de otra: se compra una menos.
   // Se apaga con aprovecharRetazos: false en el tipo de revestimiento.
   let retazos = '';
+  let sobrantes = [];
   if (t.aprovecharRetazos !== false && panos.length > 1) {
-    const { reusos, ahorroPedidos } = retazosEntreParedes(panos, t);
+    const { reusos, ahorroPedidos, sobrantes: quedan } = retazosEntreParedes(panos, t);
+    sobrantes = quedan;
     ahorroPedidos.forEach((largo) => {
       const i = piezas.findIndex((l) => Math.abs(l - largo) < 1e-6);
       if (i >= 0) piezas = [...piezas.slice(0, i), ...piezas.slice(i + 1)];
     });
     if (reusos.length) retazos = ` · ${reusos.length} tira${reusos.length > 1 ? 's' : ''} angosta${reusos.length > 1 ? 's' : ''} sale${reusos.length > 1 ? 'n' : ''} de retazos`;
+  }
+  // v1.68: los rellenos al costado de las aberturas salen de recortes; los que no, se compran.
+  const { rellenos, comprar } = rellenosDeLaObra(panos, t, sobrantes);
+  piezas = [...piezas, ...comprar];
+  if (rellenos.length) {
+    const deRecortes = rellenos.filter((r) => r.de).length;
+    retazos += ` · ${rellenos.length} relleno${rellenos.length > 1 ? 's' : ''} al costado de aberturas (${deRecortes} de recortes${comprar.length ? `, ${comprar.length} pedazo${comprar.length > 1 ? 's' : ''} comprado${comprar.length > 1 ? 's' : ''}` : ''})`;
   }
   const m2 = Math.ceil(piezas.reduce((acc, l) => acc + l, 0) * t.anchoUtil * 100 - 1e-6) / 100;
   return {
@@ -265,7 +302,8 @@ export function juntasDePano(pano, tipo) {
   // A medida: una junta horizontal donde termina cada tramo (si la tira pasa el largo máximo).
   const horizontales = [];
   for (let h = t.largoMaximo; h < alto - 0.01; h += t.largoMaximo - t.solape) horizontales.push(Number(h.toFixed(4)));
-  return { verticales: cada(t.anchoUtil, pano.largo), horizontales };
+  // v1.68: las juntas siguen el reparto de las tiras (la angosta puede ir a la izquierda o repartida).
+  return { verticales: franjasDeTiras(pano.largo, t).slice(1).map((f) => Number(f.x0.toFixed(4))), horizontales };
 }
 
 /**

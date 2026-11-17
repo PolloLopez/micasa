@@ -60,7 +60,7 @@ import { completarTabique } from './tabiques.js';
 import { completarSol } from './sol.js';
 import { GRADA_INICIAL } from './grada.js';
 import { MONTAJE_INICIAL } from './montaje.js';
-import { REVESTIMIENTO_POR_DEFECTO, LIMITES_REVESTIMIENTO, VENTAS, UBICACIONES } from './revestimientos.js';
+import { REVESTIMIENTO_POR_DEFECTO, TIRA_ANGOSTA, LIMITES_REVESTIMIENTO, VENTAS, UBICACIONES } from './revestimientos.js';
 import { TIPOS_PERFIL, LIMITES_PERFIL, revisarPerfil, armarListaDePerfiles } from './perfiles.js';
 import { conProveedores, FORMAS_DE_PAGO } from './proveedores.js';
 import { completarConsumible } from './consumibles.js';
@@ -80,6 +80,9 @@ export function migrarParams(params) {
     delete nuevos.separacionTransversales;
   }
   nuevos.excedenteBarras ??= PARAMS_INICIALES.excedenteBarras;
+  nuevos.mermaCorte ??= PARAMS_INICIALES.mermaCorte; // v1.68
+  nuevos.retazoMinimo ??= PARAMS_INICIALES.retazoMinimo; // v1.68
+  nuevos.empalmesSobreApoyo ??= true; // v1.68
   nuevos.compartirCortes = nuevos.compartirCortes !== false; // v1.19.1: por defecto sí (solo un false explícito lo apaga)
   // v1.25: con qué proveedor y forma de pago se calcula ('' = el primero de la lista).
   nuevos.proveedorElegido = typeof nuevos.proveedorElegido === 'string' ? nuevos.proveedorElegido : '';
@@ -185,6 +188,9 @@ function datosDeRevestimiento(p) {
     ubicacion: UBICACIONES.includes(p.ubicacion) ? p.ubicacion : d.ubicacion,
     aprovecharRetazos: p.aprovecharRetazos !== false, // v1.63: las tiras angostas salen de los retazos de otra pared
     ladoSolape: p.ladoSolape === 'derecha' ? 'derecha' : 'izquierda', // v1.67: el lado de cada tira que monta sobre la de al lado
+    costadoMinimo: numero('costadoMinimo'), // v1.68
+    tiraAngosta: TIRA_ANGOSTA.includes(p.tiraAngosta) ? p.tiraAngosta : d.tiraAngosta, // v1.68
+    anchoTotal: numero('anchoTotal'), // v1.68 (0 = no se sabe)
   };
 }
 

@@ -3,7 +3,7 @@
 Última limpieza: 2026-11-11 (v1.49.0). Espejo en Trello: tablero "Desarrollo", tarjetas `[CALC]`.
 
 ## 📌 Estado y próximos pasos (11/11)
-**En GitHub: hasta v1.61.0. v1.62.0 a v1.67.0 por subir** (desde v1.54 el deploy es automático al pushear). Manual de uso para chequear: `MANUAL.md`.
+**En GitHub: hasta v1.61.0. v1.62.0 a v1.68.0 por subir** (desde v1.54 el deploy es automático al pushear). Manual de uso para chequear: `MANUAL.md`.
 
 🟡 **Para chequear en pantalla** (probado con tests, no visto): el sol con "Ver adentro" entra solo por las aberturas;
 la persona se sienta en el sillón y se acuesta en la cama; las puertas de los tabiques se abren al pasar.
@@ -35,9 +35,12 @@ Lo que falta, en orden de prioridad (detalle en cada sección de abajo):
 - ✅ v1.66.0 El borde del entrepiso sale en el plano de la pared donde apoya.
 - ✅ v1.67.0 Tiras partidas por aberturas (costado < 30 cm → dos pedazos + relleno), plano de cada panel con el lado que
   superpone, cartel del 3D más chico y plegable.
-  - 🟡 [ ] Confirmar con Leandro los 30 cm de costado mínimo (¿configurable por revestimiento?).
-  - 🟢 [ ] Montar desde la derecha también podría poner la tira angosta a la izquierda (hoy siempre a la derecha).
-  - 🟢 [ ] Juntas horizontales en el 3D donde la tira se parte arriba y abajo de una abertura.
+- ✅ v1.68.0 Pisos por piso (sin repetir en Uniones), hoja de corte numerada, empalmes sobre apoyo, disco y retazo
+  editables, revestimiento con ancho total y encastre, costado mínimo y tira angosta configurables, rellenos de recortes.
+  - 🟡 [ ] En la obra de Leandro, empalmes sobre apoyo: 78 barras (se tiran 3,54 m); donde rinda más: 77 (4,49 m).
+    Elegir el de fábrica.
+  - 🟢 [ ] Hoja de corte imprimible aparte (hoy sale con "Cortes" del PDF).
+  - 🟢 [ ] Retazos del taller (cargar los que ya hay) — Leandro no lo eligió por ahora.
   - 🟡 [ ] En el Frente (A) de Leandro la faja de 2,40 m queda a 10 cm del borde del entrepiso (2,30 m): ¿se unifican
     (la faja a la altura del piso 2, o que el borde reemplace a la faja en ese tramo)? Decidir con Leandro.
 - ✅ v1.63.0 Barra del 3D en grupos; cortes de hierro mejorados con retazos; tamaños y cortes de paneles; retazos de

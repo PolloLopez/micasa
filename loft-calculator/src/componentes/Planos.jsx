@@ -9,6 +9,7 @@
 // ==========================================================
 
 import { useId } from 'react';
+import { textoDeCodigo } from '../motor/hojaDeCorte.js';
 import Tarjeta from './Tarjeta.jsx';
 import PlanoImplantacion from './PlanoImplantacion.jsx';
 import { BloqueInstalacion } from './PlanoInstalaciones.jsx';
@@ -91,7 +92,7 @@ function CotasVerticales({ alturas, x, alto }) {
  * @param soloContorno v1.60 (para el proveedor de paneles): sin la estructura ni sus cotas; quedan el contorno, las
  *        aberturas que se cortan (las "a futuro" no: la pared va entera) y las cotas de cada abertura.
  */
-function DibujoPared({ vista, soloContorno = false }) {
+function DibujoPared({ vista, soloContorno = false, codigos = null }) {
   const [h1, h2] = vista.alturas;
   const alto = Math.max(h1, h2);
   const margenIzq = 1.1;
@@ -144,6 +145,7 @@ function DibujoPared({ vista, soloContorno = false }) {
         const t = trazo(p.tipo);
         return <line key={p.id} x1={p.x1} y1={y(p.y1)} x2={p.x2} y2={y(p.y2)} stroke={t.color} strokeWidth={p.esquina ? t.ancho * 1.2 : t.ancho} strokeLinecap="square" />;
       })}
+      {!soloContorno && codigos && <CodigosDeCorte piezas={vista.piezas} codigos={codigos} y={y} />}
       {/* Cotas: columnas y jambas abajo; total; fajas a la izquierda. */}
       <CotasHorizontales posiciones={posicionesAbajo} y={y(0) + 0.4} />
       <CotasHorizontales posiciones={[0, vista.largo]} y={y(0) + 0.8} />
@@ -153,8 +155,24 @@ function DibujoPared({ vista, soloContorno = false }) {
   );
 }
 
+/**
+ * v1.68: el código de la hoja de corte de cada pieza ("2.3b"), en el medio de la pieza. Los mismos códigos salen en
+ * Presupuesto → Cortes y al tocar la pieza en el 3D. Las que vienen en tramos del 3D ("id~2") buscan el suyo.
+ */
+function CodigosDeCorte({ piezas, codigos, y }) {
+  return (
+    <g className="codigos-corte">
+      {piezas.map((p) => {
+        const pedazos = codigos.get(p.id);
+        if (!pedazos) return null;
+        return <text key={`c${p.id}`} x={(p.x1 + p.x2) / 2} y={y((p.y1 + p.y2) / 2)} fontSize={TEXTO * 0.75} textAnchor="middle" dominantBaseline="middle">{textoDeCodigo(pedazos)}</text>;
+      })}
+    </g>
+  );
+}
+
 /** Dibujo de una planta vista desde arriba (lado A abajo). */
-function DibujoPlanta({ vista }) {
+function DibujoPlanta({ vista, codigos = null }) {
   const { largo, ancho, nombres } = vista;
   const y = (v) => ancho - v;
   return (
@@ -173,6 +191,7 @@ function DibujoPlanta({ vista }) {
         const t = trazo(p.tipo);
         return <line key={p.id} x1={p.x1} y1={y(p.y1)} x2={p.x2} y2={y(p.y2)} stroke={t.color} strokeWidth={t.ancho} strokeLinecap="square" />;
       })}
+      {codigos && <CodigosDeCorte piezas={vista.piezas} codigos={codigos} y={y} />}
       {(vista.mesadas ?? []).map((m, i) => (
         <polygon key={`mes${i}`} className="mesada-planta" points={m.puntos.map(([px, py]) => `${px},${y(py)}`).join(' ')} />
       ))}
@@ -215,7 +234,11 @@ function TablaPaneles({ paneles: p }) {
               <td>{t.n}</td>
               <td className="num">{m(t.ancho)}</td>
               <td>{t.deRetazo ? <em>sale del retazo de {t.deRetazo}</em> : t.pedidos.map((l) => `${m(l)} m`).join(' + ')}</td>
-              <td>{t.cortes.length ? t.cortes.join(' · ') : 'entera'}</td>
+              <td>{t.cortes.length ? t.cortes.map((c) => {
+                // v1.68: a cada relleno, de dónde sale (un recorte de otra tira, o se compra).
+                const r = (t.rellenos ?? []).find((x) => c.startsWith(`relleno al costado ${x.lado}`));
+                return r && r.de !== undefined ? `${c} (${r.de ? `del ${r.de}` : 'se compra'})` : c;
+              }).join(' · ') : 'entera'}</td>
             </tr>
           ))}
         </tbody>
@@ -238,6 +261,8 @@ function DespiecePaneles({ paneles: p }) {
   const deRetazo = new Map(p.tiras.filter((t) => t.deRetazo).map((t) => [t.n, t.deRetazo]));
   const rellenos = p.tiras.flatMap((t) => (t.rellenos ?? []).map((r) => ({ ...r, tira: t.n })));
   const superpone = p.tipo.ladoSolape === 'derecha' ? 'derecho' : 'izquierdo';
+  // v1.68: lo que monta sobre la tira de al lado (ancho total − útil), si se cargó el ancho total.
+  const solapeLateral = p.tipo.anchoTotal > p.tipo.anchoUtil ? p.tipo.anchoTotal - p.tipo.anchoUtil : 0;
   const idRayado = `rayado-${useId().replace(/:/g, '')}`; // uno por pared (los ids del SVG no se pueden repetir)
   return (
     <div className="despiece-paneles">
@@ -249,14 +274,15 @@ function DespiecePaneles({ paneles: p }) {
         </defs>
       </svg>
       <h4 className="subtitulo-pared">Plano de cada panel</h4>
-      <p className="nota">Vistos desde afuera. En verde, el costado que <strong>superpone</strong> (el {superpone}): cada tira monta
+      <p className="nota">Vistos desde afuera. En verde, el costado que <strong>superpone</strong> (el {superpone}{solapeLateral > 0 ? `, ${Math.round(solapeLateral * 1000)} mm` : ''}): cada tira monta
         sobre la anterior, se colocan de {superpone === 'izquierdo' ? 'izquierda a derecha' : 'derecha a izquierda'}. Rayado: lo que se recorta.</p>
       <div className="grilla-despiece">
         {p.despiece.map((d) => {
           // Escala en px por metro: los largos de 4 m entran en ~200 px; los chicos, más grandes.
           const k = Math.min(60, 200 / Math.max(d.largo, 0.5));
           const [ancho, alto] = [d.ancho * k, Math.max(d.arriba[0], d.arriba[1]) * k];
-          const margen = { izq: 34, der: 10, arriba: 8, abajo: 26 };
+          const franja = solapeLateral > 0 ? Math.max(4, solapeLateral * k) : 0;
+          const margen = { izq: 34 + (d.superpone !== 'derecha' ? franja : 0), der: 10 + (d.superpone === 'derecha' ? franja : 0), arriba: 8, abajo: 26 };
           const X = (x) => margen.izq + x * k;
           const Y = (y) => margen.arriba + alto - y * k;
           const lado = d.superpone === 'derecha' ? d.ancho : 0;
@@ -270,8 +296,11 @@ function DespiecePaneles({ paneles: p }) {
                 {d.recortes.map((r) => (
                   <rect key={`${r.x0}-${r.y0}`} x={X(r.x0)} y={Y(r.y1)} width={(r.x1 - r.x0) * k} height={(r.y1 - r.y0) * k} fill={`url(#${idRayado})`} stroke="#dc2626" />
                 ))}
-                {/* El costado que superpone, en verde. */}
-                <line className="lado-superpone" x1={X(lado)} y1={Y(0)} x2={X(lado)} y2={Y(d.superpone === 'derecha' ? d.arriba[1] : d.arriba[0])} />
+                {/* El costado que superpone, en verde: con el ancho total cargado, la franja que monta (total − útil). */}
+                {solapeLateral > 0
+                  ? <rect className="franja-superpone" x={d.superpone === 'derecha' ? X(d.ancho) : X(0) - Math.max(4, solapeLateral * k)} y={Y(Math.max(...d.arriba))}
+                    width={Math.max(4, solapeLateral * k)} height={Math.max(...d.arriba) * k} />
+                  : <line className="lado-superpone" x1={X(lado)} y1={Y(0)} x2={X(lado)} y2={Y(d.superpone === 'derecha' ? d.arriba[1] : d.arriba[0])} />}
                 {/* Cotas: el ancho abajo; el largo a la izquierda (y el otro costado si es inclinada). */}
                 <text x={X(d.ancho / 2)} y={Y(0) + 14} textAnchor="middle" className="cota-panel">{m(d.ancho)}</text>
                 <text x={X(0) - 4} y={Y(d.arriba[0] / 2)} textAnchor="end" dominantBaseline="middle" className="cota-panel">{m(d.arriba[0])}</text>
@@ -284,7 +313,7 @@ function DespiecePaneles({ paneles: p }) {
         })}
       </div>
       {rellenos.length > 0 && (
-        <p className="nota"><strong>Rellenos (de retazos):</strong> {rellenos.map((r) => `tira ${r.tira}, costado ${r.lado} de la abertura: ${m(r.ancho)} × ${m(r.arriba - r.abajo)} m`).join(' · ')}.</p>
+        <p className="nota"><strong>Rellenos al costado de las aberturas:</strong> {rellenos.map((r) => `tira ${r.tira}, costado ${r.lado}: ${m(r.ancho)} × ${m(r.arriba - r.abajo)} m (${r.de ? `sale del ${r.de}` : 'se compra'})`).join(' · ')}.</p>
       )}
     </div>
   );
@@ -312,7 +341,7 @@ function TablaPiezas({ lista }) {
  * Una pared completa: título, dibujo acotado, piezas, aberturas y revestimiento.
  * La usan la pestaña Planos y las hojas del PDF (v1.28).
  */
-export function PlanoDePared({ vista: v, params, soloContorno = false }) {
+export function PlanoDePared({ vista: v, params, soloContorno = false, codigos = null }) {
   // v1.60: para el proveedor de paneles: solo lo que se corta en el panel (sin piezas ni aberturas a futuro).
   const aberturas = soloContorno ? v.aberturas.filter((a) => !a.futura) : v.aberturas;
   return (
@@ -321,7 +350,7 @@ export function PlanoDePared({ vista: v, params, soloContorno = false }) {
         Pared {nombreDePared(v.lado, params)} · {f2(v.largo)} m · alto {f2(v.alturas[0])}
         {Math.abs(v.alturas[0] - v.alturas[1]) > 0.005 ? ` a ${f2(v.alturas[1])}` : ''} m
       </h3>
-      <DibujoPared vista={v} soloContorno={soloContorno} />
+      <DibujoPared vista={v} soloContorno={soloContorno} codigos={codigos} />
       {!soloContorno && <TablaPiezas lista={v.lista} />}
       {aberturas.length > 0 && (
         <div className="table-wrap">
@@ -349,11 +378,11 @@ export function PlanoDePared({ vista: v, params, soloContorno = false }) {
 }
 
 /** Una planta completa: título, dibujo y piezas (pestaña y PDF). */
-export function PlanoDePlanta({ vista: p }) {
+export function PlanoDePlanta({ vista: p, codigos = null }) {
   return (
     <>
       <h3 className="subtitulo">{NOMBRE_PLANTA[p.nivel]} · vista desde arriba · {medidasDeContorno(p.contorno)}</h3>
-      <DibujoPlanta vista={p} />
+      <DibujoPlanta vista={p} codigos={codigos} />
       <TablaPiezas lista={p.lista} />
     </>
   );
@@ -381,9 +410,11 @@ function PlanosInstalaciones({ params, estructura }) {
   );
 }
 
-export default function Planos({ vistas, params, estructura = null, onExportar, implantacion = null }) {
+export default function Planos({ vistas, params, estructura = null, onExportar, implantacion = null, codigosCorte = null }) {
   // v1.60: las paredes como las ve el proveedor de paneles (contorno y aberturas, sin la estructura ni sus medidas).
   const [paraPaneles, setParaPaneles] = useEstadoGuardado('planosParaPaneles', false, (v) => typeof v === 'boolean');
+  // v1.68: el código de la hoja de corte en cada pieza (el mismo de Presupuesto → Cortes y del 3D).
+  const [verCodigos, setVerCodigos] = useEstadoGuardado('planosCodigosCorte', false, (v) => typeof v === 'boolean');
   if (!vistas.paredes.length && !vistas.plantas.length) {
     return (
       <Tarjeta id="planos" titulo="Planos">
@@ -404,6 +435,12 @@ export default function Planos({ vistas, params, estructura = null, onExportar, 
           <input type="checkbox" checked={paraPaneles} onChange={(e) => setParaPaneles(e.target.checked)} />
           Paredes para el proveedor de paneles: solo el contorno y las aberturas (sin la estructura ni sus medidas)
         </label>
+        {codigosCorte?.size > 0 && (
+          <label className="casilla-opcional no-print">
+            <input type="checkbox" checked={verCodigos} onChange={(e) => setVerCodigos(e.target.checked)} />
+            Número de corte en cada pieza (el de la hoja de corte: 2.3b = grupo 2, barra 3, pieza b)
+          </label>
+        )}
         <button type="button" className="btn-print no-print" onClick={onExportar}>Imprimir o exportar…</button>
       </Tarjeta>
       {/* v1.32: la casa en su lote (si se cargó el terreno). */}
@@ -414,10 +451,10 @@ export default function Planos({ vistas, params, estructura = null, onExportar, 
         </section>
       )}
       {vistas.paredes.map((v) => (
-        <section key={v.lado} className="card plano"><PlanoDePared vista={v} params={params} soloContorno={paraPaneles} /></section>
+        <section key={v.lado} className="card plano"><PlanoDePared vista={v} params={params} soloContorno={paraPaneles} codigos={verCodigos ? codigosCorte : null} /></section>
       ))}
       {vistas.plantas.map((p) => (
-        <section key={p.nivel} className="card plano"><PlanoDePlanta vista={p} /></section>
+        <section key={p.nivel} className="card plano"><PlanoDePlanta vista={p} codigos={verCodigos ? codigosCorte : null} /></section>
       ))}
       <PlanosInstalaciones params={params} estructura={estructura} />
     </>

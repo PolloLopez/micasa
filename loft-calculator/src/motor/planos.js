@@ -16,7 +16,7 @@
 
 import { INSUMO, LADOS } from './constantes.js';
 import { inicioAbertura } from './validacion.js';
-import { cortesDeTiras, retazosEntreParedes, pedazosDeLaTira } from './cortesPaneles.js';
+import { cortesDeTiras, retazosEntreParedes, pedazosDeLaTira, rellenosDeLaObra } from './cortesPaneles.js';
 import { geometriaLados, nombreDePared } from './geometria.js';
 import { listarPiezas, NOMBRE_TIPO_PIEZA } from './estructura.js';
 import { INSUMO_DE_TIPO } from './piezasAgregadas.js';
@@ -248,10 +248,21 @@ export function todasLasVistas(e, params, catalogo, aberturas) {
   const porTipo = new Map();
   paredes.filter((v) => v.paneles).forEach((v) => porTipo.set(v.paneles.tipo.id, [...(porTipo.get(v.paneles.tipo.id) ?? []), v]));
   porTipo.forEach((vistas) => {
-    if (vistas.length < 2 || vistas[0].paneles.tipo.aprovecharRetazos === false) return;
-    const { reusos } = retazosEntreParedes(vistas.map((v) => v.paneles.pano), vistas[0].paneles.tipo);
-    reusos.forEach((r) => vistas.forEach((v) => v.paneles.tiras.forEach((x) => {
-      if (`${v.paneles.pano.donde}, tira ${x.n}` === r.para) x.deRetazo = r.de;
+    const tipo = vistas[0].paneles.tipo;
+    const panos = vistas.map((v) => v.paneles.pano);
+    let sobrantes = [];
+    if (vistas.length > 1 && tipo.aprovecharRetazos !== false) {
+      const r = retazosEntreParedes(panos, tipo);
+      sobrantes = r.sobrantes;
+      r.reusos.forEach((x) => vistas.forEach((v) => v.paneles.tiras.forEach((t) => {
+        if (`${v.paneles.pano.donde}, tira ${t.n}` === x.para) t.deRetazo = x.de;
+      })));
+    }
+    // v1.68: de dónde sale cada relleno al costado de una abertura (un recorte, o se compra).
+    const { rellenos } = rellenosDeLaObra(panos, tipo, sobrantes);
+    vistas.forEach((v) => v.paneles.tiras.forEach((t) => (t.rellenos ?? []).forEach((r) => {
+      const asignado = rellenos.find((x) => x.para === `${v.paneles.pano.donde}, tira ${t.n} (costado ${r.lado})`);
+      r.de = asignado?.de ?? null; // null = se compra
     })));
   });
   return {

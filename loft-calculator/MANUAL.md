@@ -27,7 +27,9 @@ pilotines **hormigonados en obra**, el **tapial** (los lados del lote, el alto y
 profundidad del pilar, la cámara y el pozo. El pilar de luz, la cámara y el pozo se agregan en **Terreno** (+ Pilar de
 luz, + Cámara séptica, + Pozo séptico). Abajo, "Lo que lleva" cada parte y lo que hay que comprar.
 
-En **Pisos**: "Altura de tirantes y transversales" (al ras del borde o eje con eje), en planta baja y en el piso 2.
+En **Pisos**, cada piso: **Tirantes y transversales** (en el mismo plano o los tirantes apoyados encima); en el mismo
+plano, **Queda entero** (el tirante o el transversal) y la **Altura** (al ras del borde o eje con eje); y **Borde y
+tirantes** (cuál queda entero). Ya no están repetidos en Materiales → Uniones.
 En **Techo**: "Vigas y correas" (apoyadas o en el mismo plano) y su altura.
 
 **Piezas agregadas, eliminadas y editadas**: cada renglón dice el perfil, el largo, si es vertical u horizontal y a qué
@@ -140,6 +142,13 @@ cargá lo que te pasó en su lista. Un precio absurdo (mil millones o más) sale
 **Agregar un material**: en "Materiales que agregás vos", **+ Agregar material** (arranca abierto): nombre,
 descripción, cantidad a mano o estimada, unidad y precio en cada proveedor. Entra al Presupuesto.
 
+**Revestimiento**: cargá el **ancho total** de la tira y el **encastre** (lo que monta sobre la de al lado), como dice el
+catálogo: el ancho útil sale solo (ej. 1000 − 50 = 950 mm). También: dónde va la tira angosta (derecha, izquierda o
+repartida) y el **costado mínimo** al lado de una abertura (con menos, la tira se parte y el costado es un relleno).
+
+**Cortes de hierro**: el ancho del disco, desde qué largo un sobrante se guarda y si los empalmes van con la unión sobre
+un apoyo (en "Qué perfil va en cada parte").
+
 **Accesorios y consumibles**: cada uno es **"Estimada sola"** (se calcula con los kilos de hierro, su superficie o los
 m² de paneles por un coeficiente que podés cambiar) o **"A mano"**. Vienen: electrodos, tornillería, sellador y antióxido.
 
@@ -158,7 +167,8 @@ cambia la cantidad y el presupuesto.
 - **Mano de obra por segmento** (en el mismo bloque): pilotines, estructura, revestimiento, tabiques, tapial, pozo
   séptico, electricista, plomero (y los que agregues). Elegís cómo cobra cada uno (monto, por m², por metro de tabique,
   por pilotín, por kg…) y te muestra cuánto da.
-- Sub-pestañas: **Lista de materiales** (para pedir), **Por proveedor**, **Cortes** (cómo cortar cada barra),
+- Sub-pestañas: **Lista de materiales** (para pedir), **Por proveedor**, **Cortes** (la hoja de corte: Barra 2.3 = grupo 2,
+  barra 3; cada pieza con su letra, 2.3b, igual que en el 3D y en los planos; ⛓ = tramo de un empalme),
   **Precios y detalle** (ahí también el total con cada proveedor).
 - **Comparar revestimientos** (abajo): la obra con cada panel en las 4 paredes y la diferencia; "Usar en las 4 paredes".
 

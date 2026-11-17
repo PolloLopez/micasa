@@ -7,6 +7,7 @@
 // ==========================================================
 
 import { RETAZO_UTIL } from '../motor/optimizadorCortes.js';
+import { letraDePieza } from '../motor/hojaDeCorte.js';
 import { useState } from 'react';
 import CampoNumero from './CampoNumero.jsx';
 import CampoSelect from './CampoSelect.jsx';
@@ -31,18 +32,31 @@ const validarPrecio = (actualizar) => (v) => {
  * Un grupo es un renglón solo o varios renglones del mismo perfil que comparten barras;
  * en ese caso cada pieza se pinta del color de su renglón.
  */
-function DiagramaCortes({ grupo }) {
+/**
+ * v1.68: hoja de corte. Cada barra numerada ("Barra 2.3" = grupo 2, barra 3) y cada pieza con su letra; el mismo
+ * código ("2.3b") sale en el 3D al tocar la pieza y en los planos. Con el mouse encima de una barra (o su 👁) se
+ * pintan en el 3D las piezas que salen de ella. Las empalmadas dicen su tramo y si la unión cae sobre un apoyo.
+ * @param numero el número del grupo (el mismo que usa codigosDeCorte)
+ */
+function DiagramaCortes({ grupo, numero }) {
   const { cortes, largoReal: largo, renglones } = grupo;
+  const pasar = useResaltar();
   const indice = (origen) => Math.max(0, renglones.findIndex((r) => r.id === origen)); // color por renglón
   const nombreDe = (origen) => renglones.find((r) => r.id === origen)?.nombre ?? renglones[0].nombre;
   const ahorro = grupo.barrasSeparadas - cortes.totalBarras;
   const titulo = renglones.map((r) => r.nombre).join(' + ');
+  const retazoUtil = cortes.retazoUtil ?? RETAZO_UTIL;
+  const criterioBarra = (b) => {
+    const ids = [...new Set((b.ids ?? []).filter(Boolean))];
+    return ids.length ? { tipo: 'pieza', id: ids, nombre: `Barra ${numero}.${b.numero} (${grupo.perfil})` } : null;
+  };
+  const sinApoyo = (cortes.empalmes ?? []).filter((e) => !e.sobreApoyo).length;
   return (
     <details className="bar-details">
       <summary>
-        {titulo} ({grupo.perfil}): {cortes.totalBarras} barras de {grupo.largoBarra} m (reales {largo.toFixed(2)} m)
+        <strong>Grupo {numero}</strong> · {titulo} ({grupo.perfil}): {cortes.totalBarras} barras de {grupo.largoBarra} m (reales {largo.toFixed(2)} m)
         {grupo.compartido && ahorro > 0 && <strong className="ahorro"> · comparten barras: {ahorro} menos</strong>}
-        {/* v1.63: lo que sobra se separa en retazos (desde 30 cm, se guardan) y lo que se tira. */}
+        {/* v1.63: lo que sobra se separa en retazos (se guardan) y lo que se tira. */}
         {cortes.metrosRetazos !== undefined && (
           <small className="sobrantes-grupo"> · retazos {cortes.metrosRetazos.toFixed(2)} m · se tira {cortes.metrosTirados.toFixed(2)} m</small>
         )}
@@ -52,20 +66,30 @@ function DiagramaCortes({ grupo }) {
           {renglones.map((r, i) => <span key={r.id}><span className={`muestra-origen origen-${i % 4}`} />{r.nombre}</span>)}
         </div>
       )}
+      {(cortes.empalmes ?? []).length > 0 && (
+        <p className="nota">{cortes.empalmes.length} pieza{cortes.empalmes.length > 1 ? 's' : ''} empalmada{cortes.empalmes.length > 1 ? 's' : ''}
+          {' '}({cortes.empalmes.map((e) => e.tramos.map((t) => t.toFixed(2)).join(' + ')).join(' · ')})
+          {sinApoyo > 0 ? ` · ⚠ ${sinApoyo} sin un apoyo donde unir (la unión queda al aire: reforzala)` : ' · todas las uniones caen sobre un apoyo'}.</p>
+      )}
       <div className="bar-cuts-container">
         {cortes.barras.map((b) => (
-          <div key={b.numero} className="bar-item">
+          <div key={b.numero} className="bar-item" {...pasar(criterioBarra(b))}>
             <div className="bar-title">
-              Barra #{b.numero} · sobrante {(largo - b.usado).toFixed(2)} m{largo - b.usado >= RETAZO_UTIL ? ' (retazo: guardalo)' : ''}
+              <strong>Barra {numero}.{b.numero}</strong> · sobrante {(largo - b.usado).toFixed(2)} m{largo - b.usado >= retazoUtil ? ' (retazo: guardalo)' : ''}
+              <BotonResaltar criterio={criterioBarra(b)} />
             </div>
             <div className="bar-graphic">
-              {b.piezas.map((p, i) => (
-                <div key={i} className={`piece-block${grupo.compartido ? ` origen-${indice(b.origenes?.[i]) % 4}` : ''}`}
-                  style={{ width: `${(p / largo) * 100}%` }}
-                  title={grupo.compartido ? `${p} m · ${nombreDe(b.origenes?.[i])}` : `${p} m`}>
-                  {p.toFixed(2)}
-                </div>
-              ))}
+              {b.piezas.map((p, i) => {
+                const tramo = b.tramos?.[i];
+                const texto = `${letraDePieza(i)} · ${p.toFixed(2)}`;
+                const detalle = `${numero}.${b.numero}${letraDePieza(i)}: ${p.toFixed(2)} m · ${nombreDe(b.origenes?.[i])}${tramo ? ` · tramo ${tramo.n} de ${tramo.de} (empalme)` : ''}`;
+                return (
+                  <div key={i} className={`piece-block${grupo.compartido ? ` origen-${indice(b.origenes?.[i]) % 4}` : ''}${tramo ? ' tramo-empalme' : ''}`}
+                    style={{ width: `${(p / largo) * 100}%` }} title={detalle}>
+                    {texto}{tramo ? ' ⛓' : ''}
+                  </div>
+                );
+              })}
             </div>
           </div>
         ))}
@@ -409,14 +433,15 @@ export default function TablaPresupuesto({
 
       <div {...panel('cortes')}>
         <p className="nota">
-          Cómo cortar cada barra (optimizador de cortes, merma de 3 mm por corte). Las piezas más largas que la barra se
-          empalman; las partes con el mismo perfil comparten barras (se puede apagar en Materiales). Tocá un grupo para abrirlo.
-          Lo que sobra desde {RETAZO_UTIL * 100} cm es un <strong>retazo</strong> (sirve para otra cosa); lo más corto se tira.
+          La <strong>hoja de corte</strong>: cada barra numerada (Barra 2.3 = grupo 2, barra 3) y cada pieza con su letra. El
+          mismo código (2.3b) sale en el 3D al tocar la pieza y en los planos. Con el mouse encima de una barra (o su 👁) se
+          ven sus piezas en el 3D. Las piezas más largas que la barra se empalman (⛓) con la unión sobre un apoyo. El disco y
+          desde qué largo un sobrante se guarda se cargan en Materiales; lo que sobra desde ahí es un <strong>retazo</strong>.
         </p>
         {gruposConBarras.length > 0 && <ResumenSobrantes grupos={gruposConBarras} />}
         {gruposConBarras.length === 0
           ? <p className="vacio">No hay barras para cortar.</p>
-          : gruposConBarras.map((g) => <DiagramaCortes key={g.id} grupo={g} />)}
+          : gruposConBarras.map((g, i) => <DiagramaCortes key={g.id} grupo={g} numero={i + 1} />)}
       </div>
 
       <div {...panel('precios')}>

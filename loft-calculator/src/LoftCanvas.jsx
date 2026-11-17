@@ -37,7 +37,8 @@ import { INSUMO } from './motor/constantes.js';
 import EditorPieza from './componentes/EditorPieza.jsx';
 import { FilaAbertura } from './componentes/AberturasDePared.jsx';
 import { juntasDePano, pedazosDePared } from './motor/revestimientos.js';
-import { tiraEnPunto } from './motor/cortesPaneles.js';
+import { tiraEnPunto, cortesDeTiras } from './motor/cortesPaneles.js';
+import { textoDeCodigo } from './motor/hojaDeCorte.js';
 import { medirEntre, puntoMasCercanoEnPieza } from './motor/medicion.js';
 import { cotasGenerales } from './motor/cotas3d.js';
 import { vistasFijas, vistasPorPartes } from './motor/vistasFijas.js';
@@ -793,6 +794,12 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
       const punto = (x, h) => [a[0] + dir[0] * x + ((a[0] + b[0]) / n) * fuera, y0 + h, a[2] + dir[1] * x + ((a[2] + b[2]) / n) * fuera];
       const altoEn = (x) => h1 + ((h2 - h1) * x) / pared.largo;
       const huecos = pared.huecos ?? [];
+      // v1.68: donde una abertura parte la tira: el relleno del costado (arriba y abajo de él, y su costado de afuera).
+      if (tipo && tipo.venta !== 'estandar') {
+        cortesDeTiras({ largo: pared.largo, h1, h2, huecos: pared.huecos ?? [] }, tipo).tiras.forEach((t) => (t.rellenos ?? []).forEach((r) => {
+          pares.push([punto(r.x0, r.abajo), punto(r.x1, r.abajo)], [punto(r.x0, r.arriba), punto(r.x1, r.arriba)]);
+        }));
+      }
       // v1.24: las juntas no cruzan los huecos de las aberturas.
       verticales.forEach((x) => {
         const cortes = huecos.filter((hh) => hh.desde < x && hh.hasta > x).map((hh) => [hh.abajo, hh.arriba]);
@@ -1071,7 +1078,7 @@ function mirarAlFrente(camara, controles, params) {
 }
 
 export default function LoftCanvas({
-  params, estructura, aberturas, paneles, colores, catalogo, unidad, onCambiarColor, onEliminarPieza, onEditarPieza,
+  params, estructura, aberturas, paneles, colores, catalogo, unidad, onCambiarColor, onEliminarPieza, onEditarPieza, codigosCorte = null,
   opacidades, onCambiarOpacidad, capturaRef, onMedidasFijas,
   onActualizarAbertura, onQuitarAbertura, onPegarAbertura, onDuplicarPieza, onMoverAbertura = null,
   resaltado = null, cartelResaltado = null, onSoltarResaltado, onElegir, onMoverMueble, onGirarMueble,
@@ -2392,6 +2399,8 @@ export default function LoftCanvas({
           <div className="seleccion-cabecera">
             <div>
               <strong>Seleccionada:</strong> {describirPieza(piezaSeleccionada, params)}
+              {/* v1.68: su código en la hoja de corte (Presupuesto → Cortes): "2.3b" = grupo 2, barra 3, pieza b. */}
+              {codigosCorte?.get(piezaSeleccionada.id) && <span className="codigo-corte"> · corte {textoDeCodigo(codigosCorte.get(piezaSeleccionada.id))}</span>}
               {piezaSeleccionada.editada && <span className="marca-editada"> · editada</span>}
             </div>
             {botonPlegar}<button type="button" className="btn-cerrar" onClick={() => { setSeleccionada(null); setEditandoId(null); }}

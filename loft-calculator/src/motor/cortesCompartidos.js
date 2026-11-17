@@ -91,8 +91,9 @@ export function compartirCortes(items) {
     const separadas = renglones.reduce((a, r) => a + r.cortes.totalBarras, 0);
     let juntos = null;
     if (renglones.length > 1) {
-      const piezas = renglones.flatMap((r) => r.largosPiezas.map((largo) => ({ largo, origen: r.id })));
-      juntos = optimizarCortes(piezas, renglones[0].largoReal);
+      // v1.68: con el id y los apoyos de cada pieza (hoja de corte y empalmes) y el disco del herrero.
+      const piezas = renglones.flatMap((r) => (r.piezasCorte ?? r.largosPiezas.map((largo) => ({ largo }))).map((p) => ({ ...p, origen: r.id })));
+      juntos = optimizarCortes(piezas, renglones[0].largoReal, renglones[0].opcionesCorte);
       if (juntos.totalBarras >= separadas) juntos = null; // no ahorra: cada uno por su lado
     }
 
