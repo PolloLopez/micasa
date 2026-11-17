@@ -19,7 +19,7 @@
 // Las cuentas de compra siguen en revestimientos.js (tirasDePano).
 // ==========================================================
 
-import { pedazosDeTira, cortarEnTramos, tirasDePano, intervalosDeTira, rellenosDeTira, parteLaTira, franjasDeTiras, REVESTIMIENTO_POR_DEFECTO } from './revestimientos.js';
+import { pedazosDeTira, cortarEnTramos, tirasDePano, intervalosDeTira, rellenosDeTira, parteLaTira, franjasDeTiras, costadoEfectivo, REVESTIMIENTO_POR_DEFECTO } from './revestimientos.js';
 
 const EPS = 1e-6;
 const m2 = (n) => n.toFixed(2).replace('.', ',');
@@ -42,7 +42,7 @@ function tapa(h, x0, x1, alto) {
 export function cortesDeTiras(pano, tipo) {
   const t = { ...REVESTIMIENTO_POR_DEFECTO, ...tipo };
   const u = t.anchoUtil;
-  const costado = t.costadoMinimo; // v1.68: por revestimiento
+  const costado = costadoEfectivo(t); // v1.68: por revestimiento; v1.71: sin descontar aberturas, nunca se parte
   const tiras = [];
   franjasDeTiras(pano.largo, t).forEach(({ x0, x1 }, i) => { // v1.68: la angosta donde se eligió
     const ancho = x1 - x0;
@@ -119,7 +119,7 @@ export function retazosEntreParedes(panos, tipo) {
  */
 export function sugerenciaParaAbertura(pano, indice, tipo) {
   const t = { ...REVESTIMIENTO_POR_DEFECTO, ...tipo };
-  if (t.venta === 'estandar') return null;
+  if (t.venta === 'estandar' || t.descontarAberturas === false) return null; // v1.71: tiras enteras: correrla no ahorra
   const u = t.anchoUtil;
   const h = pano.huecos[indice];
   if (!h) return null;
@@ -204,7 +204,7 @@ export function pedazosDeLaTira(pano, tipo, tira) {
   const x1 = tira.x0 + tira.ancho;
   const huecos = pano.huecos ?? [];
   const superpone = t.ladoSolape === 'derecha' ? 'derecha' : 'izquierda';
-  const intervalos = intervalosDeTira(tira.x0, x1, tira.alto, huecos, t.costadoMinimo);
+  const intervalos = intervalosDeTira(tira.x0, x1, tira.alto, huecos, costadoEfectivo(t));
   const pedazos = [];
   intervalos.forEach((iv, k) => {
     // Si pasa el largo máximo, en tramos encimados (como cortarEnTramos).
@@ -216,7 +216,7 @@ export function pedazosDeLaTira(pano, tipo, tira) {
       const ultimoDeArriba = k === intervalos.length - 1 && j === largos.length - 1;
       // El borde de arriba: inclinado solo en el pedazo de más arriba (el de la pared con pendiente).
       const arriba = ultimoDeArriba ? [Math.min(y1, tira.a0 ?? y1) - y0, Math.min(y1, tira.a1 ?? y1) - y0] : [y1 - y0, y1 - y0];
-      const recortes = huecos.filter((h) => !parteLaTira(h, tira.x0, x1, t.costadoMinimo)).map((h) => ({
+      const recortes = huecos.filter((h) => !parteLaTira(h, tira.x0, x1, costadoEfectivo(t))).map((h) => ({
         x0: Math.max(h.desde, tira.x0) - tira.x0, x1: Math.min(h.hasta, x1) - tira.x0,
         y0: Math.max(h.abajo, y0) - y0, y1: Math.min(h.arriba, y1) - y0,
       })).filter((r) => r.x1 - r.x0 > EPS && r.y1 - r.y0 > EPS);
@@ -248,7 +248,7 @@ export function rellenosDeLaObra(panos, tipo, sobrantes = []) {
     const donde = pano.donde ?? '';
     cortesDeTiras(pano, t).tiras.forEach((tira) => {
       const x1 = tira.x0 + tira.ancho;
-      (pano.huecos ?? []).filter((h) => !parteLaTira(h, tira.x0, x1, t.costadoMinimo)).forEach((h) => {
+      (pano.huecos ?? []).filter((h) => !parteLaTira(h, tira.x0, x1, costadoEfectivo(t))).forEach((h) => {
         const r = tapa(h, tira.x0, x1, tira.alto);
         if (r) fuentes.push({ ancho: r.hasta - r.desde, alto: r.arriba - r.abajo, de: `recorte de ${donde}, tira ${tira.n}` });
       });

@@ -33,7 +33,7 @@ import PreciosProveedores from './PreciosProveedores.jsx';
 import ListaProveedores from './ListaProveedores.jsx';
 import FichaPlegable from './FichaPlegable.jsx';
 import SeccionPlegable from './SeccionPlegable.jsx';
-import { textoDePrecio } from '../motor/resumenPrecios.js';
+import { textoDePrecio, preciosOrdenados } from '../motor/resumenPrecios.js';
 import { nombrePerfil } from '../motor/perfiles.js';
 import { BASES_CONSUMIBLE, ESTIMACION_DE_FABRICA, esEstimado } from '../motor/consumibles.js';
 
@@ -51,7 +51,7 @@ function PrecioCorto({ precio }) {
 }
 
 /** Un tipo de revestimiento con todos sus datos. */
-function Revestimiento({ tipo, unidad, usos, unicoQueda, proveedores, precio, nuevo, onCambiar, onQuitar, onCambiarPrecio }) {
+function Revestimiento({ tipo, unidad, usos, unicoQueda, proveedores, precio, nuevo, onCambiar, onQuitar, onCambiarPrecio, ahorro = null, precioUnitario = null }) {
   const cambiar = (campo) => (valor) => onCambiar(tipo.id, campo, valor);
   const medida = (campo, etiqueta) => (
     <CampoNumero key={campo} etiqueta={etiqueta} unidad={unidad} valor={tipo[campo]}
@@ -137,6 +137,21 @@ function Revestimiento({ tipo, unidad, usos, unicoQueda, proveedores, precio, nu
         <CampoSelect etiqueta="Ubicación" valor={tipo.ubicacion} onCambio={cambiar('ubicacion')}
           opciones={[['cara', 'Sobre los perfiles'], ['eje', 'Entre perfiles']]} />
       </div>
+      {/* v1.71: pedirlo cortado en las aberturas (el proveedor saca los huecos) o entero y cortar en obra. */}
+      <label className="casilla-opcional">
+        <input type="checkbox" checked={tipo.descontarAberturas !== false} onChange={(e) => cambiar('descontarAberturas')(e.target.checked)} />
+        Descontar las aberturas (se pide cortado: el proveedor saca los huecos). Sin tildar: {tipo.venta === 'estandar' ? 'placas' : 'tiras'} enteras, los huecos se cortan en obra.
+      </label>
+      {ahorro && ahorro.sinDescuento > 0 && (
+        <p className={`nota ahorro-aberturas${ahorro.ahorro > 0 ? '' : ' sin-ahorro'}`} role="status">
+          {ahorro.ahorro > 0 ? (<>
+            Descontando las aberturas pedís <strong>{ahorro.conDescuento.toLocaleString('es-AR')} {ahorro.unidad}</strong> en vez
+            de {ahorro.sinDescuento.toLocaleString('es-AR')}: te ahorrás <strong>{ahorro.ahorro.toLocaleString('es-AR')} {ahorro.unidad}</strong>
+            {precioUnitario ? <> ≈ <strong>{Math.round(ahorro.ahorro * precioUnitario.precio).toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 })}</strong> (a {precioUnitario.precio.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 })} en {precioUnitario.proveedor.nombre})</> : ' (cargá su precio para ver cuánta plata)'}.
+            {' '}Es lo que arriesgás si un hueco viene mal cortado.{tipo.descontarAberturas === false ? ' Ahora lo estás pidiendo entero.' : ''}
+          </>) : 'Las aberturas no cambian lo que se pide (ninguna parte una tira entera).'}
+        </p>
+      )}
       {/* v1.25: precio en cada proveedor. A medida se cobra por m²; placa fija, por placa. */}
       <PreciosProveedores material={tipo} proveedores={proveedores} unidad={tipo.venta === 'estandar' ? 'placa' : 'm²'}
         onCambiar={(idProveedor, campo, valor) => onCambiarPrecio(tipo.id, idProveedor, campo, valor)} />
@@ -229,7 +244,7 @@ export default function TarjetaMateriales({
   onCambiarExcedente, onCambiarInsumo, onAgregarRevestimiento, onQuitarRevestimiento,
   compartirCortes, onCambiarCompartir, onActualizarPerfil, onAgregarPerfil, onQuitarPerfil,
   proveedor, pago, onCambiarPrecio, onActualizarProveedor, onAgregarProveedor, onQuitarProveedor,
-  onAgregarAccesorio, onQuitarAccesorio, mermaCorte = 3, retazoMinimo = 0.3, empalmesSobreApoyo = true, onCambiarCorte = null,
+  onAgregarAccesorio, onQuitarAccesorio, mermaCorte = 3, retazoMinimo = 0.3, empalmesSobreApoyo = true, onCambiarCorte = null, ahorrosAberturas = {},
 }) {
   // v1.25: para mostrar, cada material con el precio del proveedor y la forma de pago elegidos.
   const conPrecios = aplicarProveedor(catalogo, proveedor, pago);
@@ -256,6 +271,11 @@ export default function TarjetaMateriales({
   const [idsAlAbrir] = useState(() => new Set(catalogo.map((c) => c.id)));
   const esNuevo = (id) => !idsAlAbrir.has(id);
   const precioDe = (item) => textoDePrecio(item, proveedores, proveedor, pago);
+  // v1.71: el precio por unidad de un material (en el proveedor elegido; si no lo tiene, el más barato).
+  const precioUnitarioDe = (item) => {
+    const opciones = preciosOrdenados(item, proveedores, pago);
+    return opciones.find((o) => o.proveedor.id === proveedor) ?? opciones[0] ?? null;
+  };
   const delCatalogo = (item) => catalogo.find((c) => c.id === item.id) ?? item;
   // Todos los materiales de ESTA obra que llevan precio (para la lista de precios de cada proveedor).
   const materialesDeLaObra = [
@@ -404,7 +424,8 @@ export default function TarjetaMateriales({
             {revestimientos.map((tipo) => (
               <Revestimiento key={tipo.id} tipo={tipo} unidad={unidad} usos={usosDeRevestimiento(tipo.id)}
                 unicoQueda={revestimientos.length === 1} onCambiar={onCambiarInsumo} onQuitar={onQuitarRevestimiento}
-                proveedores={proveedores} precio={precioDe(tipo)} nuevo={esNuevo(tipo.id)} onCambiarPrecio={onCambiarPrecio} />
+                proveedores={proveedores} precio={precioDe(tipo)} nuevo={esNuevo(tipo.id)} onCambiarPrecio={onCambiarPrecio}
+                ahorro={ahorrosAberturas[tipo.id]} precioUnitario={precioUnitarioDe(tipo)} />
             ))}
           </div>
           <button className="btn-add no-print" onClick={onAgregarRevestimiento}>+ Agregar revestimiento</button>

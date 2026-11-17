@@ -3,7 +3,7 @@
 Última limpieza: 2026-11-11 (v1.49.0). Espejo en Trello: tablero "Desarrollo", tarjetas `[CALC]`.
 
 ## 📌 Estado y próximos pasos (11/11)
-**En GitHub: hasta v1.61.0. v1.62.0 a v1.70.0 por subir** (desde v1.54 el deploy es automático al pushear). Manual de uso para chequear: `MANUAL.md`.
+**En GitHub: hasta v1.61.0. v1.62.0 a v1.71.0 por subir** (desde v1.54 el deploy es automático al pushear). Manual de uso para chequear: `MANUAL.md`.
 
 🟡 **Para chequear en pantalla** (probado con tests, no visto): el sol con "Ver adentro" entra solo por las aberturas;
 la persona se sienta en el sillón y se acuesta en la cama; las puertas de los tabiques se abren al pasar.
@@ -47,6 +47,9 @@ Lo que falta, en orden de prioridad (detalle en cada sección de abajo):
 - ✅ v1.70.0 Proveedores descartados; partes de la obra terminadas y con extras.
   - 🟡 [ ] Una parte terminada con su rubro de mano de obra (ej. Pilotines ↔ el trabajo de José): unirlos.
   - 🟢 [ ] Los accesorios generales (tornillería, electrodos…) no son de ninguna parte.
+- ✅ v1.71.0 Descontar o no las aberturas en cada revestimiento, con el ahorro en m² y $.
+  - 🟡 [ ] El lint no revisa variables sin definir (no-undef): dos veces se escapó un import que faltaba y recién se vio
+    en el navegador. Activarlo en la config de oxlint con los globales del navegador.
   - 🟡 [ ] En el Frente (A) de Leandro la faja de 2,40 m queda a 10 cm del borde del entrepiso (2,30 m): ¿se unifican
     (la faja a la altura del piso 2, o que el borde reemplace a la faja en ese tramo)? Decidir con Leandro.
 - ✅ v1.63.0 Barra del 3D en grupos; cortes de hierro mejorados con retazos; tamaños y cortes de paneles; retazos de

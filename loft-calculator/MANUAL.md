@@ -149,6 +149,10 @@ descripción, cantidad a mano o estimada, unidad y precio en cada proveedor. Ent
 catálogo: el ancho útil sale solo (ej. 1000 − 50 = 950 mm). También: dónde va la tira angosta (derecha, izquierda o
 repartida) y el **costado mínimo** al lado de una abertura (con menos, la tira se parte y el costado es un relleno).
 
+**Descontar las aberturas** (en cada revestimiento): tildado, se pide cortado (el proveedor saca los huecos);
+sin tildar, entero y los huecos se cortan en obra. Debajo dice cuánto te ahorrás descontándolas, en m² y en plata:
+es lo que arriesgás si un hueco viene mal cortado.
+
 **Cortes de hierro**: el ancho del disco, desde qué largo un sobrante se guarda y si los empalmes van con la unión sobre
 un apoyo (en "Qué perfil va en cada parte").
 

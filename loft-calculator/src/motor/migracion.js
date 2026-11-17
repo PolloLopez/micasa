@@ -189,6 +189,7 @@ function datosDeRevestimiento(p) {
     aprovecharRetazos: p.aprovecharRetazos !== false, // v1.63: las tiras angostas salen de los retazos de otra pared
     ladoSolape: p.ladoSolape === 'derecha' ? 'derecha' : 'izquierda', // v1.67: el lado de cada tira que monta sobre la de al lado
     costadoMinimo: numero('costadoMinimo'), // v1.68
+    descontarAberturas: p.descontarAberturas !== false, // v1.71
     tiraAngosta: TIRA_ANGOSTA.includes(p.tiraAngosta) ? p.tiraAngosta : d.tiraAngosta, // v1.68
     anchoTotal: numero('anchoTotal'), // v1.68 (0 = no se sabe)
   };

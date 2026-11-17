@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.71.0] - 2026-11-17
+### Agregado
+- **Revestimientos: "Descontar las aberturas"** (de fábrica sí). Sin tildar se piden tiras (o placas) enteras y los huecos
+  se cortan en obra: sin rellenos ni sugerencias para correr ventanas. Cada revestimiento dice cuánto se ahorra
+  descontándolas ("pedís 143,12 m² en vez de 145,07: te ahorrás 1,95 m² ≈ $ …"): lo que se arriesga si un hueco viene
+  mal cortado. `costadoEfectivo` y `ahorroPorAberturas` en motor/revestimientos.js.
+
 ## [1.70.0] - 2026-11-17
 ### Agregado
 - **Descartar un proveedor** (Materiales → Proveedores): no aparece más en el presupuesto, en "el más barato", en las

@@ -46,7 +46,7 @@ import { esEdicionVacia, piezaEditadaEnLaEstructura } from './motor/edicionPieza
 import { duplicarPieza, PREFIJO_AGREGADA } from './motor/piezasAgregadas.js';
 import { generarEstructura, listarPiezas, infoSeparacion } from './motor/estructura.js';
 import { CAMPOS_CON_CANTIDAD, MAXIMO_CANTIDAD, cantidadDe } from './motor/cantidades.js';
-import { calcularPresupuesto, CATALOGO_INICIAL, tiposDePanel } from './motor/presupuesto.js';
+import { calcularPresupuesto, CATALOGO_INICIAL, tiposDePanel, panosPorRevestimiento } from './motor/presupuesto.js';
 import { resolverCatalogo, PERFIL_NUEVO, perfilesDeLista } from './motor/perfiles.js';
 import { proveedoresDe, aplicarProveedor, faltanPrecios, MAS_BARATO, planDeCompra, masBaratoEn, totalDeLaObra, listaDeMateriales, kilosDeMateriales } from './motor/proveedores.js';
 import { cerrarPresupuesto } from './motor/cierre.js';
@@ -95,6 +95,7 @@ import { historialVacio, registrarCambio, deshacer, rehacer } from './proyecto/h
 import { describirPieza, detallesDePieza } from './descripcionPiezas.js';
 import ArmadoPiso from './componentes/ArmadoPiso.jsx';
 import { codigosDeCorte } from './motor/hojaDeCorte.js';
+import { ahorroPorAberturas } from './motor/revestimientos.js';
 import FilaPiezaCambiada from './componentes/FilaPiezaCambiada.jsx';
 import { perfilDePieza } from './motor/coloresPerfil.js';
 import './App.css';
@@ -379,6 +380,12 @@ export default function App() {
   // Catálogo con los precios elegidos (para los desplegables de perfiles y el 3D).
   const catalogoConPrecios = useMemo(() => aplicarProveedor(catalogo, proveedorElegido, formaPago), [catalogo, proveedorElegido, formaPago]);
   const paneles = useMemo(() => tiposDePanel(catalogo), [catalogo]);
+  // v1.71: por revestimiento, cuánto se ahorra pidiéndolo cortado en las aberturas (contra tiras enteras).
+  const ahorrosAberturas = useMemo(() => {
+    if (!esConstruccion) return {};
+    const panos = panosPorRevestimiento(estructura);
+    return Object.fromEntries(paneles.map((t) => [t.id, ahorroPorAberturas(t, panos[t.id] ?? [])]));
+  }, [esConstruccion, estructura, paneles]);
   // v1.21: cada uso con el nombre, la barra y el precio de su perfil (para el 3D y el editor de piezas).
   const catalogoResuelto = useMemo(() => resolverCatalogo(catalogoConPrecios), [catalogoConPrecios]);
   // v1.26: cada pared y planta en 2D (pestaña Planos, PDF y Excel).
@@ -1573,7 +1580,7 @@ export default function App() {
           <TarjetaMateriales items={items} catalogo={catalogo} revestimientos={esConstruccion ? paneles : null}
             unidad={unidad} usosDeRevestimiento={usosDePanel} excedenteBarras={params.excedenteBarras}
             onCambiarExcedente={cambiar('excedenteBarras')} onCambiarInsumo={cambiarInsumo}
-            mermaCorte={params.mermaCorte ?? 3} retazoMinimo={params.retazoMinimo ?? 0.3} empalmesSobreApoyo={params.empalmesSobreApoyo !== false} onCambiarCorte={cambiar}
+            mermaCorte={params.mermaCorte ?? 3} retazoMinimo={params.retazoMinimo ?? 0.3} empalmesSobreApoyo={params.empalmesSobreApoyo !== false} onCambiarCorte={cambiar} ahorrosAberturas={ahorrosAberturas}
             compartirCortes={params.compartirCortes !== false} onCambiarCompartir={cambiar('compartirCortes')}
             onActualizarPerfil={actualizarInsumo} onAgregarPerfil={agregarPerfil} onQuitarPerfil={quitarPerfil}
             onAgregarRevestimiento={agregarTipoPanel} onQuitarRevestimiento={quitarTipoPanel}

@@ -131,3 +131,23 @@ describe('v1.68: costado mínimo, dónde va la tira angosta y de dónde salen lo
     expect(sinPuerta.comprar).toEqual([0.8]);
   });
 });
+
+describe('v1.71: descontar o no las aberturas', () => {
+  const pano = { largo: 7.5, h1: 4.25, h2: 4.25, huecos: [{ desde: 6.1, hasta: 7.3, abajo: 1.2, arriba: 2 }, { desde: 2.6, hasta: 4.1, abajo: 0, arriba: 2 }], donde: 'Frente', neto: 25 };
+  it('sin descontar: tiras enteras, los huecos se recortan en obra, sin rellenos ni sugerencias', () => {
+    const t = cortesDeTiras(pano, { ...panel, descontarAberturas: false }).tiras;
+    expect(t.every((x) => x.pedidos.length === 1 && x.pedidos[0] === 4.25)).toBe(true);
+    expect(t.flatMap((x) => x.rellenos)).toEqual([]);
+    expect(t[6].cortes.some((c) => c.startsWith('recortar'))).toBe(true);
+    expect(sugerenciaParaAbertura(pano, 0, { ...panel, descontarAberturas: false })).toBeNull();
+  });
+  it('cuánto se ahorra descontándolas (lo que se arriesga si viene mal cortado)', async () => {
+    const { ahorroPorAberturas } = await import('./revestimientos.js');
+    const a = ahorroPorAberturas(panel, [pano]);
+    expect(a.sinDescuento).toBeCloseTo(8 * 4.25);
+    // Las tiras que parte una abertura (la 4 por la puerta, la 7 y la 8 por la ventana) se piden más cortas.
+    expect(a.ahorro).toBeGreaterThan(0);
+    expect(a.conDescuento + a.ahorro).toBeCloseTo(a.sinDescuento);
+    expect(a.unidad).toBe('m²');
+  });
+});

@@ -53,6 +53,7 @@ export const REVESTIMIENTO_POR_DEFECTO = {
   aprovecharRetazos: true, // v1.63: la tira angosta de una pared sale del retazo de otra (ver cortesPaneles.js)
   ladoSolape: 'izquierda', // v1.67: el lado (vista desde afuera) con que cada tira monta sobre la anterior: se coloca de izquierda a derecha
   costadoMinimo: 0.3, // v1.68: con menos que esto al costado de una abertura, la tira se parte (ver parteLaTira)
+  descontarAberturas: true, // v1.71: false = tiras enteras (los huecos se cortan en obra): ver costadoEfectivo
   tiraAngosta: 'derecha', // v1.68: dónde va la tira cortada a lo largo: 'derecha', 'izquierda' o 'repartida' (media en cada punta)
   anchoTotal: 0, // v1.68: ancho total de la tira con su encastre (0 = no se sabe): el solape del costado = total − útil
 };
@@ -128,6 +129,13 @@ const PEDAZO_MINIMO = 0.05; // m: un pedazo más chico que esto no se pide
  */
 export const COSTADO_MINIMO = 0.3; // m
 
+/**
+ * v1.71 (Leandro: "una opción para que no descuente las aberturas: quiero saber cuánto me ahorro, para saber si
+ * conviene arriesgarme a que venga mal cortado"). Sin descontar, ninguna abertura parte una tira: se piden enteras y
+ * los huecos se cortan en obra. Un costado negativo hace que parteLaTira nunca dé verdadero.
+ */
+export const costadoEfectivo = (tipo) => (tipo?.descontarAberturas === false ? -1 : tipo?.costadoMinimo ?? COSTADO_MINIMO);
+
 /** ¿La abertura parte esta tira en dos? (la tapa de lado a lado, o le deja costados de menos de COSTADO_MINIMO) */
 export const parteLaTira = (h, x0, x1, costado = COSTADO_MINIMO) => h.desde - x0 < costado - EPSILON && x1 - h.hasta < costado - EPSILON
   && Math.min(h.hasta, x1) - Math.max(h.desde, x0) > EPSILON;
@@ -180,7 +188,7 @@ export function tirasDePano(pano, tipo) {
   const largos = [];
   franjasDeTiras(pano.largo, tipo).forEach(({ x0, x1 }) => {
     const alto = Math.max(altoEn(pano, x0), altoEn(pano, x1));
-    pedazosDeTira(x0, x1, alto, pano.huecos, tipo.costadoMinimo ?? COSTADO_MINIMO).forEach((pedazo) => {
+    pedazosDeTira(x0, x1, alto, pano.huecos, costadoEfectivo(tipo)).forEach((pedazo) => {
       largos.push(...cortarEnTramos(pedazo, tipo.largoMaximo, tipo.solape));
     });
   });
@@ -238,7 +246,8 @@ export function cuentaRevestimiento(tipo, panos) {
   const donde = panos.map((p) => p.donde).join(', ');
 
   if (t.venta === 'estandar') {
-    const placas = panos.reduce((acc, p) => acc + placasDePano(p, t).placas, 0);
+    // v1.71: sin descontar aberturas, también las placas que caen dentro de un hueco.
+    const placas = panos.reduce((acc, p) => acc + placasDePano(t.descontarAberturas === false ? { ...p, huecos: [] } : p, t).placas, 0);
     return {
       cantidad: placas,
       unidad: 'placas',
@@ -275,7 +284,7 @@ export function cuentaRevestimiento(tipo, panos) {
     unidad: 'm²',
     piezas,
     neto,
-    detalle: `${resumirLargos(piezas)} (ancho útil ${t.anchoUtil.toFixed(2)} m) · ${neto.toFixed(2)} m² netos${retazos} · ${donde}`,
+    detalle: `${resumirLargos(piezas)} (ancho útil ${t.anchoUtil.toFixed(2)} m) · ${neto.toFixed(2)} m² netos${retazos}${t.descontarAberturas === false ? ' · tiras enteras: las aberturas se cortan en obra' : ''} · ${donde}`,
   };
 }
 
@@ -338,3 +347,15 @@ export function pedazosDePared(largo, altoEn, huecos) {
   return pedazos;
 }
 
+
+/**
+ * v1.71: cuánto se ahorra pidiendo el revestimiento cortado en las aberturas (descontándolas) contra pedirlo entero
+ * y cortar los huecos en obra. Para decidir si vale el riesgo de que venga mal cortado.
+ * @returns {{ conDescuento, sinDescuento, ahorro, unidad }}  cantidades a comprar (m² o placas)
+ */
+export function ahorroPorAberturas(tipo, panos) {
+  if (!panos?.length) return { conDescuento: 0, sinDescuento: 0, ahorro: 0, unidad: tipo.venta === 'estandar' ? 'placas' : 'm²' };
+  const con = cuentaRevestimiento({ ...tipo, descontarAberturas: true }, panos);
+  const sin = cuentaRevestimiento({ ...tipo, descontarAberturas: false }, panos);
+  return { conDescuento: con.cantidad, sinDescuento: sin.cantidad, ahorro: Math.round((sin.cantidad - con.cantidad) * 100) / 100, unidad: con.unidad };
+}

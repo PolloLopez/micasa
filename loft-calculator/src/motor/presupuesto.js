@@ -195,7 +195,7 @@ function itemSimple(producto, cantidad, detalle) {
  * dentro si lleva revestimiento interior) y el techo.
  * @returns {Object<string, object[]>} id del tipo => paños (ver revestimientos.js)
  */
-function panosPorRevestimiento(estructura) {
+export function panosPorRevestimiento(estructura) {
   const panos = {};
   const sumar = (id, pano) => {
     if (!id) return;
