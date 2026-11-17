@@ -53,6 +53,8 @@ import { cerrarPresupuesto } from './motor/cierre.js';
 import { useSinCambiosSalvo } from './hooks/useSinCambiosSalvo.js';
 import { partesDelPresupuesto, resumenSeguimiento, informeDeSeguimiento } from './motor/seguimiento.js';
 import PanelSeguimiento from './componentes/PanelSeguimiento.jsx';
+import PanelCompras from './componentes/PanelCompras.jsx';
+import { resumenDeCompras } from './motor/compras.js';
 import PanelFinanzas from './componentes/PanelFinanzas.jsx';
 import PanelObraCivil from './componentes/PanelObraCivil.jsx';
 import PanelInstalaciones from './componentes/PanelInstalaciones.jsx';
@@ -326,6 +328,9 @@ export default function App() {
     id: `inst:${s.sistema}:${k}`, categoria: 'instalacion', nombre: m.nombre, perfil: s.nombre, unidad: m.unidad, cantidad: m.cantidad,
     precio: m.precio, subtotal: m.total, largoBarra: null, detalle: `Instalación ${s.nombre.toLowerCase()}`,
   })))], resolverCatalogo(catalogo)), [itemsEstructura, instalaciones, catalogo]);
+  // v1.69: lo que ya se compró (Obra → Compras hechas): gastado, lo que falta y cada material con lo comprado.
+  const resumenCompras = useMemo(() => resumenDeCompras(listaMateriales, params.seguimiento?.compras ?? [], totalObra),
+    [listaMateriales, params.seguimiento?.compras, totalObra]);
   // v1.46: cierre: de los materiales al precio de la obra (mano de obra, imprevistos, ganancia e IVA).
   const medidasCierre = {
     m2: (estructura.superficies?.piso ?? 0) + (estructura.superficies?.piso2 ?? 0), // m² cubiertos
@@ -1555,7 +1560,7 @@ export default function App() {
             proveedores={proveedores} proveedor={proveedorElegido} pago={formaPago} comparacion={comparacion}
             onElegirProveedor={cambiar('proveedorElegido')} onElegirPago={cambiar('formaPago')}
             onCambiarPrecio={(item, valor) => cambiarPrecio(item.perfilId ?? item.id, proveedorElegido, formaPago, valor)}
-            plan={planCompra} nombreProyecto={nombreProyecto} materiales={listaMateriales} masBaratoDe={(item) => masBaratoEn(item, catalogoResuelto, formaPago)}
+            plan={planCompra} nombreProyecto={nombreProyecto} materiales={listaMateriales} compras={resumenCompras} masBaratoDe={(item) => masBaratoEn(item, catalogoResuelto, formaPago)}
             cierre={params.cierre} resultadoCierre={cierre} medidasCierre={medidasCierre} cambiar={cambiar} />
           {/* v1.59: la obra con cada panel en las 4 paredes, para elegir el revestimiento. */}
           {esConstruccion && (
@@ -1575,6 +1580,8 @@ export default function App() {
           </section>
           <section id="pestana-obra" role="tabpanel" aria-labelledby="boton-obra"
             className={`pestana${pestanaActiva === 'obra' ? '' : ' oculta'}`}>
+            {/* v1.69: las compras que ya se hicieron (descuentan de lo que falta comprar). */}
+            <PanelCompras params={params} materiales={listaMateriales} proveedores={proveedores} totalMateriales={totalObra} cambiar={cambiar} />
             <PanelSeguimiento params={params} partes={partesSeguimiento} precioObra={cierre.total} cambiar={cambiar} />
             <PanelFinanzas params={params} cambiar={cambiar} cambiarVarios={cambiarVarios} />
           </section>

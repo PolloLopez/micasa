@@ -200,6 +200,13 @@ que los materiales y la pestaña "Presupuesto" muestra ese precio.
 
 ## 7. Obra (seguimiento)
 
+- **Compras hechas**: **+ Compra** (fecha y proveedor) y en cada renglón el material de la lista (ej. Cemento · 12
+  bolsas · $ 150.000 · para Pilotines) u "Otro" para un ticket suelto. Queda pagada; si dejaste seña, destildá "Pagada
+  entera" y poné cuánto falta. El Presupuesto muestra **ya gastado** y **falta comprar**, y la lista de materiales lo
+  comprado de cada uno ("Copiar lo que falta" para el próximo pedido).
+- **Contratistas** (abajo del seguimiento): **+ Contratista** (nombre, oficio, teléfono). En cada trabajo elegís su
+  contratista; cada uno agrupa sus trabajos con lo contratado, lo pagado y lo que falta. **Marcar pagado todo** carga lo
+  que falta como un pago de hoy.
 - **Armar desde el presupuesto**: crea un rubro por proveedor (o "Materiales") y uno por cada segmento de mano de obra.
 - **+ Rubro a mano**: electricista, plomero, flete…
 - En cada rubro: **Avance** (cuánto está hecho, en %), quién lo hace, monto contratado, fechas y **+ Pago** (fecha,

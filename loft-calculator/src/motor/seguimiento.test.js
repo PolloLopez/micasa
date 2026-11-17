@@ -64,7 +64,7 @@ describe('validación y proyectos de antes', () => {
     const { seguimiento, ...viejo } = PARAMS_INICIALES;
     expect(seguimiento).toEqual({ rubros: [] });
     const migrado = migrarParams(viejo);
-    expect(migrado.seguimiento).toEqual({ rubros: [] });
+    expect(migrado.seguimiento).toEqual({ rubros: [], compras: [], contratistas: [] }); // v1.69
     expect(validarParametros(migrado)).toEqual({});
     expect(completarSeguimiento({ rubros: [{ id: 1, nombre: 'x' }] }).rubros[0]).toMatchObject({ estado: 'pendiente', pagos: [], contratado: null });
   });

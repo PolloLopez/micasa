@@ -17,13 +17,14 @@
 // ==========================================================
 
 import { estadoDeCuotas, errorDelPlan, textoDeCuotas, mesDe, informeDeFinanzas } from './finanzas.js';
+import { errorDeCompra, errorDeContratista, contratistasDesdeQuien, cuentasDeCompra, esDeMateriales } from './compras.js';
 
 export const ESTADOS_RUBRO = [
   ['pendiente', 'Pendiente'], ['contratado', 'Contratado'], ['enCurso', 'En curso'], ['terminado', 'Terminado'],
 ];
 export const MEDIOS_PAGO = [['efectivo', 'Efectivo'], ['transferencia', 'Transferencia'], ['tarjeta', 'Tarjeta'], ['cheque', 'Cheque'], ['otro', 'Otro']];
 
-export const SEGUIMIENTO_INICIAL = { rubros: [] };
+export const SEGUIMIENTO_INICIAL = { rubros: [], compras: [], contratistas: [] }; // v1.69: + compras y contratistas
 
 /**
  * v1.54 (pedido de Leandro): el "checklist" de cada rubro. La etapa sale sola del avance (que se carga a mano, en %)
@@ -56,6 +57,7 @@ export function rubroNuevo(rubros, { nombre, origen = '', quien = '' } = {}) {
     estado: 'pendiente', presupuestado: 0, contratado: null, fechaContrato: '', fechaFin: '', pagos: [],
     avance: 0, // v1.54: % hecho (a mano)
     cuotas: null, // v1.54: plan de cuotas (ver finanzas.js) o null si se paga suelto
+    contratista: null, // v1.69: id de la lista de contratistas (o null)
   };
 }
 
@@ -101,17 +103,26 @@ export function rubrosDesdePresupuesto(rubros, partes) {
  *   contratado = el monto cerrado o, si no se cargó, lo presupuestado; saldo = lo que falta pagar (nunca negativo;
  *   si se pagó de más, `deMas`). sinOrigen = venía del presupuesto y esa parte ya no está (ej. se quitó el proveedor).
  */
-export function cuentasDelRubro(rubro, partes = []) {
+export function cuentasDelRubro(rubro, partes = [], compras = []) {
   const parte = rubro.origen ? partes.find((p) => p.origen === rubro.origen) : null;
   const presupuestado = rubro.origen ? (parte?.monto ?? 0) : rubro.presupuestado;
   const contratado = rubro.contratado ?? presupuestado;
-  const pagado = rubro.pagos.reduce((a, p) => a + p.monto, 0);
+  // v1.69: a un rubro de materiales le suma lo pagado de las compras hechas a ese proveedor (mismo nombre).
+  const deCompras = comprasDelRubro(rubro, compras).reduce((a, c) => a + cuentasDeCompra(c).pagado, 0);
+  const pagado = rubro.pagos.reduce((a, p) => a + p.monto, 0) + deCompras;
   return {
     presupuestado, contratado, pagado,
     saldo: Math.max(0, contratado - pagado), deMas: Math.max(0, pagado - contratado),
     pagadoTodo: contratado > 0 && pagado >= contratado, sinOrigen: Boolean(rubro.origen) && !parte,
     porcentajePagado: contratado > 0 ? Math.min(100, (pagado / contratado) * 100) : 0,
   };
+}
+
+/** v1.69: las compras hechas al proveedor de un rubro de materiales (por el nombre, sin importar mayúsculas). */
+export function comprasDelRubro(rubro, compras = []) {
+  if (!esDeMateriales(rubro) || !(rubro.quien ?? '').trim()) return [];
+  const quien = rubro.quien.trim().toLowerCase();
+  return compras.filter((c) => (c.proveedor ?? '').trim().toLowerCase() === quien);
 }
 
 /**
@@ -143,7 +154,7 @@ export function totalesPorQuien(seguimiento, partes = []) {
   (seguimiento?.rubros ?? []).forEach((r) => {
     const quien = (r.quien ?? '').trim() || 'Sin asignar';
     const clave = quien.toLowerCase();
-    const c = cuentasDelRubro(r, partes);
+    const c = cuentasDelRubro(r, partes, seguimiento?.compras);
     const g = grupos.get(clave) ?? { quien, rubros: [], contratado: 0, pagado: 0, falta: 0 };
     g.rubros.push(r.nombre);
     g.contratado += c.contratado;
@@ -157,13 +168,17 @@ export function totalesPorQuien(seguimiento, partes = []) {
 /** Totales de la obra: presupuestado, contratado, pagado, saldo y cuántos rubros terminados. */
 export function resumenSeguimiento(seguimiento, partes = []) {
   const rubros = seguimiento?.rubros ?? [];
-  const cuentas = rubros.map((r) => cuentasDelRubro(r, partes));
+  const cuentas = rubros.map((r) => cuentasDelRubro(r, partes, seguimiento?.compras));
   const suma = (campo) => cuentas.reduce((a, c) => a + c[campo], 0);
-  const contratado = suma('contratado');
-  const pagado = suma('pagado');
+  // v1.69: las compras hechas que no son de ningún rubro de materiales también son plata pagada.
+  const compras = seguimiento?.compras ?? [];
+  const sueltas = compras.filter((c) => !rubros.some((r) => comprasDelRubro(r, [c]).length));
+  const comprasSueltas = sueltas.reduce((a, c) => a + cuentasDeCompra(c).pagado, 0);
+  const contratado = suma('contratado') + comprasSueltas;
+  const pagado = suma('pagado') + comprasSueltas;
   return {
     rubros: rubros.length,
-    presupuestado: suma('presupuestado'), contratado, pagado, saldo: suma('saldo'),
+    presupuestado: suma('presupuestado'), contratado, pagado, saldo: suma('saldo'), comprasSueltas,
     terminados: rubros.filter((r) => (r.avance ?? (r.estado === 'terminado' ? 100 : 0)) >= 100).length,
     porcentajePagado: contratado > 0 ? Math.min(100, (pagado / contratado) * 100) : 0,
   };
@@ -200,12 +215,28 @@ export function validarSeguimiento(s) {
   s.rubros.forEach((r, i) => {
     const e = validarRubro(r ?? {});
     if (e) errores[`seguimiento.rubros.${i}`] = e;
+    if (r && !(r.contratista == null || Number.isInteger(r.contratista))) errores[`seguimiento.rubros.${i}`] = 'Contratista inválido';
   });
+  // v1.69: compras y contratistas.
+  if (s.compras !== undefined && !Array.isArray(s.compras)) errores['seguimiento.compras'] = 'Compras inválidas';
+  (s.compras ?? []).forEach((c, i) => { const e = errorDeCompra(c); if (e) errores[`seguimiento.compras.${i}`] = e; });
+  if (s.contratistas !== undefined && !Array.isArray(s.contratistas)) errores['seguimiento.contratistas'] = 'Contratistas inválidos';
+  (s.contratistas ?? []).forEach((c, i) => { const e = errorDeContratista(c); if (e) errores[`seguimiento.contratistas.${i}`] = e; });
   return errores;
 }
 
 export function completarSeguimiento(s) {
-  if (!s || !Array.isArray(s.rubros)) return { ...SEGUIMIENTO_INICIAL, rubros: [] };
+  if (!s || !Array.isArray(s.rubros)) return { ...SEGUIMIENTO_INICIAL, rubros: [], compras: [], contratistas: [] };
+  const base = completarRubros(s);
+  // v1.69: los proyectos de antes arman su lista de contratistas con los nombres de "Quién" de los trabajos.
+  if (!Array.isArray(s.contratistas)) {
+    const { contratistas, rubros } = contratistasDesdeQuien(base.rubros);
+    return { ...base, rubros, contratistas, compras: Array.isArray(s.compras) ? s.compras : [] };
+  }
+  return { ...base, compras: Array.isArray(s.compras) ? s.compras : [] };
+}
+
+function completarRubros(s) {
   return { ...s, rubros: s.rubros.map((r) => ({
     ...rubroNuevo([], {}), ...r,
     // v1.54: los de antes: terminado = 100 % hecho; el resto, 0 %.
@@ -220,7 +251,7 @@ export function completarSeguimiento(s) {
  */
 export function informeDeSeguimiento(seguimiento, partes = [], finanzas = null) {
   const rubros = (seguimiento?.rubros ?? []).map((r) => {
-    const c = cuentasDelRubro(r, partes);
+    const c = cuentasDelRubro(r, partes, seguimiento?.compras);
     const etapa = etapaDelRubro(r, c);
     return {
       nombre: r.nombre, quien: r.quien, estado: etapa.texto, etapa: etapa.etapa, avance: r.avance ?? 0,

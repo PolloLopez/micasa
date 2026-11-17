@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.69.0] - 2026-11-17
+### Agregado
+- **Compras hechas** (Obra): fecha, proveedor y renglones. Un renglón es un material de la lista del presupuesto
+  (ej. 12 bolsas de cemento para Pilotines: descuenta cantidad y plata) o un ticket suelto (descuenta solo la plata).
+  Queda pagada entera; si no, se marca cuánto falta. motor/compras.js, componentes/PanelCompras.jsx.
+- **Presupuesto**: arriba "Ya gastado · falta comprar · debés"; la lista de materiales dice lo comprado de cada uno
+  ("✓ todo" o "10 · faltan 12") y "Copiar lo que falta".
+- **Contratistas**: una lista (nombre, oficio, teléfono); cada trabajo elige el suyo y abajo cada contratista agrupa sus
+  trabajos con lo contratado, lo pagado y lo que falta, con "+ Trabajo para…". Los proyectos de antes arman la lista
+  con los nombres de "Quién".
+- **Marcar pagado todo** en cada trabajo (carga lo que falta como un pago de hoy).
+### Cambiado
+- Un rubro de materiales suma lo pagado en las compras hechas a ese proveedor (mismo nombre); las compras a otros
+  proveedores suman aparte en el resumen de la obra.
+
 ## [1.68.0] - 2026-11-17
 ### Agregado
 - **Hoja de corte**: cada barra numerada (Barra 2.3 = grupo 2, barra 3) y cada pieza con su letra. El mismo código (2.3b)

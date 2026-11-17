@@ -336,7 +336,7 @@ function BarraSubpestanas({ activa, onElegir }) {
 }
 
 /** "Materiales" (v1.31.0): todo lo que hay que comprar, por material y sin proveedor ni precios. */
-function ListaMateriales({ materiales, nombreProyecto }) {
+function ListaMateriales({ materiales, nombreProyecto, conCompras = false }) {
   if (materiales.length === 0) return <p className="vacio">Todavía no hay nada para comprar: cargá las medidas en Estructura.</p>;
   const kilos = kilosDeMateriales(materiales);
   return (
@@ -344,7 +344,7 @@ function ListaMateriales({ materiales, nombreProyecto }) {
       <p className="nota">Todo lo que lleva la obra, sumado por material, sin importar dónde lo compres.</p>
       <div className="table-wrap">
         <table className="tabla-materiales">
-          <thead><tr><th>Cantidad</th><th>Material</th><th className="num">Peso</th></tr></thead>
+          <thead><tr><th>Cantidad</th><th>Material</th>{conCompras && <th>Comprado</th>}<th className="num">Peso</th></tr></thead>
           <tbody>
             {materiales.map((m) => (
               <tr key={m.clave} title={`Para: ${m.usos.join(', ')}`}>
@@ -354,6 +354,11 @@ function ListaMateriales({ materiales, nombreProyecto }) {
                   {m.ficha && <small className="detalle">{m.ficha}</small>}
                   <MasInfo material={m} />
                 </td>
+                {conCompras && (
+                  <td className={m.comprado > 0 && m.faltaCantidad === 0 ? 'comprado-todo' : ''}>
+                    {m.comprado > 0 ? (m.faltaCantidad === 0 ? `✓ todo (${m.comprado})` : `${m.comprado} · faltan ${m.faltaCantidad}`) : '—'}
+                  </td>
+                )}
                 <td className="num">{m.kgPorBarra > 0 ? `${Math.round(m.kgPorBarra * m.cantidad)} kg` : '—'}</td>
               </tr>
             ))}
@@ -364,6 +369,12 @@ function ListaMateriales({ materiales, nombreProyecto }) {
         {kilos > 0 && <p className="peso-total">Hierro: <strong>≈ {Math.round(kilos).toLocaleString('es-AR')} kg</strong> <small>(barras enteras)</small></p>}
         <BotonCopiar etiqueta="Copiar lista" ayuda="Copia la lista (sin precios) para mandarla por WhatsApp o mail"
           texto={() => textoDeMateriales(`Materiales${nombreProyecto ? ` — ${nombreProyecto}` : ''}`, materiales)} />
+        {/* v1.69: solo lo que falta comprar (descontando las compras hechas). */}
+        {conCompras && (
+          <BotonCopiar etiqueta="Copiar lo que falta" ayuda="La lista sin lo que ya compraste"
+            texto={() => textoDeMateriales(`Falta comprar${nombreProyecto ? ` — ${nombreProyecto}` : ''}`,
+              materiales.filter((m) => m.faltaCantidad > 0).map((m) => ({ ...m, cantidad: m.faltaCantidad })))} />
+        )}
       </div>
     </>
   );
@@ -372,7 +383,7 @@ function ListaMateriales({ materiales, nombreProyecto }) {
 export default function TablaPresupuesto({
   items, total, gruposCortes = [], proveedores = [], proveedor, pago = 'efectivo', comparacion = [],
   onElegirProveedor, onElegirPago, onCambiarPrecio, plan = null, masBaratoDe = () => null, nombreProyecto = '',
-  materiales = [], cierre = null, resultadoCierre = null, medidasCierre = { m2: 0, kg: 0 }, cambiar = null,
+  materiales = [], cierre = null, resultadoCierre = null, medidasCierre = { m2: 0, kg: 0 }, cambiar = null, compras = null,
 }) {
   // v1.31.0: la sub-pestaña elegida se recuerda en este navegador.
   const [subpestana, setSubpestana] = useEstadoGuardado('subpestanaPresupuesto', 'materiales',
@@ -411,6 +422,12 @@ export default function TablaPresupuesto({
           <CampoSelect etiqueta="Pago" valor={pago} opciones={[['efectivo', 'Efectivo'], ['tarjeta', 'Tarjeta']]} onCambio={onElegirPago} />
         </div>
         {conPlan && plan.nadieVende.length > 0 && <p className="falta">⚠ Ningún proveedor vende: {plan.nadieVende.join(', ')} (no está en el total).</p>}
+        {/* v1.69: lo que ya se compró (Obra → Compras hechas) y lo que falta. */}
+        {compras?.compras > 0 && (
+          <p className="gastado-falta" role="status">Ya gastado <strong>{pesos(compras.gastado)}</strong> · falta comprar <strong>{pesos(compras.falta)}</strong>
+            {compras.deuda > 0 && <> · debés <strong className="falta">{pesos(compras.deuda)}</strong></>}
+            <small> ({compras.compras} compra{compras.compras > 1 ? 's' : ''} en Obra)</small></p>
+        )}
       </div>
 
       {cierre && resultadoCierre && cambiar && (
@@ -420,7 +437,7 @@ export default function TablaPresupuesto({
       <BarraSubpestanas activa={subpestana} onElegir={setSubpestana} />
 
       <div {...panel('materiales')}>
-        <ListaMateriales materiales={materiales} nombreProyecto={nombreProyecto} />
+        <ListaMateriales materiales={compras?.compras > 0 ? compras.materiales : materiales} nombreProyecto={nombreProyecto} conCompras={compras?.compras > 0} />
       </div>
 
       <div {...panel('proveedores')}>
