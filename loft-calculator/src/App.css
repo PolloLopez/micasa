@@ -944,3 +944,19 @@ input[type=date] { color-scheme: dark; }
 .piece-block.tramo-empalme { outline: 2px dashed #f59e0b; outline-offset: -2px; }
 .codigo-corte { color: #facc15; font-weight: 600; }
 .ancho-util { grid-column: 1 / -1; margin: 0; }
+
+/* v1.72: lista de compras y precios por material. */
+.grupo-proveedor { border: 1px solid var(--borde); border-radius: 8px; padding: 6px 10px; margin: 8px 0; background: var(--fondo); }
+.grupo-proveedor > summary { cursor: pointer; }
+.tabla-compras td { vertical-align: middle; }
+.tabla-compras select { max-width: 220px; }
+.acciones-compra { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+.acciones-compra input[type="number"] { width: 70px; }
+.chip-compra { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 0.72rem; white-space: nowrap; }
+.chip-compra.falta { background: #334155; color: #e2e8f0; }
+.chip-compra.parcial { background: #1e3a8a; color: #dbeafe; }
+.chip-compra.debe { background: #7c2d12; color: #fed7aa; }
+.chip-compra.ok { background: #14532d; color: #bbf7d0; }
+.filtro-lista { margin: 6px 0; }
+.agregar-precio { margin: 4px 0 6px; }
+.proveedor-nuevo { display: inline-flex; gap: 4px; align-items: center; }

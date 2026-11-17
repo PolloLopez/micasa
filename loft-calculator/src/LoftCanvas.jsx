@@ -31,6 +31,7 @@ import { ubicarMueble, choquesDelMueble, avisoDeChoques } from './motor/interior
 import { posicionAbertura, listarPiezas } from './motor/estructura.js';
 import { geometriaLados, nombreDePared } from './motor/geometria.js';
 import { describirPieza } from './descripcionPiezas.js';
+import { NOMBRE_TIPO_PIEZA } from './motor/estructura.js';
 import { seccionDesdePerfil } from './motor/canos.js';
 import { coloresPorPerfil, perfilDePieza } from './motor/coloresPerfil.js';
 import { INSUMO } from './motor/constantes.js';
@@ -2398,7 +2399,10 @@ export default function LoftCanvas({
         <div className={`seleccion no-print${seleccionPlegada ? ' plegada' : ''}`} role="dialog" aria-label="Pieza seleccionada">
           <div className="seleccion-cabecera">
             <div>
-              <strong>Seleccionada:</strong> {describirPieza(piezaSeleccionada, params)}
+              {/* v1.72 (Leandro): primero qué pieza es, su largo y su perfil; sin "Seleccionada:". */}
+              <strong>{NOMBRE_TIPO_PIEZA[piezaSeleccionada.tipo] ?? piezaSeleccionada.tipo} · {piezaSeleccionada.largo.toFixed(2).replace('.', ',')} m</strong>
+              {' · '}{perfilDePieza(piezaSeleccionada, catalogo)}
+              <small className="detalle"> · {describirPieza(piezaSeleccionada, params).split(' · ').slice(1, -1).join(' · ')}</small>
               {/* v1.68: su código en la hoja de corte (Presupuesto → Cortes): "2.3b" = grupo 2, barra 3, pieza b. */}
               {codigosCorte?.get(piezaSeleccionada.id) && <span className="codigo-corte"> · corte {textoDeCodigo(codigosCorte.get(piezaSeleccionada.id))}</span>}
               {piezaSeleccionada.editada && <span className="marca-editada"> · editada</span>}

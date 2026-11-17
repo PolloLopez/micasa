@@ -48,13 +48,15 @@ import { generarEstructura, listarPiezas, infoSeparacion } from './motor/estruct
 import { CAMPOS_CON_CANTIDAD, MAXIMO_CANTIDAD, cantidadDe } from './motor/cantidades.js';
 import { calcularPresupuesto, CATALOGO_INICIAL, tiposDePanel, panosPorRevestimiento } from './motor/presupuesto.js';
 import { resolverCatalogo, PERFIL_NUEVO, perfilesDeLista } from './motor/perfiles.js';
-import { proveedoresDe, aplicarProveedor, faltanPrecios, MAS_BARATO, planDeCompra, masBaratoEn, totalDeLaObra, listaDeMateriales, kilosDeMateriales } from './motor/proveedores.js';
+import { proveedoresDe, aplicarProveedor, faltanPrecios, MAS_BARATO, planDeCompra, precioEn, masBaratoEn, totalDeLaObra, listaDeMateriales, kilosDeMateriales } from './motor/proveedores.js';
 import { cerrarPresupuesto } from './motor/cierre.js';
 import { useSinCambiosSalvo } from './hooks/useSinCambiosSalvo.js';
 import { partesDelPresupuesto, resumenSeguimiento, informeDeSeguimiento } from './motor/seguimiento.js';
 import PanelSeguimiento from './componentes/PanelSeguimiento.jsx';
 import PanelCompras from './componentes/PanelCompras.jsx';
 import { resumenDeCompras } from './motor/compras.js';
+import { filasDeLaLista } from './motor/listaCompras.js';
+import ListaDeCompras from './componentes/ListaDeCompras.jsx';
 import { PARTES_FIJAS, partesDeLaObra, descuentoPorTerminadas, itemsDeExtras } from './motor/partesObra.js';
 import PanelPartesObra from './componentes/PanelPartesObra.jsx';
 import PanelFinanzas from './componentes/PanelFinanzas.jsx';
@@ -328,7 +330,11 @@ export default function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   })), [estructura, catalogo, proveedores, params.excedenteBarras, params.compartirCortes]);
   // v1.29: plan de compra (a quién comprarle cada material, contando el flete), con las cantidades de este presupuesto.
-  const planCompra = useMemo(() => planDeCompra(itemsEstructura, resolverCatalogo(catalogo), formaPago), [itemsEstructura, catalogo, formaPago]);
+  // v1.72: con lo que se eligió a mano en la lista de compras ("Se lo compro a…" o a nadie).
+  const asignaciones = params.seguimiento?.asignaciones ?? {};
+  const planCompra = useMemo(() => planDeCompra(itemsEstructura, resolverCatalogo(catalogo), formaPago, asignaciones),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [itemsEstructura, catalogo, formaPago, params.seguimiento?.asignaciones]);
   // v1.30.2: el total de la obra (pestaña y TOTAL) es el del plan de compra cuando hay varios proveedores:
   // el de un solo proveedor deja afuera lo que ese no vende (ej. los paneles de otro).
   const totalObra = totalDeLaObra(totalEstructura, planCompra, proveedores.length) + totalInstalaciones; // v1.57: + instalaciones
@@ -358,6 +364,24 @@ export default function App() {
     const precio = new Map(planCompra.compras.flatMap((c) => c.materiales.map((m) => [m.clave, m.precio])));
     return listaMateriales.map((m) => (precio.has(m.clave) ? { ...m, precio: precio.get(m.clave), subtotal: m.cantidad * precio.get(m.clave) } : m));
   }, [listaMateriales, planCompra, proveedores.length]);
+  // v1.72: la lista de compras (cada renglón con su proveedor, su parte y lo retirado / pagado).
+  const filasCompra = useMemo(() => filasDeLaLista({
+    items: itemsEstructura, plan: planCompra, catalogo: resolverCatalogo(catalogo), proveedores, asignaciones, pago: formaPago, estructura,
+    compras: params.seguimiento?.compras ?? [], terminadas: params.seguimiento?.terminadas ?? [], partes: partesObra,
+    otros: [...instalaciones.flatMap((s) => s.materiales.map((m, k) => ({ id: `inst:${s.sistema}:${k}`, nombre: m.nombre, perfil: s.nombre,
+      unidad: m.unidad, cantidad: m.cantidad, precio: m.precio }))), ...itemsExtras],
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [itemsEstructura, planCompra, catalogo, proveedores, params.seguimiento, formaPago, estructura, partesObra, instalaciones, itemsExtras]);
+  const precioEnProveedor = (fila, idProveedor) => {
+    const material = resolverCatalogo(catalogo).find((m) => m.id === fila.clave);
+    const p = proveedores.find((x) => x.id === idProveedor);
+    return material && p ? precioEn(material, p, formaPago) : null;
+  };
+  // `cambiar` se define más abajo: se pasa envuelto (se llama recién al tocar un botón).
+  const listaDeCompras = (
+    <ListaDeCompras filas={filasCompra} proveedores={proveedores} compras={params.seguimiento?.compras ?? []} asignaciones={asignaciones}
+      precioEnProveedor={precioEnProveedor} cambiar={(ruta) => cambiar(ruta)} />
+  );
   const resumenCompras = useMemo(() => resumenDeCompras(listaConPrecioReal, params.seguimiento?.compras ?? [], totalObra, terminado),
     [listaConPrecioReal, params.seguimiento?.compras, totalObra, terminado]);
   // v1.46: cierre: de los materiales al precio de la obra (mano de obra, imprevistos, ganancia e IVA).
@@ -596,13 +620,18 @@ export default function App() {
     const anterior = p.precios?.[idProveedor] ?? { efectivo: null, tarjeta: null };
     return { ...p, precios: { ...p.precios, [idProveedor]: { ...anterior, [campo]: valor } } };
   }));
-  const agregarProveedor = () => setCatalogo((prev) => {
-    const usados = new Set(prev.map((p) => p.id));
+  /** v1.72: con nombre (desde el precio de un material: "+ Proveedor nuevo…"); devuelve su id. */
+  const agregarProveedor = (nombre = '') => {
+    const usados = new Set(catalogo.map((p) => p.id));
     let n = 1;
     while (usados.has(`prov-${n}`)) n++;
-    const cuantos = prev.filter((p) => p.categoria === 'proveedor').length;
-    return [...prev, { id: `prov-${n}`, categoria: 'proveedor', nombre: `Proveedor ${cuantos + 1}`, recargoTarjeta: 0, nota: '' }];
-  });
+    const id = `prov-${n}`;
+    setCatalogo((prev) => {
+      const cuantos = prev.filter((p) => p.categoria === 'proveedor').length;
+      return [...prev, { id, categoria: 'proveedor', nombre: (typeof nombre === 'string' && nombre.trim()) || `Proveedor ${cuantos + 1}`, recargoTarjeta: 0, nota: '' }];
+    });
+    return id;
+  };
   /** Quitar un proveedor (queda al menos uno): también se borran sus precios. */
   const quitarProveedor = (id) => setCatalogo((prev) => {
     if (prev.filter((p) => p.categoria === 'proveedor').length <= 1) return prev;
@@ -1597,7 +1626,7 @@ export default function App() {
             proveedores={proveedores} proveedor={proveedorElegido} pago={formaPago} comparacion={comparacion}
             onElegirProveedor={cambiar('proveedorElegido')} onElegirPago={cambiar('formaPago')}
             onCambiarPrecio={(item, valor) => cambiarPrecio(item.perfilId ?? item.id, proveedorElegido, formaPago, valor)}
-            plan={planCompra} nombreProyecto={nombreProyecto} materiales={listaMateriales} compras={resumenCompras} masBaratoDe={(item) => masBaratoEn(item, catalogoResuelto, formaPago)}
+            plan={planCompra} nombreProyecto={nombreProyecto} materiales={listaMateriales} compras={resumenCompras} listaDeCompras={listaDeCompras} masBaratoDe={(item) => masBaratoEn(item, catalogoResuelto, formaPago)}
             cierre={params.cierre} resultadoCierre={cierre} medidasCierre={medidasCierre} cambiar={cambiar} />
           {/* v1.59: la obra con cada panel en las 4 paredes, para elegir el revestimiento. */}
           {esConstruccion && (
@@ -1620,6 +1649,7 @@ export default function App() {
             {/* v1.69: las compras que ya se hicieron (descuentan de lo que falta comprar). */}
             {/* v1.70: cada parte de la obra: terminada (ya no falta nada de ella) y sus extras. */}
             <PanelPartesObra params={params} partes={partesObra} cambiar={cambiar} />
+            <Tarjeta id="lista-compras" titulo="Lista de compras (tildar lo comprado)">{listaDeCompras}</Tarjeta>
             <PanelCompras params={params} materiales={listaConPrecioReal} proveedores={proveedores} totalMateriales={totalObra} terminado={terminado} cambiar={cambiar} />
             <PanelSeguimiento params={params} partes={partesSeguimiento} precioObra={cierre.total} cambiar={cambiar} />
             <PanelFinanzas params={params} cambiar={cambiar} cambiarVarios={cambiarVarios} />

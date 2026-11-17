@@ -29,6 +29,8 @@ import { fichaDePerfil } from './perfiles.js';
 export const FORMAS_DE_PAGO = ['efectivo', 'tarjeta'];
 /** Proveedor "virtual": cada material con el proveedor que lo tiene más barato. */
 export const MAS_BARATO = 'mas-barato';
+/** v1.72: "no se lo compro a nadie" (lo consigo yo o ya lo tengo): el renglón sale del plan de compra. */
+export const NINGUNO = 'ninguno';
 export const LIMITES_RECARGO = { min: 0, max: 100 }; // %
 export const LIMITES_FLETE = { min: 0, max: 100000000 }; // $ (v1.29)
 
@@ -207,14 +209,18 @@ const MAXIMO_PROVEEDORES_PLAN = 12; // 2^12 combinaciones: instantáneo
  * @param items  renglones de un presupuesto (las cantidades)
  * @returns {{ compras: { proveedor, renglones, subtotal, flete, total }[], total, nadieVende: string[] } | null}
  */
-export function planDeCompra(items, catalogo, pago = 'efectivo') {
+export function planDeCompra(items, catalogo, pago = 'efectivo', asignaciones = {}) {
   const proveedores = proveedoresDe(catalogo).slice(0, MAXIMO_PROVEEDORES_PLAN);
   if (proveedores.length === 0) return null;
+  // v1.72 (Leandro: "a cada proveedor debo eliminarle / agregarle productos"): un renglón con proveedor elegido a mano
+  // solo se le compra a ese; con NINGUNO no se compra (lo consigue él o ya lo tiene) y no entra al total.
+  const elegido = (i) => asignaciones?.[i.id];
   // Cada renglón con lo que cuesta en cada proveedor (null = no lo vende).
   // v1.48: los consumibles estimados sin ningún precio cargado no entran al plan (se ven en la lista de materiales).
-  const renglones = items.filter((i) => i.cantidad > 0 && i.categoria !== 'flete' && !i.sinPrecioCargado).map((i) => {
+  const renglones = items.filter((i) => i.cantidad > 0 && i.categoria !== 'flete' && !i.sinPrecioCargado && elegido(i) !== NINGUNO).map((i) => {
     const material = materialDe(i, catalogo);
-    const precios = proveedores.map((p) => (material && llevaPrecios(material) ? precioEn(material, p, pago) : null));
+    const fijo = elegido(i);
+    const precios = proveedores.map((p) => (material && llevaPrecios(material) && (!fijo || fijo === p.id) ? precioEn(material, p, pago) : null));
     return { item: i, precios };
   }).filter((r) => materialDe(r.item, catalogo) && llevaPrecios(materialDe(r.item, catalogo)));
 

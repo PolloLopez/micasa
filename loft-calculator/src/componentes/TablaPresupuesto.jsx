@@ -291,6 +291,7 @@ function MasInfo({ material: m }) {
 /** Las sub-pestañas del presupuesto (v1.31.0): una cosa por vez, en el orden en que se usan. */
 const SUBPESTANAS = [
   { clave: 'materiales', nombre: 'Lista de materiales', ayuda: 'Todo lo que lleva la obra, sin proveedor' },
+  { clave: 'compras', nombre: 'Lista de compras', ayuda: 'Tildar lo retirado y lo pagado, por proveedor' }, // v1.72
   { clave: 'proveedores', nombre: 'Por proveedor', ayuda: 'Qué comprarle a cada uno' },
   { clave: 'cortes', nombre: 'Cortes', ayuda: 'Cómo cortar cada barra' },
   { clave: 'precios', nombre: 'Precios y detalle', ayuda: 'Comparar proveedores y editar precios' },
@@ -385,7 +386,7 @@ function ListaMateriales({ materiales, nombreProyecto, conCompras = false }) {
 export default function TablaPresupuesto({
   items, total, gruposCortes = [], proveedores = [], proveedor, pago = 'efectivo', comparacion = [],
   onElegirProveedor, onElegirPago, onCambiarPrecio, plan = null, masBaratoDe = () => null, nombreProyecto = '',
-  materiales = [], cierre = null, resultadoCierre = null, medidasCierre = { m2: 0, kg: 0 }, cambiar = null, compras = null,
+  materiales = [], cierre = null, resultadoCierre = null, medidasCierre = { m2: 0, kg: 0 }, cambiar = null, compras = null, listaDeCompras = null,
 }) {
   // v1.31.0: la sub-pestaña elegida se recuerda en este navegador.
   // v1.70: hay compras cargadas o partes terminadas: la lista dice qué ya no falta.
@@ -443,6 +444,10 @@ export default function TablaPresupuesto({
       <div {...panel('materiales')}>
         {/* v1.70: también con partes terminadas (aunque no haya compras cargadas). */}
         <ListaMateriales materiales={hayAvance ? compras.materiales : materiales} nombreProyecto={nombreProyecto} conCompras={hayAvance} />
+      </div>
+
+      <div {...panel('compras')}>
+        {listaDeCompras ?? <p className="vacio">La lista de compras está en la pestaña Obra.</p>}
       </div>
 
       <div {...panel('proveedores')}>

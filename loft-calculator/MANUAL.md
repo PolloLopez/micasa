@@ -135,12 +135,15 @@ Revestimientos) se pliega tocando su título, y cada material o proveedor es una
 dice lo importante: el material, su precio en el proveedor elegido en el Presupuesto y, si ese no lo vende o hay uno
 más barato, **desde cuánto y dónde**. Arriba avisa cuántos materiales no tienen precio en ningún proveedor.
 
+**Precios de un material**: se ven solo los proveedores que lo tienen. **+ Precio en otro proveedor…** suma otro, o
+**+ Proveedor nuevo…** lo crea ahí mismo.
+
 **Descartar un proveedor**: en su ficha, **Descartar**. No aparece más en el presupuesto ni en las listas; queda abajo en
 "Descartados" para volver a usarlo o borrarlo del todo.
 
 **Cargar los precios de un proveedor de una vez**: abrí el proveedor. Abajo de sus datos está **la lista de todos los
-materiales de la obra** con su precio ahí (efectivo y tarjeta). Tildá "Ver solo los que no tienen precio acá" y
-cargá lo que te pasó en su lista. Un precio absurdo (mil millones o más) sale marcado con ⚠ para revisar.
+materiales de la obra** con su precio ahí (efectivo y tarjeta). De fábrica ves solo lo que tiene precio ahí; tildá "Ver también lo que no tiene precio" para
+cargar lo que te pasó en su lista. Un precio absurdo (mil millones o más) sale marcado con ⚠ para revisar.
 
 **Agregar un material**: en "Materiales que agregás vos", **+ Agregar material** (arranca abierto): nombre,
 descripción, cantidad a mano o estimada, unidad y precio en cada proveedor. Entra al Presupuesto.
@@ -174,6 +177,9 @@ cambia la cantidad y el presupuesto.
 - **Mano de obra por segmento** (en el mismo bloque): pilotines, estructura, revestimiento, tabiques, tapial, pozo
   séptico, electricista, plomero (y los que agregues). Elegís cómo cobra cada uno (monto, por m², por metro de tabique,
   por pilotín, por kg…) y te muestra cuánto da.
+- **Lista de compras** (sub-pestaña, también en Obra): cada material por proveedor y por parte. Poné cuánto retiraste y
+  tocá **Retirado** (queda como deuda) o **Pagado** (se anota solo en Compras hechas); **Pagar lo retirado** salda la
+  deuda. En **Se lo compro a…** cambiás el proveedor de ese renglón, o "a nadie" si lo conseguís vos.
 - Sub-pestañas: **Lista de materiales** (para pedir), **Por proveedor**, **Cortes** (la hoja de corte: Barra 2.3 = grupo 2,
   barra 3; cada pieza con su letra, 2.3b, igual que en el 3D y en los planos; ⛓ = tramo de un empalme),
   **Precios y detalle** (ahí también el total con cada proveedor).

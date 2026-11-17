@@ -42,7 +42,7 @@ const claveMaterial = (item) => item.perfilId ?? item.id; // la de la lista de m
 
 /** De qué parte es un renglón del presupuesto (o null: accesorios, flete, obra civil repartida). */
 export function parteDeItem(item, estructura) {
-  if (String(item.id).startsWith('inst:')) return item.id; // cada instalación es su parte
+  if (String(item.id).startsWith('inst:')) return String(item.id).split(':').slice(0, 2).join(':'); // cada instalación es su parte (también sus materiales: inst:sistema:k)
   if (String(item.id).startsWith('extra:')) return item.parte ?? null;
   if (item.categoria === 'panel') return item.id === estructura?.techo?.panel ? 'techo' : 'revestimiento';
   return PARTES_FIJAS.find((p) => p.items.includes(base(item.id)))?.clave ?? null;

@@ -9,11 +9,12 @@
 // ==========================================================
 
 import { nombrePerfil } from '../motor/perfiles.js';
+import { INSUMO_DE_TIPO } from '../motor/piezasAgregadas.js';
 import { useId } from 'react';
 import CampoNumero from './CampoNumero.jsx';
 import { nombreDePared } from '../motor/geometria.js';
 import {
-  EDICION_VACIA, PERFILES_CONSTRUCCION, PERFILES_GRADA, PERFILES_MONTAJE, esEdicionVacia, esVertical, revisarEdicionDePieza,
+  EDICION_VACIA, esEdicionVacia, esVertical, revisarEdicionDePieza,
 } from '../motor/edicionPiezas.js';
 
 /**
@@ -44,6 +45,12 @@ export default function EditorPieza({ pieza, edicion, catalogo, unidad, ladoFren
   const original = pieza.original ?? pieza;
   const actual = { ...EDICION_VACIA, ...edicion };
   const extremos = nombresExtremos(original, obra);
+  // v1.72: el perfil de la lista elegido (los de antes guardaban el renglón: se muestra el perfil de ese renglón).
+  const listaDePerfiles = catalogo.filter((i) => i.categoria === 'hierro');
+  const deRenglon = (id) => catalogo.find((i) => i.id === id)?.perfilId ?? '';
+  const perfilElegido = actual.perfilLista ?? (actual.perfil ? deRenglon(actual.perfil) : '');
+  const renglonDeSuTipo = catalogo.find((i) => i.id === (pieza.esquina ? 'columnaEsquina' : INSUMO_DE_TIPO[pieza.tipo]));
+  const perfilDeSuTipo = renglonDeSuTipo?.perfilId ? nombrePerfil(catalogo.find((i) => i.id === renglonDeSuTipo.perfilId)) : '';
 
   /** Cambia un campo: valida contra la pieza original y aplica. */
   const cambiarCampo = (campo) => (valor) => {
@@ -64,10 +71,6 @@ export default function EditorPieza({ pieza, edicion, catalogo, unidad, ladoFren
   const campoAbajo = original.desde[1] <= original.hasta[1] ? 'recorteInicio' : 'recorteFin';
   const campoArriba = campoAbajo === 'recorteInicio' ? 'recorteFin' : 'recorteInicio';
 
-  // Solo los renglones que existen en este tipo de proyecto (construcción o grada).
-  const asignables = pieza.grupos.includes('grada') ? PERFILES_GRADA
-    : pieza.grupos.includes('montaje') ? PERFILES_MONTAJE : PERFILES_CONSTRUCCION;
-  const perfiles = asignables.map((id) => catalogo.find((p) => p.id === id)).filter(Boolean);
 
   return (
     <div className="editor-pieza">
@@ -115,14 +118,19 @@ export default function EditorPieza({ pieza, edicion, catalogo, unidad, ladoFren
       </div>
 
       <h3 className="subtitulo">Perfil</h3>
-      <p className="nota">Con qué perfil se hace esta pieza. Se compra y se cotiza en ese renglón del presupuesto.</p>
+      {/* v1.72 (Leandro: "debe mostrarme los tipos de materiales que tengo, no la lista de dónde lo uso"): los perfiles
+          de la lista (Caño 80x80x2.0, Perfil C 80x40…). La pieza se compra con ese perfil. */}
+      <p className="nota">Con qué hierro se hace esta pieza (de tu lista de perfiles, en Materiales).</p>
       <div className="group">
         <label htmlFor={idPerfil}>Perfil de esta pieza</label>
-        <select id={idPerfil} value={actual.perfil ?? ''} onChange={(e) => cambiarCampo('perfil')(e.target.value || null)}>
-          <option value="">El de su tipo de pieza (sin cambiar)</option>
-          {perfiles.map((p) => <option key={p.id} value={p.id}>{p.nombre}{p.perfil ? ` · ${p.perfil}` : ''}</option>)}
+        <select id={idPerfil} value={perfilElegido} onChange={(e) => onEditar(pieza.id, { ...actual, perfil: null, perfilLista: e.target.value || null })}>
+          <option value="">El de su tipo de pieza{perfilDeSuTipo ? ` (${perfilDeSuTipo})` : ''}</option>
+          {listaDePerfiles.map((p) => <option key={p.id} value={p.id}>{nombrePerfil(p)} · barra {p.largoBarra} m</option>)}
         </select>
       </div>
+      {actual.perfil && !actual.perfilLista && (
+        <small className="detalle">Elegido antes como "{catalogo.find((i) => i.id === actual.perfil)?.nombre}": se compra con {perfilElegido ? nombrePerfil(catalogo.find((i) => i.id === perfilElegido)) : 'su perfil'}.</small>
+      )}
       {/* v1.22: de dónde sale el perfil cuando no se cambió a mano. */}
       {!actual.perfil && pieza.esquina && <small className="detalle">Columna de esquina: va en el renglón "Columnas de esquina".</small>}
       {!actual.perfil && pieza.perfilPared && (

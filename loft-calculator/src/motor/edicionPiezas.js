@@ -31,6 +31,10 @@ export const EDICION_VACIA = {
   moverY: 0, // + sube, - baja
   moverZ: 0, // + hacia la pared A, - hacia la C
   perfil: null, // id de insumo del catálogo, o null = el de siempre
+  // v1.72 (Leandro: "en Perfil de esta pieza debe mostrarme los tipos de materiales que tengo, no la lista de dónde lo
+  // uso"): el perfil de la lista (Caño 80x80x2.0…). La pieza sigue en su renglón pero se compra con ese perfil
+  // (renglón aparte "Columnas (editada a mano)", como el perfil propio de una pared).
+  perfilLista: null,
 };
 
 /** Renglones de perfil a los que se puede pasar una pieza de una construcción. */
@@ -67,6 +71,7 @@ export function revisarEdicion(edicion) {
     if (!esNumero(campos[c]) || Math.abs(campos[c]) > MOVER_MAXIMO) return `Se puede mover hasta ${MOVER_MAXIMO} m por eje`;
   }
   if (campos.perfil !== null && !PERFILES_ASIGNABLES.includes(campos.perfil)) return 'Perfil inválido';
+  if (campos.perfilLista !== null && !(typeof campos.perfilLista === 'string' && campos.perfilLista.length <= 60)) return 'Perfil inválido';
   return null;
 }
 
@@ -88,7 +93,7 @@ export function revisarEdicionDePieza(original, edicion) {
 /** ¿La edición no cambia nada? (para no guardar ediciones vacías). */
 export function esEdicionVacia(edicion) {
   const e = { ...EDICION_VACIA, ...edicion };
-  return e.recorteInicio === 0 && e.recorteFin === 0 && e.moverX === 0 && e.moverY === 0 && e.moverZ === 0 && e.perfil === null;
+  return e.recorteInicio === 0 && e.recorteFin === 0 && e.moverX === 0 && e.moverY === 0 && e.moverZ === 0 && e.perfil === null && e.perfilLista === null;
 }
 
 /**
@@ -111,6 +116,7 @@ export function aplicarEdicion(original, edicion) {
     editada: true,
     original: { desde, hasta, largo }, // para el formulario: los recortes se miden sobre la pieza original
     ...(e.perfil ? { insumo: e.perfil } : {}),
+    ...(e.perfilLista ? { perfilPared: e.perfilLista, ladoPared: 'editada a mano' } : {}), // v1.72
     ...(recortesValidos ? {} : { recorteIgnorado: true }),
   };
 }

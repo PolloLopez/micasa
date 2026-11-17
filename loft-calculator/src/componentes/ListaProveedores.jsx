@@ -21,13 +21,16 @@ const pesos = (n) => n.toLocaleString('es-AR', { style: 'currency', currency: 'A
 
 /** Tabla: cada material de la obra con su precio en ESTE proveedor (vacío = no lo vende). */
 function PreciosDelProveedor({ proveedor, materiales, onCambiarPrecio }) {
-  const [soloFaltan, setSoloFaltan] = useState(false);
-  const visibles = soloFaltan ? materiales.filter((m) => precioEn(m, proveedor, 'efectivo') === null) : materiales;
+  // v1.72 (Leandro: "es al revés: solo me interesan los que SÍ tienen precio"): de fábrica, solo lo que vende;
+  // tildando, también los demás (para cargarle un precio nuevo).
+  const [verTodos, setVerTodos] = useState(false);
+  const conPrecio = materiales.filter((m) => precioEn(m, proveedor, 'efectivo') !== null);
+  const visibles = verTodos ? materiales : conPrecio;
   return (
     <>
       <label className="casilla-opcional">
-        <input type="checkbox" checked={soloFaltan} onChange={(e) => setSoloFaltan(e.target.checked)} />
-        Ver solo los que no tienen precio acá
+        <input type="checkbox" checked={verTodos} onChange={(e) => setVerTodos(e.target.checked)} />
+        Ver también lo que no tiene precio acá (para cargarle uno)
       </label>
       <div className="table-wrap">
         <table className="tabla-precios tabla-precios-proveedor">
@@ -50,7 +53,7 @@ function PreciosDelProveedor({ proveedor, materiales, onCambiarPrecio }) {
           </tbody>
         </table>
       </div>
-      {visibles.length === 0 && <p className="nota">Todos los materiales de la obra tienen precio en {proveedor.nombre}.</p>}
+      {visibles.length === 0 && <p className="nota">{proveedor.nombre} todavía no tiene precios de esta obra: tildá "Ver también" para cargarlos.</p>}
     </>
   );
 }

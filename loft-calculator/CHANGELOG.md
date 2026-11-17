@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.72.0] - 2026-11-17
+### Agregado
+- **Lista de compras** (Presupuesto → sub-pestaña, y en Obra): cada material por proveedor y por parte de la obra, con su
+  cantidad y estado (falta · retirado sin pagar · comprado y pagado · parte terminada). Se pone cuánto se retiró
+  (puede ser una parte) y "Retirado" (queda como deuda) o "Pagado": la compra se anota sola en Compras hechas. "Pagar lo
+  retirado" salda la deuda. Filtro: todo / lo que falta / retirado sin pagar. motor/listaCompras.js,
+  componentes/ListaDeCompras.jsx.
+- **"Se lo compro a…"** en cada renglón: otro proveedor o ninguno (lo consigo yo / ya lo tengo). El plan de compra y el
+  total lo respetan (`planDeCompra(…, asignaciones)`, `NINGUNO`).
+- **Proveedor nuevo desde el precio de un material** ("+ Precio en otro proveedor… → + Proveedor nuevo…").
+### Cambiado
+- **Precios de un proveedor** (su ficha): de fábrica solo lo que tiene precio ahí; "Ver también lo que no tiene precio" para
+  cargar nuevos (antes el tilde era al revés).
+- **Precios de un material**: solo los proveedores que lo tienen; los demás se suman desde "+ Precio en otro proveedor".
+- **Perfil de una pieza** (editarla en el 3D): la lista de perfiles (Caño 80x80x2.0…), no los renglones donde se usa
+  (`perfilLista` en la edición: la pieza se cotiza con ese perfil en un renglón "(editada a mano)").
+- **Pieza elegida en el 3D**: primero el tipo, el largo y el perfil ("Solera superior · 7,58 m · Caño 80x80x2.0"), sin
+  "Seleccionada:".
+- El lint revisa variables sin definir (no-undef, con los globales del navegador).
+
 ## [1.71.0] - 2026-11-17
 ### Agregado
 - **Revestimientos: "Descontar las aberturas"** (de fábrica sí). Sin tildar se piden tiras (o placas) enteras y los huecos

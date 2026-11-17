@@ -9,7 +9,8 @@
 // Ver motor/proveedores.js.
 // ==========================================================
 
-import { useState } from 'react';
+import { useContext, useState } from 'react';
+import { ContextoAgregarProveedor } from './contextoProveedores.js';
 import { precioEn } from '../motor/proveedores.js';
 
 const pesos = (n) => n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
@@ -53,21 +54,45 @@ export function CampoPrecio({ etiqueta, valor, ayuda, onCambio }) {
   );
 }
 
+
 /**
  * @param material     el renglón del catálogo (con `precios` y `nombre`)
  * @param proveedores  lista de proveedores
  * @param unidad       'barra', 'm²', 'placa', 'u'… (para el título: "Precio por barra")
  * @param onCambiar    (idProveedor, 'efectivo' | 'tarjeta', valor | null) => void
+ * v1.72 (Leandro: "en precio por no deben aparecer todos, es muy extensa la lista"): se ven solo los proveedores
+ * que tienen precio de este material; "+ Precio en otro proveedor" suma uno (o uno nuevo).
  */
 export default function PreciosProveedores({ material, proveedores, unidad, onCambiar }) {
+  const agregarProveedor = useContext(ContextoAgregarProveedor);
+  const [agregados, setAgregados] = useState([]); // los que se sumaron recién (todavía sin precio)
+  const [nombreNuevo, setNombreNuevo] = useState(null); // null = no se está creando uno
+  const tienePrecio = (p) => {
+    const precio = material.precios?.[p.id];
+    return precio && (precio.efectivo !== null && precio.efectivo !== undefined || (precio.tarjeta !== null && precio.tarjeta !== undefined));
+  };
+  const visibles = proveedores.filter((p) => tienePrecio(p) || agregados.includes(p.id));
+  const otros = proveedores.filter((p) => !visibles.includes(p));
+  const elegir = (v) => {
+    if (v === '__nuevo') setNombreNuevo('');
+    else if (v) setAgregados((a) => [...a, v]);
+  };
+  const crear = () => {
+    const nombre = (nombreNuevo ?? '').trim();
+    if (!nombre || !agregarProveedor) return;
+    const id = agregarProveedor(nombre);
+    if (id) setAgregados((a) => [...a, id]);
+    setNombreNuevo(null);
+  };
   return (
+    <div className="precios-material">
+    {visibles.length > 0 ? (
     <table className="tabla-precios">
       <thead>
         <tr><th>Precio por {unidad}</th><th>Efectivo</th><th>Tarjeta</th></tr>
       </thead>
       <tbody>
-        {proveedores.map((p) => {
-          const precio = material.precios?.[p.id] ?? {};
+        {visibles.map((p) => {          const precio = material.precios?.[p.id] ?? {};
           const conRecargo = precioEn({ precios: { [p.id]: { efectivo: precio.efectivo, tarjeta: null } } }, p, 'tarjeta');
           return (
             <tr key={p.id}>
@@ -85,5 +110,23 @@ export default function PreciosProveedores({ material, proveedores, unidad, onCa
         })}
       </tbody>
     </table>
+    ) : <p className="vacio">Sin precio en ningún proveedor.</p>}
+    <div className="agregar-precio no-print">
+      {nombreNuevo === null ? (
+        <select value="" aria-label={`Agregar el precio de ${material.nombre} en otro proveedor`} onChange={(e) => elegir(e.target.value)}>
+          <option value="">+ Precio en otro proveedor…</option>
+          {otros.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+          {agregarProveedor && <option value="__nuevo">+ Proveedor nuevo…</option>}
+        </select>
+      ) : (
+        <span className="proveedor-nuevo">
+          <input type="text" maxLength={60} autoFocus value={nombreNuevo} placeholder="Nombre del proveedor" aria-label="Nombre del proveedor nuevo"
+            onChange={(e) => setNombreNuevo(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') crear(); if (e.key === 'Escape') setNombreNuevo(null); }} />
+          <button type="button" className="btn-mini" onClick={crear} disabled={!nombreNuevo.trim()}>Agregar</button>
+          <button type="button" className="btn-mini" onClick={() => setNombreNuevo(null)}>Cancelar</button>
+        </span>
+      )}
+    </div>
+    </div>
   );
 }

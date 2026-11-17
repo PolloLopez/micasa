@@ -144,7 +144,7 @@ export function errorDeCompra(c) {
   if (!texto(c.proveedor, 60) || !texto(c.nota, 120)) return 'Texto demasiado largo';
   if (typeof c.pagada !== 'boolean' || !monto(c.faltaPagar)) return 'Lo que falta pagar no puede ser negativo';
   if (!Array.isArray(c.renglones)) return 'Renglones inválidos';
-  const malo = c.renglones.find((r) => !texto(r.material, 80) || !texto(r.nombre, 80) || !texto(r.unidad, 20) || !texto(r.para, 60)
+  const malo = c.renglones.find((r) => !texto(r.material, 80) || !(r.renglon === undefined || texto(r.renglon, 80)) || !texto(r.nombre, 80) || !texto(r.unidad, 20) || !texto(r.para, 60)
     || !(Number.isFinite(r.cantidad) && r.cantidad >= 0 && r.cantidad <= 1e6) || !monto(r.monto));
   return malo ? 'Revisá los renglones: cantidad y monto no negativos' : null;
 }

@@ -30,6 +30,7 @@ import { LIMITES_REVESTIMIENTO } from '../motor/revestimientos.js';
 import { perfilesDeLista } from '../motor/perfiles.js';
 import { aplicarProveedor, proveedoresDe, todosLosProveedores } from '../motor/proveedores.js';
 import PreciosProveedores from './PreciosProveedores.jsx';
+import { ContextoAgregarProveedor } from './contextoProveedores.js';
 import ListaProveedores from './ListaProveedores.jsx';
 import FichaPlegable from './FichaPlegable.jsx';
 import SeccionPlegable from './SeccionPlegable.jsx';
@@ -287,6 +288,7 @@ export default function TarjetaMateriales({
   const sinPrecio = materialesDeLaObra.filter((m) => precioDe(m).texto === 'sin precio').length;
 
   return (
+    <ContextoAgregarProveedor value={onAgregarProveedor}>
     <Tarjeta id="materiales" titulo="Materiales">
       <p className="nota">
         Qué es cada material: perfil, medidas y cómo se vende. Las cantidades están en el <strong>Presupuesto</strong>.
@@ -432,5 +434,6 @@ export default function TarjetaMateriales({
         </SeccionPlegable>
       )}
     </Tarjeta>
+    </ContextoAgregarProveedor>
   );
 }
