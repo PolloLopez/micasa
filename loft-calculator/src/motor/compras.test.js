@@ -58,3 +58,18 @@ describe('contratistas', () => {
     expect(contratistaNuevo(s.contratistas).id).toBe(2);
   });
 });
+
+describe('v1.70: proveedores descartados', () => {
+  it('no cuentan para el presupuesto ni el más barato; se guardan con sus precios', async () => {
+    const { proveedoresDe, todosLosProveedores, aplicarProveedor, MAS_BARATO, conProveedores } = await import('./proveedores.js');
+    const catalogo = conProveedores([{ id: 'cemento', categoria: 'unidad', nombre: 'Cemento', precios: { a: { efectivo: 100 }, b: { efectivo: 50 } } }],
+      [{ id: 'a', categoria: 'proveedor', nombre: 'Centro' }, { id: 'b', categoria: 'proveedor', nombre: 'Vastek', descartado: true },
+        { id: 'cemento', precios: { a: { efectivo: 100 }, b: { efectivo: 50 } } }]);
+    expect(proveedoresDe(catalogo).map((p) => p.nombre)).toEqual(['Centro']);
+    expect(todosLosProveedores(catalogo)).toHaveLength(2);
+    // El más barato no mira al descartado (que lo tenía a 50); el elegido descartado pasa al primero que queda.
+    expect(aplicarProveedor(catalogo, MAS_BARATO).find((i) => i.id === 'cemento').precio).toBe(100);
+    expect(aplicarProveedor(catalogo, 'b').find((i) => i.id === 'cemento').precio).toBe(100);
+    expect(catalogo.find((i) => i.id === 'cemento').precios.b.efectivo).toBe(50); // sus precios siguen guardados
+  });
+});

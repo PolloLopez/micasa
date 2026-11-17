@@ -135,6 +135,9 @@ Revestimientos) se pliega tocando su título, y cada material o proveedor es una
 dice lo importante: el material, su precio en el proveedor elegido en el Presupuesto y, si ese no lo vende o hay uno
 más barato, **desde cuánto y dónde**. Arriba avisa cuántos materiales no tienen precio en ningún proveedor.
 
+**Descartar un proveedor**: en su ficha, **Descartar**. No aparece más en el presupuesto ni en las listas; queda abajo en
+"Descartados" para volver a usarlo o borrarlo del todo.
+
 **Cargar los precios de un proveedor de una vez**: abrí el proveedor. Abajo de sus datos está **la lista de todos los
 materiales de la obra** con su precio ahí (efectivo y tarjeta). Tildá "Ver solo los que no tienen precio acá" y
 cargá lo que te pasó en su lista. Un precio absurdo (mil millones o más) sale marcado con ⚠ para revisar.
@@ -200,6 +203,9 @@ que los materiales y la pestaña "Presupuesto" muestra ese precio.
 
 ## 7. Obra (seguimiento)
 
+- **Partes de la obra**: cada parte (Pilotines y zapatas, Paredes, Techo, el pozo…) con su casilla **Terminada**: lo
+  que lleva ya no falta comprar. **+ Agregar a…** suma extras a esa parte (ej. 20 m de manguera de riego para el nivel,
+  tanza para alinear), que entran al presupuesto.
 - **Compras hechas**: **+ Compra** (fecha y proveedor) y en cada renglón el material de la lista (ej. Cemento · 12
   bolsas · $ 150.000 · para Pilotines) u "Otro" para un ticket suelto. Queda pagada; si dejaste seña, destildá "Pagada
   entera" y poné cuánto falta. El Presupuesto muestra **ya gastado** y **falta comprar**, y la lista de materiales lo

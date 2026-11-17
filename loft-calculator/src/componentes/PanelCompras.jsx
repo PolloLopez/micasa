@@ -78,10 +78,10 @@ function Renglon({ r, ruta, materiales, cambiar, onQuitar }) {
  * @param proveedores los de Materiales (para sugerir el nombre)
  * @param totalMateriales total de materiales del presupuesto
  */
-export default function PanelCompras({ params, materiales, proveedores, totalMateriales, cambiar }) {
+export default function PanelCompras({ params, materiales, proveedores, totalMateriales, terminado = new Map(), cambiar }) {
   const compras = params.seguimiento?.compras ?? [];
   const [recien, setRecien] = useState(null);
-  const resumen = resumenDeCompras(materiales, compras, totalMateriales);
+  const resumen = resumenDeCompras(materiales, compras, totalMateriales, terminado);
   const conCompras = resumen.materiales;
   const agregar = () => {
     const nueva = { ...compraNueva(compras), renglones: [renglonNuevo([])] };

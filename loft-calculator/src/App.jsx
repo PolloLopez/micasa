@@ -55,6 +55,8 @@ import { partesDelPresupuesto, resumenSeguimiento, informeDeSeguimiento } from '
 import PanelSeguimiento from './componentes/PanelSeguimiento.jsx';
 import PanelCompras from './componentes/PanelCompras.jsx';
 import { resumenDeCompras } from './motor/compras.js';
+import { PARTES_FIJAS, partesDeLaObra, descuentoPorTerminadas, itemsDeExtras } from './motor/partesObra.js';
+import PanelPartesObra from './componentes/PanelPartesObra.jsx';
 import PanelFinanzas from './componentes/PanelFinanzas.jsx';
 import PanelObraCivil from './componentes/PanelObraCivil.jsx';
 import PanelInstalaciones from './componentes/PanelInstalaciones.jsx';
@@ -298,13 +300,20 @@ export default function App() {
     const equipos = materialesDeEquipos(paramsObra, estructura);
     return [...materialesDeInstalaciones(paramsObra, estructura), ...(equipos.puntos > 0 ? [equipos] : [])];
   }, [esConstruccion, paramsObra, estructura]);
-  const totalInstalaciones = instalaciones.reduce((a, s) => a + s.total, 0);
-  const items = useMemo(() => [...itemsEstructura, ...instalaciones.map((s) => ({
+  // v1.70: los extras de cada parte de la obra (ej. manguera y tanza para los pilotines): suman al presupuesto.
+  const itemsExtras = useMemo(() => itemsDeExtras(params.seguimiento?.extras ?? [], PARTES_FIJAS), [params.seguimiento?.extras]);
+  const totalExtras = itemsExtras.reduce((a, x) => a + x.subtotal, 0);
+  const totalInstalaciones = instalaciones.reduce((a, s) => a + s.total, 0) + totalExtras; // (+ extras: van aparte de los proveedores)
+  const items = useMemo(() => [...itemsEstructura, ...(totalExtras > 0 ? [{
+    id: 'extras', categoria: 'instalacion', nombre: 'Extras de las partes de la obra', perfil: 'Ver Obra → Partes de la obra',
+    unidad: 'global', largoBarra: null, cantidad: 1, precio: totalExtras, subtotal: totalExtras, cortes: null,
+    detalle: itemsExtras.map((x) => `${x.nombre} (${x.perfil.replace('para ', '')})`).join(', '),
+  }] : []), ...instalaciones.map((s) => ({
     id: `inst:${s.sistema}`, categoria: 'instalacion', nombre: s.sistema === 'equipos' ? 'Equipos (aires, salamandra, solar)' : `Instalación ${s.nombre.toLowerCase()}`, perfil: 'Materiales (ver Instalaciones)',
     unidad: 'global', largoBarra: null, cantidad: 1, precio: s.total, subtotal: s.total, cortes: null,
     detalle: s.sistema === 'equipos' ? `${s.puntos} equipo(s): aires, salamandra, solar`
       : `${s.puntos} puntos, ${s.tramos.length} tramos (${s.tramos.reduce((a, t) => a + t.largo, 0).toFixed(1).replace('.', ',')} m)`,
-  }))], [itemsEstructura, instalaciones]);
+  }))], [itemsEstructura, instalaciones, itemsExtras, totalExtras]);
   const total = totalEstructura + totalInstalaciones;
   // v1.25: el total con cada proveedor (y con lo más barato de cada material), en efectivo y con tarjeta.
   const comparacion = useMemo(() => [...proveedores.map((p) => ({ id: p.id, nombre: p.nombre })),
@@ -327,10 +336,29 @@ export default function App() {
   const listaMateriales = useMemo(() => listaDeMateriales([...itemsEstructura, ...instalaciones.flatMap((s) => s.materiales.map((m, k) => ({
     id: `inst:${s.sistema}:${k}`, categoria: 'instalacion', nombre: m.nombre, perfil: s.nombre, unidad: m.unidad, cantidad: m.cantidad,
     precio: m.precio, subtotal: m.total, largoBarra: null, detalle: `Instalación ${s.nombre.toLowerCase()}`,
-  })))], resolverCatalogo(catalogo)), [itemsEstructura, instalaciones, catalogo]);
+  }))), ...itemsExtras], resolverCatalogo(catalogo)), [itemsEstructura, instalaciones, itemsExtras, catalogo]);
+  // v1.70: las partes de la obra (con las instalaciones y los extras) y lo que ya no falta de las terminadas.
+  const itemsConInstalaciones = useMemo(() => [...itemsEstructura, ...itemsExtras, ...instalaciones.map((s) => ({
+    id: `inst:${s.sistema}`, categoria: 'instalacion', nombre: s.sistema === 'equipos' ? 'Equipos (aires, salamandra, solar)' : `Instalación ${s.nombre.toLowerCase()}`,
+    unidad: 'global', cantidad: 1, subtotal: s.total }))], [itemsEstructura, itemsExtras, instalaciones]);
+  const partesObra = useMemo(() => partesDeLaObra(itemsConInstalaciones, estructura, params.seguimiento ?? {}),
+    [itemsConInstalaciones, estructura, params.seguimiento]);
+  const terminado = useMemo(() => {
+    const d = descuentoPorTerminadas(itemsConInstalaciones, estructura, params.seguimiento ?? {}, params.obraCivil);
+    // Una instalación terminada: todos sus materiales (cada caño y caja) ya no faltan.
+    instalaciones.filter((s) => (params.seguimiento?.terminadas ?? []).includes(`inst:${s.sistema}`))
+      .forEach((s) => s.materiales.forEach((m, k) => d.set(`inst:${s.sistema}:${k}`, m.cantidad)));
+    return d;
+  }, [itemsConInstalaciones, estructura, params.seguimiento, params.obraCivil, instalaciones]);
   // v1.69: lo que ya se compró (Obra → Compras hechas): gastado, lo que falta y cada material con lo comprado.
-  const resumenCompras = useMemo(() => resumenDeCompras(listaMateriales, params.seguimiento?.compras ?? [], totalObra),
-    [listaMateriales, params.seguimiento?.compras, totalObra]);
+  // El precio de cada material: el del plan de compra (donde conviene) si hay varios proveedores; si no, el del elegido.
+  const listaConPrecioReal = useMemo(() => {
+    if (!(proveedores.length > 1 && planCompra?.compras?.length > 0)) return listaMateriales;
+    const precio = new Map(planCompra.compras.flatMap((c) => c.materiales.map((m) => [m.clave, m.precio])));
+    return listaMateriales.map((m) => (precio.has(m.clave) ? { ...m, precio: precio.get(m.clave), subtotal: m.cantidad * precio.get(m.clave) } : m));
+  }, [listaMateriales, planCompra, proveedores.length]);
+  const resumenCompras = useMemo(() => resumenDeCompras(listaConPrecioReal, params.seguimiento?.compras ?? [], totalObra, terminado),
+    [listaConPrecioReal, params.seguimiento?.compras, totalObra, terminado]);
   // v1.46: cierre: de los materiales al precio de la obra (mano de obra, imprevistos, ganancia e IVA).
   const medidasCierre = {
     m2: (estructura.superficies?.piso ?? 0) + (estructura.superficies?.piso2 ?? 0), // m² cubiertos
@@ -344,7 +372,7 @@ export default function App() {
   // v1.47: lo que dice el presupuesto de cada parte (un rubro por proveedor y la mano de obra), para el seguimiento.
   const conPlanDeCompra = proveedores.length > 1 && planCompra?.compras?.length > 0;
   const partesSeguimiento = partesDelPresupuesto({
-    compras: conPlanDeCompra ? planCompra.compras : [], materiales: totalObra - totalInstalaciones, cierre, instalaciones,
+    compras: conPlanDeCompra ? planCompra.compras : [], materiales: totalObra - totalInstalaciones + totalExtras, cierre, instalaciones, // v1.70: los extras, con los materiales
     nombreProveedor: proveedores.find((p) => p.id === proveedorElegido)?.nombre ?? '',
   });
   const resumenObra = resumenSeguimiento(params.seguimiento, partesSeguimiento);
@@ -571,6 +599,8 @@ export default function App() {
   /** Quitar un proveedor (queda al menos uno): también se borran sus precios. */
   const quitarProveedor = (id) => setCatalogo((prev) => {
     if (prev.filter((p) => p.categoria === 'proveedor').length <= 1) return prev;
+    // v1.70: tiene que quedar al menos uno sin descartar.
+    if (!prev.some((p) => p.categoria === 'proveedor' && p.id !== id && !p.descartado)) return prev;
     return prev.filter((p) => p.id !== id).map((p) => {
       if (!p.precios?.[id]) return p;
       const { [id]: _quitado, ...resto } = p.precios; // eslint-disable-line no-unused-vars
@@ -1581,7 +1611,9 @@ export default function App() {
           <section id="pestana-obra" role="tabpanel" aria-labelledby="boton-obra"
             className={`pestana${pestanaActiva === 'obra' ? '' : ' oculta'}`}>
             {/* v1.69: las compras que ya se hicieron (descuentan de lo que falta comprar). */}
-            <PanelCompras params={params} materiales={listaMateriales} proveedores={proveedores} totalMateriales={totalObra} cambiar={cambiar} />
+            {/* v1.70: cada parte de la obra: terminada (ya no falta nada de ella) y sus extras. */}
+            <PanelPartesObra params={params} partes={partesObra} cambiar={cambiar} />
+            <PanelCompras params={params} materiales={listaConPrecioReal} proveedores={proveedores} totalMateriales={totalObra} terminado={terminado} cambiar={cambiar} />
             <PanelSeguimiento params={params} partes={partesSeguimiento} precioObra={cierre.total} cambiar={cambiar} />
             <PanelFinanzas params={params} cambiar={cambiar} cambiarVarios={cambiarVarios} />
           </section>

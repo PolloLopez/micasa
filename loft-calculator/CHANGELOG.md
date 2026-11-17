@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.70.0] - 2026-11-17
+### Agregado
+- **Descartar un proveedor** (Materiales → Proveedores): no aparece más en el presupuesto, en "el más barato", en las
+  listas de precios ni en el plan de compra. Queda abajo en "Descartados" con sus precios ("Volver a usar" o "Borrar
+  del todo"). Si el presupuesto calculaba con uno descartado, pasa al primero que queda.
+- **Partes de la obra** (Obra): Pilotines y zapatas, Piso, Paredes, Entrepiso, Cubierta, Escalera, Techo,
+  Revestimiento, Mesadas, Tabiques, cada parte de obra civil (tapial, pilar, cámara, pozo) y cada instalación.
+  "Terminada": sus materiales ya no faltan (la obra civil se recalcula sin esa parte). "+ Agregar a…": extras de
+  la parte (ej. manguera de riego para el nivel, tanza) que suman al presupuesto y a la lista de materiales.
+  motor/partesObra.js, componentes/PanelPartesObra.jsx.
+### Cambiado
+- "Falta comprar" usa el precio del plan de compra (donde conviene) cuando hay varios proveedores.
+- La lista de materiales dice "✓ parte terminada" o lo que falta también sin compras cargadas.
+
 ## [1.69.0] - 2026-11-17
 ### Agregado
 - **Compras hechas** (Obra): fecha, proveedor y renglones. Un renglón es un material de la lista del presupuesto

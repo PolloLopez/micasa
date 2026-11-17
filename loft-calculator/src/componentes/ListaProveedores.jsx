@@ -72,14 +72,17 @@ export default function ListaProveedores({ proveedores, materiales = [], idElegi
     onActualizar(id, { [campo]: Math.round(v) });
     return null;
   };
+  // v1.70: los descartados van aparte (abajo), sin precios ni cuentas; se pueden volver a usar.
+  const activos = proveedores.filter((p) => !p.descartado);
+  const descartados = proveedores.filter((p) => p.descartado);
   return (
     <>
       <div className="lista-proveedores">
-        {proveedores.map((p, i) => {
+        {activos.map((p, i) => {
           const { cargados, total, sospechosos } = preciosCargados(p, materiales);
           return (
             <FichaPlegable key={p.id} clave={`proveedor:${p.id}`} className="rubro ficha-proveedor"
-              abiertaAlInicio={recienAgregado && i === proveedores.length - 1}
+              abiertaAlInicio={recienAgregado && i === activos.length - 1}
               encabezado={<><strong>{p.nombre || 'Sin nombre'}</strong>
                 <small className={cargados === 0 ? 'falta' : ''}>
                   {p.id === idElegido ? 'elegido en el Presupuesto · ' : ''}{cargados} de {total} precios
@@ -114,6 +117,9 @@ export default function ListaProveedores({ proveedores, materiales = [], idElegi
               </>)}
               {/* Eliminar en el pie (como en las aberturas, v1.27: un ✕ arriba parece "cerrar"). */}
               <div className="pie-acciones no-print">
+                {/* v1.70: descartado = no aparece más (presupuesto, más barato, precios); se guarda por si vuelve. */}
+                <button type="button" className="btn-sec" onClick={() => onActualizar(p.id, { descartado: true })} disabled={activos.length === 1}
+                  title={activos.length === 1 ? 'Tiene que quedar al menos uno' : 'No aparece más en el presupuesto ni en las listas (se guarda abajo)'}>Descartar</button>
                 <button type="button" className="btn-del eliminar-aparte" onClick={() => onQuitar(p.id)} disabled={proveedores.length === 1}
                   aria-label={`Quitar ${p.nombre}`} title={proveedores.length === 1 ? 'Tiene que quedar al menos uno' : 'Quitar proveedor'}>Eliminar</button>
               </div>
@@ -122,6 +128,20 @@ export default function ListaProveedores({ proveedores, materiales = [], idElegi
         })}
       </div>
       <button type="button" className="btn-sec" onClick={() => { setRecienAgregado(true); onAgregar(); }}>+ Agregar proveedor</button>
+      {descartados.length > 0 && (
+        <details className="proveedores-descartados">
+          <summary>Descartados ({descartados.length}): no aparecen en el presupuesto ni en las listas</summary>
+          <ul>
+            {descartados.map((p) => (
+              <li key={p.id}>
+                <span>{p.nombre}</span>
+                <button type="button" className="btn-mini" onClick={() => onActualizar(p.id, { descartado: false })}>Volver a usar</button>
+                <button type="button" className="btn-mini" onClick={() => onQuitar(p.id)}>Borrar del todo</button>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
     </>
   );
 }

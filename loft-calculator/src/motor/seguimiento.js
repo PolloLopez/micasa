@@ -18,13 +18,14 @@
 
 import { estadoDeCuotas, errorDelPlan, textoDeCuotas, mesDe, informeDeFinanzas } from './finanzas.js';
 import { errorDeCompra, errorDeContratista, contratistasDesdeQuien, cuentasDeCompra, esDeMateriales } from './compras.js';
+import { errorDeExtra } from './partesObra.js';
 
 export const ESTADOS_RUBRO = [
   ['pendiente', 'Pendiente'], ['contratado', 'Contratado'], ['enCurso', 'En curso'], ['terminado', 'Terminado'],
 ];
 export const MEDIOS_PAGO = [['efectivo', 'Efectivo'], ['transferencia', 'Transferencia'], ['tarjeta', 'Tarjeta'], ['cheque', 'Cheque'], ['otro', 'Otro']];
 
-export const SEGUIMIENTO_INICIAL = { rubros: [], compras: [], contratistas: [] }; // v1.69: + compras y contratistas
+export const SEGUIMIENTO_INICIAL = { rubros: [], compras: [], contratistas: [], terminadas: [], extras: [] }; // v1.69: + compras y contratistas; v1.70: + partes terminadas y extras
 
 /**
  * v1.54 (pedido de Leandro): el "checklist" de cada rubro. La etapa sale sola del avance (que se carga a mano, en %)
@@ -222,12 +223,16 @@ export function validarSeguimiento(s) {
   (s.compras ?? []).forEach((c, i) => { const e = errorDeCompra(c); if (e) errores[`seguimiento.compras.${i}`] = e; });
   if (s.contratistas !== undefined && !Array.isArray(s.contratistas)) errores['seguimiento.contratistas'] = 'Contratistas inválidos';
   (s.contratistas ?? []).forEach((c, i) => { const e = errorDeContratista(c); if (e) errores[`seguimiento.contratistas.${i}`] = e; });
+  // v1.70: partes terminadas y extras.
+  if (s.terminadas !== undefined && !(Array.isArray(s.terminadas) && s.terminadas.every((t) => typeof t === 'string' && t.length <= 60))) errores['seguimiento.terminadas'] = 'Partes terminadas inválidas';
+  if (s.extras !== undefined && !Array.isArray(s.extras)) errores['seguimiento.extras'] = 'Extras inválidos';
+  (s.extras ?? []).forEach((x, i) => { const e = errorDeExtra(x); if (e) errores[`seguimiento.extras.${i}`] = e; });
   return errores;
 }
 
 export function completarSeguimiento(s) {
-  if (!s || !Array.isArray(s.rubros)) return { ...SEGUIMIENTO_INICIAL, rubros: [], compras: [], contratistas: [] };
-  const base = completarRubros(s);
+  if (!s || !Array.isArray(s.rubros)) return { ...SEGUIMIENTO_INICIAL, rubros: [], compras: [], contratistas: [], terminadas: [], extras: [] };
+  const base = { ...completarRubros(s), terminadas: Array.isArray(s.terminadas) ? s.terminadas : [], extras: Array.isArray(s.extras) ? s.extras : [] };
   // v1.69: los proyectos de antes arman su lista de contratistas con los nombres de "Quién" de los trabajos.
   if (!Array.isArray(s.contratistas)) {
     const { contratistas, rubros } = contratistasDesdeQuien(base.rubros);

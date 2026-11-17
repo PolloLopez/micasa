@@ -61,13 +61,15 @@ export function compradoPorMaterial(compras = []) {
  * precios del presupuesto). Lo que se compró de más no resta de otros materiales.
  * @returns materiales [{ ...m, comprado, faltaCantidad, faltaMonto }]
  */
-export function materialesConCompras(materiales, compras = []) {
+export function materialesConCompras(materiales, compras = [], terminado = new Map()) {
   const por = compradoPorMaterial(compras);
   return materiales.map((m) => {
     const comprado = por.get(m.clave)?.cantidad ?? 0;
-    const faltaCantidad = Math.max(0, Math.round((m.cantidad - comprado) * 100) / 100);
+    // v1.70: lo de las partes terminadas tampoco falta (ver partesObra.js).
+    const deTerminadas = terminado.get(m.clave) ?? 0;
+    const faltaCantidad = Math.max(0, Math.round((m.cantidad - comprado - deTerminadas) * 100) / 100);
     const unitario = m.cantidad > 0 ? m.subtotal / m.cantidad : m.precio ?? 0;
-    return { ...m, comprado, faltaCantidad, faltaMonto: Math.round(faltaCantidad * unitario) };
+    return { ...m, comprado, deTerminadas, faltaCantidad, faltaMonto: Math.round(faltaCantidad * unitario) };
   });
 }
 
@@ -78,8 +80,8 @@ export function materialesConCompras(materiales, compras = []) {
  *             (plata que no se sabe a qué material fue: se descuenta del total)
  * @param totalMateriales el total de materiales del presupuesto
  */
-export function resumenDeCompras(materiales, compras = [], totalMateriales = 0) {
-  const conCompras = materialesConCompras(materiales, compras);
+export function resumenDeCompras(materiales, compras = [], totalMateriales = 0, terminado = new Map()) {
+  const conCompras = materialesConCompras(materiales, compras, terminado);
   const cuentas = compras.map(cuentasDeCompra);
   const gastado = cuentas.reduce((a, c) => a + c.total, 0);
   const deuda = cuentas.reduce((a, c) => a + c.falta, 0);

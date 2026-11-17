@@ -344,7 +344,7 @@ function ListaMateriales({ materiales, nombreProyecto, conCompras = false }) {
       <p className="nota">Todo lo que lleva la obra, sumado por material, sin importar dónde lo compres.</p>
       <div className="table-wrap">
         <table className="tabla-materiales">
-          <thead><tr><th>Cantidad</th><th>Material</th>{conCompras && <th>Comprado</th>}<th className="num">Peso</th></tr></thead>
+          <thead><tr><th>Cantidad</th><th>Material</th>{conCompras && <th>Ya está</th>}<th className="num">Peso</th></tr></thead>
           <tbody>
             {materiales.map((m) => (
               <tr key={m.clave} title={`Para: ${m.usos.join(', ')}`}>
@@ -356,7 +356,9 @@ function ListaMateriales({ materiales, nombreProyecto, conCompras = false }) {
                 </td>
                 {conCompras && (
                   <td className={m.comprado > 0 && m.faltaCantidad === 0 ? 'comprado-todo' : ''}>
-                    {m.comprado > 0 ? (m.faltaCantidad === 0 ? `✓ todo (${m.comprado})` : `${m.comprado} · faltan ${m.faltaCantidad}`) : '—'}
+                    {m.faltaCantidad === 0 && (m.comprado > 0 || m.deTerminadas > 0)
+                      ? (m.comprado > 0 ? `✓ todo (${m.comprado})` : '✓ parte terminada')
+                      : m.comprado > 0 || m.deTerminadas > 0 ? `${m.comprado > 0 ? `${m.comprado} comprado · ` : ''}faltan ${m.faltaCantidad}` : '—'}
                   </td>
                 )}
                 <td className="num">{m.kgPorBarra > 0 ? `${Math.round(m.kgPorBarra * m.cantidad)} kg` : '—'}</td>
@@ -386,6 +388,8 @@ export default function TablaPresupuesto({
   materiales = [], cierre = null, resultadoCierre = null, medidasCierre = { m2: 0, kg: 0 }, cambiar = null, compras = null,
 }) {
   // v1.31.0: la sub-pestaña elegida se recuerda en este navegador.
+  // v1.70: hay compras cargadas o partes terminadas: la lista dice qué ya no falta.
+  const hayAvance = compras?.compras > 0 || compras?.materiales?.some((m) => m.deTerminadas > 0);
   const [subpestana, setSubpestana] = useEstadoGuardado('subpestanaPresupuesto', 'materiales',
     (v) => SUBPESTANAS.some((t) => t.clave === v));
   const conPlan = usaPlanDeCompra(plan, proveedores.length);
@@ -423,10 +427,10 @@ export default function TablaPresupuesto({
         </div>
         {conPlan && plan.nadieVende.length > 0 && <p className="falta">⚠ Ningún proveedor vende: {plan.nadieVende.join(', ')} (no está en el total).</p>}
         {/* v1.69: lo que ya se compró (Obra → Compras hechas) y lo que falta. */}
-        {compras?.compras > 0 && (
+        {hayAvance && (
           <p className="gastado-falta" role="status">Ya gastado <strong>{pesos(compras.gastado)}</strong> · falta comprar <strong>{pesos(compras.falta)}</strong>
             {compras.deuda > 0 && <> · debés <strong className="falta">{pesos(compras.deuda)}</strong></>}
-            <small> ({compras.compras} compra{compras.compras > 1 ? 's' : ''} en Obra)</small></p>
+            <small> ({compras.compras} compra{compras.compras === 1 ? '' : 's'} y las partes terminadas, en Obra)</small></p>
         )}
       </div>
 
@@ -437,7 +441,8 @@ export default function TablaPresupuesto({
       <BarraSubpestanas activa={subpestana} onElegir={setSubpestana} />
 
       <div {...panel('materiales')}>
-        <ListaMateriales materiales={compras?.compras > 0 ? compras.materiales : materiales} nombreProyecto={nombreProyecto} conCompras={compras?.compras > 0} />
+        {/* v1.70: también con partes terminadas (aunque no haya compras cargadas). */}
+        <ListaMateriales materiales={hayAvance ? compras.materiales : materiales} nombreProyecto={nombreProyecto} conCompras={hayAvance} />
       </div>
 
       <div {...panel('proveedores')}>

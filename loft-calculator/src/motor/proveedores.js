@@ -36,7 +36,14 @@ export const LIMITES_FLETE = { min: 0, max: 100000000 }; // $ (v1.29)
 export const PROVEEDOR_INICIAL = { id: 'prov-1', categoria: 'proveedor', nombre: 'Mi proveedor', recargoTarjeta: 0, nota: '', flete: 0, fleteGratisDesde: 0 };
 
 export const esProveedor = (item) => item?.categoria === 'proveedor';
-export const proveedoresDe = (catalogo) => catalogo.filter(esProveedor);
+/**
+ * Los proveedores con los que se trabaja. v1.70 (Leandro: "Vastek y gramabi son proveedores que ya descarté:
+ * deberían no aparecer más"): los DESCARTADOS no cuentan (ni en el presupuesto, ni en "el más barato", ni en las
+ * listas de precios); quedan guardados, con sus precios, por si se vuelven a usar.
+ */
+export const proveedoresDe = (catalogo) => catalogo.filter((i) => esProveedor(i) && !i.descartado);
+/** v1.70: todos, también los descartados (para la lista de Materiales → Proveedores). */
+export const todosLosProveedores = (catalogo) => catalogo.filter(esProveedor);
 
 /**
  * ¿Este renglón del catálogo tiene precios por proveedor?
@@ -97,6 +104,7 @@ function normalizarProveedor(p) {
     // v1.29: flete (los de antes, sin flete).
     flete: esMonto(p.flete) ? p.flete : 0,
     fleteGratisDesde: esMonto(p.fleteGratisDesde) ? p.fleteGratisDesde : 0,
+    descartado: p.descartado === true, // v1.70
   };
 }
 

@@ -28,7 +28,7 @@ import { BotonResaltar } from './Resaltar.jsx';
 import { useResaltar, criterioDeRenglon as criterioDe } from './contextoResaltado.js';
 import { LIMITES_REVESTIMIENTO } from '../motor/revestimientos.js';
 import { perfilesDeLista } from '../motor/perfiles.js';
-import { aplicarProveedor, proveedoresDe } from '../motor/proveedores.js';
+import { aplicarProveedor, proveedoresDe, todosLosProveedores } from '../motor/proveedores.js';
 import PreciosProveedores from './PreciosProveedores.jsx';
 import ListaProveedores from './ListaProveedores.jsx';
 import FichaPlegable from './FichaPlegable.jsx';
@@ -276,12 +276,12 @@ export default function TarjetaMateriales({
       </p>
 
       {/* v1.25: proveedores. v1.65: cada uno plegable, con todos los precios de la obra adentro. */}
-      <SeccionPlegable clave="proveedores" titulo="Proveedores" resumen={`${proveedores.length}`}>
+      <SeccionPlegable clave="proveedores" titulo="Proveedores" resumen={`${proveedores.length}${todosLosProveedores(catalogo).length > proveedores.length ? ` (+${todosLosProveedores(catalogo).length - proveedores.length} descartados)` : ''}`}>
         <p className="nota">
           Abrí un proveedor para cargar <strong>todos sus precios de una vez</strong> (con su lista en la mano), o cargalos
           en cada material. Vacío = ese proveedor no lo vende. En el <strong>Presupuesto</strong> elegís con cuál calcular.
         </p>
-        <ListaProveedores proveedores={proveedores} materiales={materialesDeLaObra} idElegido={proveedor}
+        <ListaProveedores proveedores={todosLosProveedores(catalogo)} materiales={materialesDeLaObra} idElegido={proveedor}
           onActualizar={onActualizarProveedor} onAgregar={onAgregarProveedor} onQuitar={onQuitarProveedor} onCambiarPrecio={onCambiarPrecio} />
       </SeccionPlegable>
 
