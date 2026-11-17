@@ -19,7 +19,7 @@
 // Las cuentas de compra siguen en revestimientos.js (tirasDePano).
 // ==========================================================
 
-import { pedazosDeTira, cortarEnTramos, tirasDePano, REVESTIMIENTO_POR_DEFECTO } from './revestimientos.js';
+import { pedazosDeTira, cortarEnTramos, tirasDePano, intervalosDeTira, rellenosDeTira, parteLaTira, REVESTIMIENTO_POR_DEFECTO } from './revestimientos.js';
 
 const EPS = 1e-6;
 const m2 = (n) => n.toFixed(2).replace('.', ',');
@@ -54,7 +54,11 @@ export function cortesDeTiras(pano, tipo) {
     const cortes = [];
     if (ancho < u - 0.005) cortes.push(`cortar a lo largo: queda de ${m2(ancho)} m de ancho`);
     if (Math.abs(a0 - a1) > 0.005) cortes.push(`corte inclinado arriba: de ${m2(a0)} a ${m2(a1)} m`);
-    const entera = (h) => h.desde <= x0 + EPS && h.hasta >= x1 - EPS; // la tapa a lo ancho: ya va en pedazos
+    // La que la parte (de lado a lado, o dejándole un costado de menos de 30 cm, v1.67): ya va en pedazos.
+    const entera = (h) => parteLaTira(h, x0, x1);
+    if (pedidos.length > 1 && (pano.huecos ?? []).some(entera)) cortes.push(`va en ${pedidos.length} pedazos (abajo y arriba de la abertura)`);
+    const rellenos = rellenosDeTira(x0, x1, alto, pano.huecos ?? []);
+    rellenos.forEach((r) => cortes.push(`relleno al costado ${r.lado} de la abertura: ${m2(r.ancho)} × ${m2(r.arriba - r.abajo)} m (de un retazo)`));
     let huecos = 0;
     (pano.huecos ?? []).forEach((h) => {
       const r = tapa(h, x0, x1, alto);
@@ -66,7 +70,7 @@ export function cortesDeTiras(pano, tipo) {
     });
     const usado = Math.max(0, (ancho * (a0 + a1)) / 2 - huecos);
     const comprado = pedidos.reduce((a, l) => a + l, 0) * u;
-    tiras.push({ n: i + 1, x0, ancho, alto, pedidos, cortes, usado, comprado, desperdicio: Math.max(0, comprado - usado) });
+    tiras.push({ n: i + 1, x0, ancho, alto, a0, a1, pedidos, cortes, rellenos, usado, comprado, desperdicio: Math.max(0, comprado - usado) });
   }
   const suma = (k) => tiras.reduce((a, x) => a + x[k], 0);
   return { tiras, comprado: suma('comprado'), usado: suma('usado'), desperdicio: suma('desperdicio') };
@@ -183,4 +187,44 @@ export function tiraEnPunto(pano, tipo, x, h) {
   const { tiras } = cortesDeTiras(pano, t);
   const tira = tiras.find((s) => x >= s.x0 - EPS && x <= s.x0 + s.ancho + EPS);
   return tira ? { ...tira, total: tiras.length } : null;
+}
+
+/**
+ * v1.67 (Leandro: "me falta el plano de cada panel, con sus medidas e indicación de qué lado es el que superpone"):
+ * cada pedazo que se pide de una tira, con su forma para dibujarlo: el rectángulo (ancho × largo), el corte
+ * inclinado de arriba, los recortes de las aberturas y el lado que superpone sobre la tira de al lado.
+ * Coordenadas del pedazo: x de 0 a su ancho (de izquierda a derecha vista desde afuera), y de 0 (abajo) a su largo.
+ * @param tira  una de cortesDeTiras(pano, tipo).tiras
+ * @returns {{ nombre, ancho, largo, desde, arriba: [izq, der], recortes: {x0, x1, y0, y1}[], superpone }[]}
+ *   desde: a qué altura de la pared arranca; arriba: alto del borde de arriba en cada costado (inclinado o no)
+ */
+export function pedazosDeLaTira(pano, tipo, tira) {
+  const t = { ...REVESTIMIENTO_POR_DEFECTO, ...tipo };
+  const x1 = tira.x0 + tira.ancho;
+  const huecos = pano.huecos ?? [];
+  const superpone = t.ladoSolape === 'derecha' ? 'derecha' : 'izquierda';
+  const intervalos = intervalosDeTira(tira.x0, x1, tira.alto, huecos);
+  const pedazos = [];
+  intervalos.forEach((iv, k) => {
+    // Si pasa el largo máximo, en tramos encimados (como cortarEnTramos).
+    const largos = cortarEnTramos(iv.y1 - iv.y0, t.largoMaximo, t.solape);
+    let y = iv.y0;
+    largos.forEach((largo, j) => {
+      const y0 = y;
+      const y1 = Math.min(iv.y1, y0 + largo);
+      const ultimoDeArriba = k === intervalos.length - 1 && j === largos.length - 1;
+      // El borde de arriba: inclinado solo en el pedazo de más arriba (el de la pared con pendiente).
+      const arriba = ultimoDeArriba ? [Math.min(y1, tira.a0 ?? y1) - y0, Math.min(y1, tira.a1 ?? y1) - y0] : [y1 - y0, y1 - y0];
+      const recortes = huecos.filter((h) => !parteLaTira(h, tira.x0, x1)).map((h) => ({
+        x0: Math.max(h.desde, tira.x0) - tira.x0, x1: Math.min(h.hasta, x1) - tira.x0,
+        y0: Math.max(h.abajo, y0) - y0, y1: Math.min(h.arriba, y1) - y0,
+      })).filter((r) => r.x1 - r.x0 > EPS && r.y1 - r.y0 > EPS);
+      const cuantos = intervalos.length > 1 ? (k === 0 ? ' · abajo' : k === intervalos.length - 1 ? ' · arriba' : ` · pedazo ${k + 1}`) : '';
+      const tramo = largos.length > 1 ? ` · tramo ${j + 1}` : '';
+      pedazos.push({ nombre: `Tira ${tira.n}${cuantos}${tramo}`, ancho: tira.ancho, largo, desde: y0, arriba, recortes, superpone,
+        cortadaALoLargo: tira.ancho < t.anchoUtil - 0.005 });
+      y = y0 + largo - t.solape;
+    });
+  });
+  return pedazos;
 }

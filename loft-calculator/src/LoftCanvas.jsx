@@ -1086,6 +1086,14 @@ export default function LoftCanvas({
   const [editandoId, setEditandoId] = useState(null); // pieza con el formulario de edición abierto
   const [aberturaSeleccionada, setAberturaSeleccionada] = useState(null); // id de la abertura tocada (v1.16)
   const [tiraElegida, setTiraElegida] = useState(null); // v1.65: { lado, cara, x, h } la tira de panel tocada
+  // v1.67 (Leandro: "el cartel de selección me tapa mucho el 3D"): más chico y se puede plegar a solo su título.
+  const [seleccionPlegada, setSeleccionPlegada] = useEstadoGuardado('seleccionPlegada', false, (v) => typeof v === 'boolean');
+  const botonPlegar = (
+    <button type="button" className="btn-cerrar" onClick={() => setSeleccionPlegada((v) => !v)} aria-expanded={!seleccionPlegada}
+      aria-label={seleccionPlegada ? 'Ver el detalle' : 'Achicar a solo el título'} title={seleccionPlegada ? 'Ver el detalle' : 'Achicar'}>
+      {seleccionPlegada ? '▾' : '▴'}
+    </button>
+  );
   // v1.49: mover la abertura elegida (como los muebles: recién con "✥ Mover").
   const [moviendoAbertura, setMoviendoAbertura] = useState(false);
   const [avisoAbertura, setAvisoAbertura] = useState(null);
@@ -2280,11 +2288,11 @@ export default function LoftCanvas({
       )}
 
       {aberturaElegida && (
-        <div className="seleccion no-print" role="dialog" aria-label="Abertura seleccionada">
+        <div className={`seleccion no-print${seleccionPlegada ? ' plegada' : ''}`} role="dialog" aria-label="Abertura seleccionada">
           {/* v1.27: cerrar arriba a la derecha (como cualquier ventana); las acciones, en el pie. */}
           <div className="seleccion-cabecera">
             <strong>Abertura seleccionada</strong>
-            <button type="button" className="btn-cerrar" onClick={() => setAberturaSeleccionada(null)} aria-label="Cerrar" title="Cerrar (Esc)">✕</button>
+            {botonPlegar}<button type="button" className="btn-cerrar" onClick={() => setAberturaSeleccionada(null)} aria-label="Cerrar" title="Cerrar (Esc)">✕</button>
           </div>
           <ul className="opening-list">
             <FilaAbertura abertura={aberturaElegida} numero={aberturas.indexOf(aberturaElegida) + 1} params={params}
@@ -2311,10 +2319,10 @@ export default function LoftCanvas({
 
       {/* v1.65: tira (o placa) de panel tocada: su tamaño, lo que se pide y qué cortarle. */}
       {datosTira && (
-        <div className="seleccion no-print" role="dialog" aria-label="Panel seleccionado">
+        <div className={`seleccion no-print${seleccionPlegada ? ' plegada' : ''}`} role="dialog" aria-label="Panel seleccionado">
           <div className="seleccion-cabecera">
             <strong>{datosTira.tipo.nombre} · {nombreDePared(datosTira.pared.lado, params)}{datosTira.signo < 0 ? ' (por dentro)' : ''}</strong>
-            <button type="button" className="btn-cerrar" onClick={() => setTiraElegida(null)} aria-label="Cerrar" title="Cerrar (Esc)">✕</button>
+            {botonPlegar}<button type="button" className="btn-cerrar" onClick={() => setTiraElegida(null)} aria-label="Cerrar" title="Cerrar (Esc)">✕</button>
           </div>
           {datosTira.tira.placa ? (
             <p>Placa columna {datosTira.tira.columna} de {datosTira.tira.columnas}, fila {datosTira.tira.fila} de {datosTira.tira.filas}
@@ -2330,17 +2338,17 @@ export default function LoftCanvas({
               : <p className="nota">Va entera: sin cortes.</p>}
             {datosTira.tira.desperdicio > 0.005 && <p className="nota">Se tiran ≈ {datosTira.tira.desperdicio.toFixed(2).replace('.', ',')} m² de esta tira.</p>}
           </>)}
-          <p className="nota">La lista de todas las tiras está en Planos → Paredes para el proveedor de paneles.</p>
+          <p className="nota">El plano de cada panel está en Planos, debajo de cada pared.</p>
         </div>
       )}
 
       {/* v1.44: mueble elegido: se arrastra con el mouse, flechas para correrlo, R o los botones para girarlo. */}
       {muebleDelPanel && (
-        <div className="seleccion no-print" role="dialog" aria-label="Mueble elegido">
+        <div className={`seleccion no-print${seleccionPlegada ? ' plegada' : ''}`} role="dialog" aria-label="Mueble elegido">
           <div className="seleccion-cabecera">
             <div><strong>Mueble:</strong> {muebleDelPanel.nombre}
               {moviendoMueble ? ' · arrastralo o usá las flechas: 1 cm (Shift: 10 cm) · R: girar · Esc: listo' : ' · su ficha está abierta para editarlo'}</div>
-            <button type="button" className="btn-cerrar" onClick={() => setMuebleElegido(null)} aria-label="Soltar el mueble">✕</button>
+            {botonPlegar}<button type="button" className="btn-cerrar" onClick={() => setMuebleElegido(null)} aria-label="Soltar el mueble">✕</button>
           </div>
           {/* v1.49: si se sale por una pared o choca con algo, se avisa acá también (y su contorno se ve rojo). */}
           {avisoDeChoques(choquesDelMueble(params, muebleDelPanel)) && (
@@ -2359,13 +2367,13 @@ export default function LoftCanvas({
 
       {/* v1.45: persona elegida: camina hasta lo que toques, o se maneja con el teclado, o se ve con sus ojos. */}
       {personaDelPanel && (
-        <div className="seleccion no-print" role="dialog" aria-label="Persona elegida">
+        <div className={`seleccion no-print${seleccionPlegada ? ' plegada' : ''}`} role="dialog" aria-label="Persona elegida">
           <div className="seleccion-cabecera">
             <div><strong>{personaDelPanel.nombre}</strong>
               {modoPersona === 'manejar' ? ' · W A S D o flechas para caminar · Shift corre · C agacharse · Esc: dejar de manejar'
                 : modoPersona === 'primera' ? ' · viendo con sus ojos'
                 : ' · tocá el piso y camina hasta ahí; tocá algo y va a buscarlo (se agacha o se estira según la altura); tocá la cama, un sillón, una silla o el inodoro y se acuesta o se sienta'}</div>
-            <button type="button" className="btn-cerrar" onClick={() => { setPersonaElegida(null); setModoPersona(null); }} aria-label="Soltar a la persona">✕</button>
+            {botonPlegar}<button type="button" className="btn-cerrar" onClick={() => { setPersonaElegida(null); setModoPersona(null); }} aria-label="Soltar a la persona">✕</button>
           </div>
           {avisoPersona && <p className="error" role="alert">{avisoPersona}</p>}
           <div className="seleccion-acciones">
@@ -2380,13 +2388,13 @@ export default function LoftCanvas({
       )}
 
       {piezaSeleccionada && (
-        <div className="seleccion no-print" role="dialog" aria-label="Pieza seleccionada">
+        <div className={`seleccion no-print${seleccionPlegada ? ' plegada' : ''}`} role="dialog" aria-label="Pieza seleccionada">
           <div className="seleccion-cabecera">
             <div>
               <strong>Seleccionada:</strong> {describirPieza(piezaSeleccionada, params)}
               {piezaSeleccionada.editada && <span className="marca-editada"> · editada</span>}
             </div>
-            <button type="button" className="btn-cerrar" onClick={() => { setSeleccionada(null); setEditandoId(null); }}
+            {botonPlegar}<button type="button" className="btn-cerrar" onClick={() => { setSeleccionada(null); setEditandoId(null); }}
               aria-label="Cerrar" title="Cerrar (Esc)">✕</button>
           </div>
           {editandoId === piezaSeleccionada.id && (

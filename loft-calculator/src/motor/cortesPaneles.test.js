@@ -1,6 +1,6 @@
 // Tests de los cortes de los paneles (v1.63). Correr con: npm test
 import { describe, it, expect } from 'vitest';
-import { cortesDeTiras, retazosEntreParedes, sugerenciaParaAbertura, tiraEnPunto } from './cortesPaneles.js';
+import { cortesDeTiras, retazosEntreParedes, sugerenciaParaAbertura, tiraEnPunto, pedazosDeLaTira } from './cortesPaneles.js';
 
 const panel = { venta: 'medida', anchoUtil: 1, largoMaximo: 12, solape: 0 };
 
@@ -18,10 +18,13 @@ describe('tamaños y cortes de cada tira', () => {
     // Ventana de 1,50 x 1,00, de 1,20 a 2,70, antepecho 1,00.
     const pano = { largo: 4, h1: 2.6, h2: 2.6, huecos: [{ desde: 1.2, hasta: 2.7, abajo: 1, arriba: 2 }] };
     const { tiras, desperdicio } = cortesDeTiras(pano, panel);
-    expect(tiras[1].pedidos).toEqual([2.6]); // de 1 a 2: la ventana la toma en parte
-    expect(tiras[1].cortes[0]).toBe('recortar 0,80 × 1,00 m (a 0,20 m de su borde izquierdo, de 1,00 a 2,00 m del piso)');
-    expect(tiras[2].pedidos).toEqual([2.6]); // de 2 a 3: la ventana llega hasta 2,70: también en parte
-    expect(desperdicio).toBeCloseTo(1.5, 6); // lo recortado de la ventana se tira
+    // v1.67: de 1 a 2 la ventana deja 0,20 m al costado (menos de 0,30): la tira va en dos pedazos (abajo 1,00 y
+    // arriba 0,60) y el costado se rellena con un retazo de 0,20 × 1,00.
+    expect(tiras[1].pedidos).toEqual([1, 0.6]);
+    expect(tiras[1].cortes).toEqual(['va en 2 pedazos (abajo y arriba de la abertura)', 'relleno al costado izquierdo de la abertura: 0,20 × 1,00 m (de un retazo)']);
+    expect(tiras[2].pedidos).toEqual([2.6]); // de 2 a 3: la ventana llega hasta 2,70, le quedan 0,30: se recorta
+    expect(tiras[2].cortes[0]).toBe('recortar 0,70 × 1,00 m (a 0,00 m de su borde izquierdo, de 1,00 a 2,00 m del piso)');
+    expect(desperdicio).toBeCloseTo(0.7, 6); // lo recortado de la 3 (de ahí sale el relleno de la 2)
   });
 });
 
@@ -39,11 +42,11 @@ describe('retazos entre paredes', () => {
 
 describe('ventanas en base a los paneles', () => {
   it('correr la ventana para que su borde caiga en una junta ahorra una tira entera', () => {
-    // Ventana de 1,20 de 1,10 a 2,30: ninguna tira queda entera adentro. Corriéndola 10 cm a la izquierda (de 1,00 a
-    // 2,20) la tira de 1 a 2 queda entera dentro del hueco y se pide en dos pedazos: 1 m² menos.
-    const pano = { largo: 4, h1: 2.6, h2: 2.6, huecos: [{ desde: 1.1, hasta: 2.3, abajo: 1, arriba: 2 }] };
+    // Ventana de 1,20 de 1,35 a 2,55: deja 0,35 y 0,45 a los costados, ninguna tira se parte. Corriéndola 35 cm a la
+    // izquierda (de 1,00 a 2,20) la tira de 1 a 2 queda entera dentro del hueco y se pide en dos pedazos: 1 m² menos.
+    const pano = { largo: 4, h1: 2.6, h2: 2.6, huecos: [{ desde: 1.35, hasta: 2.55, abajo: 1, arriba: 2 }] };
     const s = sugerenciaParaAbertura(pano, 0, panel);
-    expect(s.correr).toBeCloseTo(-0.1, 6);
+    expect(s.correr).toBeCloseTo(-0.35, 6);
     expect(s.ahorroM2).toBeCloseTo(1, 6);
     // Ya alineada: nada que sugerir.
     expect(sugerenciaParaAbertura({ ...pano, huecos: [{ desde: 1, hasta: 2.2, abajo: 1, arriba: 2 }] }, 0, panel)).toBeNull();
@@ -66,5 +69,34 @@ describe('v1.65: tiraEnPunto (tocar un panel en el 3D)', () => {
     const p = tiraEnPunto({ largo: 3, h1: 2.6, h2: 2.6 }, { venta: 'estandar', anchoPlaca: 1.22, largoPlaca: 2.44 }, 2.5, 2.5);
     expect([p.placa, p.columna, p.columnas, p.fila, p.filas]).toEqual([true, 3, 3, 2, 2]);
     expect(p.ancho).toBeCloseTo(3 - 2.44);
+  });
+});
+
+describe('v1.67: tiras partidas por una abertura y el plano de cada pedazo', () => {
+  // El caso de Leandro (Frente, tira 7 de 6 a 7 m): ventana de 6,10 a 7,30, de 1,20 a 2,00; la pared mide 4,25.
+  const pano = { largo: 7.5, h1: 4.25, h2: 4.25, huecos: [{ desde: 6.1, hasta: 7.3, abajo: 1.2, arriba: 2 }] };
+  const { tiras } = cortesDeTiras(pano, panel);
+  it('la tira 7 va en dos pedazos (abajo 1,20 y arriba 2,25) con un relleno de 0,10 × 0,80 a la izquierda', () => {
+    expect(tiras[6].pedidos).toEqual([1.2, 2.25]);
+    expect(tiras[6].rellenos).toEqual([{ lado: 'izquierdo', ancho: expect.closeTo(0.1, 6), abajo: 1.2, arriba: 2 }]);
+    expect(tiras[6].cortes.some((c) => c.startsWith('recortar'))).toBe(false);
+    // La 8 (de 7 a 7,50, angosta): la ventana le deja 0,20 a la derecha: también partida.
+    expect(tiras[7].pedidos).toEqual([1.2, 2.25]);
+    expect(tiras[7].rellenos[0].lado).toBe('derecho');
+  });
+  it('el plano de cada pedazo: medidas, desde dónde arranca y el lado que superpone', () => {
+    const p = pedazosDeLaTira(pano, panel, tiras[6]);
+    expect(p.map((x) => [x.nombre, x.largo, x.desde, x.superpone])).toEqual([
+      ['Tira 7 · abajo', 1.2, 0, 'izquierda'], ['Tira 7 · arriba', 2.25, 2, 'izquierda']]);
+    expect(p[0].recortes).toEqual([]);
+    expect(pedazosDeLaTira(pano, { ...panel, ladoSolape: 'derecha' }, tiras[6])[0].superpone).toBe('derecha');
+  });
+  it('una puerta que la toma en parte: el recorte en el pedazo; pared inclinada: el borde de arriba', () => {
+    const conPuerta = { largo: 3, h1: 2.6, h2: 3.2, huecos: [{ desde: 1.4, hasta: 2.2, abajo: 0, arriba: 2 }] };
+    const t = cortesDeTiras(conPuerta, panel).tiras;
+    const [pedazo] = pedazosDeLaTira(conPuerta, panel, t[1]); // de 1 a 2: la puerta le saca 0,60 a la derecha
+    expect(pedazo.recortes).toEqual([{ x0: expect.closeTo(0.4, 6), x1: 1, y0: 0, y1: 2 }]);
+    expect(pedazo.arriba[0]).toBeCloseTo(2.8);
+    expect(pedazo.arriba[1]).toBeCloseTo(3);
   });
 });

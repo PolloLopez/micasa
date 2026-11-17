@@ -226,10 +226,14 @@ input.perfil:focus { outline: 2px solid var(--acento); border-style: solid; }
 
 /* ---------- Pieza seleccionada en el 3D ---------- */
 .seleccion {
-  position: absolute; top: 60px; left: 12px; right: 12px; z-index: 11; max-width: 520px;
-  background: rgba(15, 23, 42, 0.95); border: 1px solid #facc15; border-radius: 8px; padding: 8px 12px;
-  font-size: 0.8rem; display: flex; flex-direction: column; gap: 6px;
+  position: absolute; top: 60px; left: 12px; z-index: 11; width: min(360px, calc(100% - 24px));
+  background: rgba(15, 23, 42, 0.88); border: 1px solid #facc15; border-radius: 8px; padding: 6px 10px;
+  font-size: 0.75rem; display: flex; flex-direction: column; gap: 4px;
 }
+.seleccion p { margin: 0; }
+/* v1.67: plegado queda solo el título (con ▾ para volver a verlo todo). */
+.seleccion.plegada > :not(.seleccion-cabecera) { display: none; }
+.seleccion .btn-cerrar { min-width: 26px; min-height: 26px; font-size: 0.8rem; }
 .seleccion-acciones { display: flex; flex-wrap: wrap; gap: 8px; border-top: 1px solid var(--borde); padding-top: 8px; }
 /* v1.27: cabecera con el ✕ de cerrar arriba a la derecha; las acciones (y Eliminar) en el pie. */
 .seleccion-cabecera { display: flex; align-items: flex-start; gap: 8px; }
@@ -252,7 +256,7 @@ input.perfil:focus { outline: 2px solid var(--acento); border-style: solid; }
 .pared.cerrada .pared-titulo { margin-bottom: 0; }
 @media print { .pared.cerrada .pared-cuerpo { display: block; } }
 /* Con el editor abierto el cartel puede crecer: scrollea por dentro (sobre todo en el celular). */
-.seleccion { max-height: calc(100% - 120px); overflow-y: auto; }
+.seleccion { max-height: min(45%, calc(100% - 120px)); overflow-y: auto; }
 .editor-pieza .subtitulo { margin-top: 8px; }
 .editor-pieza .btn-sec { margin-top: 6px; }
 .etiqueta-pared { display: flex; align-items: center; gap: 8px; margin: 4px 0 6px; font-size: 0.75rem; }
@@ -922,3 +926,14 @@ input[type=date] { color-scheme: dark; }
 .ficha-plegable .titulo-ficha { flex-wrap: wrap; }
 .muestra-chica { display: inline-block; width: 12px; height: 12px; border-radius: 3px; border: 1px solid var(--borde, #555); }
 .tabla-precios-proveedor td:first-child { min-width: 160px; }
+
+/* v1.67: plano de cada panel (Planos). */
+.grilla-despiece { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+.panel-despiece { margin: 0; padding: 6px; border: 1px solid var(--borde); border-radius: 6px; background: #fff; color: #0f172a; break-inside: avoid; }
+.panel-despiece figcaption { font-size: 0.75rem; margin-bottom: 2px; }
+.panel-despiece small { display: block; font-size: 0.68rem; color: #475569; max-width: 150px; }
+.panel-despiece figcaption { max-width: 170px; }
+.panel-despiece .contorno-panel { fill: #e0f2fe; stroke: #0f172a; stroke-width: 1.2; }
+.panel-despiece .lado-superpone { stroke: #16a34a; stroke-width: 5; }
+.panel-despiece .cota-panel { font-size: 10px; fill: #0f172a; }
+.panel-despiece .cota-recorte { font-size: 9px; fill: #b91c1c; font-weight: 600; }

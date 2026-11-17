@@ -218,6 +218,10 @@ que los materiales y la pestaña "Presupuesto" muestra ese precio.
 
 - Las **plantas** muestran pilotines y zapatas (punteados), tabiques con su puerta, mesadas y muebles.
 - En el plano de una pared sale también el **borde del entrepiso** que apoya sobre ella (con su altura acotada).
+- **Plano de cada panel** (debajo de la tabla de tiras): un dibujo por pedazo a pedir, con ancho, largo, recortes
+  (rayados) y en verde el costado que **superpone** (se elige en Materiales → el revestimiento → "Lado que superpone").
+- Si una ventana o puerta deja menos de 30 cm de tira al costado, esa tira va en dos pedazos (abajo y arriba) y el
+  costado se completa con un **relleno** de un retazo (la lista de rellenos está debajo de los planos).
 - **Seguimiento de la obra** (en Datos): lo contratado, lo pagado y lo que falta, con los pagos de cada rubro.
 
 ✔ Chequeá: el PDF con "Por partes" trae la hoja "Vistas por partes"; si cargaste mano de obra, sale **Precio de la obra**;

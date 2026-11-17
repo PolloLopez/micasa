@@ -184,6 +184,7 @@ function datosDeRevestimiento(p) {
     espesor: numero('espesor'),
     ubicacion: UBICACIONES.includes(p.ubicacion) ? p.ubicacion : d.ubicacion,
     aprovecharRetazos: p.aprovecharRetazos !== false, // v1.63: las tiras angostas salen de los retazos de otra pared
+    ladoSolape: p.ladoSolape === 'derecha' ? 'derecha' : 'izquierda', // v1.67: el lado de cada tira que monta sobre la de al lado
   };
 }
 

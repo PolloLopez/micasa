@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.67.0] - 2026-11-16
+### Agregado
+- **Plano de cada panel** (Planos, debajo de cada pared, y en el PDF): un dibujo por pedazo a pedir con su ancho y largo,
+  el corte inclinado, los recortes de las aberturas (rayados, con su medida y lugar) y, en verde, **el costado que
+  superpone** sobre la tira de al lado. Nuevo dato del revestimiento: "Lado que superpone" (izquierdo de fábrica: se
+  coloca de izquierda a derecha). `pedazosDeLaTira` en motor/cortesPaneles.js.
+- El cartel de lo elegido en el 3D se achica a su título con ▴ (y se recuerda).
+### Cambiado
+- **Paneles partidos por una abertura**: si al costado de una ventana o puerta quedan menos de 30 cm de la tira (como la
+  tira 7 del Frente de Leandro, con 10 cm), la tira ya no se pide entera para recortarla: va en dos pedazos (abajo y
+  arriba) y el costado angosto es un **relleno** de un retazo. Descuenta el alto de la abertura de lo que se compra.
+  (`COSTADO_MINIMO`, `parteLaTira`, `intervalosDeTira`, `rellenosDeTira` en motor/revestimientos.js.)
+- El cartel de lo elegido en el 3D es más angosto (360 px), más chico de letra y con un alto máximo.
+
 ## [1.66.0] - 2026-11-16
 ### Arreglado
 - **Planos de pared**: el borde del entrepiso apoyado sobre una pared (ej. el Frente) no salía en el plano de esa pared

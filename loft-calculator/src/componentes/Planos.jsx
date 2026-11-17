@@ -8,6 +8,7 @@
 // revestimiento. Los datos salen de motor/planos.js.
 // ==========================================================
 
+import { useId } from 'react';
 import Tarjeta from './Tarjeta.jsx';
 import PlanoImplantacion from './PlanoImplantacion.jsx';
 import { BloqueInstalacion } from './PlanoInstalaciones.jsx';
@@ -226,6 +227,69 @@ function TablaPaneles({ paneles: p }) {
   );
 }
 
+/**
+ * v1.67 (Leandro: "me falta el plano de cada panel, con sus medidas e indicación de qué lado es el que superpone"):
+ * un dibujo chico por cada pedazo que se pide, en el orden de la pared (de izquierda a derecha, vista desde afuera):
+ * su ancho y largo, el corte inclinado de arriba, los recortes de las aberturas (rayados) y, en color, el costado
+ * que superpone sobre la tira de al lado. Abajo, los rellenos que salen de retazos.
+ */
+function DespiecePaneles({ paneles: p }) {
+  const m = (n) => n.toFixed(2).replace('.', ',');
+  const deRetazo = new Map(p.tiras.filter((t) => t.deRetazo).map((t) => [t.n, t.deRetazo]));
+  const rellenos = p.tiras.flatMap((t) => (t.rellenos ?? []).map((r) => ({ ...r, tira: t.n })));
+  const superpone = p.tipo.ladoSolape === 'derecha' ? 'derecho' : 'izquierdo';
+  const idRayado = `rayado-${useId().replace(/:/g, '')}`; // uno por pared (los ids del SVG no se pueden repetir)
+  return (
+    <div className="despiece-paneles">
+      <svg width="0" height="0" aria-hidden="true" style={{ position: 'absolute' }}>
+        <defs>
+          <pattern id={idRayado} width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="6" stroke="#dc2626" strokeWidth="1.5" />
+          </pattern>
+        </defs>
+      </svg>
+      <h4 className="subtitulo-pared">Plano de cada panel</h4>
+      <p className="nota">Vistos desde afuera. En verde, el costado que <strong>superpone</strong> (el {superpone}): cada tira monta
+        sobre la anterior, se colocan de {superpone === 'izquierdo' ? 'izquierda a derecha' : 'derecha a izquierda'}. Rayado: lo que se recorta.</p>
+      <div className="grilla-despiece">
+        {p.despiece.map((d) => {
+          // Escala en px por metro: los largos de 4 m entran en ~200 px; los chicos, más grandes.
+          const k = Math.min(60, 200 / Math.max(d.largo, 0.5));
+          const [ancho, alto] = [d.ancho * k, Math.max(d.arriba[0], d.arriba[1]) * k];
+          const margen = { izq: 34, der: 10, arriba: 8, abajo: 26 };
+          const X = (x) => margen.izq + x * k;
+          const Y = (y) => margen.arriba + alto - y * k;
+          const lado = d.superpone === 'derecha' ? d.ancho : 0;
+          const inclinada = Math.abs(d.arriba[0] - d.arriba[1]) > 0.005;
+          return (
+            <figure key={`${d.nombre}-${d.desde}`} className="panel-despiece">
+              <figcaption><strong>{d.nombre}</strong>{deRetazo.has(d.tira) ? <em> · sale del retazo de {deRetazo.get(d.tira)}</em> : ` · pedir ${m(d.largo)} m`}</figcaption>
+              <svg width={ancho + margen.izq + margen.der} height={alto + margen.arriba + margen.abajo} role="img"
+                aria-label={`${d.nombre}: ${m(d.ancho)} por ${m(d.largo)} m, superpone a la ${d.superpone}`}>
+                <polygon className="contorno-panel" points={`${X(0)},${Y(0)} ${X(d.ancho)},${Y(0)} ${X(d.ancho)},${Y(d.arriba[1])} ${X(0)},${Y(d.arriba[0])}`} />
+                {d.recortes.map((r) => (
+                  <rect key={`${r.x0}-${r.y0}`} x={X(r.x0)} y={Y(r.y1)} width={(r.x1 - r.x0) * k} height={(r.y1 - r.y0) * k} fill={`url(#${idRayado})`} stroke="#dc2626" />
+                ))}
+                {/* El costado que superpone, en verde. */}
+                <line className="lado-superpone" x1={X(lado)} y1={Y(0)} x2={X(lado)} y2={Y(d.superpone === 'derecha' ? d.arriba[1] : d.arriba[0])} />
+                {/* Cotas: el ancho abajo; el largo a la izquierda (y el otro costado si es inclinada). */}
+                <text x={X(d.ancho / 2)} y={Y(0) + 14} textAnchor="middle" className="cota-panel">{m(d.ancho)}</text>
+                <text x={X(0) - 4} y={Y(d.arriba[0] / 2)} textAnchor="end" dominantBaseline="middle" className="cota-panel">{m(d.arriba[0])}</text>
+                {inclinada && <text x={X(d.ancho) - 3} y={Y(d.arriba[1]) + 11} textAnchor="end" className="cota-panel">{m(d.arriba[1])}</text>}
+              </svg>
+              <small>{d.cortadaALoLargo ? 'cortada a lo largo · ' : ''}va desde {m(d.desde)} m del piso
+                {d.recortes.map((r) => ` · recorte ${m(r.x1 - r.x0)} × ${m(r.y1 - r.y0)} m, a ${m(r.x0)} m del costado izq. y ${m(r.y0)} m de abajo`).join('')}</small>
+            </figure>
+          );
+        })}
+      </div>
+      {rellenos.length > 0 && (
+        <p className="nota"><strong>Rellenos (de retazos):</strong> {rellenos.map((r) => `tira ${r.tira}, costado ${r.lado} de la abertura: ${m(r.ancho)} × ${m(r.arriba - r.abajo)} m`).join(' · ')}.</p>
+      )}
+    </div>
+  );
+}
+
 /** Tabla de piezas para cortar. */
 function TablaPiezas({ lista }) {
   return (
@@ -279,6 +343,7 @@ export function PlanoDePared({ vista: v, params, soloContorno = false }) {
         <p key={r.cara} className="revestimiento-plano"><strong>Revestimiento {r.cara} ({r.nombre}):</strong> {r.detalle}</p>
       ))}
       {v.paneles && <TablaPaneles paneles={v.paneles} />}
+      {v.paneles?.despiece?.length > 0 && <DespiecePaneles paneles={v.paneles} />}
     </>
   );
 }

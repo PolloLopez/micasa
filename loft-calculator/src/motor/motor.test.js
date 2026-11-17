@@ -380,14 +380,16 @@ describe('calcularPresupuesto', () => {
     // 5 a 6 m: se pide en dos pedazos, abajo (antepecho 1,10) y arriba (4,95 − 1,70 = 3,25) => 0,60 m² menos.
     // v1.63: las 4 paredes terminan en una tira de 0,50 m: la de D (4,95) sale del retazo de la de A (4,95) y la de C
     // (4,50) del de B (4,55): se compran 2 tiras menos (4,95 + 4,50 = 9,45 m²).
-    expect(item('panelMuros').cantidad).toBeCloseTo(39.6 - 0.6 + 36 + 23.75 + 23.95 - 9.45);
+    // v1.67: la puerta del frente (0,90 de 1,00 a 1,90) deja 10 cm de la tira de 1 a 2: esa tira va solo arriba de la
+    // puerta (4,95 − 2,05 = 2,90) y el costado de 0,10 sale de un retazo => 2,05 m² menos.
+    expect(item('panelMuros').cantidad).toBeCloseTo(39.6 - 0.6 - 2.05 + 36 + 23.75 + 23.95 - 9.45);
     expect(item('panelMuros').unidad).toBe('m²');
-    expect(item('panelMuros').detalle).toMatch(/^8 × 4\.95 m .* \+ 7 × 4\.50 m .*3\.25 m.*1\.10 m.*2 tiras angostas salen de retazos/);
+    expect(item('panelMuros').detalle).toMatch(/^7 × 4\.95 m .* \+ 7 × 4\.50 m .*3\.25 m.*2\.90 m.*1\.10 m.*2 tiras angostas salen de retazos/);
     // Sin aprovechar retazos (en la ficha del revestimiento), como antes: 9 de 4,95 y 8 de 4,50.
     const sinRetazos = CATALOGO_INICIAL.map((i) => (i.id === 'panelMuros' ? { ...i, aprovecharRetazos: false } : i));
     const r0 = calcularPresupuesto(e, sinRetazos).items.find((i) => i.id === 'panelMuros');
-    expect(r0.cantidad).toBeCloseTo(39.6 - 0.6 + 36 + 23.75 + 23.95);
-    expect(r0.detalle).toMatch(/^9 × 4\.95 m .* \+ 8 × 4\.50 m/);
+    expect(r0.cantidad).toBeCloseTo(39.6 - 0.6 - 2.05 + 36 + 23.75 + 23.95);
+    expect(r0.detalle).toMatch(/^8 × 4\.95 m .* \+ 8 × 4\.50 m/);
     // Techo: 7,50 m a lo largo del lado bajo => 8 tiras del largo del faldón (4,50 m con 10 % de pendiente).
     const faldon = 4.5 * Math.sqrt(1 + 0.1 * 0.1);
     expect(item('panelTecho').cantidad).toBeCloseTo(8 * Math.ceil(faldon * 100) / 100);
@@ -395,7 +397,7 @@ describe('calcularPresupuesto', () => {
     const mixto = generarEstructura(conPared('A', { panel: 'panelTecho' }), ABERTURAS_INICIALES);
     const r = calcularPresupuesto(mixto, CATALOGO_INICIAL).items;
     // El frente con su ventana descontada; v1.63: la tira angosta del techo sale del retazo de la del frente (más alta).
-    expect(r.find((i) => i.id === 'panelTecho').cantidad).toBeCloseTo(7 * Math.ceil(faldon * 100) / 100 + 39.6 - 0.6);
+    expect(r.find((i) => i.id === 'panelTecho').cantidad).toBeCloseTo(7 * Math.ceil(faldon * 100) / 100 + 39.6 - 0.6 - 2.05); // v1.67: y la tira sobre la puerta
     expect(r.find((i) => i.id === 'panelTecho').detalle).toMatch(/lado A, techo/);
   });
 

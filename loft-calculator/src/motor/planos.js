@@ -16,7 +16,7 @@
 
 import { INSUMO, LADOS } from './constantes.js';
 import { inicioAbertura } from './validacion.js';
-import { cortesDeTiras, retazosEntreParedes } from './cortesPaneles.js';
+import { cortesDeTiras, retazosEntreParedes, pedazosDeLaTira } from './cortesPaneles.js';
 import { geometriaLados, nombreDePared } from './geometria.js';
 import { listarPiezas, NOMBRE_TIPO_PIEZA } from './estructura.js';
 import { INSUMO_DE_TIPO } from './piezasAgregadas.js';
@@ -111,7 +111,9 @@ function panelesDePared(pared, catalogo, donde) {
   if (t.venta === 'estandar') return null;
   const pano = { largo: pared.largo, h1: pared.alturas[0], h2: pared.alturas[1], huecos: pared.huecos ?? [], donde };
   const c = cortesDeTiras(pano, t);
-  return { nombre: tipo.nombre, anchoUtil: t.anchoUtil, ...c, juntas: c.tiras.slice(1).map((x) => x.x0), pano, tipo: t };
+  // v1.67: el plano de cada pedazo a pedir (medidas, recortes, lado que superpone).
+  const despiece = c.tiras.flatMap((tira) => pedazosDeLaTira(pano, t, tira).map((p) => ({ ...p, tira: tira.n })));
+  return { nombre: tipo.nombre, anchoUtil: t.anchoUtil, ...c, juntas: c.tiras.slice(1).map((x) => x.x0), pano, tipo: t, despiece };
 }
 
 /**

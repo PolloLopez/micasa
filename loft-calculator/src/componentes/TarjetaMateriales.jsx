@@ -96,6 +96,9 @@ function Revestimiento({ tipo, unidad, usos, unicoQueda, proveedores, precio, nu
           <CampoOpcional casilla="Tiras en tramos encimados (solo si la pared pasa el largo máximo; si no, a tope)" etiqueta="Encimado entre tramos"
             unidad={unidad} valor={tipo.solape} valorPorDefecto={0.15}
             onCambio={conLimites({ ...LIMITES_REVESTIMIENTO.solape, max: Math.min(LIMITES_REVESTIMIENTO.solape.max, tipo.largoMaximo - 0.01) }, cambiar('solape'))} />
+          {/* v1.67: para el plano de cada panel: qué costado encastra encima de la tira de al lado. */}
+          <CampoSelect etiqueta="Lado que superpone (vista desde afuera)" valor={tipo.ladoSolape ?? 'izquierda'} onCambio={cambiar('ladoSolape')}
+            opciones={[['izquierda', 'Izquierdo: se coloca de izquierda a derecha'], ['derecha', 'Derecho: se coloca de derecha a izquierda']]} />
           {/* v1.63: la tira angosta de una pared se corta (a lo largo) del retazo de la de otra pared: se compra una menos. */}
           <label className="casilla-opcional">
             <input type="checkbox" checked={tipo.aprovecharRetazos !== false} onChange={(e) => cambiar('aprovecharRetazos')(e.target.checked)} />

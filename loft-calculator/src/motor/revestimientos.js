@@ -51,6 +51,7 @@ export const REVESTIMIENTO_POR_DEFECTO = {
   espesor: 50, // mm (para el dibujo)
   ubicacion: 'cara',
   aprovecharRetazos: true, // v1.63: la tira angosta de una pared sale del retazo de otra (ver cortesPaneles.js)
+  ladoSolape: 'izquierda', // v1.67: el lado (vista desde afuera) con que cada tira monta sobre la anterior: se coloca de izquierda a derecha
 };
 
 /** Límites de cada dato (los usa la pantalla y la migración). */
@@ -89,22 +90,53 @@ const altoEn = (pano, x) => pano.h1 + ((pano.h2 - pano.h1) * x) / pano.largo;
 const PEDAZO_MINIMO = 0.05; // m: un pedazo más chico que esto no se pide
 
 /**
- * Partes de una tira (de x0 a x1, alto `alto`) que hay que pedir: la tira entera,
- * o, si una o más aberturas la tapan de lado a lado, los pedazos entre los huecos.
- * @returns {number[]} alturas de cada pedazo
+ * v1.67 (Leandro: "en la tira 7 la ventana tiene 0,80 y no me está descontando, ahí deberían ser dos paneles
+ * distintos"): si al costado de una abertura quedan menos de COSTADO_MINIMO de tira, no conviene recortarle la
+ * ventana (queda una tira de 10 cm, que no se sostiene): la tira va en dos pedazos (abajo y arriba de la abertura)
+ * y ese costado angosto se completa con un relleno sacado de un retazo.
  */
-export function pedazosDeTira(x0, x1, alto, huecos = []) {
-  const queLaTapan = huecos
-    .filter((h) => h.desde <= x0 + EPSILON && h.hasta >= x1 - EPSILON)
-    .sort((a, b) => a.abajo - b.abajo);
-  const pedazos = [];
+export const COSTADO_MINIMO = 0.3; // m
+
+/** ¿La abertura parte esta tira en dos? (la tapa de lado a lado, o le deja costados de menos de COSTADO_MINIMO) */
+export const parteLaTira = (h, x0, x1) => h.desde - x0 < COSTADO_MINIMO - EPSILON && x1 - h.hasta < COSTADO_MINIMO - EPSILON
+  && Math.min(h.hasta, x1) - Math.max(h.desde, x0) > EPSILON;
+
+/**
+ * Tramos de alto de una tira (de x0 a x1, alto `alto`) que hay que pedir: la tira entera, o, si una o más
+ * aberturas la parten (ver parteLaTira), los pedazos entre los huecos.
+ * @returns {{ y0, y1 }[]} desde abajo
+ */
+export function intervalosDeTira(x0, x1, alto, huecos = []) {
+  const queLaParten = huecos.filter((h) => parteLaTira(h, x0, x1)).sort((a, b) => a.abajo - b.abajo);
+  const intervalos = [];
   let desde = 0;
-  queLaTapan.forEach((h) => {
-    if (h.abajo - desde > PEDAZO_MINIMO) pedazos.push(h.abajo - desde);
+  queLaParten.forEach((h) => {
+    if (h.abajo - desde > PEDAZO_MINIMO) intervalos.push({ y0: desde, y1: h.abajo });
     desde = Math.max(desde, h.arriba);
   });
-  if (alto - desde > PEDAZO_MINIMO) pedazos.push(alto - desde);
-  return pedazos.map((p) => Number(p.toFixed(4)));
+  if (alto - desde > PEDAZO_MINIMO) intervalos.push({ y0: desde, y1: alto });
+  return intervalos;
+}
+
+/** Largos de cada pedazo de una tira (ver intervalosDeTira). */
+export function pedazosDeTira(x0, x1, alto, huecos = []) {
+  return intervalosDeTira(x0, x1, alto, huecos).map((i) => Number((i.y1 - i.y0).toFixed(4)));
+}
+
+/**
+ * v1.67: los rellenos de una tira partida: el costado angosto al lado de la abertura, del alto de la abertura.
+ * Salen de un retazo (lo recortado de otra abertura, el sobrante de la tira angosta…): no se compran aparte.
+ * @returns {{ lado: 'izquierdo' | 'derecho', ancho, abajo, arriba }[]}
+ */
+export function rellenosDeTira(x0, x1, alto, huecos = []) {
+  return huecos.filter((h) => parteLaTira(h, x0, x1)).flatMap((h) => {
+    const abajo = Math.max(0, h.abajo);
+    const arriba = Math.min(alto, h.arriba);
+    const lados = [];
+    if (h.desde - x0 > 0.005) lados.push({ lado: 'izquierdo', ancho: h.desde - x0, abajo, arriba });
+    if (x1 - h.hasta > 0.005) lados.push({ lado: 'derecho', ancho: x1 - h.hasta, abajo, arriba });
+    return lados.filter((r) => r.arriba - r.abajo > PEDAZO_MINIMO);
+  });
 }
 
 /**
