@@ -240,13 +240,18 @@ function Accesorio({ accesorio: a, calculado, proveedores, precio, nuevo, onCamb
  * @param catalogo       catálogo guardado (con la lista de perfiles, categoria 'hierro')
  * @param revestimientos tipos de revestimiento del catálogo (null = el proyecto no usa: grada, montaje)
  */
+// v1.73: el título de la tarjeta según la sub-pestaña.
+const TITULOS = { proveedores: `Proveedores`, perfiles: 'Perfiles y cortes', otros: 'Otros materiales', revestimientos: 'Revestimientos' };
+
 export default function TarjetaMateriales({
   items, catalogo, revestimientos, unidad, usosDeRevestimiento, excedenteBarras,
   onCambiarExcedente, onCambiarInsumo, onAgregarRevestimiento, onQuitarRevestimiento,
   compartirCortes, onCambiarCompartir, onActualizarPerfil, onAgregarPerfil, onQuitarPerfil,
   proveedor, pago, onCambiarPrecio, onActualizarProveedor, onAgregarProveedor, onQuitarProveedor,
   onAgregarAccesorio, onQuitarAccesorio, mermaCorte = 3, retazoMinimo = 0.3, empalmesSobreApoyo = true, onCambiarCorte = null, ahorrosAberturas = {},
+  seccion = null, // v1.73: la sub-pestaña de Materiales ('proveedores', 'perfiles', 'otros', 'revestimientos'); null = todo
 }) {
+  const ver = (grupo) => !seccion || seccion === grupo;
   // v1.25: para mostrar, cada material con el precio del proveedor y la forma de pago elegidos.
   const conPrecios = aplicarProveedor(catalogo, proveedor, pago);
   const pasar = useResaltar(); // v1.27: resaltar en el 3D las piezas de cada renglón
@@ -289,7 +294,7 @@ export default function TarjetaMateriales({
 
   return (
     <ContextoAgregarProveedor value={onAgregarProveedor}>
-    <Tarjeta id="materiales" titulo="Materiales">
+    <Tarjeta id="materiales" titulo={TITULOS[seccion] ?? 'Materiales'}>
       <p className="nota">
         Qué es cada material: perfil, medidas y cómo se vende. Las cantidades están en el <strong>Presupuesto</strong>.
         Tocá un título para plegarlo o desplegarlo; cada renglón muestra su precio en el proveedor elegido
@@ -298,16 +303,17 @@ export default function TarjetaMateriales({
       </p>
 
       {/* v1.25: proveedores. v1.65: cada uno plegable, con todos los precios de la obra adentro. */}
-      <SeccionPlegable clave="proveedores" titulo="Proveedores" resumen={`${proveedores.length}${todosLosProveedores(catalogo).length > proveedores.length ? ` (+${todosLosProveedores(catalogo).length - proveedores.length} descartados)` : ''}`}>
+      {ver('proveedores') && <SeccionPlegable plana={seccion === 'proveedores'} clave="proveedores" titulo="Proveedores" resumen={`${proveedores.length}${todosLosProveedores(catalogo).length > proveedores.length ? ` (+${todosLosProveedores(catalogo).length - proveedores.length} descartados)` : ''}`}>
         <p className="nota">
           Abrí un proveedor para cargar <strong>todos sus precios de una vez</strong> (con su lista en la mano), o cargalos
           en cada material. Vacío = ese proveedor no lo vende. En el <strong>Presupuesto</strong> elegís con cuál calcular.
         </p>
         <ListaProveedores proveedores={todosLosProveedores(catalogo)} materiales={materialesDeLaObra} idElegido={proveedor}
           onActualizar={onActualizarProveedor} onAgregar={onAgregarProveedor} onQuitar={onQuitarProveedor} onCambiarPrecio={onCambiarPrecio} />
-      </SeccionPlegable>
+      </SeccionPlegable>}
 
       {/* v1.21: lista de perfiles. Cada parte de la obra elige uno; el precio y el largo de barra son del perfil. */}
+      {ver('perfiles') && (<>
       <SeccionPlegable clave="perfiles" titulo="Perfiles (los hierros que usás)" resumen={`${visibles.length}`}>
         <p className="nota">
           Cargá cada hierro una sola vez: tipo, medidas en mm, largo de barra y precio. El peso sale de las medidas
@@ -372,9 +378,10 @@ export default function TarjetaMateriales({
           </label>
         )}
       </SeccionPlegable>
+      </>)}
 
       {/* v1.65: antes una tabla; ahora cada material plegable con su precio en el encabezado. */}
-      {otros.length > 0 && (
+      {ver('otros') && otros.length > 0 && (
         <SeccionPlegable clave="otros" titulo="Otros materiales de la obra" resumen={`${otros.length}`}>
           <p className="nota">Los que salen solos de la obra (OSB, pilotines, madera, mesadas, obra civil…). La cantidad la calcula la app.</p>
           <div className="lista-fichas">
@@ -398,7 +405,7 @@ export default function TarjetaMateriales({
       )}
 
       {/* v1.29: accesorios. v1.48: la cantidad se estima sola o se carga a mano. v1.65: acá se agrega cualquier material. */}
-      <SeccionPlegable clave="accesorios" titulo="Materiales que agregás vos (accesorios, consumibles y lo que falte)" resumen={`${accesorios.length}`}>
+      {ver('otros') && <SeccionPlegable clave="accesorios" titulo="Materiales que agregás vos (accesorios, consumibles y lo que falte)" resumen={`${accesorios.length}`}>
         <p className="nota">
           Todo lo que se compra y la app no calcula sola: tornillería, electrodos, selladores, antióxido, o cualquier
           material nuevo. "Estimada sola" calcula la cantidad con los kilos de hierro, su superficie o los m² de paneles
@@ -412,10 +419,10 @@ export default function TarjetaMateriales({
           ))}
         </div>
         <button className="btn-add no-print" onClick={onAgregarAccesorio}>+ Agregar material</button>
-      </SeccionPlegable>
+      </SeccionPlegable>}
 
-      {revestimientos && (
-        <SeccionPlegable clave="revestimientos" titulo="Revestimientos (paneles, chapas, placas)" resumen={`${revestimientos.length}`}>
+      {ver('revestimientos') && revestimientos && (
+        <SeccionPlegable plana={seccion === 'revestimientos'} clave="revestimientos" titulo="Revestimientos (paneles, chapas, placas)" resumen={`${revestimientos.length}`}>
           <p className="nota">
             Cada pared elige su revestimiento exterior y, si lleva, el interior; el techo, el suyo.
             <strong> A medida</strong>: se piden tiras del alto de la pared (si pasa el largo máximo, van en tramos).

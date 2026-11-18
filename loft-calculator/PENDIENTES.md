@@ -3,7 +3,7 @@
 Última limpieza: 2026-11-11 (v1.49.0). Espejo en Trello: tablero "Desarrollo", tarjetas `[CALC]`.
 
 ## 📌 Estado y próximos pasos (11/11)
-**En GitHub: hasta v1.61.0. v1.62.0 a v1.72.0 por subir** (desde v1.54 el deploy es automático al pushear). Manual de uso para chequear: `MANUAL.md`.
+**En GitHub: hasta v1.61.0. v1.62.0 a v1.73.0 por subir** (desde v1.54 el deploy es automático al pushear). Manual de uso para chequear: `MANUAL.md`.
 
 🟡 **Para chequear en pantalla** (probado con tests, no visto): el sol con "Ver adentro" entra solo por las aberturas;
 la persona se sienta en el sillón y se acuesta en la cama; las puertas de los tabiques se abren al pasar.
@@ -55,6 +55,10 @@ Lo que falta, en orden de prioridad (detalle en cada sección de abajo):
   - 🟢 [ ] "Deshacer" una marca de la lista (hoy se borra la compra en Compras hechas).
   - 🟡 [ ] En el Frente (A) de Leandro la faja de 2,40 m queda a 10 cm del borde del entrepiso (2,30 m): ¿se unifican
     (la faja a la altura del piso 2, o que el borde reemplace a la faja en ese tramo)? Decidir con Leandro.
+- ✅ v1.73.0 Sub-pestañas en Estructura, Paredes, Materiales, Instalaciones y Obra (siguen al 3D); estilo de todos los
+  desplegables; lista de compras en fichas en el celular.
+  - 🟢 [ ] La barra de sub-pestañas podría quedar pegada arriba al bajar (como la de pestañas).
+  - 🟢 [ ] En "Fundación y terreno", ¿la Fundación primero? (hoy: Terreno, Obra civil, Fundación).
 - ✅ v1.63.0 Barra del 3D en grupos; cortes de hierro mejorados con retazos; tamaños y cortes de paneles; retazos de
   paneles entre paredes; sugerencia para correr las ventanas a las juntas.
   - 🟡 [ ] Paneles de placa fija (OSB, durlock): el despiece de cada placa (hoy solo la cantidad).

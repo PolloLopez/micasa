@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.73.0] - 2026-11-17
+### Agregado
+- **Sub-pestañas** dentro de cada pestaña (se ve una parte a la vez y se recuerda la última de cada una):
+  - Estructura: Planta · Pisos y entrepiso · Escalera · Techo · Fundación y terreno (con la obra civil) · Piezas a mano.
+  - Paredes: Paredes y aberturas · Mesadas · Tabiques · Muebles · Personas.
+  - Materiales: Proveedores · Perfiles y cortes · Otros materiales (y los que agregás) · Revestimientos · Uniones.
+  - Instalaciones: Instalaciones · Equipos.
+  - Obra: Lista de compras · Compras hechas · Partes y extras · Avance y contratistas · Finanzas.
+  Con un número al lado cuando tiene cosas (piezas a mano, mesadas, compras…). Lo elegido en el 3D pasa solo a su
+  sub-pestaña (una pared → Paredes y aberturas; un piso → Pisos). componentes/SubPestanas.jsx (useSubPestana,
+  subDeTarjeta, BarraSubPestanas, PanelSub).
+### Cambiado
+- **Una sola barra de sub-pestañas** para todo (también la del Presupuesto): chips en un renglón que pasan abajo si no
+  entran (antes en el Presupuesto quedaba "Precios y detalle" sola en un segundo renglón).
+- **Desplegables y campos con estilo oscuro en toda la app** (antes los que no estaban dentro de un formulario salían
+  blancos del navegador: "Se lo compro a…", "+ Precio en otro proveedor", pagos…).
+- **Lista de compras en el panel angosto o el celular**: cada renglón es una ficha (material y cantidad, estado, proveedor
+  y los botones a lo ancho); antes "Marcar" quedaba afuera de la pantalla.
+- Materiales: cuando un apartado es lo único de su sub-pestaña (Proveedores, Revestimientos) no repite el título ni se pliega.
+
 ## [1.72.0] - 2026-11-17
 ### Agregado
 - **Lista de compras** (Presupuesto → sub-pestaña, y en Obra): cada material por proveedor y por parte de la obra, con su

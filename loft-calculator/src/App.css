@@ -700,16 +700,22 @@ kbd {
 .datos-resumen .campo, .datos-resumen label { margin: 0; }
 .datos-resumen select { min-height: 32px; }
 /* Botones tipo "segmentos": grandes para el dedo, con scroll horizontal si no entran en el celular. */
-/* Grilla de 4 (el texto largo pasa a dos renglones); si el panel es muy angosto, 2 x 2. Nunca quedan cortadas. */
+/* v1.73: la misma barra para las sub-pestañas de todas las pestañas (Estructura, Paredes, Materiales, Presupuesto…).
+   Un renglón de "chips"; si no entran (celular, panel angosto), pasan al renglón de abajo: siempre se ven todas. */
 .presupuesto { container-type: inline-size; }
-@container (max-width: 380px) { .subpestanas { grid-template-columns: repeat(2, 1fr) !important; } }
-.subpestanas { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 4px; margin-bottom: 10px;
-  background: var(--fondo); border: 1px solid var(--borde); border-radius: 8px; }
-.subpestanas button { min-height: 44px; padding: 4px 6px; line-height: 1.15; border: none; border-radius: 6px;
-  background: transparent; color: var(--texto-suave); font-weight: 600; font-size: 0.85rem; cursor: pointer; }
+.subpestanas { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px; margin-bottom: 2px;
+  background: var(--fondo); border: 1px solid var(--borde); border-radius: 10px; }
+.subpestanas button { flex: 1 0 auto; display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  min-height: 40px; padding: 4px 12px; line-height: 1.15; border: none; border-radius: 7px; white-space: nowrap;
+  background: transparent; color: var(--texto-suave); font-weight: 600; font-size: 0.82rem; cursor: pointer; transition: background 0.15s, color 0.15s; }
 .subpestanas button:hover { background: var(--tarjeta); color: var(--texto); }
-.subpestanas button.activa { background: var(--primario); color: #fff; }
-.subpestanas button:focus-visible { outline: 2px solid var(--acento); outline-offset: 1px; }
+.subpestanas button.activa { background: var(--primario); color: #fff; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.3); }
+.subpestanas button:focus-visible { outline: 2px solid var(--acento); outline-offset: -2px; }
+.subpestanas .marca-sub { font-size: 0.68rem; font-weight: 700; padding: 0 6px; border-radius: 999px; background: var(--borde); color: var(--texto); }
+.subpestanas button.activa .marca-sub { background: rgba(255, 255, 255, 0.25); color: #fff; }
+.panel-sub { display: flex; flex-direction: column; gap: 16px; }
+.panel-sub.oculto-sub { display: none; }
+.panel-sub:empty { display: none; }
 /* Lista de materiales: la cantidad es lo que más se lee. */
 .tabla-materiales td { vertical-align: top; }
 .tabla-materiales .cantidad-material { font-weight: 700; white-space: nowrap; color: var(--acento); }
@@ -952,6 +958,20 @@ input[type=date] { color-scheme: dark; }
 .tabla-compras select { max-width: 220px; }
 .acciones-compra { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
 .acciones-compra input[type="number"] { width: 70px; }
+/* v1.73: con el panel angosto (la mitad de la pantalla o el celular) cada renglón de la lista de compras es una
+   "ficha": material y cantidad arriba, el estado, y abajo a lo ancho "se lo compro a" y los botones. Antes la tabla
+   se salía de costado y "Marcar" quedaba afuera. */
+.lista-compras { container-type: inline-size; }
+@container (max-width: 640px) {
+  .tabla-compras thead { display: none; }
+  .tabla-compras tr.fila-compra { display: grid; grid-template-columns: 1fr auto; gap: 6px 10px; padding: 10px 0; border-bottom: 1px solid var(--borde); }
+  .tabla-compras tr.fila-compra td { border: none; padding: 0; }
+  .tabla-compras tr.fila-compra td.num { text-align: right; }
+  .tabla-compras tr.fila-compra td:nth-child(3) { grid-column: 1 / -1; }
+  .tabla-compras tr.fila-compra td:nth-child(4), .tabla-compras tr.fila-compra td.acciones-compra { grid-column: 1 / -1; }
+  .tabla-compras tr.fila-compra td.acciones-compra:empty { display: none; }
+  .tabla-compras select { max-width: none; width: 100%; }
+}
 .chip-compra { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 0.72rem; white-space: nowrap; }
 .chip-compra.falta { background: #334155; color: #e2e8f0; }
 .chip-compra.parcial { background: #1e3a8a; color: #dbeafe; }
@@ -960,3 +980,19 @@ input[type=date] { color-scheme: dark; }
 .filtro-lista { margin: 6px 0; }
 .agregar-precio { margin: 4px 0 6px; }
 .proveedor-nuevo { display: inline-flex; gap: 4px; align-items: center; }
+
+/* v1.73: estilo base de TODOS los desplegables y campos (antes los que no estaban dentro de un .group salían con el
+   estilo blanco del navegador: la lista de compras, "+ Precio en otro proveedor", pagos, etc.). Va con selector de
+   elemento (lo más débil): cualquier regla con clase sigue mandando. */
+select, input[type="text"], input[type="number"], input[type="date"], input[type="search"], input[type="email"], input[type="tel"], textarea {
+  background: var(--fondo); color: var(--texto); border: 1px solid var(--borde-input); border-radius: 6px;
+  padding: 5px 8px; font: inherit; font-size: 0.85rem; max-width: 100%; color-scheme: dark; }
+select { cursor: pointer; } /* la flecha la pone el navegador (con color-scheme: dark queda oscura) */
+select:hover, input:hover:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]) { border-color: var(--texto-suave); }
+select:focus, input:focus:not([type="checkbox"]):not([type="radio"]):not([type="range"]), textarea:focus { outline: 2px solid var(--acento); outline-offset: 0; }
+select:disabled, input:disabled { opacity: 0.5; cursor: not-allowed; }
+select.falta { border-color: var(--peligro, #ef4444); }
+option { background: var(--tarjeta); color: var(--texto); }
+@media print {
+  select, input[type="text"], input[type="number"], input[type="date"] { background: #fff; color: #000; border: none; padding: 0; }
+}

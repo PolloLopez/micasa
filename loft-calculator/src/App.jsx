@@ -29,6 +29,7 @@ import BarraPestanas from './componentes/BarraPestanas.jsx';
 import PanelEscalera from './componentes/PanelEscalera.jsx';
 import PanelTerreno from './componentes/PanelTerreno.jsx';
 import TarjetaUniones from './componentes/TarjetaUniones.jsx';
+import { useSubPestana, subDeTarjeta, BarraSubPestanas, PanelSub } from './componentes/SubPestanas.jsx';
 import PanelMesadas from './componentes/PanelMesadas.jsx';
 import PanelMuebles from './componentes/PanelMuebles.jsx';
 import PanelTabiques from './componentes/PanelTabiques.jsx';
@@ -456,6 +457,10 @@ export default function App() {
     const nuevo = focoDe(elegido);
     setFoco(nuevo);
     if (nuevo && vistaMovil !== '3d' && pestanas.some((p) => p.clave === nuevo.pestana)) setPestanaGuardada(nuevo.pestana);
+    // v1.73: y la sub-pestaña donde está su tarjeta (en el mismo render, así la tarjeta ya se ve al traerla a la vista).
+    const sub = nuevo && subPestanas[nuevo.pestana];
+    const destino = sub && subDeTarjeta(sub.opciones, nuevo.tarjeta);
+    if (destino) sub.elegir(destino);
   };
   // La pared elegida (sus hierros o una abertura) se trae a la vista.
   useEffect(() => {
@@ -482,6 +487,56 @@ export default function App() {
   // Módulo Terreno (se puede apagar por instalación, ver modulos.js): apagado, no se muestra nada (los datos quedan).
   const moduloTerreno = moduloActivo('terreno');
   const moduloMuebles = moduloActivo('muebles'); // v1.38
+
+  // --- Sub-pestañas (v1.73): cada pestaña larga partida en pocas partes (una a la vez) ---
+  // tarjetas = ids de las tarjetas de cada parte: lo elegido en el 3D abre la suya (contextoFoco.js).
+  const cantidadPiezasAMano = params.piezasAgregadas.length + params.piezasEliminadas.length + Object.keys(params.piezasEditadas).length;
+  const opcionesEstructura = [
+    { clave: 'planta', icono: '📐', nombre: 'Planta', tarjetas: ['planta'] },
+    { clave: 'pisos', icono: '🟫', nombre: 'Pisos y entrepiso', tarjetas: ['pisos'] },
+    { clave: 'escalera', icono: '🪜', nombre: 'Escalera', tarjetas: ['escalera'] },
+    { clave: 'techo', icono: '🏠', nombre: 'Techo', tarjetas: ['techo'] },
+    { clave: 'fundacion', icono: '🧱', nombre: 'Fundación y terreno', tarjetas: ['fundacion', 'terreno', 'obraCivil'] },
+    { clave: 'piezas', icono: '✂️', nombre: 'Piezas a mano', marca: cantidadPiezasAMano || null, tarjetas: ['eliminadas'] },
+  ];
+  const opcionesParedes = [
+    { clave: 'paredes', icono: '🧱', nombre: 'Paredes y aberturas', tarjetas: ['paredes'] },
+    { clave: 'mesadas', icono: '🍳', nombre: 'Mesadas', marca: params.mesadas?.length || null, tarjetas: ['mesadas'] },
+    { clave: 'tabiques', icono: '🚪', nombre: 'Tabiques', marca: params.tabiques?.length || null, tarjetas: ['tabiques'] },
+    ...(moduloMuebles ? [{ clave: 'muebles', icono: '🛋️', nombre: 'Muebles', marca: params.muebles?.length || null, tarjetas: ['muebles'] }] : []),
+    { clave: 'personas', icono: '🧍', nombre: 'Personas', tarjetas: ['personas'] },
+  ];
+  const opcionesMateriales = [
+    { clave: 'proveedores', icono: '🏪', nombre: 'Proveedores' },
+    { clave: 'perfiles', icono: '📏', nombre: 'Perfiles y cortes' },
+    { clave: 'otros', icono: '📦', nombre: 'Otros materiales' },
+    ...(esConstruccion ? [
+      { clave: 'revestimientos', icono: '🪟', nombre: 'Revestimientos' },
+      { clave: 'uniones', icono: '🔩', nombre: 'Uniones', tarjetas: ['uniones'] },
+    ] : []),
+  ];
+  const opcionesInstalaciones = [
+    { clave: 'instalaciones', icono: '🔌', nombre: 'Instalaciones' },
+    { clave: 'equipos', icono: '❄️', nombre: 'Equipos' },
+  ];
+  const opcionesObra = [
+    { clave: 'lista', icono: '🛒', nombre: 'Lista de compras', ayuda: 'Tildar lo retirado y lo pagado' },
+    { clave: 'compras', icono: '🧾', nombre: 'Compras hechas', marca: params.seguimiento?.compras?.length || null },
+    { clave: 'partes', icono: '✅', nombre: 'Partes y extras', ayuda: 'Partes terminadas y lo que agregaste a cada una' },
+    { clave: 'seguimiento', icono: '👷', nombre: 'Avance y contratistas' },
+    { clave: 'finanzas', icono: '💰', nombre: 'Finanzas' },
+  ];
+  const [subEstructura, setSubEstructura] = useSubPestana('estructura', opcionesEstructura);
+  const [subParedes, setSubParedes] = useSubPestana('paredes', opcionesParedes);
+  const [subMateriales, setSubMateriales] = useSubPestana('materiales', opcionesMateriales);
+  const [subInstalaciones, setSubInstalaciones] = useSubPestana('instalaciones', opcionesInstalaciones);
+  const [subObra, setSubObra] = useSubPestana('obra', opcionesObra);
+  const subPestanas = {
+    estructura: { opciones: opcionesEstructura, elegir: setSubEstructura },
+    paredes: { opciones: opcionesParedes, elegir: setSubParedes },
+  };
+  // La grada y el montaje tienen poco: sin sub-pestañas en Estructura (null = se ve todo).
+  const subEstructuraVista = esConstruccion ? subEstructura : null;
   const implantacion = useMemo(() => (moduloTerreno ? calcularImplantacion(params) : null), [params, moduloTerreno]);
   const [pedidoVerTerreno, setPedidoVerTerreno] = useState(0);
   const verTerreno = () => {
@@ -1207,9 +1262,11 @@ export default function App() {
             <PanelMontaje params={params} resumenes={estructura.montaje.resumenes} unidad={unidad} cambiar={cambiar} />
           )}
 
-          {/* CONSTRUCCIÓN: planta, paredes, pisos, escalera, techo y fundación. */}
+          {/* CONSTRUCCIÓN: planta, pisos, escalera, techo y fundación; cada una en su sub-pestaña (v1.73). */}
+          {esConstruccion && <BarraSubPestanas grupo="estructura" opciones={opcionesEstructura} activa={subEstructura} onElegir={setSubEstructura} />}
           {esConstruccion && (<>
           {/* PLANTA */}
+          <PanelSub grupo="estructura" activa={subEstructuraVista} clave="planta">
           <Tarjeta id="planta" titulo="Planta y altura">
             <div className="grid-params">
               {medida('largo', 'Largo (lados A y C)')}
@@ -1229,13 +1286,11 @@ export default function App() {
               </p>
             )}
           </Tarjeta>
+          </PanelSub>
 
-          {/* TERRENO (v1.32): el lote, dónde va la casa, pozo, árboles, accesos y el norte. */}
-          {moduloTerreno && <PanelTerreno params={params} unidad={unidad} cambiar={cambiar} implantacion={implantacion} onVerTerreno={verTerreno} />}
-          {/* v1.56: obra civil (pilotines hormigonados, tapial, pilar de luz, cámara y pozo). */}
-          {params.tipoProyecto === 'construccion' && <PanelObraCivil params={params} estructura={estructura} unidad={unidad} cambiar={cambiar} />}
 
           {/* PISOS */}
+          <PanelSub grupo="estructura" activa={subEstructuraVista} clave="pisos">
           <Tarjeta id="pisos" titulo="Pisos" resaltar={{ tipo: 'grupo', id: ['piso', 'piso2'], nombre: 'Pisos' }}>
             <h3 className="subtitulo">Planta baja</h3>
             <div className="grid-params">
@@ -1329,13 +1384,17 @@ export default function App() {
               no arquee; su separación la define el herrero según el panel.
             </p>
           </Tarjeta>
+          </PanelSub>
 
           {/* ESCALERA */}
+          <PanelSub grupo="estructura" activa={subEstructuraVista} clave="escalera">
           <PanelEscalera params={params} resumen={estructura.escalera?.resumen} unidad={unidad}
             escalera={estructura.escalera} entrepiso={estructura.entrepiso}
             cambiar={cambiar} cambiarEscalera={(cambios) => cambiar('escalera')({ ...params.escalera, ...cambios })} />
+          </PanelSub>
 
           {/* TECHO */}
+          <PanelSub grupo="estructura" activa={subEstructuraVista} clave="techo">
           <Tarjeta id="techo" titulo="Techo a una agua" resaltar={{ tipo: 'grupo', id: 'techo', nombre: 'Techo' }}>
             <div className="grid-params">
               <SelectorLado etiqueta="Cae hacia" valor={params.caidaTecho} params={params}
@@ -1397,7 +1456,14 @@ export default function App() {
               lado alto: {alturaMaxima(params).toFixed(2)} m
             </p>
           </Tarjeta>
+          </PanelSub>
 
+          {/* FUNDACIÓN Y TERRENO (v1.73: juntos en su sub-pestaña) */}
+          <PanelSub grupo="estructura" activa={subEstructuraVista} clave="fundacion">
+          {/* TERRENO (v1.32): el lote, dónde va la casa, pozo, árboles, accesos y el norte. */}
+          {moduloTerreno && <PanelTerreno params={params} unidad={unidad} cambiar={cambiar} implantacion={implantacion} onVerTerreno={verTerreno} />}
+          {/* v1.56: obra civil (pilotines hormigonados, tapial, pilar de luz, cámara y pozo). */}
+          {params.tipoProyecto === 'construccion' && <PanelObraCivil params={params} estructura={estructura} unidad={unidad} cambiar={cambiar} />}
           {/* FUNDACIÓN */}
           <Tarjeta id="fundacion" titulo="Fundación">
             <div className="grid-params">
@@ -1444,9 +1510,11 @@ export default function App() {
               </p>
             )}
           </Tarjeta>
+          </PanelSub>
           </>)}
 
           {/* PIEZAS ELIMINADAS Y EDITADAS */}
+          <PanelSub grupo="estructura" activa={subEstructuraVista} clave="piezas">
           <Tarjeta id="eliminadas" titulo={`Piezas agregadas, eliminadas y editadas (${params.piezasAgregadas.length + params.piezasEliminadas.length + Object.keys(params.piezasEditadas).length})`}>
             <p className="nota">
               Hacé clic en un hierro del 3D: podés <strong>eliminarlo</strong> o <strong>editarlo</strong> (recortar,
@@ -1513,12 +1581,15 @@ export default function App() {
               </>
             )}
           </Tarjeta>
+          </PanelSub>
 
           </section>
           {esConstruccion && (
           <section id="pestana-paredes" role="tabpanel" aria-labelledby="boton-paredes"
             className={`pestana${pestanaActiva === 'paredes' ? '' : ' oculta'}`}>
+          <BarraSubPestanas grupo="paredes" opciones={opcionesParedes} activa={subParedes} onElegir={setSubParedes} />
           {/* PAREDES (PANELES) */}
+          <PanelSub grupo="paredes" activa={subParedes} clave="paredes">
           <Tarjeta id="paredes" titulo="Paredes">
             <p className="nota">
               <strong>Columnas</strong>: verticales principales a lo largo de la pared.{' '}
@@ -1588,25 +1659,32 @@ export default function App() {
               );
             })}
           </Tarjeta>
+          </PanelSub>
 
           {/* v1.38: interiores. Las mesadas van al presupuesto; los muebles son para dimensionar. */}
+          <PanelSub grupo="paredes" activa={subParedes} clave="mesadas">
           <PanelMesadas params={params} unidad={unidad} cambiar={cambiar} paneles={paneles}
             perfiles={perfilesDeLista(catalogoConPrecios)} generadas={estructura.mesadas}
             perfilGeneral={catalogoResuelto.find((i) => i.id === INSUMO.ESTRUCTURA_MESADA)?.perfil ?? ''} colores={colores} />
+          </PanelSub>
           {/* v1.41: tabiques de Durlock (baño, antebaño, ducha) con puerta. */}
+          <PanelSub grupo="paredes" activa={subParedes} clave="tabiques">
           <PanelTabiques params={params} unidad={unidad} cambiar={cambiar} paneles={paneles}
             perfiles={perfilesDeLista(catalogoConPrecios)} generados={estructura.tabiques}
             perfilGeneral={catalogoResuelto.find((i) => i.id === INSUMO.ESTRUCTURA_TABIQUE)?.perfil ?? ''} />
-          {moduloMuebles && <PanelMuebles params={params} unidad={unidad} cambiar={cambiar} />}
+          </PanelSub>
+          {moduloMuebles && <PanelSub grupo="paredes" activa={subParedes} clave="muebles"><PanelMuebles params={params} unidad={unidad} cambiar={cambiar} /></PanelSub>}
           {/* v1.45: personas para recorrer la casa en el 3D. */}
-          <PanelPersonas params={params} unidad={unidad} cambiar={cambiar} />
+          <PanelSub grupo="paredes" activa={subParedes} clave="personas"><PanelPersonas params={params} unidad={unidad} cambiar={cambiar} /></PanelSub>
 
           </section>
           )}
           <section id="pestana-materiales" role="tabpanel" aria-labelledby="boton-materiales"
             className={`pestana${pestanaActiva === 'materiales' ? '' : ' oculta'}`}>
           {/* Qué es cada material (v1.15); los revestimientos solo en una construcción. */}
-          <TarjetaMateriales items={items} catalogo={catalogo} revestimientos={esConstruccion ? paneles : null}
+          <BarraSubPestanas grupo="materiales" opciones={opcionesMateriales} activa={subMateriales} onElegir={setSubMateriales} />
+          {/* v1.73: la tarjeta muestra solo el apartado de la sub-pestaña (Proveedores, Perfiles, Otros, Revestimientos). */}
+          {subMateriales !== 'uniones' && <TarjetaMateriales seccion={subMateriales} items={items} catalogo={catalogo} revestimientos={esConstruccion ? paneles : null}
             unidad={unidad} usosDeRevestimiento={usosDePanel} excedenteBarras={params.excedenteBarras}
             onCambiarExcedente={cambiar('excedenteBarras')} onCambiarInsumo={cambiarInsumo}
             mermaCorte={params.mermaCorte ?? 3} retazoMinimo={params.retazoMinimo ?? 0.3} empalmesSobreApoyo={params.empalmesSobreApoyo !== false} onCambiarCorte={cambiar} ahorrosAberturas={ahorrosAberturas}
@@ -1615,9 +1693,9 @@ export default function App() {
             onAgregarRevestimiento={agregarTipoPanel} onQuitarRevestimiento={quitarTipoPanel}
             proveedor={proveedorElegido} pago={formaPago} onCambiarPrecio={cambiarPrecio}
             onActualizarProveedor={actualizarInsumo} onAgregarProveedor={agregarProveedor} onQuitarProveedor={quitarProveedor}
-            onAgregarAccesorio={agregarAccesorio} onQuitarAccesorio={quitarAccesorio} />
+            onAgregarAccesorio={agregarAccesorio} onQuitarAccesorio={quitarAccesorio} />}
           {/* v1.33: cómo se cruzan los hierros (red soldada o eje a eje). */}
-          {esConstruccion && <TarjetaUniones uniones={params.uniones} resultado={estructura.uniones} cambiar={cambiar} />}
+          {esConstruccion && subMateriales === 'uniones' && <TarjetaUniones uniones={params.uniones} resultado={estructura.uniones} cambiar={cambiar} />}
 
           </section>
           <section id="pestana-presupuesto" role="tabpanel" aria-labelledby="boton-presupuesto"
@@ -1641,18 +1719,23 @@ export default function App() {
           </section>
           <section id="pestana-instalaciones" role="tabpanel" aria-labelledby="boton-instalaciones"
             className={`pestana${pestanaActiva === 'instalaciones' ? '' : ' oculta'}`}>
-            {esConstruccion && <PanelInstalaciones params={params} estructura={estructura} unidad={unidad} cambiar={cambiar} />}
-            {esConstruccion && <PanelEquipos params={params} estructura={estructura} unidad={unidad} cambiar={cambiar} />}
+            {esConstruccion && (<>
+              <BarraSubPestanas grupo="instalaciones" opciones={opcionesInstalaciones} activa={subInstalaciones} onElegir={setSubInstalaciones} />
+              <PanelSub grupo="instalaciones" activa={subInstalaciones} clave="instalaciones"><PanelInstalaciones params={params} estructura={estructura} unidad={unidad} cambiar={cambiar} /></PanelSub>
+              <PanelSub grupo="instalaciones" activa={subInstalaciones} clave="equipos"><PanelEquipos params={params} estructura={estructura} unidad={unidad} cambiar={cambiar} /></PanelSub>
+            </>)}
           </section>
           <section id="pestana-obra" role="tabpanel" aria-labelledby="boton-obra"
             className={`pestana${pestanaActiva === 'obra' ? '' : ' oculta'}`}>
             {/* v1.69: las compras que ya se hicieron (descuentan de lo que falta comprar). */}
             {/* v1.70: cada parte de la obra: terminada (ya no falta nada de ella) y sus extras. */}
-            <PanelPartesObra params={params} partes={partesObra} cambiar={cambiar} />
-            <Tarjeta id="lista-compras" titulo="Lista de compras (tildar lo comprado)">{listaDeCompras}</Tarjeta>
-            <PanelCompras params={params} materiales={listaConPrecioReal} proveedores={proveedores} totalMateriales={totalObra} terminado={terminado} cambiar={cambiar} />
-            <PanelSeguimiento params={params} partes={partesSeguimiento} precioObra={cierre.total} cambiar={cambiar} />
-            <PanelFinanzas params={params} cambiar={cambiar} cambiarVarios={cambiarVarios} />
+            {/* v1.73: en sub-pestañas, la lista de compras primero (lo de todos los días en la obra). */}
+            <BarraSubPestanas grupo="obra" opciones={opcionesObra} activa={subObra} onElegir={setSubObra} />
+            <PanelSub grupo="obra" activa={subObra} clave="lista"><Tarjeta id="lista-compras" titulo="Lista de compras (tildar lo comprado)">{listaDeCompras}</Tarjeta></PanelSub>
+            <PanelSub grupo="obra" activa={subObra} clave="compras"><PanelCompras params={params} materiales={listaConPrecioReal} proveedores={proveedores} totalMateriales={totalObra} terminado={terminado} cambiar={cambiar} /></PanelSub>
+            <PanelSub grupo="obra" activa={subObra} clave="partes"><PanelPartesObra params={params} partes={partesObra} cambiar={cambiar} /></PanelSub>
+            <PanelSub grupo="obra" activa={subObra} clave="seguimiento"><PanelSeguimiento params={params} partes={partesSeguimiento} precioObra={cierre.total} cambiar={cambiar} /></PanelSub>
+            <PanelSub grupo="obra" activa={subObra} clave="finanzas"><PanelFinanzas params={params} cambiar={cambiar} cambiarVarios={cambiarVarios} /></PanelSub>
           </section>
         </div>
       </main>

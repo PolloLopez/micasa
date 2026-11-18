@@ -9,6 +9,7 @@ Página: https://pollolopez.github.io/micasa/
 ## 1. Lo básico
 
 - Arriba están las pestañas (con su ícono): **Estructura · Paredes y aberturas · Materiales · Presupuesto · Instalaciones · Planos · Obra**.
+- **Dentro de cada pestaña hay sub-pestañas** (ej. Estructura: Planta · Pisos · Escalera · Techo · Fundación y terreno · Piezas a mano). Se ve una a la vez y recuerda la última. Si tocás algo en el 3D, se abre sola la que corresponde.
 - **El borde entre el 3D y el panel se arrastra** para darle más lugar a uno o al otro (doble clic: vuelve como estaba).
 - A la izquierda (o con **Ocultar 3D**) está el modelo 3D.
 - **Guardar** guarda en este navegador. **Compartir** copia un link para otra persona. **Mis proyectos** abre los guardados.
