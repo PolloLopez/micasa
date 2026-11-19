@@ -179,6 +179,7 @@ cambia la cantidad y el presupuesto.
 - **Mano de obra por segmento** (en el mismo bloque): pilotines, estructura, revestimiento, tabiques, tapial, pozo
   séptico, electricista, plomero (y los que agregues). Elegís cómo cobra cada uno (monto, por m², por metro de tabique,
   por pilotín, por kg…) y te muestra cuánto da.
+- **Lo que no tiene precio**: arriba del Presupuesto, "⚠ N materiales sin precio". Tocalo y tocá un material: te lleva a su ficha en Materiales, abierta, para cargarle el precio.
 - **Precios de ejemplo**: si la ficha de un proveedor dice "⚠ N precios de ejemplo", son números que puso la app (no los de ese proveedor): cargá los de verdad o tocá "Borrar los de ejemplo".
 - **Precio por kilo**: si el corralón te cotiza el hierro en $/kg, cargalo en la columna "o $/kg" (en el proveedor o en el perfil): la barra sale de su peso. En la ficha del proveedor podés poner el mismo $/kg a todos sus hierros de una vez.
 - **Precios viejos**: cada proveedor dice de qué fecha son sus precios; pasados 30 días el Presupuesto avisa. Si le preguntaste y no cambiaron, tocá "Siguen iguales hoy" en su ficha.

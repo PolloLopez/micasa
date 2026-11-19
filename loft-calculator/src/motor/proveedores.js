@@ -286,6 +286,7 @@ export function planDeCompra(items, catalogo, pago = 'efectivo', asignaciones = 
     compras,
     total: Math.round(mejor.total),
     nadieVende: renglones.filter((_, i) => mejor.asignacion[i] < 0).map((r) => r.item.nombre),
+    sinVendedor: renglones.filter((_, i) => mejor.asignacion[i] < 0).map((r) => r.item), // v1.78: los renglones (para ir a cargarles el precio)
   };
 }
 

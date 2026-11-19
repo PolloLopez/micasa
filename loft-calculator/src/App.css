@@ -1015,3 +1015,16 @@ option { background: var(--tarjeta); color: var(--texto); }
 .kg-para-todos { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 6px 0; font-size: 0.82rem; color: var(--texto-suave); }
 .kg-para-todos .campo-precio input { width: 90px; }
 .nota-kg { margin: 4px 0; }
+
+/* v1.78: lo que no tiene precio, en una línea que se abre (antes la lista ocupaba media pantalla en el celular). */
+.aviso-sin-precio { margin: 4px 0; font-size: 0.85rem; }
+.aviso-sin-precio summary { cursor: pointer; list-style: none; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 4px; }
+.aviso-sin-precio summary::-webkit-details-marker { display: none; }
+.aviso-sin-precio summary::before { content: '▸'; color: var(--texto-suave); transition: transform 0.15s; }
+.aviso-sin-precio[open] summary::before { transform: rotate(90deg); }
+.lista-sin-precio { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px 0 2px; }
+.fila-perfil.en-foco { outline: 2px solid var(--acento); outline-offset: 2px; border-radius: 6px; }
+/* v1.78: lo que se trae a la vista (desde el 3D o el aviso "sin precio") no queda tapado por las pestañas y
+   sub-pestañas pegadas arriba (en la compu; en el celular no se pegan). */
+.columna-panel .ficha-plegable, .columna-panel .fila-perfil, .columna-panel .card { scroll-margin-top: calc(var(--alto-pestanas, 64px) + 130px); } /* + las sub-pestañas (hasta 2 renglones) */
+@media (max-width: 1000px) { .columna-panel .ficha-plegable, .columna-panel .fila-perfil, .columna-panel .card { scroll-margin-top: 8px; } }

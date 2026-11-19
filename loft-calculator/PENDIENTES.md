@@ -3,7 +3,7 @@
 Última limpieza: 2026-11-11 (v1.49.0). Espejo en Trello: tablero "Desarrollo", tarjetas `[CALC]`.
 
 ## 📌 Estado y próximos pasos (11/11)
-**En GitHub: hasta v1.61.0. hasta v1.76.0 (18/11). v1.77.0 y v1.77.1 por subir** (desde v1.54 el deploy es automático al pushear). Manual de uso para chequear: `MANUAL.md`.
+**En GitHub: hasta v1.61.0. hasta v1.76.0 (18/11). v1.77.0 a v1.78.0 por subir** (desde v1.54 el deploy es automático al pushear). Manual de uso para chequear: `MANUAL.md`.
 
 🟡 **Para chequear en pantalla** (probado con tests, no visto): el sol con "Ver adentro" entra solo por las aberturas;
 la persona se sienta en el sillón y se acuesta en la cama; las puertas de los tabiques se abren al pasar.
@@ -67,8 +67,7 @@ Medido con el proyecto real ("Amueblada, casi definida", 9 proveedores, 84 pieza
   misma, pero confunde. Dejarla en Obra y en el Presupuesto un botón "Ir a la lista de compras".
 - 🟡 [ ] **Las notas de ayuda de arriba de cada tarjeta son largas** y se repiten (Materiales repite la misma en cada
   sub-pestaña). Dejar una línea y lo demás en "?" o plegado.
-- 🟡 [ ] El aviso amarillo "Ningún proveedor vende: Durlok, Hormigón de zapatas…" ocupa media pantalla en el Presupuesto
-  del celular: resumirlo ("7 materiales sin precio · ver") y que lleve a cargarlos.
+- ✅ v1.78.0 El aviso de "sin precio" es una línea; al abrirla, cada material lleva a su ficha en Materiales para cargar el precio.
 - 🟢 [ ] Abajo, las pestañas se cortan en el celular ("Estruc…", "Materi…", "$ 90…" en Obra).
 - 🟢 [ ] El nombre del proyecto arriba se corta ("Amueblada, ca") y el aviso verde de "archivo abierto" queda fijo hasta cerrarlo.
 - ✅ No hay desborde de costado a 390 px; todos los desplegables tienen estilo (v1.73); la lista de compras va en fichas.

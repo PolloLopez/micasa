@@ -445,6 +445,7 @@ export default function App() {
     }
     setVistaMovil('datos');
     setPestanaGuardada(clave);
+    setFoco(null); // v1.78: al cambiar de pestaña a mano se suelta lo abierto desde el aviso "sin precio" (o el 3D)
   };
   // v1.42.1: lo elegido en el 3D abre su tarjeta (y su ficha) en la pestaña donde se edita; soltarlo la vuelve a cerrar.
   const [foco, setFoco] = useState(null);
@@ -456,6 +457,17 @@ export default function App() {
     const sub = nuevo && subPestanas[nuevo.pestana];
     const destino = sub && subDeTarjeta(sub.opciones, nuevo.tarjeta);
     if (destino) sub.elegir(destino);
+  };
+  // v1.78: desde el aviso "sin precio" del Presupuesto, a la ficha del material en Materiales (abierta y a la vista).
+  // Usa el mismo foco que el 3D: la ficha con esa clave se abre sola (FichaPlegable, ListaPerfiles).
+  const irAPrecio = (item) => {
+    const [sub, clave] = item.perfilId ? ['perfiles', `perfil:${item.perfilId}`]
+      : item.categoria === 'panel' ? ['revestimientos', `revestimiento:${item.id}`]
+        : item.categoria === 'accesorio' ? ['otros', `accesorio:${item.id}`] : ['otros', `material:${item.id}`];
+    setVistaMovil('datos');
+    setPestanaGuardada('materiales');
+    setSubMateriales(sub);
+    setFoco({ pestana: 'materiales', tarjeta: null, item: clave }); // tarjeta null: no se marca la tarjeta entera, solo la ficha
   };
   // La pared elegida (sus hierros o una abertura) se trae a la vista.
   useEffect(() => {
@@ -1707,7 +1719,7 @@ export default function App() {
           <TablaPresupuesto items={items} total={total} gruposCortes={gruposCortes}
             proveedores={proveedores} proveedor={proveedorElegido} pago={formaPago} comparacion={comparacion}
             onElegirProveedor={cambiar('proveedorElegido')} onElegirPago={cambiar('formaPago')}
-            onCambiarPrecio={(item, valor) => cambiarPrecio(item.perfilId ?? item.id, proveedorElegido, formaPago, valor)}
+            onCambiarPrecio={(item, valor) => cambiarPrecio(item.perfilId ?? item.id, proveedorElegido, formaPago, valor)} onIrAPrecio={irAPrecio}
             plan={planCompra} nombreProyecto={nombreProyecto} materiales={listaMateriales} compras={resumenCompras} listaDeCompras={listaDeCompras} masBaratoDe={(item) => masBaratoEn(item, catalogoResuelto, formaPago)}
             cierre={params.cierre} resultadoCierre={cierre} medidasCierre={medidasCierre} cambiar={cambiar} />
           {/* v1.59: la obra con cada panel en las 4 paredes, para elegir el revestimiento. */}

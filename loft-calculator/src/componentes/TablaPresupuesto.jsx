@@ -338,6 +338,30 @@ function BarraSubpestanas({ activa, onElegir }) {
   );
 }
 
+/**
+ * v1.78: lo que no tiene precio (y por eso no está en el total), en una línea; al abrirla, un botón por material que
+ * lleva a cargarle el precio en Materiales.
+ */
+function AvisoSinPrecio({ items, enNinguno, nombreProveedor, onIrAPrecio }) {
+  // Varios renglones pueden ser del mismo material (ej. columnas y zanca del mismo caño): uno por material.
+  const unicos = [...new Map(items.map((i) => [i.perfilId ?? i.id, i])).values()];
+  if (unicos.length === 0) return null;
+  return (
+    <details className="aviso-sin-precio">
+      <summary>
+        <span className="falta">⚠ {unicos.length} material{unicos.length === 1 ? '' : 'es'} sin precio{enNinguno ? ' en ningún proveedor' : nombreProveedor ? ` en ${nombreProveedor}` : ''}</span>
+        <small> · no {unicos.length === 1 ? 'está' : 'están'} en el total · tocá para cargarlos</small>
+      </summary>
+      <div className="lista-sin-precio">
+        {unicos.map((i) => (
+          <button key={i.perfilId ?? i.id} type="button" className="btn-mini" onClick={() => onIrAPrecio?.(i)}
+            title="Abre el material en Materiales para cargarle el precio">{i.perfilId ? i.perfil : i.nombre} →</button>
+        ))}
+      </div>
+    </details>
+  );
+}
+
 /** "Materiales" (v1.31.0): todo lo que hay que comprar, por material y sin proveedor ni precios. */
 function ListaMateriales({ materiales, nombreProyecto, conCompras = false }) {
   if (materiales.length === 0) return <p className="vacio">Todavía no hay nada para comprar: cargá las medidas en Estructura.</p>;
@@ -387,7 +411,7 @@ function ListaMateriales({ materiales, nombreProyecto, conCompras = false }) {
 
 export default function TablaPresupuesto({
   items, total, gruposCortes = [], proveedores = [], proveedor, pago = 'efectivo', comparacion = [],
-  onElegirProveedor, onElegirPago, onCambiarPrecio, plan = null, masBaratoDe = () => null, nombreProyecto = '',
+  onElegirProveedor, onElegirPago, onCambiarPrecio, onIrAPrecio = null, plan = null, masBaratoDe = () => null, nombreProyecto = '',
   materiales = [], cierre = null, resultadoCierre = null, medidasCierre = { m2: 0, kg: 0 }, cambiar = null, compras = null, listaDeCompras = null,
 }) {
   // v1.31.0: la sub-pestaña elegida se recuerda en este navegador.
@@ -431,7 +455,9 @@ export default function TablaPresupuesto({
           {conPlan && <span>{plan.compras.length} {plan.compras.length === 1 ? 'proveedor' : 'proveedores'}</span>}
           <CampoSelect etiqueta="Pago" valor={pago} opciones={[['efectivo', 'Efectivo'], ['tarjeta', 'Tarjeta']]} onCambio={onElegirPago} />
         </div>
-        {conPlan && plan.nadieVende.length > 0 && <p className="falta">⚠ Ningún proveedor vende: {plan.nadieVende.join(', ')} (no está en el total).</p>}
+        {/* v1.78: una línea (antes la lista entera ocupaba media pantalla en el celular); abierta, cada material lleva a cargar su precio. */}
+        <AvisoSinPrecio items={conPlan ? plan.sinVendedor ?? [] : items.filter((i) => i.cantidad > 0 && i.sinPrecio && !i.sinPrecioCargado)}
+          enNinguno={conPlan} nombreProveedor={nombreProveedor} onIrAPrecio={onIrAPrecio} />
         {/* v1.69: lo que ya se compró (Obra → Compras hechas) y lo que falta. */}
         {hayAvance && (
           <p className="gastado-falta" role="status">Ya gastado <strong>{pesos(compras.gastado)}</strong> · falta comprar <strong>{pesos(compras.falta)}</strong>

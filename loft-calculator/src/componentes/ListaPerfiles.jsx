@@ -15,6 +15,7 @@ import PreciosProveedores from './PreciosProveedores.jsx';
 import { TIPOS_PERFIL, LIMITES_PERFIL, nombrePerfil, kgPorMetro, revisarPerfil } from '../motor/perfiles.js';
 import { BotonResaltar } from './Resaltar.jsx';
 import { usePasarParaResaltar } from './contextoResaltado.js';
+import { useEnFoco } from './contextoFoco.js';
 import { textoDePrecio } from '../motor/resumenPrecios.js';
 
 const pesos = (n) => n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
@@ -52,15 +53,18 @@ function FilaPerfil({ perfil, usadoEn, repetido, proveedores, idElegido, pago, o
   // Plegado: una línea con lo importante. Arranca abierto si hay que revisarlo o si es nuevo (sin precio).
   // v1.65: "sin precio" = en NINGÚN proveedor (antes, en el elegido: con uno que no vende hierro se abrían todos).
   const precio = textoDePrecio(perfil, proveedores, idElegido, pago);
-  const [abierto, setAbierto] = useState(Boolean(perfil.revisarPrecio) || precio.texto === 'sin precio');
+  const [abiertoAMano, setAbierto] = useState(Boolean(perfil.revisarPrecio) || precio.texto === 'sin precio');
+  // v1.78: desde el aviso "sin precio" del Presupuesto se abre solo (y se trae a la vista).
+  const { enFoco, ref } = useEnFoco({ item: `perfil:${perfil.id}` });
+  const abierto = abiertoAMano || enFoco;
   const nombre = nombrePerfil(perfil) || 'Perfil sin nombre';
   // v1.27: con el mouse encima (o 👁) se resaltan en el 3D las piezas hechas con este perfil.
   const criterio = enUso ? { tipo: 'perfil', id: perfil.id, nombre } : null;
   const pasar = usePasarParaResaltar(criterio);
   return (
-    <li className="fila-perfil" {...pasar}>
+    <li ref={ref} className={`fila-perfil${enFoco ? ' en-foco' : ''}`} {...pasar}>
       <div className="fila-cabecera-perfil">
-      <button type="button" className="cabecera-perfil" aria-expanded={abierto} onClick={() => setAbierto((v) => !v)}>
+      <button type="button" className="cabecera-perfil" aria-expanded={abierto} onClick={() => setAbierto(!abierto)}>
         <span className="flecha">{abierto ? '▾' : '▸'}</span>
         <strong>{nombre}</strong>
         <span className="peso-perfil">

@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.78.0] - 2026-11-18
+### Cambiado
+- **El aviso de lo que no tiene precio es una sola línea** ("⚠ 12 materiales sin precio en ningún proveedor · no están
+  en el total · tocá para cargarlos"); antes la lista entera ocupaba media pantalla en el celular. Al abrirla, un
+  botón por material (uno por material aunque lo usen varios renglones). También sale con un solo proveedor.
+### Agregado
+- **Cada material del aviso lleva a cargarle el precio**: cambia a Materiales, a la sub-pestaña que corresponde
+  (Perfiles y cortes, Otros materiales o Revestimientos) y abre la ficha del material, a la vista y marcada. Usa el
+  mismo foco que el 3D (`irAPrecio` en App; `plan.sinVendedor`; ListaPerfiles se abre con el foco).
+- Lo que se trae a la vista ya no queda tapado por las pestañas y sub-pestañas pegadas arriba (`scroll-margin-top`).
+- Cambiar de pestaña a mano suelta lo que quedó abierto desde el aviso o el 3D.
+
 ## [1.77.1] - 2026-11-18
 ### Arreglado
 - **Los materiales que la app agrega a un proyecto que ya tiene proveedores quedan sin precio** (soleras PGU,
