@@ -167,10 +167,12 @@ export function conProveedores(catalogo, guardados = []) {
     if (!llevaPrecios(item)) return item;
     const guardado = guardados.find((g) => g.id === item.id);
     const precios = normalizarPrecios(guardado?.precios ?? item.precios, ids);
-    // Proyecto de antes de v1.25 (el material no tiene `precios`): su precio de siempre, en efectivo, en el primero.
-    // Uno nuevo (precios: {}) queda sin precio hasta que se cargue.
+    // Proyecto de antes de v1.25 (no hay proveedores guardados y el material no tiene `precios`): su precio de
+    // siempre, en efectivo, en el primero (también el catálogo de fábrica: los precios de ejemplo de "Mi proveedor").
+    // v1.77.1: un material que la app agregó después (soleras PGU, tornillos, cemento…) en un proyecto que YA tiene
+    // proveedores queda SIN precio: antes se le ponía el de ejemplo en el primer proveedor y parecía un precio real.
     const sinPrecios = !guardado?.precios && !item.precios;
-    if (sinPrecios && esPrecio(item.precio)) precios[primero] = { efectivo: item.precio, tarjeta: null };
+    if (sinPrecios && !habiaProveedores && esPrecio(item.precio)) precios[primero] = { efectivo: item.precio, tarjeta: null };
     return { ...item, precios };
   });
   return [...materiales, ...proveedores];

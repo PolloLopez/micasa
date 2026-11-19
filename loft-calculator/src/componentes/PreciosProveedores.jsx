@@ -13,6 +13,7 @@ import { useContext, useState } from 'react';
 import { ContextoAgregarProveedor } from './contextoProveedores.js';
 import { precioEn, precioBarraPorKg } from '../motor/proveedores.js';
 import { kgPorMetro } from '../motor/perfiles.js';
+import { esPrecioDeEjemplo } from '../motor/resumenPrecios.js';
 
 const pesos = (n) => n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
 
@@ -110,7 +111,7 @@ export default function PreciosProveedores({ material, proveedores, unidad, onCa
           const conRecargo = precioEn({ ...material, precios: { [p.id]: { efectivo: precio.efectivo, tarjeta: null, porKg: precio.porKg } } }, p, 'tarjeta');
           return (
             <tr key={p.id}>
-              <td className="nombre-proveedor">{p.nombre}</td>
+              <td className="nombre-proveedor">{p.nombre}{esPrecioDeEjemplo(material, p.id) && <small className="falta"> ⚠ de ejemplo</small>}</td>
               <td>
                 <CampoPrecio etiqueta={`Precio en efectivo de ${material.nombre} en ${p.nombre}`} valor={precio.efectivo}
                   ayuda={porKg !== null ? `${pesos(porKg)} (por kg)` : 'no lo vende'} onCambio={(v) => onCambiar(p.id, 'efectivo', v)} />

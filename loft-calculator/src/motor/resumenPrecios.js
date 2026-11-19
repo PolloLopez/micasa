@@ -12,6 +12,7 @@
 // ==========================================================
 
 import { precioEn, MAS_BARATO } from './proveedores.js';
+import { CATALOGO_FIJO } from './presupuesto.js';
 
 /** Un precio así es casi seguro un error de tipeo (ej. 11.111.111.111.111). */
 export const PRECIO_SOSPECHOSO = 1_000_000_000;
@@ -97,3 +98,23 @@ export const proveedoresConPreciosViejos = (proveedores = [], hoyTexto) =>
 
 /** ¿Es una fecha válida para guardar? (validación al abrir un proyecto) */
 export const fechaDePreciosValida = esFecha;
+
+// ---------- precios de ejemplo (v1.77.1) ----------
+// Hasta la v1.77.0, un material que la app agregaba a un proyecto viejo (cemento, arena, soleras PGU, tornillos…)
+// recibía su precio DE EJEMPLO en el primer proveedor, como si fuera real. Acá se reconocen los que quedaron
+// guardados así, para avisar y poder borrarlos.
+const EJEMPLO = new Map(CATALOGO_FIJO.map((i) => [i.id, i.precio]));
+
+/**
+ * ¿El precio de este material en este proveedor es el de ejemplo? (mismo número que el de fábrica, sin precio con
+ * tarjeta y ningún otro proveedor lo tiene: así quedaban los que puso la app).
+ */
+export function esPrecioDeEjemplo(material, idProveedor) {
+  const ejemplo = EJEMPLO.get(material?.id);
+  const p = material?.precios?.[idProveedor];
+  if (!(ejemplo > 0) || !p || p.efectivo !== ejemplo || (p.tarjeta !== null && p.tarjeta !== undefined)) return false;
+  return Object.entries(material.precios).every(([id, otro]) => id === idProveedor || !(otro?.efectivo >= 0 || otro?.tarjeta >= 0));
+}
+
+/** Los materiales con precio de ejemplo en un proveedor. */
+export const preciosDeEjemplo = (materiales = [], idProveedor) => materiales.filter((m) => esPrecioDeEjemplo(m, idProveedor));

@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.77.1] - 2026-11-18
+### Arreglado
+- **Los materiales que la app agrega a un proyecto que ya tiene proveedores quedan sin precio** (soleras PGU,
+  tornillos, cinta, masilla, y antes cemento, arena, piedra…). Hasta ahora recibían su precio de ejemplo en el primer
+  proveedor, como si fuera real (`conProveedores`: solo un proyecto sin proveedores, el de fábrica o de antes de v1.25,
+  arranca con los de ejemplo).
+### Agregado
+- **Aviso de precios de ejemplo ya guardados**: en la ficha del proveedor, "⚠ N precios de ejemplo" con la lista y
+  "Borrar los de ejemplo"; cada renglón y cada material lo marcan (`esPrecioDeEjemplo`, `preciosDeEjemplo`: mismo
+  número que el de fábrica, sin precio con tarjeta y ningún otro proveedor lo tiene).
+- En el proyecto de Leandro: 7 precios de ejemplo en centrosider.com.ar (tirantes de madera, cemento, arena, piedra,
+  hierro ø8, ladrillo común, excavación). Borrándolos, el total pasa de $ 15.984.530 a $ 15.119.480.
+
 ## [1.77.0] - 2026-11-18
 ### Agregado
 - **Precio por kilo**: cada hierro se puede cotizar en $/kg en cada proveedor (columna "o $/kg"); la barra sale de

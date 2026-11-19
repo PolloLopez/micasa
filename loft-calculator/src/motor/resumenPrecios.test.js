@@ -1,6 +1,7 @@
 // Tests del resumen de precios de la pestaña Materiales (v1.65). Correr con: npm test
 import { describe, it, expect } from 'vitest';
-import { textoDePrecio, preciosCargados, preciosOrdenados, antiguedadDePrecios, proveedoresConPreciosViejos, DIAS_PRECIO_VIEJO } from './resumenPrecios.js';
+import { textoDePrecio, preciosCargados, preciosOrdenados, antiguedadDePrecios, proveedoresConPreciosViejos, DIAS_PRECIO_VIEJO, esPrecioDeEjemplo, preciosDeEjemplo } from './resumenPrecios.js';
+import { CATALOGO_FIJO } from './presupuesto.js';
 import { conProveedores } from './proveedores.js';
 import { MAS_BARATO } from './proveedores.js';
 
@@ -59,5 +60,24 @@ describe('fecha de los precios (v1.74)', () => {
     expect(proveedoresConPreciosViejos(lista, '2026-11-18').map((v) => v.proveedor.nombre)).toEqual(['Rionda']);
     const cat = conProveedores([], [{ id: 'p1', categoria: 'proveedor', nombre: 'X', preciosAl: '2026-11-01' }, { id: 'p2', categoria: 'proveedor', nombre: 'Y', preciosAl: 'ayer' }]);
     expect(cat.filter((i) => i.categoria === 'proveedor').map((p) => p.preciosAl)).toEqual(['2026-11-01', '']);
+  });
+});
+
+describe('precios de ejemplo (v1.77.1)', () => {
+  const ejemplo = CATALOGO_FIJO.find((i) => i.id === 'cemento').precio;
+  it('reconoce el precio de ejemplo que la app dejó en un proveedor', () => {
+    expect(esPrecioDeEjemplo({ id: 'cemento', precios: { 'prov-1': { efectivo: ejemplo, tarjeta: null } } }, 'prov-1')).toBe(true);
+    expect(esPrecioDeEjemplo({ id: 'cemento', precios: { 'prov-1': { efectivo: ejemplo + 500, tarjeta: null } } }, 'prov-1')).toBe(false); // uno cargado
+    expect(esPrecioDeEjemplo({ id: 'cemento', precios: { 'prov-1': { efectivo: ejemplo, tarjeta: null }, 'prov-2': { efectivo: 11000, tarjeta: null } } }, 'prov-1')).toBe(false);
+    expect(esPrecioDeEjemplo({ id: 'perfil-3', precios: { 'prov-1': { efectivo: 1000, tarjeta: null } } }, 'prov-1')).toBe(false); // no es de fábrica
+    expect(preciosDeEjemplo([{ id: 'cemento', precios: { a: { efectivo: ejemplo, tarjeta: null } } }, { id: 'arena', precios: {} }], 'a').map((m) => m.id)).toEqual(['cemento']);
+  });
+  it('un material nuevo en un proyecto con proveedores queda sin precio (no el de ejemplo)', () => {
+    const cat = conProveedores([{ id: 'tornilloT1', categoria: 'unidad', nombre: 'Tornillos T1', precio: 20 }, { id: 'cemento', categoria: 'unidad', nombre: 'Cemento', precio: ejemplo }],
+      [{ id: 'p1', categoria: 'proveedor', nombre: 'Rionda' }, { id: 'cemento', categoria: 'unidad', precio: ejemplo }]);
+    expect(cat.find((i) => i.id === 'tornilloT1').precios).toEqual({});
+    expect(cat.find((i) => i.id === 'cemento').precios).toEqual({});
+    // Un proyecto sin proveedores (de antes de v1.25, o el de fábrica) sigue con su precio en el primero.
+    expect(conProveedores([{ id: 'cemento', categoria: 'unidad', nombre: 'Cemento', precio: ejemplo }], []).find((i) => i.id === 'cemento').precios['prov-1'].efectivo).toBe(ejemplo);
   });
 });

@@ -15,7 +15,7 @@ import CampoNumero from './CampoNumero.jsx';
 import FichaPlegable from './FichaPlegable.jsx';
 import { CampoPrecio } from './PreciosProveedores.jsx';
 import { LIMITES_RECARGO, LIMITES_FLETE, precioEn, precioBarraPorKg } from '../motor/proveedores.js';
-import { preciosCargados, PRECIO_SOSPECHOSO, antiguedadDePrecios, DIAS_PRECIO_VIEJO } from '../motor/resumenPrecios.js';
+import { preciosCargados, PRECIO_SOSPECHOSO, antiguedadDePrecios, DIAS_PRECIO_VIEJO, esPrecioDeEjemplo, preciosDeEjemplo } from '../motor/resumenPrecios.js';
 import { hoy } from '../motor/seguimiento.js';
 
 const pesos = (n) => n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
@@ -35,8 +35,18 @@ function PreciosDelProveedor({ proveedor, materiales, onCambiarPrecio }) {
     hierros.forEach((m) => onCambiarPrecio(m.id, proveedor.id, 'porKg', kgParaTodos));
     setKgParaTodos(null);
   };
+  // v1.77.1: los precios de ejemplo que la app dejó en este proveedor (no son de él): avisar y poder borrarlos.
+  const deEjemplo = preciosDeEjemplo(materiales, proveedor.id);
+  const borrarEjemplos = () => deEjemplo.forEach((m) => onCambiarPrecio(m.id, proveedor.id, 'efectivo', null));
   return (
     <>
+      {deEjemplo.length > 0 && (
+        <p className="aviso-precios falta">
+          ⚠ {deEjemplo.length} precio{deEjemplo.length === 1 ? '' : 's'} de ejemplo que no {deEjemplo.length === 1 ? 'es' : 'son'} de {proveedor.nombre}: {deEjemplo.map((m) => m.nombre).join(', ')}.
+          Los puso la app al agregar esos materiales. Cargá los de verdad o{' '}
+          <button type="button" className="btn-mini no-print" onClick={borrarEjemplos}>Borrar los de ejemplo</button>
+        </p>
+      )}
       {hierros.length > 0 && (
         <div className="kg-para-todos no-print">
           <span>¿Te cotiza el hierro por kilo?</span>
@@ -60,7 +70,8 @@ function PreciosDelProveedor({ proveedor, materiales, onCambiarPrecio }) {
               const conRecargo = precioEn({ ...m, precios: { [proveedor.id]: { efectivo: precio.efectivo, tarjeta: null, porKg: precio.porKg } } }, proveedor, 'tarjeta');
               return (
                 <tr key={m.id}>
-                  <td>{m.nombre}{precio.efectivo >= PRECIO_SOSPECHOSO && <small className="falta"> ⚠ revisá este precio</small>}</td>
+                  <td>{m.nombre}{precio.efectivo >= PRECIO_SOSPECHOSO && <small className="falta"> ⚠ revisá este precio</small>}
+                    {esPrecioDeEjemplo(m, proveedor.id) && <small className="falta"> ⚠ precio de ejemplo</small>}</td>
                   <td>{m.unidadPrecio}</td>
                   <td><CampoPrecio etiqueta={`Precio en efectivo de ${m.nombre} en ${proveedor.nombre}`} valor={precio.efectivo}
                     ayuda={porKg !== null ? `${pesos(porKg)} (por kg)` : 'no lo vende'} onCambio={(v) => onCambiarPrecio(m.id, proveedor.id, 'efectivo', v)} /></td>
@@ -113,6 +124,7 @@ export default function ListaProveedores({ proveedores, materiales = [], idElegi
                   {p.id === idElegido ? 'elegido en el Presupuesto · ' : ''}{cargados} de {total} precios
                   {p.recargoTarjeta ? ` · tarjeta +${p.recargoTarjeta} %` : ''}{p.flete ? ` · flete ${pesos(p.flete)}` : ''}
                   {sospechosos > 0 ? ` · ⚠ ${sospechosos} precio${sospechosos === 1 ? '' : 's'} para revisar` : ''}
+                  {preciosDeEjemplo(materiales, p.id).length > 0 ? ` · ⚠ ${preciosDeEjemplo(materiales, p.id).length} de ejemplo` : ''}
                   {cargados > 0 && (antiguedad
                     ? <span className={antiguedad.vieja ? 'falta' : ''}> · {antiguedad.vieja ? '⚠ ' : ''}{antiguedad.texto}</span>
                     : ' · precios sin fecha')}
