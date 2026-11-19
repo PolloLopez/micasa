@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.75.0] - 2026-11-18
+### Cambiado
+- **El 3D se dibuja solo cuando algo cambia** (antes, 60 veces por segundo siempre, aunque estuviera quieto u oculto:
+  gastaba batería). El bucle sigue moviendo personas, perros, puertas y la cámara, pero dibuja solo si:
+  React cambió algo del visor, se usó el mouse, la rueda o el teclado, cambió el tamaño, o se movió la cámara (girar,
+  la inercia al soltar, primera persona) o alguien de la escena (personas, perros, puertas). Con "Ocultar 3D" o el
+  celular en Datos no dibuja nada.
+- Medido: con el proyecto de ejemplo quieto, 0 cuadros en 2 s (antes ~120); al soltar después de girar, la inercia
+  dibuja unos 5 s y para. Con perros que deambulan (proyecto de Leandro) dibuja solo mientras se mueven (~12 por segundo en la prueba).
+
 ## [1.74.1] - 2026-11-18
 ### Arreglado (de la auditoría del 18/11)
 - **Escribir en la pestaña Obra ya no recalcula toda la obra.** La causa de fondo: `conPanelesExistentes` armaba

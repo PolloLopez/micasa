@@ -1310,6 +1310,27 @@ export default function LoftCanvas({
       return [v[0] / n, v[1] / n];
     };
 
+    // v1.75: DIBUJAR A PEDIDO. Antes se dibujaba la escena 60 veces por segundo aunque nada se moviera (y aunque el 3D
+    // estuviera oculto): gastaba batería. Ahora el bucle sigue (es barato: mueve personas, puertas y la cámara) pero
+    // `renderer.render` solo se llama si algo cambió:
+    //   - cuadrosPendientes > 0: lo pide React al cambiar algo (useEffect de abajo), el mouse, el teclado o el tamaño;
+    //   - o cambió la "firma" de lo que se mueve solo: la cámara (girar, inercia, primera persona), las personas y
+    //     perros (caminar, poses) y las puertas de los tabiques.
+    let cuadrosPendientes = 2;
+    const pedirCuadro = () => { cuadrosPendientes = Math.max(cuadrosPendientes, 2); }; // 2: por si algo termina de acomodarse
+    let firmaAnterior = null;
+    let cuadrosDibujados = 0; // para las pruebas (ver window.__cuadros3D)
+    const sumarObjeto = (o) => o.position.x * 1.3 + o.position.y * 1.7 + o.position.z * 1.9
+      + o.rotation.x * 2.3 + o.rotation.y * 2.9 + o.rotation.z * 3.1 + o.scale.y * 0.7 + (o.visible ? 0.5 : 0);
+    const firmaDeMovimiento = () => {
+      let f = sumarObjeto(camara) + camara.quaternion.x * 5 + camara.quaternion.y * 7 + camara.quaternion.w * 11 + camara.zoom;
+      if (personas.grupo.visible) personas.grupo.traverse((o) => { f += sumarObjeto(o); });
+      (visorRef.current?.puertasDibujadas ?? []).forEach((p) => { f += sumarObjeto(p); });
+      // Redondeada: la inercia de la cámara y las poses se acercan a su lugar de a poquito (para siempre, en teoría);
+      // por debajo de un milímetro no se nota y no vale la pena dibujar.
+      return Math.round(f * 1e3);
+    };
+
     const reloj = new THREE.Clock();
     let idCuadro;
     const animar = () => {
@@ -1344,9 +1365,23 @@ export default function LoftCanvas({
         controles.update();
       }
       aplicarCorte(modo === 'primera', modo === 'primera');
-      renderer.render(escena, camara);
+      // Con el 3D oculto ("Ocultar 3D" o el celular en Datos) no se dibuja nada; al volver, el ResizeObserver pide cuadro.
+      if (contenedor.clientWidth === 0) return;
+      const firma = firmaDeMovimiento();
+      // Object.is: si algo da NaN (ej. la cámara con el visor de ancho 0), NaN !== NaN dibujaría siempre.
+      if (cuadrosPendientes > 0 || !Object.is(firma, firmaAnterior)) {
+        renderer.render(escena, camara);
+        cuadrosDibujados += 1;
+        cuadrosPendientes = Math.max(0, cuadrosPendientes - 1);
+        firmaAnterior = firma;
+      }
     };
     animar();
+    if (typeof window !== 'undefined') window.__cuadros3D = () => cuadrosDibujados;
+    // El mouse, la rueda y el teclado pueden cambiar lo que se ve (resaltar al pasar, elegir, mover un mueble).
+    const alInteractuar = () => pedirCuadro();
+    ['pointermove', 'pointerdown', 'pointerup', 'pointerleave', 'wheel'].forEach((ev) => renderer.domElement.addEventListener(ev, alInteractuar, { passive: true }));
+    window.addEventListener('keydown', alInteractuar);
 
     const alTeclaAbajo = (ev) => {
       if (hayDialogoAbierto() || ev.target.closest?.('input, select, textarea')) return;
@@ -1371,6 +1406,7 @@ export default function LoftCanvas({
         camara.updateProjectionMatrix();
         renderer.setSize(w, h);
       }
+      pedirCuadro(); // al cambiar el tamaño, el lienzo queda en blanco hasta el próximo dibujo
     });
     observador.observe(contenedor);
 
@@ -1629,6 +1665,7 @@ export default function LoftCanvas({
       grupoCotas.visible = cotasVisibles;
       personas.grupo.visible = personasVisibles;
       corte.aplicado = ''; // el próximo cuadro vuelve a ocultar las que tapan
+      pedirCuadro(); // en pantalla quedó la última foto: se vuelve a dibujar la vista
       return {
         ...fotos,
         medidas: medidasFijasRef.current.map((m) => ({ nombre: m.nombre, texto: textoMedida(m.resultado) })),
@@ -1637,7 +1674,7 @@ export default function LoftCanvas({
     if (capturaRef) capturaRef.current = capturar;
 
     const materialesPanel = new Map();
-    visorRef.current = { grupo, grupoCotas, grupoTerreno, grilla, controles, camara, materiales, materialesPanel, frente: null, renderer, ambiente, luz, sol, pisoSombras, escena, cielo, entorno: null, personas, primera, corte };
+    visorRef.current = { grupo, grupoCotas, grupoTerreno, grilla, controles, camara, materiales, materialesPanel, frente: null, renderer, ambiente, luz, sol, pisoSombras, escena, cielo, entorno: null, personas, primera, corte, pedirCuadro };
 
     return () => {
       cancelAnimationFrame(idCuadro);
@@ -1649,6 +1686,7 @@ export default function LoftCanvas({
       renderer.domElement.removeEventListener('pointerup', alSoltar);
       renderer.domElement.removeEventListener('dblclick', alDobleClic);
       window.removeEventListener('keydown', alTeclaAbajo);
+      window.removeEventListener('keydown', alInteractuar);
       window.removeEventListener('keyup', alTeclaArriba);
       window.removeEventListener('blur', alPerderFoco);
       personas.liberar();
@@ -1670,6 +1708,10 @@ export default function LoftCanvas({
     // Se monta una sola vez; capturaRef es un ref (no cambia entre renders).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // v1.75: cada vez que React vuelve a dibujar el visor (cambió una pieza, un color, lo resaltado, una capa…), se
+  // pide un cuadro nuevo del 3D. Va sin dependencias a propósito: corre después de todos los efectos que tocan la escena.
+  useEffect(() => { visorRef.current?.pedirCuadro?.(); });
 
   // 2) MODELO: se redibuja cuando cambian datos, capas, partes visibles o la selección.
   useEffect(() => {

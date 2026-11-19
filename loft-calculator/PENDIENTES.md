@@ -3,7 +3,7 @@
 Última limpieza: 2026-11-11 (v1.49.0). Espejo en Trello: tablero "Desarrollo", tarjetas `[CALC]`.
 
 ## 📌 Estado y próximos pasos (11/11)
-**En GitHub: hasta v1.61.0. v1.62.0 a v1.74.1 por subir** (desde v1.54 el deploy es automático al pushear). Manual de uso para chequear: `MANUAL.md`.
+**En GitHub: hasta v1.61.0. v1.62.0 a v1.75.0 por subir** (desde v1.54 el deploy es automático al pushear). Manual de uso para chequear: `MANUAL.md`.
 
 🟡 **Para chequear en pantalla** (probado con tests, no visto): el sol con "Ver adentro" entra solo por las aberturas;
 la persona se sienta en el sillón y se acuesta en la cama; las puertas de los tabiques se abren al pasar.
@@ -38,7 +38,7 @@ Medido con el proyecto real ("Amueblada, casi definida", 9 proveedores, 84 pieza
   sub-pestañas montadas + las hojas del PDF, 2.700). Lo que más pesa: los desplegables de perfil (`SelectorPerfil`,
   ~20 ms por letra) y las filas de la lista de compras. ✅ v1.74.1: los desplegables de perfil ya no rearman sus textos. Falta: `memo` en los paneles pesados (requiere que
   `cambiar` sea estable con `useCallback`) y montar las hojas del PDF solo al imprimir.
-- 🟡 [ ] **El 3D se dibuja 60 veces por segundo siempre**, aunque nada se mueva y aunque esté oculto ("Ocultar 3D"):
+- ✅ v1.75.0 **El 3D se dibuja 60 veces por segundo siempre**, aunque nada se mueva y aunque esté oculto ("Ocultar 3D"):
   gasta batería en el celular y la notebook. Dibujar solo cuando cambia algo (cámara, piezas, personas caminando).
 - ✅ v1.74.1 **La comparación de proveedores no se actualiza** al cambiar el disco, el retazo mínimo o los empalmes
   (`comparacion` en App.jsx no los tiene en sus dependencias; el presupuesto principal sí). Es un error de cuentas, no solo de velocidad.
