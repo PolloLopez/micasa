@@ -86,6 +86,7 @@ import { crearArchivoProyecto, leerArchivoProyecto, nombreDeArchivo } from './pr
 import { crearLinkProyecto, leerLinkProyecto, tieneProyectoEnLink } from './proyecto/linkProyecto.js';
 import { nubeDisponible, crearEnNube, leerDeNube, guardarEnNube, leerHashNube, linksNube } from './proyecto/nube.js';
 import DialogoCompartir from './componentes/DialogoCompartir.jsx';
+import { sinLaPlata, conLaPlataDe } from './proyecto/sinPlata.js';
 import {
   proyectoVacio, proyectoEjemplo, gradaNueva, gradaEjemplo, montajeNuevo, montajeEjemplo,
 } from './proyecto/proyectosBase.js';
@@ -833,7 +834,8 @@ export default function App() {
     let errorNube = null;
     if (nube?.clave && nubeDisponible()) {
       try {
-        const rev = await guardarEnNube(nube.id, nube.clave, proyectoActual, nube.rev);
+        // v1.76: si el link se creó "sin la parte de plata", cada guardado sube también sin ella.
+        const rev = await guardarEnNube(nube.id, nube.clave, nube.sinPlata ? sinLaPlata(proyectoActual) : proyectoActual, nube.rev);
         nubeNueva = { ...nube, rev };
         setNube(nubeNueva);
         extra = ' y en el link ☁';
@@ -850,8 +852,9 @@ export default function App() {
   // --- Links cortos en la nube (v1.30) ---
   const urlBase = () => `${window.location.origin}${window.location.pathname}`;
   /** Sube el proyecto y queda con su link de editar (si ya estaba en Mis proyectos, se guarda ahí también). */
-  const crearLinksNube = async () => {
-    const creado = await crearEnNube(proyectoActual);
+  // v1.76: sinPlata = se sube sin pagos, compras, contratistas ni finanzas (y así en cada "Guardar").
+  const crearLinksNube = async (sinPlata = true) => {
+    const creado = { ...(await crearEnNube(sinPlata ? sinLaPlata(proyectoActual) : proyectoActual)), sinPlata };
     setNube(creado);
     if (entradaActual) guardarEnBiblioteca(entradaActual.id, nombreProyecto, creado, ' (con su link ☁)');
     else setAviso({ tipo: 'ok', texto: 'Links creados. Guardá el proyecto en Mis proyectos para no perder el link de editar.' });
@@ -997,12 +1000,12 @@ export default function App() {
   // --- Link para compartir ---
 
   /** "Compartir": copia un link que trae el proyecto adentro (medidas, aberturas, precios y colores). */
-  const compartirLink = async () => {
+  const compartirLink = async (sinPlata = true) => {
     const base = `${window.location.origin}${window.location.pathname}`;
-    const link = await crearLinkProyecto(proyectoActual, base);
+    const link = await crearLinkProyecto(sinPlata ? sinLaPlata(proyectoActual) : proyectoActual, base); // v1.76
     try {
       await navigator.clipboard.writeText(link);
-      setAviso({ tipo: 'ok', texto: 'Link copiado: pegalo en WhatsApp o en un mail. Quien lo abra ve este proyecto (con tus medidas y precios).' });
+      setAviso({ tipo: 'ok', texto: `Link copiado: pegalo en WhatsApp o en un mail. Quien lo abra ve este proyecto (con tus medidas y precios${sinPlata ? ', sin tus pagos ni finanzas' : ', también tus pagos y finanzas'}).` });
     } catch {
       // Sin permiso para el portapapeles: se muestra para copiarlo a mano.
       mostrarTexto({ titulo: 'Link para compartir', mensaje: 'No se pudo copiar solo: copialo de acá (ya está seleccionado).', etiqueta: 'Link del proyecto', valorInicial: link });
@@ -1040,7 +1043,11 @@ export default function App() {
           aceptar: 'Abrir', cancelar: 'No, seguir con el mío',
         });
         if (!abrir) return;
-        cargarProyecto(r.proyecto, entrada?.id ?? null, { id: linkNube.id, clave, rev: r.rev });
+        // v1.76: tu link subido "sin la plata": en esta compu se conserva la plata que tenés guardada (si no, se borraría).
+        const sinPlata = Boolean(entrada?.nube?.sinPlata);
+        const local = sinPlata ? abrirEntrada(entrada) : null;
+        const proyecto = local?.ok ? conLaPlataDe(r.proyecto, local.proyecto) : r.proyecto;
+        cargarProyecto(proyecto, entrada?.id ?? null, { id: linkNube.id, clave, rev: r.rev, ...(sinPlata ? { sinPlata } : {}) });
         setAviso({ tipo: 'ok', texto: clave
           ? `"${r.proyecto.nombre}" abierto del link. Los cambios se guardan en el link con "Guardar".`
           : `"${r.proyecto.nombre}" abierto (solo para ver: tus cambios no cambian el link).` });
@@ -1206,7 +1213,7 @@ export default function App() {
       {dialogo}
       {ayudaAbierta && <Ayuda primeraVez={!bienvenidaVista} onCerrar={cerrarAyuda} />}
       {dialogoCompartir && (
-        <DialogoCompartir links={linksActuales} soloVer={Boolean(nube && !nube.clave)} disponible={nubeDisponible()}
+        <DialogoCompartir links={linksActuales} soloVer={Boolean(nube && !nube.clave)} disponible={nubeDisponible()} sinPlataDelLink={nube?.sinPlata ?? null}
           onCrear={crearLinksNube} onLinkLargo={compartirLink} onCerrar={() => setDialogoCompartir(false)} />
       )}
       {dialogoImprimir && (
@@ -1668,7 +1675,7 @@ export default function App() {
           <PanelSub grupo="paredes" activa={subParedes} clave="tabiques">
           <PanelTabiques params={params} unidad={unidad} cambiar={cambiar} paneles={paneles}
             perfiles={perfilesDeLista(catalogoConPrecios)} generados={estructura.tabiques}
-            perfilGeneral={catalogoResuelto.find((i) => i.id === INSUMO.ESTRUCTURA_TABIQUE)?.perfil ?? ''} />
+            perfilGeneral={catalogoResuelto.find((i) => i.id === INSUMO.ESTRUCTURA_TABIQUE)?.perfil ?? ''} durlock={estructura.durlock} />
           </PanelSub>
           {moduloMuebles && <PanelSub grupo="paredes" activa={subParedes} clave="muebles"><PanelMuebles params={params} unidad={unidad} cambiar={cambiar} /></PanelSub>}
           {/* v1.45: personas para recorrer la casa en el 3D. */}

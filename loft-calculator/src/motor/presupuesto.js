@@ -108,6 +108,12 @@ export const CATALOGO_FIJO = [
   { id: INSUMO.LADRILLO_COMUN, categoria: 'unidad', nombre: 'Ladrillo común', perfil: 'Ladrillo común 25x12x5,5', unidad: 'u', largoBarra: null, precio: 180 },
   { id: INSUMO.EXCAVACION_OBRA, categoria: 'unidad', nombre: 'Excavación (obra civil)', perfil: 'Pozos y zanjas a mano o con máquina', unidad: 'm³', largoBarra: null, precio: 30000 },
   { id: INSUMO.KIT_PILAR, categoria: 'unidad', nombre: 'Accesorios del pilar de luz', perfil: 'Caja de medidor, caño, jabalina y tablero de pilar', unidad: 'u', largoBarra: null, precio: 120000 },
+  // v1.76: Durlock de los tabiques (al final: no cambia la numeración de los perfiles). Precios de ejemplo.
+  { id: INSUMO.SOLERA_TABIQUE, categoria: 'perfil', nombre: 'Soleras de tabiques', perfil: 'Solera PGU 70 x 0.9', unidad: 'barra', largoBarra: 2.6, precio: 8000 },
+  { id: INSUMO.TORNILLO_T1, categoria: 'unidad', nombre: 'Tornillos T1 (perfil con perfil)', perfil: 'Tornillo T1 punta aguja', unidad: 'u', largoBarra: null, precio: 20 },
+  { id: INSUMO.TORNILLO_T2, categoria: 'unidad', nombre: 'Tornillos T2 (placa con perfil)', perfil: 'Tornillo T2 punta aguja', unidad: 'u', largoBarra: null, precio: 15 },
+  { id: INSUMO.CINTA_JUNTAS, categoria: 'unidad', nombre: 'Cinta para juntas', perfil: 'Cinta de papel microperforada', unidad: 'm', largoBarra: null, precio: 40 },
+  { id: INSUMO.MASILLA_JUNTAS, categoria: 'unidad', nombre: 'Masilla para juntas', perfil: 'Masilla lista para usar', unidad: 'kg', largoBarra: null, precio: 2500 },
 ];
 
 /** Renglones que solo se usan en un proyecto de grada. */
@@ -366,7 +372,9 @@ function calcularRenglones(estructura, catalogo, excedenteBarras, corte = {}) {
 
   // Placas OSB: superficie / placa, + desperdicio de recortes. v1.42.1: solo los pisos con OSB (el resto, machimbre).
   const areaPlaca = PLACA_OSB.largo * PLACA_OSB.ancho;
-  const conOsb = [['piso', e.cubiertas?.piso ?? 'osb', s.piso], ['piso 2', e.cubiertas?.piso2 ?? 'osb', s.piso2]];
+  // v1.76: el piso 2 sin el hueco por donde sube la escalera (si sube por adentro del entrepiso).
+  const hueco = Math.min(s.piso2 ?? 0, e.escalera?.huecoEntrepiso?.m2 ?? 0);
+  const conOsb = [['piso', e.cubiertas?.piso ?? 'osb', s.piso], [hueco > 0 ? `piso 2 sin el hueco de la escalera (${hueco.toFixed(2)} m²)` : 'piso 2', e.cubiertas?.piso2 ?? 'osb', (s.piso2 ?? 0) - hueco]];
   const areaOsb = conOsb.filter(([, c]) => c === 'osb').reduce((a, [, , m2]) => a + m2, 0);
   const nombresOsb = conOsb.filter(([, c, m2]) => c === 'osb' && m2 > 0).map(([n]) => n).join(' + ') || 'sin OSB';
   items.push(
@@ -458,6 +466,17 @@ function calcularRenglones(estructura, catalogo, excedenteBarras, corte = {}) {
   const tabiques = e.tabiques ?? [];
   if (tabiques.length > 0 || reasignadas.some((p) => p.insumo === INSUMO.ESTRUCTURA_TABIQUE)) {
     items.push(perfil(INSUMO.ESTRUCTURA_TABIQUE, tabiques.flatMap((t) => t.piezas)));
+    // v1.76: las soleras y el dintel (pieza.insumo = soleraTabique) van a su renglón PGU.
+    items.push(perfil(INSUMO.SOLERA_TABIQUE, []));
+    // v1.76: tornillos, cinta y masilla por m² de placa y por montante (rendimientos en Paredes → Tabiques).
+    const d = e.durlock;
+    if (d) {
+      const por = (v, texto) => `${texto} (${v.toLocaleString('es-AR', { maximumFractionDigits: 2 })})`;
+      if (d.t1 > 0) items.push(itemSimple(insumo(INSUMO.TORNILLO_T1), d.t1, por(d.montantes, 'montantes')));
+      if (d.t2 > 0) items.push(itemSimple(insumo(INSUMO.TORNILLO_T2), d.t2, por(d.m2Placa, 'm² de placa')));
+      if (d.cinta > 0) items.push(itemSimple(insumo(INSUMO.CINTA_JUNTAS), d.cinta, por(d.m2Placa, 'm² de placa')));
+      if (d.masilla > 0) items.push(itemSimple(insumo(INSUMO.MASILLA_JUNTAS), d.masilla, por(d.m2Placa, 'm² de placa')));
+    }
     const puertas = (tipo) => tabiques.filter((t) => t.puerta === tipo);
     if (puertas('abatir').length) items.push(itemSimple(insumo(INSUMO.PUERTA_PLACA), puertas('abatir').length, puertas('abatir').map((t) => t.nombre).join(', ')));
     if (puertas('granero').length) items.push(itemSimple(insumo(INSUMO.PUERTA_GRANERO), puertas('granero').length, puertas('granero').map((t) => t.nombre).join(', ')));

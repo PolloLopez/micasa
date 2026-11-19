@@ -32,14 +32,26 @@ function FilaLink({ titulo, ayuda, link }) {
   );
 }
 
+/** v1.76: elegir si se comparte la parte de plata (de fábrica, no). */
+function CasillaSinPlata({ valor, onCambio, paraLinkLargo = false }) {
+  return (
+    <label className="casilla-opcional">
+      <input type="checkbox" checked={valor} onChange={(e) => onCambio(e.target.checked)} />
+      {paraLinkLargo ? 'En "Copiar link sin nube": ' : ''}Sin la parte de plata (pagos, compras, contratistas, créditos y a quién le debés)
+    </label>
+  );
+}
+
 /**
  * @param links       { ver, editar|null } si el proyecto ya está en la nube; null si no
  * @param soloVer     true si se abrió con un link de ver (no se puede guardar en ese link)
  * @param onCrear     sube el proyecto y crea los links (async)
  * @param onLinkLargo copia el link de siempre (sin nube)
  */
-export default function DialogoCompartir({ links, soloVer, disponible, onCrear, onLinkLargo, onCerrar }) {
+export default function DialogoCompartir({ links, soloVer, disponible, sinPlataDelLink = null, onCrear, onLinkLargo, onCerrar }) {
   const ventanaRef = useRef(null);
+  // v1.76: de fábrica se comparte sin la parte de plata (pagos, compras, contratistas, créditos y acreedores).
+  const [sinPlata, setSinPlata] = useState(true);
   const [creando, setCreando] = useState(false);
   const [error, setError] = useState(null);
   useEffect(() => {
@@ -51,7 +63,7 @@ export default function DialogoCompartir({ links, soloVer, disponible, onCrear, 
     setCreando(true);
     setError(null);
     try {
-      await onCrear();
+      await onCrear(sinPlata);
     } catch (e) {
       setError(e.message);
     }
@@ -71,6 +83,11 @@ export default function DialogoCompartir({ links, soloVer, disponible, onCrear, 
           <p className="nota">Cada vez que toques <strong>Guardar</strong>, los cambios quedan en el link: quien lo abra ve la última versión.</p>
           <FilaLink titulo="Para ver" ayuda="(mandáselo al cliente: no puede cambiar nada)" link={links.ver} />
           <FilaLink titulo="Para editar" ayuda="(solo para vos o el herrero: guarda cambios)" link={links.editar} />
+          <p className="nota">
+            {sinPlataDelLink
+              ? '🔒 Estos links van sin la parte de plata: tus pagos, compras, contratistas y finanzas quedan solo en este navegador.'
+              : '⚠ Estos links llevan también tus pagos, compras, contratistas y finanzas (se crearon antes de la v1.76 o elegiste incluirlos). Para sacarlos, creá links nuevos.'}
+          </p>
         </>
       )}
       {disponible && !links?.editar && (
@@ -81,14 +98,16 @@ export default function DialogoCompartir({ links, soloVer, disponible, onCrear, 
               : 'Se sube una copia a la nube y te da dos links cortos: uno para ver y otro para editar.'}
           </p>
           {soloVer && links?.ver && <FilaLink titulo="Link para ver (el que abriste)" ayuda="" link={links.ver} />}
+          <CasillaSinPlata valor={sinPlata} onCambio={setSinPlata} />
           <button type="button" className="btn-print" onClick={crear} disabled={creando}>
             {creando ? 'Creando…' : soloVer ? 'Crear un link nuevo con mis cambios' : 'Crear links cortos'}
           </button>
         </>
       )}
       {error && <p className="error" role="alert">{error}</p>}
+      {(!disponible || links?.editar) && <CasillaSinPlata valor={sinPlata} onCambio={setSinPlata} paraLinkLargo />}
       <div className="dialogo-botones">
-        <button type="button" className="btn-sec" onClick={onLinkLargo} title="El proyecto va adentro del link (no hace falta internet para guardarlo, pero no se actualiza)">
+        <button type="button" className="btn-sec" onClick={() => onLinkLargo(sinPlata)} title="El proyecto va adentro del link (no hace falta internet para guardarlo, pero no se actualiza)">
           Copiar link sin nube
         </button>
         <button type="button" className="btn-sec" onClick={onCerrar} autoFocus>Cerrar</button>

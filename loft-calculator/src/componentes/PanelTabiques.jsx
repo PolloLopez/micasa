@@ -17,6 +17,7 @@ import SelectorPerfil from './SelectorPerfil.jsx';
 import { LADOS } from '../motor/constantes.js';
 import { ladoOpuesto, nombreDePared } from '../motor/geometria.js';
 import { tabiqueNuevo, carasDelTabique, altosDelTabique, TIPOS_PUERTA, SENTIDOS_PUERTA, distanciasDelTabique } from '../motor/tabiques.js';
+import { completarDurlock } from '../motor/durlock.js';
 import { puertasTapadas, textoDePuertaTapada, libreDelanteDePuerta, LIBRE_DELANTE_SEGUN_TIPO } from '../motor/recorrido.js';
 
 const f2 = (n) => n.toFixed(2).replace('.', ',');
@@ -155,7 +156,36 @@ function Tabique({ t, i, params, unidad, cambiar, onQuitar, paneles, perfiles, p
  * @param generados e.tabiques (piezas y paños) para el resumen
  * @param perfilGeneral texto del perfil del renglón "Estructura de tabiques"
  */
-export default function PanelTabiques({ params, unidad, cambiar, paneles, perfiles, perfilGeneral, generados }) {
+/**
+ * v1.76: tornillos, cinta y masilla de los tabiques: lo que lleva la obra y los rendimientos (editables).
+ * @param durlock  estructura.durlock (materialesDeDurlock)
+ */
+function MaterialesDurlock({ params, durlock, cambiar }) {
+  const r = completarDurlock(params.durlock);
+  const cambiarRendimiento = (campo) => (v) => cambiar('durlock')({ ...r, [campo]: v });
+  const n = (v) => v.toLocaleString('es-AR', { maximumFractionDigits: 2 });
+  return (
+    <FichaPlegable clave="tabiques:durlock" className="rubro"
+      encabezado={<><strong>Tornillos, cinta y masilla</strong>
+        <small>{durlock?.m2Placa > 0 || durlock?.t1 > 0
+          ? `${n(durlock.m2Placa)} m² de placa · ${durlock.t2} T2 · ${durlock.t1} T1 · ${durlock.cinta} m de cinta · ${durlock.masilla} kg de masilla`
+          : 'sin tabiques'}</small></>}>
+      <p className="nota">
+        Las <strong>soleras y el dintel</strong> van a su renglón "Soleras de tabiques" (PGU) y los montantes a "Estructura de
+        tabiques" (PGC): el perfil de cada uno se elige en Materiales → Perfiles. Tornillos, cinta y masilla salen de los m² de
+        placa (por cara) y de los montantes. Los rendimientos de fábrica son orientativos: <strong>validalos con el durlero</strong>.
+      </p>
+      <div className="grid-params">
+        <CampoNumero etiqueta="Tornillos T2 (placa) por m²" sufijo="u" decimales={0} valor={r.t2PorM2} onCambio={cambiarRendimiento('t2PorM2')} />
+        <CampoNumero etiqueta="Tornillos T1 (perfil) por montante" sufijo="u" decimales={0} valor={r.t1PorMontante} onCambio={cambiarRendimiento('t1PorMontante')} />
+        <CampoNumero etiqueta="Cinta por m² de placa" sufijo="m" decimales={2} valor={r.cintaPorM2} onCambio={cambiarRendimiento('cintaPorM2')} />
+        <CampoNumero etiqueta="Masilla por m² de placa" sufijo="kg" decimales={2} valor={r.masillaPorM2} onCambio={cambiarRendimiento('masillaPorM2')} />
+      </div>
+    </FichaPlegable>
+  );
+}
+
+export default function PanelTabiques({ params, unidad, cambiar, paneles, perfiles, perfilGeneral, generados, durlock = null }) {
   const tabiques = params.tabiques;
   const [aviso, setAviso] = useState(null);
   const [recien, setRecien] = useState(null); // v1.42.1
@@ -178,6 +208,7 @@ export default function PanelTabiques({ params, unidad, cambiar, paneles, perfil
       ))}
       <button type="button" className="btn-sec" onClick={agregar}>+ Tabique</button>
       {aviso && <p className="error" role="alert">{aviso}</p>}
+      {tabiques.length > 0 && <MaterialesDurlock params={params} durlock={durlock} cambiar={cambiar} />}
     </Tarjeta>
   );
 }

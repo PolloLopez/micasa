@@ -22,6 +22,7 @@ import { validarCierre } from './cierre.js';
 import { validarSeguimiento } from './seguimiento.js';
 import { validarFinanzas } from './finanzas.js';
 import { validarObraCivil } from './obraCivil.js';
+import { validarDurlock } from './durlock.js';
 import { validarInstalaciones } from './instalaciones.js';
 import { validarEquipos } from './equipos.js';
 import { validarTabique } from './tabiques.js';
@@ -130,6 +131,7 @@ export function validarParametros(params) {
   if (params.instalaciones !== undefined) Object.entries(validarInstalaciones(params.instalaciones)).forEach(([c, e]) => anotar(c, e)); // v1.57
   if (params.obraCivil !== undefined) Object.entries(validarObraCivil(params.obraCivil)).forEach(([c, e]) => anotar(c, e)); // v1.56
   if (params.finanzas !== undefined) Object.entries(validarFinanzas(params.finanzas)).forEach(([c, e]) => anotar(c, e)); // v1.54
+  if (params.durlock !== undefined) Object.entries(validarDurlock(params.durlock)).forEach(([c, e]) => anotar(c, e)); // v1.76
   if (params.personas !== undefined) { // v1.45
     if (!Array.isArray(params.personas)) anotar('personas', 'Lista inválida');
     else params.personas.forEach((x) => anotar(`personas.${x?.id}`, validarPersona(x ?? {}, params)));

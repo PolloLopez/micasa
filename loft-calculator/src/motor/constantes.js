@@ -92,6 +92,12 @@ export const INSUMO = {
   LADRILLO_COMUN: 'ladrilloComun',
   EXCAVACION_OBRA: 'excavacionObra',
   KIT_PILAR: 'kitPilar',
+  // v1.76: Durlock de los tabiques (ver durlock.js): soleras PGU aparte de los montantes, tornillos, cinta y masilla.
+  SOLERA_TABIQUE: 'soleraTabique',
+  TORNILLO_T1: 'tornilloT1',
+  TORNILLO_T2: 'tornilloT2',
+  CINTA_JUNTAS: 'cintaJuntas',
+  MASILLA_JUNTAS: 'masillaJuntas',
 };
 
 // Límites de los componentes de un montaje (ver motor/montaje.js).

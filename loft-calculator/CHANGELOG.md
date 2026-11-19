@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.76.0] - 2026-11-18
+### Agregado
+- **Compartir sin la parte de plata** (de fábrica): el link no lleva los trabajos y sus pagos, las compras, los
+  contratistas ni las finanzas (créditos, acreedores). Medidas, materiales, precios y partes terminadas sí. Los links
+  cortos de la nube recuerdan la elección y cada "Guardar" sube igual; al abrir tu propio link en tu compu se conserva la
+  plata guardada ahí (proyecto/sinPlata.js: `sinLaPlata`, `conLaPlataDe`).
+- **Tabiques de Durlock completos**: las soleras y el dintel van a "Soleras de tabiques" (PGU, perfil propio) y los
+  montantes quedan en "Estructura de tabiques" (PGC). Renglones nuevos: tornillos T1 (por montante), T2, cinta y masilla
+  (por m² de placa). Rendimientos editables en Paredes → Tabiques → "Tornillos, cinta y masilla" (de fábrica: 20 T2/m²,
+  4 T1 por montante, 1,5 m de cinta y 0,9 kg de masilla por m²; a validar con el durlero). motor/durlock.js.
+- **El OSB (o machimbre) del piso 2 descuenta el hueco de la escalera** cuando sube por adentro del entrepiso (las
+  pisadas o descansos debajo del entrepiso sin los 2 m de paso libre). `huecoEnElEntrepiso` en escalera.js.
+### Seguridad
+- `npm audit fix`: vite 8.3.8 y source-map-js 1.2.3 (dos vulnerabilidades altas del servidor de desarrollo). 0 vulnerabilidades.
+
 ## [1.75.0] - 2026-11-18
 ### Cambiado
 - **El 3D se dibuja solo cuando algo cambia** (antes, 60 veces por segundo siempre, aunque estuviera quieto u oculto:

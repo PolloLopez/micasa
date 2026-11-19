@@ -359,6 +359,7 @@ describe('calcularPresupuesto', () => {
         && id !== INSUMO.HORMIGON_ZAPATA && id !== INSUMO.EXCAVACION // v1.35: solo con zapatas
         && ![INSUMO.ESTRUCTURA_MESADA, INSUMO.TAPA_MESADA, INSUMO.ESTANTE_MESADA, INSUMO.BACHA_SIMPLE, INSUMO.BACHA_DOBLE,
           INSUMO.ESTRUCTURA_TABIQUE, INSUMO.PUERTA_PLACA, INSUMO.PUERTA_GRANERO,
+          INSUMO.SOLERA_TABIQUE, INSUMO.TORNILLO_T1, INSUMO.TORNILLO_T2, INSUMO.CINTA_JUNTAS, INSUMO.MASILLA_JUNTAS, // v1.76: solo con tabiques
           INSUMO.TIRANTE_MADERA, INSUMO.TIRANTE_MADERA_2, INSUMO.MACHIMBRE].includes(id) // v1.38: solo con mesadas
         && !OBRA_CIVIL.includes(id)); // v1.56: solo con tapial, pilar, pozo o pilotines hormigonados
     // v1.48: los accesorios de fábrica se estiman solos (tornillería, electrodos, selladores y antióxido).

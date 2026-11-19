@@ -29,7 +29,7 @@ export const PARTES_FIJAS = [
   { clave: 'techo', nombre: 'Techo', items: ['vigaTecho', 'correaTecho', 'bordeTecho'] },
   { clave: 'revestimiento', nombre: 'Revestimiento de paredes', items: [] }, // los paneles (menos el del techo)
   { clave: 'mesadas', nombre: 'Mesadas', items: ['estructuraMesada', 'tapaMesada', 'estanteMesada', 'bachaSimple', 'bachaDoble'] },
-  { clave: 'tabiques', nombre: 'Tabiques', items: ['estructuraTabique', 'puertaPlaca', 'puertaGranero'] },
+  { clave: 'tabiques', nombre: 'Tabiques', items: ['estructuraTabique', 'soleraTabique', 'tornilloT1', 'tornilloT2', 'cintaJuntas', 'masillaJuntas', 'puertaPlaca', 'puertaGranero'] },
 ];
 
 // Los renglones de obra civil: de qué campo de materialesDeObraCivil sale la cantidad de cada uno.

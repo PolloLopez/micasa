@@ -239,3 +239,22 @@ describe('migración', () => {
     expect(validarParametros(m)).toEqual({});
   });
 });
+
+describe('v1.76: hueco de la escalera en el piso 2', () => {
+  const osb = (params) => calcularPresupuesto(generarEstructura(params, []), CATALOGO_INICIAL, { proveedor: 'prov-1' }).items.find((i) => i.id === INSUMO.OSB);
+  it('la escalera de siempre (baja hacia afuera del entrepiso) no deja hueco', () => {
+    expect(generarEstructura(P, []).escalera?.huecoEntrepiso?.m2 ?? 0).toBe(0);
+  });
+  it('si sube por debajo del entrepiso, el hueco sale del OSB del piso 2', () => {
+    const params = conEscalera({ forma: '3/4', descansos: [2, 5, 8], bajaHacia: 'B', posicion: 2, giroHacia: 'A' });
+    const e = generarEstructura(params, []);
+    const hueco = e.escalera.huecoEntrepiso.m2;
+    expect(hueco).toBeGreaterThan(0);
+    expect(hueco).toBeLessThan(e.superficies.piso2);
+    const r = osb(params);
+    expect(r.detalle).toMatch(/sin el hueco de la escalera/);
+    // Mismo cálculo que el presupuesto: (piso + piso 2 − hueco) × 1,10 / placa.
+    const placa = 2.44 * 1.22;
+    expect(r.cantidad).toBe(Math.ceil(((e.superficies.piso + e.superficies.piso2 - hueco) * 1.1) / placa - 1e-9));
+  });
+});

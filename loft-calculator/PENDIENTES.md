@@ -3,7 +3,7 @@
 Última limpieza: 2026-11-11 (v1.49.0). Espejo en Trello: tablero "Desarrollo", tarjetas `[CALC]`.
 
 ## 📌 Estado y próximos pasos (11/11)
-**En GitHub: hasta v1.61.0. v1.62.0 a v1.75.0 por subir** (desde v1.54 el deploy es automático al pushear). Manual de uso para chequear: `MANUAL.md`.
+**En GitHub: hasta v1.61.0. v1.62.0 a v1.76.0 por subir** (desde v1.54 el deploy es automático al pushear). Manual de uso para chequear: `MANUAL.md`.
 
 🟡 **Para chequear en pantalla** (probado con tests, no visto): el sol con "Ver adentro" entra solo por las aberturas;
 la persona se sienta en el sillón y se acuesta en la cama; las puertas de los tabiques se abren al pasar.
@@ -13,10 +13,10 @@ Lo que falta, en orden de prioridad (detalle en cada sección de abajo):
    llevarle la hoja de preguntas: es lo que más cambia el número final.
 2. ✅ v1.48.0 **Consumibles automáticos** (electrodos, autoperforantes, sellador, antióxido) con coeficientes editables.
    - 🟡 [ ] Validar los coeficientes con el herrero (y el rendimiento del antióxido con el pintor).
-   - 🟢 [ ] Tornillos del Durlock por m² de placa de los tabiques (hoy solo paneles de paredes y techo).
+   - ✅ v1.76.0 Tornillos del Durlock por m² de placa de los tabiques (T1 y T2, más cinta y masilla).
 3. ✅ v1.50.0 **Seguimiento en el PDF y el Excel**.
 4. ✅ v1.74.0 **Precios con fecha** por proveedor y aviso de precios viejos (> 30 días).
-5. 🟡 **Tabiques de Durlock completos**: PGU (soleras) aparte de PGC (montantes), tornillos, cinta y masilla.
+5. ✅ v1.76.0 **Tabiques de Durlock completos**: PGU (soleras) aparte de PGC (montantes), tornillos, cinta y masilla (rendimientos editables, a validar con el durlero).
 6. ✅ v1.50.0 **Tabiques, mesadas, muebles, pilotines y zapatas en las plantas** (en pantalla y PDF).
    - 🟢 [ ] La escalera en la planta; cotas de los tabiques y muebles; los interiores también en la hoja "Plantas" del Excel.
    - 🟡 [ ] Baño de Leandro: si siguen sin poder entrar, mirar el aviso "puerta tapada" o mandar el link (Compartir) para revisarlo con su proyecto.
@@ -76,10 +76,8 @@ Medido con el proyecto real ("Amueblada, casi definida", 9 proveedores, 84 pieza
 ### Seguridad y datos
 - 🔴 [ ] **`C:\Users\LLopez\loft-calculator\.git-token.txt` sigue en tu compu** (93 bytes, del 13/11). Borralo y
   revocá el token `claude-micasa` en GitHub → Settings → Developer settings (no lo leí).
-- 🟡 [ ] **El link de Compartir lleva todo el proyecto, también el seguimiento y las finanzas** (pagos, contratistas,
-  créditos, acreedores, lo que debés). Quien tenga el link de VER lo lee. Opción "Compartir sin la parte de plata".
-- 🟡 [ ] `npm audit`: 2 vulnerabilidades altas en **vite** y **source-map-js**, solo de desarrollo (el servidor local
-  `npm run dev`, no la app publicada). Arreglo: `npm audit fix` (sube vite a 8.3.3+) y correr los tests.
+- ✅ v1.76.0 **El link de Compartir lleva todo el proyecto** → de fábrica va "sin la parte de plata" (pagos, compras, contratistas, finanzas).
+- ✅ v1.76.0 `npm audit fix`: vite 8.3.8 y source-map-js 1.2.3; 0 vulnerabilidades.
 - 🟢 [ ] Un link armado a propósito (comprimido) podría colgar la pestaña al abrirlo: limitar el tamaño al descomprimir.
 - 🟢 [ ] La carpeta `C:\Users\LLopez\loft-calculator` es una copia vieja del proyecto (de septiembre) con ~100
   bundles: confunde con el repo de verdad (`C:\Users\LLopez\micasa`). Dejar solo los bundles o moverla.
@@ -278,8 +276,7 @@ barra por proveedor, flete con "gratis desde", lista de materiales con kilos, pl
 
 ### 🟡 Conviene
 - ✅ v1.74.0 **Precios con fecha**: cada proveedor guarda cuándo se cargaron; aviso en el Presupuesto pasados 30 días y "Siguen iguales hoy".
-- [ ] **Tabiques de Durlock**: soleras y montantes van en un mismo renglón con el mismo perfil; en obra la solera es
-      PGU y el montante PGC. Faltan tornillos T1/T2, cinta y masilla por m² de placa.
+- ✅ v1.76.0 **Tabiques de Durlock**: soleras PGU en su renglón; tornillos T1/T2, cinta y masilla por m² de placa.
 - [ ] **Tirantes de madera** por metro (ya anotado en v1.43.0): comprarlos por largo comercial con el optimizador.
 - [ ] **Desperdicio de placas fijo en 10 %** (OSB y machimbre, `DESPERDICIO_PLACAS`): editable como el excedente de barras.
 - [ ] **Empalmes**: las piezas más largas que la barra se cortan en tramos, pero no se cuenta la unión (soldadura o
@@ -288,7 +285,7 @@ barra por proveedor, flete con "gratis desde", lista de materiales con kilos, pl
       su peso (los kg por metro ya están).
 
 ### 🟢 Detalles
-- [ ] El OSB del entrepiso no descuenta el hueco de la escalera (si la escalera sube por adentro del entrepiso).
+- ✅ v1.76.0 El OSB (o machimbre) del entrepiso descuenta el hueco de la escalera si sube por adentro del entrepiso. Falta: dibujar el hueco en el 3D y en el plano.
 - [ ] PDF del presupuesto: número de presupuesto y "válido por N días".
 
 ## v1.43.0 (pedido de Leandro 10/11)

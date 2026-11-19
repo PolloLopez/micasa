@@ -247,8 +247,28 @@ export function generarEscalera(params, lados, entrepiso) {
     piezas,
     escalones,
     descansos,
+    huecoEntrepiso: huecoEnElEntrepiso(huellasEnPlanta, entrepiso), // v1.76
     resumen: { ...datos, perpendicular, avisos: avisosEscalera(params, datos, huellasEnPlanta, entrepiso) },
   };
+}
+
+/**
+ * v1.76: el hueco que hay que dejar en el piso 2 cuando la escalera sube por adentro del entrepiso (pendiente:
+ * "el OSB del entrepiso no descuenta el hueco de la escalera"). Son las pisadas y descansos que quedan debajo del
+ * entrepiso sin el paso libre de 2 m: por ahí pasa la cabeza, así que ese pedazo de piso no va.
+ * @returns {{ m2: number, cajas: {x1,x2,z1,z2}[] }}  m² del hueco (lo que se descuenta) y sus rectángulos en planta
+ */
+export function huecoEnElEntrepiso(rectangulos, entrepiso) {
+  const esquinas = [[0, 0], [1, 0], [1, 1], [0, 1]].map(([a, b]) => sumar(sumar(entrepiso.origen, entrepiso.u, a * entrepiso.largoU), entrepiso.v, b * entrepiso.largoV));
+  const piso2 = { x1: Math.min(...esquinas.map((p) => p[0])), x2: Math.max(...esquinas.map((p) => p[0])),
+    z1: Math.min(...esquinas.map((p) => p[1])), z2: Math.max(...esquinas.map((p) => p[1])) };
+  const cajas = rectangulos.filter((r) => entrepiso.y - r.y < PASO_LIBRE - 1e-9).map((r) => {
+    const c = cajaEnPlanta(r);
+    return { x1: Math.max(c.x1, piso2.x1), x2: Math.min(c.x2, piso2.x2), z1: Math.max(c.z1, piso2.z1), z2: Math.min(c.z2, piso2.z2) };
+  }).filter((c) => c.x2 - c.x1 > TOLERANCIA && c.z2 - c.z1 > TOLERANCIA);
+  // Los tramos no se pisan entre sí en planta (si pasa, ya avisa el paso libre): se suman.
+  const m2 = cajas.reduce((a, c) => a + (c.x2 - c.x1) * (c.z2 - c.z1), 0);
+  return { m2: Math.round(m2 * 10000) / 10000, cajas };
 }
 
 // ---------------- Avisos (no bloquean: informan) ----------------

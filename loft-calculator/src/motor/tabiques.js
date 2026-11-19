@@ -17,7 +17,7 @@
 
 import { geometriaLados, largoLado, alturaEn, tramoEntrepiso } from './geometria.js';
 import { haciaAdentro, pieza, cm } from './segmentos.js';
-import { LADOS, ALTURA_PISO_2 } from './constantes.js';
+import { LADOS, ALTURA_PISO_2, INSUMO } from './constantes.js';
 
 const ALTO_PISO = 0.09; // piso terminado sobre la estructura (como mesadas y muebles)
 const MEDIA_PARED = 0.06; // cara de adentro de la pared
@@ -188,6 +188,9 @@ export function generarTabique(params, t) {
   const p = (x, h) => [inicio[0] + direccion[0] * x, y0 + h, inicio[1] + direccion[1] * x];
   const extra = { ...(t.perfil ? { perfilPared: t.perfil, ladoPared: t.nombre } : {}), tabique: t.id, nivel: t.nivel ?? 'piso' };
   const pz = (id, desde, hasta) => ({ ...pieza(`tabique:${t.id}:${id}`, 'tabique', ['tabique'], desde, hasta), ...extra });
+  // v1.76: soleras y dintel son PGU: van a "Soleras de tabiques" (sin el perfil propio del tabique, que es el del montante).
+  const pzSolera = (id, desde, hasta) => ({ ...pieza(`tabique:${t.id}:${id}`, 'tabique', ['tabique'], desde, hasta),
+    tabique: t.id, nivel: t.nivel ?? 'piso', insumo: INSUMO.SOLERA_TABIQUE });
   const conPuerta = t.puerta && t.puerta.tipo !== 'ninguna';
   const pa = conPuerta ? inicioDePuerta(t) : null;
   const pb = conPuerta ? pa + t.puerta.ancho : null;
@@ -196,15 +199,15 @@ export function generarTabique(params, t) {
 
   // Soleras: la de abajo se corta en la puerta; la de arriba sigue la pendiente del techo.
   const abajo = conPuerta ? [[0, pa], [pb, L]].filter(([a, b]) => b - a > 0.01) : [[0, L]];
-  abajo.forEach(([a, b], i) => piezas.push(pz(`solera-abajo:${i}`, p(a, 0), p(b, 0))));
-  piezas.push(pz('solera-arriba', p(0, h0), p(L, h1)));
+  abajo.forEach(([a, b], i) => piezas.push(pzSolera(`solera-abajo:${i}`, p(a, 0), p(b, 0))));
+  piezas.push(pzSolera('solera-arriba', p(0, h0), p(L, h1)));
   // Montantes parejos (fuera de la puerta) y las jambas; arriba de la puerta, montantes cortos.
   const xs = [...new Set([...montantesDe([0, L], t.separacionMontantes), ...(conPuerta ? [pa, pb] : [])].map((x) => Number(x.toFixed(4))))].sort((a, b) => a - b);
   xs.forEach((x) => {
     if (enPuerta(x)) piezas.push(pz(`montante-corto:${cm(x)}`, p(x, t.puerta.alto), p(x, arriba(x))));
     else piezas.push(pz(`montante:${cm(x)}`, p(x, 0), p(x, arriba(x))));
   });
-  if (conPuerta) piezas.push(pz('dintel', p(pa, t.puerta.alto), p(pb, t.puerta.alto)));
+  if (conPuerta) piezas.push(pzSolera('dintel', p(pa, t.puerta.alto), p(pb, t.puerta.alto)));
 
   // Paños de cada cara (la puerta se descuenta) y el dibujo.
   const area = (L * (h0 + h1)) / 2 - (conPuerta ? t.puerta.ancho * t.puerta.alto : 0);

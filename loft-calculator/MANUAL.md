@@ -12,7 +12,7 @@ Página: https://pollolopez.github.io/micasa/
 - **Dentro de cada pestaña hay sub-pestañas** (ej. Estructura: Planta · Pisos · Escalera · Techo · Fundación y terreno · Piezas a mano). Se ve una a la vez y recuerda la última. Si tocás algo en el 3D, se abre sola la que corresponde.
 - **El borde entre el 3D y el panel se arrastra** para darle más lugar a uno o al otro (doble clic: vuelve como estaba).
 - A la izquierda (o con **Ocultar 3D**) está el modelo 3D.
-- **Guardar** guarda en este navegador. **Compartir** copia un link para otra persona. **Mis proyectos** abre los guardados.
+- **Guardar** guarda en este navegador. **Compartir** copia un link para otra persona (de fábrica, **sin la parte de plata**: pagos, compras, contratistas y finanzas quedan solo en tu navegador; destildalo si querés mandarla). **Mis proyectos** abre los guardados.
 - **Ctrl+Z** deshace, **Ctrl+Y** rehace. **?** abre la ayuda.
 
 ✔ Chequeá: cambiás el largo en Estructura y el 3D y el total del Presupuesto cambian solos.
@@ -56,6 +56,7 @@ como fantasma en su lugar, así ves cuál es antes de tocar **Restaurar**.
 - **Tabiques**: divisiones de Durlock con puerta de abrir o granero. Elegís desde dónde medís (la esquina izquierda o
   derecha; si es paralelo, su pared o la de enfrente; la puerta, desde el arranque o la punta) y el **sentido** de la
   puerta (de izquierda a derecha o al revés: la bisagra o hacia dónde corre).
+- **Tornillos, cinta y masilla** (abajo de los tabiques): las soleras y el dintel van como PGU en su renglón; T1 por montante, T2, cinta y masilla por m² de placa. Los rendimientos se cambian ahí (validalos con el durlero).
 - **Muebles y electrodomésticos**: elegí en "Mueble a agregar" (separado en Muebles, Electrodomésticos y Baño) y
   **+ Agregar**. Nuevos: televisor, cafetera, horno de aire, máquina de pan.
   - Los chicos (cafetera, horno de aire, máquina de pan) se **apoyan solos** sobre la mesada o el mueble de abajo.
