@@ -1010,3 +1010,8 @@ option { background: var(--tarjeta); color: var(--texto); }
 .fecha-precios .btn-mini { margin-left: 4px; }
 .tabla-impresion .casilla { width: 18px; text-align: center; }
 .bloque-compras .grupo-impresion { break-inside: avoid-page; }
+
+/* v1.77: precio por kilo. */
+.kg-para-todos { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 6px 0; font-size: 0.82rem; color: var(--texto-suave); }
+.kg-para-todos .campo-precio input { width: 90px; }
+.nota-kg { margin: 4px 0; }

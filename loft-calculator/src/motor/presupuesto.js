@@ -21,6 +21,7 @@ import { textoPilotin } from './ejes.js';
 import { INSUMO, PLACA_OSB, DESPERDICIO_PLACAS, LADOS } from './constantes.js';
 import { cuentaRevestimiento, REVESTIMIENTO_POR_DEFECTO } from './revestimientos.js';
 import { medidasParaConsumibles, cantidadDeConsumible } from './consumibles.js';
+import { tablasDeMadera } from './maderaComercial.js';
 
 /** Insumos fijos. El perfil y el precio se editan desde la pantalla. */
 export const CATALOGO_FIJO = [
@@ -390,9 +391,9 @@ function calcularRenglones(estructura, catalogo, excedenteBarras, corte = {}) {
   [[INSUMO.TIRANTE_MADERA, e.piso.tirantes], [INSUMO.TIRANTE_MADERA_2, e.piso2.tirantes]].forEach(([id, tirantes]) => {
     const madera = tirantes.filter((p) => p.madera);
     if (!madera.length) return;
-    const metros = madera.reduce((a, p) => a + p.largo, 0);
-    const masLargo = Math.max(...madera.map((p) => p.largo));
-    items.push(itemSimple(insumo(id), Math.ceil(metros * 10 - 1e-9) / 10, `${madera.length} tirantes, el más largo de ${masLargo.toFixed(2)} m`));
+    // v1.77: en tablas de largo comercial (3,05 / 3,66 / 4,27 / 4,88 m), no los metros justos: ver maderaComercial.js.
+    const { metros, tablas, detalle } = tablasDeMadera(madera.map((p) => p.largo));
+    items.push({ ...itemSimple(insumo(id), metros, detalle), tablas });
   });
 
   // Paneles: un renglón por tipo, con los m² de las paredes y el techo que lo usan.

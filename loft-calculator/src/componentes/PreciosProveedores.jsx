@@ -11,7 +11,8 @@
 
 import { useContext, useState } from 'react';
 import { ContextoAgregarProveedor } from './contextoProveedores.js';
-import { precioEn } from '../motor/proveedores.js';
+import { precioEn, precioBarraPorKg } from '../motor/proveedores.js';
+import { kgPorMetro } from '../motor/perfiles.js';
 
 const pesos = (n) => n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
 
@@ -69,7 +70,8 @@ export default function PreciosProveedores({ material, proveedores, unidad, onCa
   const [nombreNuevo, setNombreNuevo] = useState(null); // null = no se está creando uno
   const tienePrecio = (p) => {
     const precio = material.precios?.[p.id];
-    return precio && (precio.efectivo !== null && precio.efectivo !== undefined || (precio.tarjeta !== null && precio.tarjeta !== undefined));
+    return precio && (precio.efectivo !== null && precio.efectivo !== undefined || (precio.tarjeta !== null && precio.tarjeta !== undefined)
+      || Number.isFinite(precio.porKg)); // v1.77: o por kilo
   };
   const visibles = proveedores.filter((p) => tienePrecio(p) || agregados.includes(p.id));
   const otros = proveedores.filter((p) => !visibles.includes(p));
@@ -84,27 +86,45 @@ export default function PreciosProveedores({ material, proveedores, unidad, onCa
     if (id) setAgregados((a) => [...a, id]);
     setNombreNuevo(null);
   };
+  // v1.77: los hierros también se pueden cotizar por kilo (la barra sale de su peso).
+  const esHierro = material.categoria === 'hierro';
+  const kgBarra = esHierro ? kgPorMetro(material) * (material.largoBarra || 0) : 0;
+  const kg = (n) => n.toLocaleString('es-AR', { maximumFractionDigits: 1 });
   return (
     <div className="precios-material">
+    {esHierro && (
+      <p className="nota nota-kg">
+        {kgBarra > 0 ? `Pesa ${kg(kgPorMetro(material))} kg/m · ${kg(kgBarra)} kg la barra de ${kg(material.largoBarra)} m: si te lo cotizan por kilo, cargalo en "$/kg".`
+          : 'Este perfil no tiene peso (cargá sus kg/m) para cotizarlo por kilo.'}
+      </p>
+    )}
     {visibles.length > 0 ? (
     <table className="tabla-precios">
       <thead>
-        <tr><th>Precio por {unidad}</th><th>Efectivo</th><th>Tarjeta</th></tr>
+        <tr><th>Precio por {unidad}</th><th>Efectivo</th><th>Tarjeta</th>{esHierro && kgBarra > 0 && <th>o $/kg</th>}</tr>
       </thead>
       <tbody>
-        {visibles.map((p) => {          const precio = material.precios?.[p.id] ?? {};
-          const conRecargo = precioEn({ precios: { [p.id]: { efectivo: precio.efectivo, tarjeta: null } } }, p, 'tarjeta');
+        {visibles.map((p) => {
+          const precio = material.precios?.[p.id] ?? {};
+          const porKg = esHierro ? precioBarraPorKg(material, precio.porKg) : null;
+          const conRecargo = precioEn({ ...material, precios: { [p.id]: { efectivo: precio.efectivo, tarjeta: null, porKg: precio.porKg } } }, p, 'tarjeta');
           return (
             <tr key={p.id}>
               <td className="nombre-proveedor">{p.nombre}</td>
               <td>
                 <CampoPrecio etiqueta={`Precio en efectivo de ${material.nombre} en ${p.nombre}`} valor={precio.efectivo}
-                  ayuda="no lo vende" onCambio={(v) => onCambiar(p.id, 'efectivo', v)} />
+                  ayuda={porKg !== null ? `${pesos(porKg)} (por kg)` : 'no lo vende'} onCambio={(v) => onCambiar(p.id, 'efectivo', v)} />
               </td>
               <td>
                 <CampoPrecio etiqueta={`Precio con tarjeta de ${material.nombre} en ${p.nombre}`} valor={precio.tarjeta}
                   ayuda={conRecargo !== null ? `auto ${pesos(conRecargo)}` : '—'} onCambio={(v) => onCambiar(p.id, 'tarjeta', v)} />
               </td>
+              {esHierro && kgBarra > 0 && (
+                <td>
+                  <CampoPrecio etiqueta={`Precio por kilo de ${material.nombre} en ${p.nombre}`} valor={precio.porKg}
+                    ayuda="$/kg" onCambio={(v) => onCambiar(p.id, 'porKg', v)} />
+                </td>
+              )}
             </tr>
           );
         })}

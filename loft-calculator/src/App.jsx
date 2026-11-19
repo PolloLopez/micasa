@@ -49,7 +49,7 @@ import { generarEstructura, listarPiezas, infoSeparacion } from './motor/estruct
 import { CAMPOS_CON_CANTIDAD, MAXIMO_CANTIDAD, cantidadDe } from './motor/cantidades.js';
 import { calcularPresupuesto, CATALOGO_INICIAL, tiposDePanel, panosPorRevestimiento, conPanelesExistentes } from './motor/presupuesto.js';
 import { resolverCatalogo, PERFIL_NUEVO, perfilesDeLista } from './motor/perfiles.js';
-import { proveedoresDe, aplicarProveedor, faltanPrecios, MAS_BARATO, planDeCompra, precioEn, masBaratoEn, totalDeLaObra, listaDeMateriales, kilosDeMateriales } from './motor/proveedores.js';
+import { proveedoresDe, aplicarProveedor, faltanPrecios, MAS_BARATO, planDeCompra, precioEn, masBaratoEn, totalDeLaObra, listaDeMateriales, kilosDeMateriales, conPrecioCambiado } from './motor/proveedores.js';
 import { cerrarPresupuesto } from './motor/cierre.js';
 import { useSinCambiosSalvo } from './hooks/useSinCambiosSalvo.js';
 import { partesDelPresupuesto, resumenSeguimiento, informeDeSeguimiento, hoy } from './motor/seguimiento.js';
@@ -669,8 +669,8 @@ export default function App() {
     // v1.74: el proveedor anota la fecha de sus precios (para avisar cuando tienen más de un mes).
     if (p.id === idProveedor && p.categoria === 'proveedor') return { ...p, preciosAl: hoy() };
     if (p.id !== idMaterial) return p;
-    const anterior = p.precios?.[idProveedor] ?? { efectivo: null, tarjeta: null };
-    return { ...p, precios: { ...p.precios, [idProveedor]: { ...anterior, [campo]: valor } } };
+    // v1.77: campo 'porKg' (hierros): por barra y por kilo se excluyen (conPrecioCambiado).
+    return { ...p, precios: { ...p.precios, [idProveedor]: conPrecioCambiado(p.precios?.[idProveedor], campo, valor) } };
   }));
   /** v1.72: con nombre (desde el precio de un material: "+ Proveedor nuevo…"); devuelve su id. */
   const agregarProveedor = (nombre = '') => {

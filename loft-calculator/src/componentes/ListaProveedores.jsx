@@ -14,7 +14,7 @@ import { useState } from 'react';
 import CampoNumero from './CampoNumero.jsx';
 import FichaPlegable from './FichaPlegable.jsx';
 import { CampoPrecio } from './PreciosProveedores.jsx';
-import { LIMITES_RECARGO, LIMITES_FLETE, precioEn } from '../motor/proveedores.js';
+import { LIMITES_RECARGO, LIMITES_FLETE, precioEn, precioBarraPorKg } from '../motor/proveedores.js';
 import { preciosCargados, PRECIO_SOSPECHOSO, antiguedadDePrecios, DIAS_PRECIO_VIEJO } from '../motor/resumenPrecios.js';
 import { hoy } from '../motor/seguimiento.js';
 
@@ -27,27 +27,47 @@ function PreciosDelProveedor({ proveedor, materiales, onCambiarPrecio }) {
   const [verTodos, setVerTodos] = useState(false);
   const conPrecio = materiales.filter((m) => precioEn(m, proveedor, 'efectivo') !== null);
   const visibles = verTodos ? materiales : conPrecio;
+  // v1.77: un $/kg para todos los hierros que le comprás (los que ya tienen precio acá, o todos si tildaste "Ver también").
+  const [kgParaTodos, setKgParaTodos] = useState(null);
+  const hierros = visibles.filter((m) => m.categoria === 'hierro' && precioBarraPorKg(m, 1) !== null);
+  const ponerKgATodos = () => {
+    if (!(kgParaTodos > 0)) return;
+    hierros.forEach((m) => onCambiarPrecio(m.id, proveedor.id, 'porKg', kgParaTodos));
+    setKgParaTodos(null);
+  };
   return (
     <>
+      {hierros.length > 0 && (
+        <div className="kg-para-todos no-print">
+          <span>¿Te cotiza el hierro por kilo?</span>
+          <CampoPrecio etiqueta={`Precio por kilo para todos los hierros de ${proveedor.nombre}`} valor={kgParaTodos} ayuda="$/kg" onCambio={setKgParaTodos} />
+          <button type="button" className="btn-mini" disabled={!(kgParaTodos > 0)} onClick={ponerKgATodos}
+            title="Pone ese $/kg a cada hierro de la lista de abajo (borra su precio por barra)">Poner a los {hierros.length} hierros</button>
+        </div>
+      )}
       <label className="casilla-opcional">
         <input type="checkbox" checked={verTodos} onChange={(e) => setVerTodos(e.target.checked)} />
         Ver también lo que no tiene precio acá (para cargarle uno)
       </label>
       <div className="table-wrap">
         <table className="tabla-precios tabla-precios-proveedor">
-          <thead><tr><th>Material</th><th>Por</th><th>Efectivo</th><th>Tarjeta</th></tr></thead>
+          <thead><tr><th>Material</th><th>Por</th><th>Efectivo</th><th>Tarjeta</th><th>o $/kg</th></tr></thead>
           <tbody>
             {visibles.map((m) => {
               const precio = m.precios?.[proveedor.id] ?? {};
-              const conRecargo = precioEn({ precios: { [proveedor.id]: { efectivo: precio.efectivo, tarjeta: null } } }, proveedor, 'tarjeta');
+              const porKg = precioBarraPorKg(m, precio.porKg); // v1.77
+              const conKg = m.categoria === 'hierro' && precioBarraPorKg(m, 1) !== null;
+              const conRecargo = precioEn({ ...m, precios: { [proveedor.id]: { efectivo: precio.efectivo, tarjeta: null, porKg: precio.porKg } } }, proveedor, 'tarjeta');
               return (
                 <tr key={m.id}>
                   <td>{m.nombre}{precio.efectivo >= PRECIO_SOSPECHOSO && <small className="falta"> ⚠ revisá este precio</small>}</td>
                   <td>{m.unidadPrecio}</td>
                   <td><CampoPrecio etiqueta={`Precio en efectivo de ${m.nombre} en ${proveedor.nombre}`} valor={precio.efectivo}
-                    ayuda="no lo vende" onCambio={(v) => onCambiarPrecio(m.id, proveedor.id, 'efectivo', v)} /></td>
+                    ayuda={porKg !== null ? `${pesos(porKg)} (por kg)` : 'no lo vende'} onCambio={(v) => onCambiarPrecio(m.id, proveedor.id, 'efectivo', v)} /></td>
                   <td><CampoPrecio etiqueta={`Precio con tarjeta de ${m.nombre} en ${proveedor.nombre}`} valor={precio.tarjeta}
                     ayuda={conRecargo !== null ? `auto ${pesos(conRecargo)}` : '—'} onCambio={(v) => onCambiarPrecio(m.id, proveedor.id, 'tarjeta', v)} /></td>
+                  <td>{conKg ? <CampoPrecio etiqueta={`Precio por kilo de ${m.nombre} en ${proveedor.nombre}`} valor={precio.porKg}
+                    ayuda="$/kg" onCambio={(v) => onCambiarPrecio(m.id, proveedor.id, 'porKg', v)} /> : null}</td>
                 </tr>
               );
             })}

@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.77.0] - 2026-11-18
+### Agregado
+- **Precio por kilo**: cada hierro se puede cotizar en $/kg en cada proveedor (columna "o $/kg"); la barra sale de
+  $/kg × kg/m × largo. Por barra y por kilo se excluyen (cargar uno borra el otro). En la ficha del proveedor, "¿Te
+  cotiza el hierro por kilo?" pone el mismo $/kg a todos sus hierros. `precioBarraPorKg`, `conPrecioCambiado`.
+- **Tirantes de madera por largo comercial**: en tablas de 3,05 / 3,66 / 4,27 / 4,88 m con el optimizador de cortes
+  (antes, los metros justos). El renglón dice cuántas de cada largo y cuánto sobra (motor/maderaComercial.js).
+- Hoja "Preguntas para el herrero y el durlero — Loft amueblado" (Claude Docs) con los valores del proyecto de Leandro.
+
 ## [1.76.0] - 2026-11-18
 ### Agregado
 - **Compartir sin la parte de plata** (de fábrica): el link no lleva los trabajos y sus pagos, las compras, los

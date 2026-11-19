@@ -30,7 +30,7 @@ luz, + Cámara séptica, + Pozo séptico). Abajo, "Lo que lleva" cada parte y lo
 
 En **Pisos**, cada piso: **Tirantes y transversales** (en el mismo plano o los tirantes apoyados encima); en el mismo
 plano, **Queda entero** (el tirante o el transversal) y la **Altura** (al ras del borde o eje con eje); y **Borde y
-tirantes** (cuál queda entero). Ya no están repetidos en Materiales → Uniones.
+tirantes** (cuál queda entero). Ya no están repetidos en Materiales → Uniones. Los **tirantes de madera** se piden en tablas de largo comercial (3,05 / 3,66 / 4,27 / 4,88 m): el renglón dice cuántas de cada una.
 En **Techo**: "Vigas y correas" (apoyadas o en el mismo plano) y su altura.
 
 **Piezas agregadas, eliminadas y editadas**: cada renglón dice el perfil, el largo, si es vertical u horizontal y a qué
@@ -179,6 +179,7 @@ cambia la cantidad y el presupuesto.
 - **Mano de obra por segmento** (en el mismo bloque): pilotines, estructura, revestimiento, tabiques, tapial, pozo
   séptico, electricista, plomero (y los que agregues). Elegís cómo cobra cada uno (monto, por m², por metro de tabique,
   por pilotín, por kg…) y te muestra cuánto da.
+- **Precio por kilo**: si el corralón te cotiza el hierro en $/kg, cargalo en la columna "o $/kg" (en el proveedor o en el perfil): la barra sale de su peso. En la ficha del proveedor podés poner el mismo $/kg a todos sus hierros de una vez.
 - **Precios viejos**: cada proveedor dice de qué fecha son sus precios; pasados 30 días el Presupuesto avisa. Si le preguntaste y no cambiaron, tocá "Siguen iguales hoy" en su ficha.
 - **Lista de compras** (sub-pestaña, también en Obra): cada material por proveedor y por parte. Poné cuánto retiraste y
   tocá **Retirado** (queda como deuda) o **Pagado** (se anota solo en Compras hechas); **↶ Deshacer** borra la última marca si te equivocaste; **Pagar lo retirado** salda la

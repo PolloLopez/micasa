@@ -1,6 +1,7 @@
 // Tests de proveedores y precios por proveedor (v1.25). Correr con: npm test
 import { describe, it, expect } from 'vitest';
-import { precioEn, aplicarProveedor, conProveedores, faltanPrecios, MAS_BARATO, PROVEEDOR_INICIAL } from './proveedores.js';
+import { precioEn, aplicarProveedor, conProveedores, faltanPrecios, MAS_BARATO, PROVEEDOR_INICIAL, precioBarraPorKg, conPrecioCambiado } from './proveedores.js';
+import { kgPorMetro } from './perfiles.js';
 import { normalizarCatalogo } from './migracion.js';
 import { calcularPresupuesto, CATALOGO_INICIAL } from './presupuesto.js';
 import { generarEstructura } from './estructura.js';
@@ -89,5 +90,35 @@ describe('comparar presupuestos', () => {
     expect(barato.total).toBeLessThanOrEqual(total('prov-1', 'efectivo').total);
     expect(faltanPrecios(barato.items)).toEqual([]);
     expect(barato.items.find((i) => i.id === INSUMO.PILOTIN).proveedorDelPrecio).toBe('Mi proveedor');
+  });
+});
+
+describe('v1.77: precio por kilo', () => {
+  // Caño 80x80x2.0 de 6 m: ~4,9 kg/m (kgPorMetro calcula la sección).
+  const cano = { id: 'perfil-9', categoria: 'hierro', tipo: 'cuadrado', a: 80, b: 80, c: 0, espesor: 2, largoBarra: 6, texto: '', kgm: 0 };
+  const prov = { id: 'p1', nombre: 'Rionda', recargoTarjeta: 10 };
+  it('la barra sale de $/kg × kg/m × largo; con tarjeta lleva el recargo', () => {
+    const conKg = { ...cano, precios: { p1: { efectivo: null, tarjeta: null, porKg: 2000 } } };
+    const kgBarra = kgPorMetro(cano) * 6;
+    expect(precioBarraPorKg(cano, 2000)).toBe(Math.round(2000 * kgBarra));
+    expect(precioEn(conKg, prov, 'efectivo')).toBe(Math.round(2000 * kgBarra));
+    expect(precioEn(conKg, prov, 'tarjeta')).toBe(Math.round(Math.round(2000 * kgBarra) * 1.1));
+  });
+  it('sin peso (un "otro" sin kg/m) o si no es hierro, no hay precio por kilo', () => {
+    expect(precioBarraPorKg({ ...cano, tipo: 'otro', kgm: 0 }, 2000)).toBeNull();
+    expect(precioBarraPorKg({ id: 'osb', categoria: 'placa' }, 2000)).toBeNull();
+    expect(precioEn({ ...cano, tipo: 'otro', kgm: 0, precios: { p1: { efectivo: null, porKg: 2000 } } }, prov, 'efectivo')).toBeNull();
+  });
+  it('por barra y por kilo se excluyen al cargarlos', () => {
+    expect(conPrecioCambiado({ efectivo: 50000, tarjeta: null }, 'porKg', 2000)).toEqual({ efectivo: null, tarjeta: null, porKg: 2000 });
+    expect(conPrecioCambiado({ efectivo: null, tarjeta: null, porKg: 2000 }, 'efectivo', 48000)).toEqual({ efectivo: 48000, tarjeta: null });
+    expect(conPrecioCambiado({ efectivo: null, tarjeta: null, porKg: 2000 }, 'porKg', null)).toEqual({ efectivo: null, tarjeta: null });
+    expect(conPrecioCambiado(undefined, 'tarjeta', 9)).toEqual({ efectivo: null, tarjeta: 9 });
+  });
+  it('el $/kg se guarda con el proyecto (y uno inválido se descarta)', () => {
+    const cat = conProveedores([{ ...cano, precios: { p1: { efectivo: null, porKg: 2100 } } }], [{ id: 'p1', categoria: 'proveedor', nombre: 'Rionda' }]);
+    expect(cat.find((i) => i.id === 'perfil-9').precios.p1.porKg).toBe(2100);
+    const malo = conProveedores([{ ...cano, precios: { p1: { efectivo: 5, porKg: -3 } } }], [{ id: 'p1', categoria: 'proveedor', nombre: 'Rionda' }]);
+    expect(malo.find((i) => i.id === 'perfil-9').precios.p1.porKg).toBeUndefined();
   });
 });

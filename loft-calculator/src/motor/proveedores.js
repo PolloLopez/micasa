@@ -1,4 +1,4 @@
-import { fichaDePerfil } from './perfiles.js';
+import { fichaDePerfil, kgPorMetro } from './perfiles.js';
 // ==========================================================
 // PROVEEDORES Y PRECIOS (v1.25): comparar presupuestos
 // ----------------------------------------------------------
@@ -56,13 +56,40 @@ export const llevaPrecios = (item) => item && item.categoria !== 'perfil' && ite
 const esPrecio = (n) => Number.isFinite(n) && n >= 0;
 const esMonto = (n) => Number.isFinite(n) && n >= LIMITES_FLETE.min && n <= LIMITES_FLETE.max;
 
-/** Precio en efectivo o con tarjeta de un material en un proveedor; null si ese proveedor no lo tiene. */
+/**
+ * v1.77: precio de una barra cargado por kilo (muchos corralones cotizan el hierro en $/kg):
+ * $/kg × kg por metro del perfil × largo de la barra. null si el perfil no tiene peso (ej. un "otro" sin kg/m).
+ */
+export function precioBarraPorKg(item, porKg) {
+  if (!esPrecio(porKg) || item?.categoria !== 'hierro') return null;
+  const kgBarra = kgPorMetro(item) * (item.largoBarra || 0);
+  return kgBarra > 0 ? Math.round(porKg * kgBarra) : null;
+}
+
+/**
+ * v1.77: el precio de un material en un proveedor con un campo cambiado ('efectivo', 'tarjeta' o 'porKg').
+ * Por barra y por kilo se excluyen: cargar uno borra el otro (así nunca hay dos precios distintos para lo mismo).
+ */
+export function conPrecioCambiado(anterior = {}, campo, valor) {
+  const nuevo = { efectivo: null, tarjeta: null, ...anterior, [campo]: valor };
+  if (campo === 'porKg' && valor !== null) nuevo.efectivo = null;
+  if (campo === 'efectivo' && valor !== null) delete nuevo.porKg;
+  if (campo === 'porKg' && valor === null) delete nuevo.porKg;
+  return nuevo;
+}
+
+/**
+ * Precio en efectivo o con tarjeta de un material en un proveedor; null si ese proveedor no lo tiene.
+ * v1.77: un hierro puede tener el precio por kilo (`porKg`) en vez de por barra.
+ */
 export function precioEn(item, proveedor, pago) {
   const p = item.precios?.[proveedor?.id];
-  if (!p || !esPrecio(p.efectivo)) return null;
-  if (pago !== 'tarjeta') return p.efectivo;
+  if (!p) return null;
+  const efectivo = esPrecio(p.efectivo) ? p.efectivo : precioBarraPorKg(item, p.porKg);
+  if (efectivo === null) return null;
+  if (pago !== 'tarjeta') return efectivo;
   if (esPrecio(p.tarjeta)) return p.tarjeta;
-  return Math.round(p.efectivo * (1 + (proveedor.recargoTarjeta ?? 0) / 100));
+  return Math.round(efectivo * (1 + (proveedor.recargoTarjeta ?? 0) / 100));
 }
 
 /**
@@ -116,7 +143,8 @@ function normalizarPrecios(precios, idsProveedores) {
   if (!precios || typeof precios !== 'object') return {};
   return Object.fromEntries(Object.entries(precios)
     .filter(([id, p]) => idsProveedores.has(id) && p && typeof p === 'object')
-    .map(([id, p]) => [id, { efectivo: esPrecio(p.efectivo) ? p.efectivo : null, tarjeta: esPrecio(p.tarjeta) ? p.tarjeta : null }]));
+    .map(([id, p]) => [id, { efectivo: esPrecio(p.efectivo) ? p.efectivo : null, tarjeta: esPrecio(p.tarjeta) ? p.tarjeta : null,
+      ...(esPrecio(p.porKg) ? { porKg: p.porKg } : {}) }])); // v1.77: $/kg (solo hierros)
 }
 
 /**

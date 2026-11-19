@@ -1,5 +1,6 @@
 // Tests de los pisos con tirantes de madera y machimbre (v1.42.1). Correr con: npm test
 import { describe, it, expect } from 'vitest';
+import { tablasDeMadera } from './maderaComercial.js';
 import { generarEstructura } from './estructura.js';
 import { calcularPresupuesto, CATALOGO_INICIAL } from './presupuesto.js';
 import { migrarParams } from './migracion.js';
@@ -17,7 +18,11 @@ describe('altillo con perfiles C y tirantes de madera con machimbre', () => {
     expect(e.piso2.tirantes.every((p) => p.madera)).toBe(true);
     expect(e.piso.tirantes.some((p) => p.madera)).toBe(false); // la planta baja sigue de hierro
     const metros = e.piso2.tirantes.reduce((a, p) => a + p.largo, 0);
-    expect(renglon(altillo, INSUMO.TIRANTE_MADERA_2).cantidad).toBeCloseTo(Math.ceil(metros * 10 - 1e-9) / 10, 6);
+    // v1.77: en tablas de largo comercial (ver maderaComercial.test.js): los metros comprados = los de las tablas.
+    const r = renglon(altillo, INSUMO.TIRANTE_MADERA_2);
+    expect(r.cantidad).toBeCloseTo(tablasDeMadera(e.piso2.tirantes.map((p) => p.largo)).metros, 6);
+    expect(r.cantidad).toBeGreaterThanOrEqual(metros);
+    expect(r.tablas.length).toBeGreaterThan(0);
     expect(renglon(altillo, INSUMO.PISO_2).cantidad).toBe(0); // sin barras de perfil para los tirantes
     expect(renglon(altillo, INSUMO.TRANSVERSAL_PISO_2).cantidad).toBeGreaterThan(0); // las C siguen
   });

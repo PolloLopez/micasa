@@ -3,7 +3,7 @@
 Última limpieza: 2026-11-11 (v1.49.0). Espejo en Trello: tablero "Desarrollo", tarjetas `[CALC]`.
 
 ## 📌 Estado y próximos pasos (11/11)
-**En GitHub: hasta v1.61.0. v1.62.0 a v1.76.0 por subir** (desde v1.54 el deploy es automático al pushear). Manual de uso para chequear: `MANUAL.md`.
+**En GitHub: hasta v1.61.0. hasta v1.76.0 (18/11). v1.77.0 por subir** (desde v1.54 el deploy es automático al pushear). Manual de uso para chequear: `MANUAL.md`.
 
 🟡 **Para chequear en pantalla** (probado con tests, no visto): el sol con "Ver adentro" entra solo por las aberturas;
 la persona se sienta en el sillón y se acuesta en la cama; las puertas de los tabiques se abren al pasar.
@@ -277,12 +277,11 @@ barra por proveedor, flete con "gratis desde", lista de materiales con kilos, pl
 ### 🟡 Conviene
 - ✅ v1.74.0 **Precios con fecha**: cada proveedor guarda cuándo se cargaron; aviso en el Presupuesto pasados 30 días y "Siguen iguales hoy".
 - ✅ v1.76.0 **Tabiques de Durlock**: soleras PGU en su renglón; tornillos T1/T2, cinta y masilla por m² de placa.
-- [ ] **Tirantes de madera** por metro (ya anotado en v1.43.0): comprarlos por largo comercial con el optimizador.
+- ✅ v1.77.0 **Tirantes de madera** por largo comercial (3,05 / 3,66 / 4,27 / 4,88 m) con el optimizador.
 - [ ] **Desperdicio de placas fijo en 10 %** (OSB y machimbre, `DESPERDICIO_PLACAS`): editable como el excedente de barras.
 - [ ] **Empalmes**: las piezas más largas que la barra se cortan en tramos, pero no se cuenta la unión (soldadura o
       cubrejunta). Mostrar cuántos empalmes hay en el resumen y, opcional, un renglón de refuerzos.
-- [ ] **Precio por kilo**: muchos corralones venden el hierro por kg; poder cargar $/kg y que la barra se calcule con
-      su peso (los kg por metro ya están).
+- ✅ v1.77.0 **Precio por kilo**: cada hierro se puede cotizar en $/kg por proveedor (la barra sale de su peso); "Poner a los N hierros" en la ficha del proveedor.
 
 ### 🟢 Detalles
 - ✅ v1.76.0 El OSB (o machimbre) del entrepiso descuenta el hueco de la escalera si sube por adentro del entrepiso. Falta: dibujar el hueco en el 3D y en el plano.
@@ -345,8 +344,7 @@ veredas; sol con animación del día; orden Terreno → Sol → Muebles.
   girar; separar "mover mueble" de "girar cámara".
 
 ## 🔴 Antes de considerar el presupuesto "de obra" (validar con el herrero)
-- [ ] Llevarle la hoja "Preguntas para el herrero" (Claude Docs, enlazada en la tarjeta de Trello) — antes,
-      Leandro actualiza su plano y se regenera con los valores de SU proyecto.
+- [ ] Llevarle la hoja nueva "Preguntas para el herrero y el durlero — Loft amueblado" (Claude Docs, 18/11, con los valores de tu proyecto) y cargar las respuestas en la app.
 - [ ] Supuestos de `constantes.js` y del modelo: ubicación de columnas, empalmes, perfil de cada renglón
       y separación de transversales.
 - [ ] Horizontales de pared: hoy NO se cortan en las aberturas (cálculo conservador: sobra material). ¿Se cortan en obra?
