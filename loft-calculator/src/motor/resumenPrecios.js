@@ -65,3 +65,35 @@ export function preciosCargados(proveedor, materiales) {
     sospechosos: conPrecio.filter((m) => precioEn(m, proveedor, 'efectivo') >= PRECIO_SOSPECHOSO).length,
   };
 }
+
+// ---------- fecha de los precios (v1.74) ----------
+// Pedido (PENDIENTES): "precios sin fecha: con la inflación se vencen rápido; guardar cuándo se actualizó cada
+// proveedor y avisar". Cada proveedor guarda `preciosAl` ('AAAA-MM-DD'): se pone sola al cargar o cambiar un precio
+// suyo, o a mano con "Siguen iguales hoy".
+
+/** Desde cuántos días un precio se considera viejo (con la inflación, un mes). */
+export const DIAS_PRECIO_VIEJO = 30;
+
+const esFecha = (f) => typeof f === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(f) && !Number.isNaN(Date.parse(f));
+const dia = (f) => Date.UTC(...f.split('-').map((n, i) => Number(n) - (i === 1 ? 1 : 0)));
+
+/**
+ * Qué tan viejos son los precios de un proveedor.
+ * @param hoyTexto 'AAAA-MM-DD' (hoy() de seguimiento.js; se pasa para poder testear)
+ * @returns {{ fecha, dias, vieja, texto }} o null si no tiene fecha (los cargados antes de v1.74)
+ */
+export function antiguedadDePrecios(proveedor, hoyTexto) {
+  const fecha = proveedor?.preciosAl;
+  if (!esFecha(fecha) || !esFecha(hoyTexto)) return null;
+  const dias = Math.max(0, Math.round((dia(hoyTexto) - dia(fecha)) / 86_400_000));
+  const [, m, d] = fecha.split('-');
+  const cuando = dias === 0 ? 'de hoy' : dias === 1 ? 'de ayer' : `del ${d}/${m} (hace ${dias} días)`;
+  return { fecha, dias, vieja: dias > DIAS_PRECIO_VIEJO, texto: `precios ${cuando}` };
+}
+
+/** Los proveedores activos con precios viejos (para el aviso del Presupuesto). */
+export const proveedoresConPreciosViejos = (proveedores = [], hoyTexto) =>
+  proveedores.map((p) => ({ proveedor: p, antiguedad: antiguedadDePrecios(p, hoyTexto) })).filter((x) => x.antiguedad?.vieja);
+
+/** ¿Es una fecha válida para guardar? (validación al abrir un proyecto) */
+export const fechaDePreciosValida = esFecha;

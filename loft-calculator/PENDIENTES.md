@@ -3,7 +3,7 @@
 Última limpieza: 2026-11-11 (v1.49.0). Espejo en Trello: tablero "Desarrollo", tarjetas `[CALC]`.
 
 ## 📌 Estado y próximos pasos (11/11)
-**En GitHub: hasta v1.61.0. v1.62.0 a v1.73.0 por subir** (desde v1.54 el deploy es automático al pushear). Manual de uso para chequear: `MANUAL.md`.
+**En GitHub: hasta v1.61.0. v1.62.0 a v1.74.0 por subir** (desde v1.54 el deploy es automático al pushear). Manual de uso para chequear: `MANUAL.md`.
 
 🟡 **Para chequear en pantalla** (probado con tests, no visto): el sol con "Ver adentro" entra solo por las aberturas;
 la persona se sienta en el sillón y se acuesta en la cama; las puertas de los tabiques se abren al pasar.
@@ -15,7 +15,7 @@ Lo que falta, en orden de prioridad (detalle en cada sección de abajo):
    - 🟡 [ ] Validar los coeficientes con el herrero (y el rendimiento del antióxido con el pintor).
    - 🟢 [ ] Tornillos del Durlock por m² de placa de los tabiques (hoy solo paneles de paredes y techo).
 3. ✅ v1.50.0 **Seguimiento en el PDF y el Excel**.
-4. 🟡 **Precios con fecha** por proveedor y aviso de precios viejos (> 30 días).
+4. ✅ v1.74.0 **Precios con fecha** por proveedor y aviso de precios viejos (> 30 días).
 5. 🟡 **Tabiques de Durlock completos**: PGU (soleras) aparte de PGC (montantes), tornillos, cinta y masilla.
 6. ✅ v1.50.0 **Tabiques, mesadas, muebles, pilotines y zapatas en las plantas** (en pantalla y PDF).
    - 🟢 [ ] La escalera en la planta; cotas de los tabiques y muebles; los interiores también en la hoja "Plantas" del Excel.
@@ -23,6 +23,68 @@ Lo que falta, en orden de prioridad (detalle en cada sección de abajo):
 7. 🟢 Personas: subir y bajar la escalera, puertas de muebles (heladera, placard), esquivarse entre ellas.
    (✅ sentarse y acostarse: v1.49.0)
 8. 🟢 Mover mesadas y tabiques desde el 3D (hoy: muebles y aberturas); frenar la escalera en la pared.
+
+## 🔍 Auditoría del 18/11 (v1.74.0) — deuda técnica, rendimiento, UX/UI, seguridad y datos — sin arreglos aplicados
+Medido con el proyecto real ("Amueblada, casi definida", 9 proveedores, 84 piezas a mano), build de producción, Chromium.
+
+### Rendimiento
+- 🔴 [ ] **Cada letra que escribís en Obra (una nota, un pago) tarda ~250 ms** (tendría que ser < 50): se recalcula
+  TODA la obra. Causa: `aberturasValidas` (App.jsx) depende de `params` entero, así que al tocar el seguimiento cambia,
+  y con ella la estructura, el presupuesto, los 20 presupuestos de la comparación de proveedores, los planos y el 3D.
+  Arreglo de 1 línea: que dependa de `paramsObra` (como la estructura). Probado aparte: baja a ~210 ms.
+- 🔴 [ ] **La lista de compras pide el catálogo resuelto ~330 veces por render** (`precioEnProveedor` llama a
+  `resolverCatalogo(catalogo)` por cada renglón × proveedor). Arreglo: usar `catalogoResuelto` (ya existe). Lo metí yo en v1.72.
+- 🟡 [ ] **Todo el panel se vuelve a dibujar en cada cambio** (12.300 elementos en pantalla: las 8 pestañas y sus
+  sub-pestañas montadas + las hojas del PDF, 2.700). Lo que más pesa: los desplegables de perfil (`SelectorPerfil`,
+  ~20 ms por letra) y las filas de la lista de compras. Opciones simples: `memo` en los paneles pesados (requiere que
+  `cambiar` sea estable con `useCallback`) y montar las hojas del PDF solo al imprimir.
+- 🟡 [ ] **El 3D se dibuja 60 veces por segundo siempre**, aunque nada se mueva y aunque esté oculto ("Ocultar 3D"):
+  gasta batería en el celular y la notebook. Dibujar solo cuando cambia algo (cámara, piezas, personas caminando).
+- 🟡 [ ] **La comparación de proveedores no se actualiza** al cambiar el disco, el retazo mínimo o los empalmes
+  (`comparacion` en App.jsx no los tiene en sus dependencias; el presupuesto principal sí). Es un error de cuentas, no solo de velocidad.
+- 🟢 [ ] Un solo archivo JS de 1,5 MB (420 KB comprimido): carga en ~1,2 s. Separar Three.js y los planos
+  (`import()` dinámico) si se usa desde el celular con mala señal.
+- ✅ El motor es rápido: estructura 10 ms, presupuesto 4 ms, planos 3 ms, comparar revestimientos 33 ms (solo abierta).
+
+### Deuda técnica / código
+- 🟡 [ ] **App.jsx tiene 1.757 líneas, 31 `useMemo` y 200 constantes**: dos veces se rompió por usar algo antes de
+  definirlo (TDZ, v1.71/v1.72). Propuesta sin sobreingeniería: sacar los cálculos a hooks por tema
+  (`useObra` = estructura + presupuesto + proveedores; `useCompras` = lista, compras, partes; `useSubPestanasDeApp`)
+  y dejar App solo con el armado de pantalla. Un hook por archivo, con su test.
+- 🟡 [ ] **Las dependencias de los `useMemo` no se revisan**: hay 9 `eslint-disable … exhaustive-deps` pero el lint es
+  oxlint sin el plugin de hooks, así que nadie avisa (así pasó lo de la comparación de arriba). Activar `react-hooks` en `.oxlintrc.json`.
+- 🟡 [ ] **LoftCanvas.jsx tiene 2.472 líneas** (escena, personas, puertas, teclado, selección). Partir por tema
+  como ya se hizo con `personas3d.js` e `interiores3d.js`.
+- 🟢 [ ] `pesos()` está copiado en 16 archivos y `num()`/`cantidad()` en 7: un `formato.js` común (y todos iguales).
+- 🟢 [ ] `cambiar` es una función nueva en cada render: impide `memo` en los hijos (ver rendimiento).
+- ✅ 700 tests en 68 archivos; el motor está separado de la pantalla y testeado.
+
+### UX / UI (celular y compu)
+- 🟡 [ ] **En el celular la barra de sub-pestañas ocupa 2 o 3 renglones** (Estructura tiene 6 botones): un tercio de la
+  pantalla antes de ver un dato. Ya no queda pegada al bajar (arreglado en esta versión); falta decidir: nombres más
+  cortos en el celular ("Fundación") o un renglón deslizable.
+- 🟡 [ ] **La Lista de compras está en dos lugares** (Presupuesto → Lista de compras y Obra → Lista de compras): es la
+  misma, pero confunde. Dejarla en Obra y en el Presupuesto un botón "Ir a la lista de compras".
+- 🟡 [ ] **Las notas de ayuda de arriba de cada tarjeta son largas** y se repiten (Materiales repite la misma en cada
+  sub-pestaña). Dejar una línea y lo demás en "?" o plegado.
+- 🟡 [ ] El aviso amarillo "Ningún proveedor vende: Durlok, Hormigón de zapatas…" ocupa media pantalla en el Presupuesto
+  del celular: resumirlo ("7 materiales sin precio · ver") y que lleve a cargarlos.
+- 🟢 [ ] Abajo, las pestañas se cortan en el celular ("Estruc…", "Materi…", "$ 90…" en Obra).
+- 🟢 [ ] El nombre del proyecto arriba se corta ("Amueblada, ca") y el aviso verde de "archivo abierto" queda fijo hasta cerrarlo.
+- ✅ No hay desborde de costado a 390 px; todos los desplegables tienen estilo (v1.73); la lista de compras va en fichas.
+
+### Seguridad y datos
+- 🔴 [ ] **`C:\Users\LLopez\loft-calculator\.git-token.txt` sigue en tu compu** (93 bytes, del 13/11). Borralo y
+  revocá el token `claude-micasa` en GitHub → Settings → Developer settings (no lo leí).
+- 🟡 [ ] **El link de Compartir lleva todo el proyecto, también el seguimiento y las finanzas** (pagos, contratistas,
+  créditos, acreedores, lo que debés). Quien tenga el link de VER lo lee. Opción "Compartir sin la parte de plata".
+- 🟡 [ ] `npm audit`: 2 vulnerabilidades altas en **vite** y **source-map-js**, solo de desarrollo (el servidor local
+  `npm run dev`, no la app publicada). Arreglo: `npm audit fix` (sube vite a 8.3.3+) y correr los tests.
+- 🟢 [ ] Un link armado a propósito (comprimido) podría colgar la pestaña al abrirlo: limitar el tamaño al descomprimir.
+- 🟢 [ ] La carpeta `C:\Users\LLopez\loft-calculator` es una copia vieja del proyecto (de septiembre) con ~100
+  bundles: confunde con el repo de verdad (`C:\Users\LLopez\micasa`). Dejar solo los bundles o moverla.
+- ✅ Sin `innerHTML` ni `eval`; React escapa los textos; el JSON que se abre se valida y se migra; las reglas de
+  Firestore no dejan listar ni pisar sin la clave; la clave web de Firebase es pública por diseño.
 
 ## ✂️ Pedido del 16/11 (noche)
 - ✅ v1.64.0 Piezas eliminadas vistas en el 3D (fantasma) con sus datos; "Ver estructura de hierro" sin tabiques.
@@ -42,23 +104,23 @@ Lo que falta, en orden de prioridad (detalle en cada sección de abajo):
   - 🟢 [ ] Hoja de corte imprimible aparte (hoy sale con "Cortes" del PDF).
   - 🟢 [ ] Retazos del taller (cargar los que ya hay) — Leandro no lo eligió por ahora.
 - ✅ v1.69.0 Compras hechas (por material o ticket), gastado y falta en el Presupuesto, contratistas con sus trabajos.
-  - 🟡 [ ] Las compras en el PDF y el Excel (hoy solo en pantalla; el seguimiento sí sale).
+  - ✅ v1.74.0 Las compras en el PDF y el Excel (hoja "Compras").
   - 🟢 [ ] Una compra de hierro de un perfil que no está en la lista (otro proveedor, otra medida): hoy va como ticket.
 - ✅ v1.70.0 Proveedores descartados; partes de la obra terminadas y con extras.
-  - 🟡 [ ] Una parte terminada con su rubro de mano de obra (ej. Pilotines ↔ el trabajo de José): unirlos.
+  - ✅ v1.74.0 Una parte terminada con su rubro de mano de obra ("Parte de la obra" en el trabajo; la parte lo muestra y ofrece completarlo).
   - 🟢 [ ] Los accesorios generales (tornillería, electrodos…) no son de ninguna parte.
 - ✅ v1.71.0 Descontar o no las aberturas en cada revestimiento, con el ahorro en m² y $.
   - ✅ El lint revisa variables sin definir (no-undef) desde v1.72.0.
 - ✅ v1.72.0 Lista de compras para tildar (retirado / pagado), proveedor por renglón, precios solo de quien lo tiene,
   proveedor nuevo desde un material, perfil de la pieza por la lista de perfiles.
-  - 🟡 [ ] La lista de compras en el PDF y el Excel.
-  - 🟢 [ ] "Deshacer" una marca de la lista (hoy se borra la compra en Compras hechas).
+  - ✅ v1.74.0 La lista de compras en el PDF y el Excel (con "solo lo que falta" para ir al corralón).
+  - ✅ v1.74.0 "↶ Deshacer" la última marca de un renglón.
   - 🟡 [ ] En el Frente (A) de Leandro la faja de 2,40 m queda a 10 cm del borde del entrepiso (2,30 m): ¿se unifican
     (la faja a la altura del piso 2, o que el borde reemplace a la faja en ese tramo)? Decidir con Leandro.
 - ✅ v1.73.0 Sub-pestañas en Estructura, Paredes, Materiales, Instalaciones y Obra (siguen al 3D); estilo de todos los
   desplegables; lista de compras en fichas en el celular.
-  - 🟢 [ ] La barra de sub-pestañas podría quedar pegada arriba al bajar (como la de pestañas).
-  - 🟢 [ ] En "Fundación y terreno", ¿la Fundación primero? (hoy: Terreno, Obra civil, Fundación).
+  - ✅ v1.74.0 La barra de sub-pestañas queda pegada debajo de las pestañas (en la compu; en el celular no).
+  - ✅ v1.74.0 "Fundación, obra civil y terreno", en ese orden.
 - ✅ v1.63.0 Barra del 3D en grupos; cortes de hierro mejorados con retazos; tamaños y cortes de paneles; retazos de
   paneles entre paredes; sugerencia para correr las ventanas a las juntas.
   - 🟡 [ ] Paneles de placa fija (OSB, durlock): el despiece de cada placa (hoy solo la cantidad).
@@ -195,7 +257,7 @@ Mejoras propuestas (técnicas, sin cambios aplicados):
 
 ## v1.47.0 Seguimiento de la obra (pedido de Leandro 11/11)
 - ✅ Rubros con estado, contrato, fechas y pagos parciales; armar desde el presupuesto; resumen de la obra.
-  - 🟡 [ ] Seguimiento en el PDF y en el Excel (hoy solo en pantalla).
+  - ✅ Seguimiento en el PDF y en el Excel (ya salía desde v1.50; revisado en v1.74).
   - 🟢 [ ] Comprobantes (foto o PDF del recibo): necesita dónde guardarlos (Firebase Storage o Django).
   - 🟢 [ ] Si crece (varias obras, usuarios, comprobantes, historial), pasarlo a la app Django (opción B de Construcción Modular) y escribir el ADR.
 
@@ -215,8 +277,7 @@ barra por proveedor, flete con "gratis desde", lista de materiales con kilos, pl
       (perímetro de la sección x largo). Los coeficientes, a validar con el herrero.
 
 ### 🟡 Conviene
-- [ ] **Precios sin fecha** (con la inflación se vencen rápido): guardar cuándo se actualizó cada proveedor y avisar
-      "precios de hace más de 30 días" en el presupuesto y el PDF.
+- ✅ v1.74.0 **Precios con fecha**: cada proveedor guarda cuándo se cargaron; aviso en el Presupuesto pasados 30 días y "Siguen iguales hoy".
 - [ ] **Tabiques de Durlock**: soleras y montantes van en un mismo renglón con el mismo perfil; en obra la solera es
       PGU y el montante PGC. Faltan tornillos T1/T2, cinta y masilla por m² de placa.
 - [ ] **Tirantes de madera** por metro (ya anotado en v1.43.0): comprarlos por largo comercial con el optimizador.

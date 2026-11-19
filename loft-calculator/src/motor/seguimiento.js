@@ -59,6 +59,7 @@ export function rubroNuevo(rubros, { nombre, origen = '', quien = '' } = {}) {
     avance: 0, // v1.54: % hecho (a mano)
     cuotas: null, // v1.54: plan de cuotas (ver finanzas.js) o null si se paga suelto
     contratista: null, // v1.69: id de la lista de contratistas (o null)
+    parteObra: null, // v1.74: clave de la parte de la obra que es este trabajo (ej. 'pilotines'), o null
   };
 }
 
@@ -200,6 +201,7 @@ function validarRubro(r) {
   if (r.contratado !== null && !monto(r.contratado)) return 'El monto contratado no puede ser negativo';
   if (!fechaValida(r.fechaContrato) || !fechaValida(r.fechaFin)) return 'Fecha inválida';
   if (!Array.isArray(r.pagos)) return 'Pagos inválidos';
+  if (r.parteObra != null && !textoHasta(r.parteObra, 60)) return 'Parte de la obra inválida';
   if (r.avance !== undefined && !(Number.isFinite(r.avance) && r.avance >= 0 && r.avance <= 100)) return 'El avance va de 0 a 100 %';
   const plan = errorDelPlan(r.cuotas);
   if (plan) return plan;

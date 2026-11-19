@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.74.0] - 2026-11-18
+### Agregado
+- **Precios con fecha**: cada proveedor guarda cuándo se cargaron sus precios (se pone sola al cambiar uno). En su ficha
+  dice "precios del 12/11 (hace 6 días)" y, si pasaron más de 30 días, ⚠ y el Presupuesto avisa arriba con qué
+  proveedores. "Siguen iguales hoy" pone la fecha de hoy sin tocar los precios (`preciosAl`, motor/resumenPrecios.js).
+- **↶ Deshacer** en la lista de compras: borra la última marca (Retirado / Pagado) de ese renglón; una compra cargada a
+  mano no se toca (`ultimaDesdeLista`, `deshacerMarca`).
+- **Mano de obra de cada parte**: en el seguimiento, cada trabajo elige su "Parte de la obra" (ej. Pilotines ↔ el trabajo
+  de José). La parte muestra sus trabajos (quién, % hecho, pagado) y, si está terminada y el trabajo no llegó al 100 %,
+  "Marcar el trabajo terminado". También se une o se separa desde la parte (`rubro.parteObra`, `trabajosDeLaParte`).
+- **Compras en el PDF y el Excel**: la lista de compras por proveedor (con casilla para tildar a mano) y las compras
+  hechas; opción "solo lo que falta comprar" para llevarla al corralón. Hoja "Compras" en el Excel (`informeDeCompras`).
+- **Auditoría** de deuda técnica, rendimiento, UX/UI y seguridad en PENDIENTES.md (sin arreglos aplicados).
+### Cambiado
+- La barra de sub-pestañas queda **pegada debajo de las pestañas** al bajar (en la compu; en el celular no, para no tapar).
+- Estructura: "**Fundación, obra civil y terreno**", con la Fundación primero.
+
 ## [1.73.0] - 2026-11-17
 ### Agregado
 - **Sub-pestañas** dentro de cada pestaña (se ve una parte a la vez y se recuerda la última de cada una):

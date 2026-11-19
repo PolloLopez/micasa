@@ -13,6 +13,8 @@ import CampoNumero from './CampoNumero.jsx';
 import CampoSelect from './CampoSelect.jsx';
 import { MAS_BARATO, faltanPrecios, usaPlanDeCompra, textoPedido, cantidadPedida, kilosDeMateriales, textoDeMateriales } from '../motor/proveedores.js';
 import { useEstadoGuardado } from '../hooks/useEstadoGuardado.js';
+import { proveedoresConPreciosViejos, DIAS_PRECIO_VIEJO } from '../motor/resumenPrecios.js';
+import { hoy } from '../motor/seguimiento.js';
 import Tarjeta from './Tarjeta.jsx';
 import CierrePresupuesto from './CierrePresupuesto.jsx';
 import { BotonResaltar } from './Resaltar.jsx';
@@ -394,6 +396,9 @@ export default function TablaPresupuesto({
   const [subpestana, setSubpestana] = useEstadoGuardado('subpestanaPresupuesto', 'materiales',
     (v) => SUBPESTANAS.some((t) => t.clave === v));
   const conPlan = usaPlanDeCompra(plan, proveedores.length);
+  // v1.74: los proveedores con que se calcula (el plan de compra o el elegido) y sus precios viejos.
+  const idsUsados = new Set(conPlan ? plan.compras.map((c) => c.proveedor.id) : [proveedor]);
+  const viejos = proveedoresConPreciosViejos(proveedores.filter((p) => idsUsados.has(p.id)), hoy());
   const totalObra = conPlan ? plan.total : total;
   const kilos = kilosDeMateriales(materiales);
   const nombreProveedor = proveedor === MAS_BARATO ? 'lo más barato de cada material' : proveedores.find((p) => p.id === proveedor)?.nombre;
@@ -437,6 +442,15 @@ export default function TablaPresupuesto({
 
       {cierre && resultadoCierre && cambiar && (
         <CierrePresupuesto cierre={cierre} resultado={resultadoCierre} medidas={medidasCierre} cambiar={cambiar} />
+      )}
+
+      {/* v1.74: aviso si el presupuesto usa precios de más de un mes (se cargan en Materiales → Proveedores). */}
+      {viejos.length > 0 && (
+        <p className="aviso-precios falta">
+          ⚠ Precios de más de {DIAS_PRECIO_VIEJO} días: {viejos.map((v) => `${v.proveedor.nombre} (${v.antiguedad.dias} días)`).join(', ')}.
+          Con la inflación el total puede quedar corto: pedí la lista nueva o, si no cambiaron, tocá "Siguen iguales hoy" en
+          Materiales → Proveedores.
+        </p>
       )}
 
       <BarraSubpestanas activa={subpestana} onElegir={setSubpestana} />

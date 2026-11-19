@@ -107,6 +107,7 @@ function normalizarProveedor(p) {
     flete: esMonto(p.flete) ? p.flete : 0,
     fleteGratisDesde: esMonto(p.fleteGratisDesde) ? p.fleteGratisDesde : 0,
     descartado: p.descartado === true, // v1.70
+    preciosAl: typeof p.preciosAl === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(p.preciosAl) ? p.preciosAl : '', // v1.74: cuándo se cargaron sus precios
   };
 }
 

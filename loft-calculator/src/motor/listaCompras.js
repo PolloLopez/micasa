@@ -18,8 +18,10 @@
 import { precioEn, NINGUNO } from './proveedores.js';
 import { parteDeItem, PARTES_FIJAS } from './partesObra.js';
 import { cuentasDeCompra } from './compras.js';
+import { cantidadPedida } from './proveedores.js';
 import { hoy } from './seguimiento.js';
 
+export const NOTA_LISTA = 'Desde la lista de compras'; // v1.74: así se reconocen las compras anotadas desde la lista (para deshacer)
 export const PROPIO = 'propio'; // instalaciones y extras: tienen su propio precio (no van por proveedor)
 
 const redondo = (n) => Math.round(n * 100) / 100;
@@ -111,7 +113,7 @@ export function compraDesdeLista(compras, fila, cantidad, nombreProveedor, pagad
   const id = Math.max(0, ...compras.map((c) => c.id)) + 1;
   const monto = Math.round(cantidad * (fila.precio ?? 0));
   return {
-    id, fecha, proveedor: nombreProveedor, nota: 'Desde la lista de compras', pagada, faltaPagar: pagada ? 0 : monto,
+    id, fecha, proveedor: nombreProveedor, nota: NOTA_LISTA, pagada, faltaPagar: pagada ? 0 : monto,
     renglones: [{ id: 1, material: fila.clave, renglon: fila.id, nombre: fila.material, cantidad, unidad: fila.unidad, monto, para: fila.parteNombre }],
   };
 }
@@ -119,4 +121,61 @@ export function compraDesdeLista(compras, fila, cantidad, nombreProveedor, pagad
 /** Marca como pagadas las compras sin pagar de un renglón (lo retirado que se debía). */
 export function pagarRetirado(compras, idRenglon) {
   return compras.map((c) => (!c.pagada && c.renglones.some((r) => r.renglon === idRenglon) ? { ...c, pagada: true, faltaPagar: 0 } : c));
+}
+
+// ---------- deshacer (v1.74) ----------
+// Pedido (PENDIENTES v1.72): "deshacer una marca de la lista" (antes había que ir a Compras hechas y borrarla).
+
+/** La última compra que se anotó desde la lista para ese renglón (la que "Deshacer" borra), o null. */
+export function ultimaDesdeLista(compras = [], idRenglon) {
+  const deLaLista = compras.filter((c) => c.nota === NOTA_LISTA && c.renglones.length === 1 && c.renglones[0].renglon === idRenglon);
+  return deLaLista.reduce((ultima, c) => (!ultima || c.id > ultima.id ? c : ultima), null);
+}
+
+/** Las compras sin la última marca de ese renglón (si la compra se editó a mano y tiene más renglones, no se toca). */
+export function deshacerMarca(compras = [], idRenglon) {
+  const ultima = ultimaDesdeLista(compras, idRenglon);
+  return ultima ? compras.filter((c) => c.id !== ultima.id) : compras;
+}
+
+// ---------- para el PDF y el Excel (v1.74) ----------
+// Pedido (PENDIENTES v1.69 / v1.72): "las compras y la lista de compras en el PDF y el Excel" (para llevarla al corralón).
+
+const num = (n) => n.toLocaleString('es-AR', { maximumFractionDigits: 2 });
+
+/** El estado de un renglón en palabras (lo usan la pantalla, el PDF y el Excel). @returns [texto, clase] */
+export function estadoDeFila(f) {
+  if (f.terminada) return ['✓ parte terminada', 'ok'];
+  if (f.sinPagar > 0) return [`retirado ${num(f.sinPagar)} sin pagar${f.falta > 0 ? ` · faltan ${num(f.falta)}` : ''}`, 'debe'];
+  if (f.retirado > 0 && f.falta === 0) return ['✓ comprado y pagado', 'ok'];
+  if (f.retirado > 0) return [`${num(f.retirado)} de ${num(f.cantidad)} · faltan ${num(f.falta)}`, 'parcial'];
+  return ['falta', 'falta'];
+}
+
+/**
+ * La lista de compras (por proveedor) y las compras hechas, listas para imprimir.
+ * @param filas  filasDeLaLista(…)
+ * @param soloFalta  true = solo lo que falta comprar o se debe (la lista para ir a comprar)
+ */
+export function informeDeCompras(filas = [], proveedores = [], compras = [], soloFalta = false) {
+  const visibles = soloFalta ? filas.filter((f) => f.falta > 0 || f.sinPagar > 0) : filas;
+  const grupos = agruparLista(visibles, proveedores).map((g) => ({
+    nombre: g.nombre, total: g.total, falta: g.falta, sinPagar: g.sinPagar,
+    filas: g.partes.flatMap((p) => p.filas.map((f) => ({
+      material: f.material, uso: f.nombre, parte: p.nombre,
+      cantidad: cantidadPedida({ cantidad: f.cantidad, unidad: f.unidad, largoBarra: f.largoBarra }),
+      falta: f.falta, unidad: f.unidad, subtotal: f.subtotal, estado: estadoDeFila(f)[0],
+    }))),
+  }));
+  const hechas = [...compras].sort((a, b) => a.fecha.localeCompare(b.fecha) || a.id - b.id).map((c) => {
+    const cuentas = cuentasDeCompra(c);
+    return {
+      fecha: c.fecha, proveedor: c.proveedor || 'Sin proveedor', nota: c.nota ?? '',
+      que: c.renglones.map((r) => (r.material ? `${num(r.cantidad)} ${r.unidad} ${r.nombre}` : r.nombre || 'ticket')).join(', '),
+      total: cuentas.total, pagado: cuentas.pagado, falta: cuentas.falta,
+    };
+  });
+  const totales = agruparLista(filas, proveedores).reduce((a, g) => ({ total: a.total + g.total, falta: a.falta + g.falta, sinPagar: a.sinPagar + g.sinPagar }),
+    { total: 0, falta: 0, sinPagar: 0 });
+  return { totales, grupos, compras: hechas, gastado: hechas.reduce((a, c) => a + c.pagado, 0), debe: hechas.reduce((a, c) => a + c.falta, 0) };
 }

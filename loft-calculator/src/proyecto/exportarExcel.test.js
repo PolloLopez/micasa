@@ -78,4 +78,20 @@ describe('libro de la obra', () => {
     const bytes = libroDeObra(datosDeEjemplo());
     expect(bytes.length).toBeGreaterThan(5000);
   });
+
+  it('v1.74: hoja "Compras" con la lista por proveedor y las compras hechas', () => {
+    const compras = {
+      totales: { total: 1000, falta: 600, sinPagar: 100 }, gastado: 400, debe: 100,
+      grupos: [{ nombre: 'Rionda', total: 1000, falta: 600, sinPagar: 100,
+        filas: [{ material: 'Caño 80x80', uso: 'Columnas', parte: 'Paredes', cantidad: '4 barras de 6 m', falta: 2, subtotal: 1000, estado: 'falta' }] }],
+      compras: [{ fecha: '2026-11-17', proveedor: 'Rionda', nota: '', que: '2 barra Caño 80x80', total: 500, pagado: 400, falta: 100 }],
+    };
+    const hoja = hojasDeObra({ ...datosDeEjemplo(), compras }).find((h) => h.nombre === 'Compras');
+    const texto = celdas(hoja).flat().map((c) => (typeof c === 'object' && c ? c.pesos : c)).join('|');
+    expect(texto).toContain('Rionda');
+    expect(texto).toContain('4 barras de 6 m');
+    expect(texto).toContain('17/11/2026');
+    expect(hojasDeObra({ ...datosDeEjemplo(), compras }, { compras: false }).some((h) => h.nombre === 'Compras')).toBe(false);
+    expect(hojasDeObra(datosDeEjemplo()).some((h) => h.nombre === 'Compras')).toBe(false); // sin compras, no sale
+  });
 });

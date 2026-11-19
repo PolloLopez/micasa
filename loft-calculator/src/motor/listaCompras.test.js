@@ -1,6 +1,6 @@
 // Tests de la lista de compras (v1.72). Correr con: npm test
 import { describe, it, expect } from 'vitest';
-import { filasDeLaLista, agruparLista, compraDesdeLista, pagarRetirado } from './listaCompras.js';
+import { filasDeLaLista, agruparLista, compraDesdeLista, pagarRetirado, ultimaDesdeLista, deshacerMarca, informeDeCompras, estadoDeFila } from './listaCompras.js';
 import { planDeCompra, conProveedores, NINGUNO } from './proveedores.js';
 import { compradoPorMaterial, cuentasDeCompra } from './compras.js';
 
@@ -42,5 +42,38 @@ describe('lista de compras', () => {
   it('una parte terminada no tiene faltante', () => {
     const f = filasDeLaLista({ items, catalogo, proveedores, terminadas: ['paredes'] })[0];
     expect([f.parte, f.falta, f.terminada]).toEqual(['paredes', 0, true]);
+  });
+  it('deshacer: borra solo la última marca de ese renglón hecha desde la lista', () => {
+    const plan = planDeCompra(items, catalogo);
+    const fila = filasDeLaLista({ items, plan, catalogo, proveedores })[0];
+    let compras = [compraDesdeLista([], fila, 2, 'Hernandez', true, '2026-11-17')];
+    compras = [compraDesdeLista(compras, fila, 3, 'Hernandez', false, '2026-11-18'), ...compras];
+    const aMano = { id: 9, fecha: '2026-11-18', proveedor: 'X', nota: 'a mano', pagada: true, faltaPagar: 0,
+      renglones: [{ id: 1, material: 'perfil-1', renglon: fila.id, nombre: 'x', cantidad: 1, unidad: 'barra', monto: 1, para: '' }] };
+    compras = [aMano, ...compras];
+    expect(ultimaDesdeLista(compras, fila.id).id).toBe(2);
+    compras = deshacerMarca(compras, fila.id);
+    expect(compras.map((c) => c.id)).toEqual([9, 1]); // la cargada a mano no se toca
+    compras = deshacerMarca(compras, fila.id);
+    expect(compras.map((c) => c.id)).toEqual([9]);
+    expect(deshacerMarca(compras, fila.id)).toBe(compras); // ya no hay nada que deshacer
+    expect(ultimaDesdeLista(compras, 'otro')).toBeNull();
+  });
+});
+
+describe('informe de compras para el PDF y el Excel (v1.74)', () => {
+  it('lista por proveedor, las compras hechas por fecha y solo lo que falta si se pide', () => {
+    const plan = planDeCompra(items, catalogo);
+    const fila0 = filasDeLaLista({ items, plan, catalogo, proveedores })[0];
+    const compras = [compraDesdeLista([], fila0, 10, 'Hernandez', true, '2026-11-17')];
+    const filas = filasDeLaLista({ items, plan, catalogo, proveedores, compras });
+    const inf = informeDeCompras(filas, proveedores, compras);
+    expect(inf.compras).toHaveLength(1);
+    expect(inf.compras[0]).toMatchObject({ fecha: '2026-11-17', proveedor: 'Hernandez', pagado: inf.compras[0].total, falta: 0 });
+    expect(inf.grupos.flatMap((g) => g.filas).find((f) => f.uso === fila0.nombre).estado).toBe('✓ comprado y pagado');
+    const falta = informeDeCompras(filas, proveedores, compras, true);
+    expect(falta.grupos.flatMap((g) => g.filas).some((f) => f.uso === fila0.nombre)).toBe(false);
+    expect(falta.totales).toEqual(inf.totales); // los totales son de toda la lista
+    expect(estadoDeFila({ terminada: false, sinPagar: 0, retirado: 0, falta: 3 })[0]).toBe('falta');
   });
 });

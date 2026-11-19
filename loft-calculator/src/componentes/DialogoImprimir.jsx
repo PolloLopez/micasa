@@ -21,7 +21,9 @@ const GRUPOS = [
     ],
   },
   { titulo: 'Datos', partes: [['resumen', 'Datos de la obra'], ['presupuesto', 'Presupuesto'], ['cortes', 'Cómo cortar cada barra'],
-    ['seguimiento', 'Seguimiento de la obra: contratado, pagado, lo que falta, terreno y acreedores (pestaña Obra)']] },
+    ['seguimiento', 'Seguimiento de la obra: contratado, pagado, lo que falta, terreno y acreedores (pestaña Obra)'],
+    ['compras', 'Lista de compras por proveedor y compras hechas (pestaña Obra)'],
+    ['comprasSoloFalta', 'En la lista de compras, solo lo que falta comprar (para ir al corralón)']] },
   { titulo: 'Planos', partes: [['paredes', 'Paredes acotadas (las 4 juntas)'],
     ['paredesSinEstructura', 'Paredes solo con el contorno y las aberturas (sin la estructura ni sus medidas: para el proveedor de paneles)'],
     ['plantas', 'Piso, entrepiso y techo'],
@@ -45,11 +47,12 @@ export default function DialogoImprimir({ opciones, onCambiar, cantidadMedidas, 
     if (ventana && !ventana.open) ventana.showModal();
   }, []);
 
-  const algoParaPdf = Object.entries(opciones).some(([k, v]) => v && k !== 'cotas' && k !== 'paredesSinEstructura' && !k.startsWith('parte'));
-  const algoParaExcel = ['resumen', 'presupuesto', 'cortes', 'paredes', 'plantas', 'medidas', 'listaCanos', 'listaAberturas', 'seguimiento', 'instElectrica', 'instAgua', 'instDesague', 'instGas', 'instEquipos'].some((k) => opciones[k]);
+  const algoParaPdf = Object.entries(opciones).some(([k, v]) => v && k !== 'cotas' && k !== 'paredesSinEstructura' && k !== 'comprasSoloFalta' && !k.startsWith('parte'));
+  const algoParaExcel = ['resumen', 'presupuesto', 'cortes', 'paredes', 'plantas', 'medidas', 'listaCanos', 'listaAberturas', 'seguimiento', 'compras', 'instElectrica', 'instAgua', 'instDesague', 'instGas', 'instEquipos'].some((k) => opciones[k]);
   const deshabilitada = (clave) => (clave === 'medidas' && cantidadMedidas === 0)
     || (!esConstruccion && ['paredes', 'plantas', 'cotas', 'vistasFijas', 'vistasPartes', 'listaAberturas'].includes(clave))
-    || (clave === 'paredesSinEstructura' && !opciones.paredes); // v1.60: solo cambia cómo salen las paredes
+    || (clave === 'paredesSinEstructura' && !opciones.paredes) // v1.60: solo cambia cómo salen las paredes
+    || (clave === 'comprasSoloFalta' && !opciones.compras); // v1.74: solo cambia cómo sale la lista
 
   return (
     <dialog ref={ventanaRef} className="dialogo dialogo-imprimir no-print" aria-labelledby="imprimir-titulo"

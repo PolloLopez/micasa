@@ -62,7 +62,7 @@ function filasDePared(v, params, sinEstructura = false) {
 }
 
 /** Qué partes van, si no se dice (el Excel completo). */
-export const PARTES_EXCEL = { resumen: true, medidas: true, presupuesto: true, cortes: true, paredes: true, plantas: true, listaCanos: true, listaAberturas: true, seguimiento: true,
+export const PARTES_EXCEL = { resumen: true, medidas: true, presupuesto: true, cortes: true, paredes: true, plantas: true, listaCanos: true, listaAberturas: true, seguimiento: true, compras: true,
   instElectrica: true, instAgua: true, instDesague: true, instGas: true, instEquipos: true };
 
 /**
@@ -71,7 +71,7 @@ export const PARTES_EXCEL = { resumen: true, medidas: true, presupuesto: true, c
  * @param {object} datos { nombre, params, vistas: { paredes, plantas }, items, total, gruposCortes, proveedor, pago, resumen, medidas }
  * @param {object} partes { resumen, medidas, presupuesto, cortes, paredes, plantas } (true = va)
  */
-export function hojasDeObra({ nombre, params, vistas, items, total, gruposCortes = [], proveedor = '', pago = '', resumen = [], medidas = [], plan = null, materiales = [], aberturas = [], cierre = null, seguimiento = null, instalaciones = [] }, partes = PARTES_EXCEL) {
+export function hojasDeObra({ nombre, params, vistas, items, total, gruposCortes = [], proveedor = '', pago = '', resumen = [], medidas = [], plan = null, materiales = [], aberturas = [], cierre = null, seguimiento = null, instalaciones = [], compras = null }, partes = PARTES_EXCEL) {
   const fecha = new Date().toLocaleDateString('es-AR');
   const hojas = [];
 
@@ -229,6 +229,27 @@ export function hojasDeObra({ nombre, params, vistas, items, total, gruposCortes
       }
     }
     hojas.push({ nombre: 'Seguimiento', anchos: [34, 22, 14, 14, 14, 14, 12, 12], filas });
+  }
+
+  // v1.74: la lista de compras (por proveedor, con lo que falta) y las compras hechas.
+  if (partes.compras && compras && (compras.grupos.length || compras.compras.length)) {
+    const t = compras.totales;
+    const filas = [
+      { negrita: true, celdas: ['Lista de compras'] },
+      ['Total', { pesos: t.total }], ['Falta comprar', { pesos: t.falta }], ['Retirado sin pagar', { pesos: t.sinPagar }],
+      ['Ya gastado', { pesos: compras.gastado }], ['Debés de compras', { pesos: compras.debe }], [],
+    ];
+    compras.grupos.forEach((g) => {
+      filas.push({ negrita: true, celdas: [g.nombre, '', '', '', { pesos: g.total }, { pesos: g.falta }] });
+      filas.push({ negrita: true, celdas: ['Material', 'Para', 'Cantidad', 'Estado', 'Subtotal', 'Falta'] });
+      g.filas.forEach((f) => filas.push([f.material, `${f.parte} · ${f.uso}`, f.cantidad, f.estado, f.subtotal ? { pesos: f.subtotal } : '', f.falta]));
+      filas.push([]);
+    });
+    if (compras.compras.length) {
+      filas.push({ negrita: true, celdas: ['Compras hechas'] }, { negrita: true, celdas: ['Fecha', 'Proveedor', 'Qué', 'Nota', 'Total', 'Falta pagar'] });
+      compras.compras.forEach((c) => filas.push([fechaLegible(c.fecha), c.proveedor, c.que, c.nota, { pesos: c.total }, { pesos: c.falta }]));
+    }
+    hojas.push({ nombre: 'Compras', anchos: [36, 40, 18, 28, 14, 10], filas });
   }
 
   if (partes.cortes && gruposCortes.length) {

@@ -105,6 +105,17 @@ export function descuentoPorTerminadas(items, estructura, seguimiento = {}, obra
   return descuento;
 }
 
+// ---------- mano de obra de cada parte (v1.74) ----------
+// Pedido (PENDIENTES v1.70): "una parte terminada con su rubro de mano de obra (Pilotines ↔ el trabajo de José): unirlos".
+// El trabajo (rubro del seguimiento) guarda `parteObra` = la clave de la parte. La parte muestra sus trabajos y, si
+// está terminada y el trabajo no llegó al 100 %, ofrece completarlo.
+
+/** Los trabajos (rubros del seguimiento) unidos a una parte. */
+export const trabajosDeLaParte = (rubros = [], clave) => rubros.filter((r) => r.parteObra === clave);
+
+/** ¿La parte está terminada pero alguno de sus trabajos no llegó al 100 %? (para avisar y ofrecer completarlo) */
+export const trabajosSinTerminar = (rubros = [], clave) => trabajosDeLaParte(rubros, clave).filter((r) => (r.avance ?? 0) < 100);
+
 // ---------- extras ----------
 
 const siguienteId = (lista) => Math.max(0, ...lista.map((x) => x.id)) + 1;

@@ -1,6 +1,7 @@
 // Tests del resumen de precios de la pestaña Materiales (v1.65). Correr con: npm test
 import { describe, it, expect } from 'vitest';
-import { textoDePrecio, preciosCargados, preciosOrdenados } from './resumenPrecios.js';
+import { textoDePrecio, preciosCargados, preciosOrdenados, antiguedadDePrecios, proveedoresConPreciosViejos, DIAS_PRECIO_VIEJO } from './resumenPrecios.js';
+import { conProveedores } from './proveedores.js';
 import { MAS_BARATO } from './proveedores.js';
 
 const proveedores = [
@@ -39,5 +40,24 @@ describe('preciosCargados', () => {
   it('cuenta cuántos materiales de la obra tienen precio en el proveedor', () => {
     expect(preciosCargados(proveedores[0], [cano, sinNada])).toEqual({ cargados: 1, total: 2, sospechosos: 0 });
     expect(preciosCargados(proveedores[2], [cano, sinNada]).cargados).toBe(0);
+  });
+});
+
+describe('fecha de los precios (v1.74)', () => {
+  it('cuenta los días y avisa pasado el mes', () => {
+    expect(antiguedadDePrecios({ preciosAl: '' }, '2026-11-18')).toBeNull();
+    expect(antiguedadDePrecios({}, '2026-11-18')).toBeNull();
+    expect(antiguedadDePrecios({ preciosAl: '2026-11-18' }, '2026-11-18')).toMatchObject({ dias: 0, vieja: false, texto: 'precios de hoy' });
+    expect(antiguedadDePrecios({ preciosAl: '2026-11-17' }, '2026-11-18').texto).toBe('precios de ayer');
+    expect(antiguedadDePrecios({ preciosAl: '2026-10-19' }, '2026-11-18')).toMatchObject({ dias: DIAS_PRECIO_VIEJO, vieja: false });
+    expect(antiguedadDePrecios({ preciosAl: '2026-10-18' }, '2026-11-18')).toMatchObject({ dias: 31, vieja: true, texto: 'precios del 18/10 (hace 31 días)' });
+    // Cambio de horario o de año: los días se cuentan por fecha, no por horas.
+    expect(antiguedadDePrecios({ preciosAl: '2025-12-31' }, '2026-01-02').dias).toBe(2);
+  });
+  it('solo los viejos van al aviso; la fecha se guarda al abrir el proyecto (y una mala se descarta)', () => {
+    const lista = [{ id: 'a', nombre: 'Rionda', preciosAl: '2026-09-01' }, { id: 'b', nombre: 'Hernandez', preciosAl: '2026-11-10' }, { id: 'c', nombre: 'Sin' }];
+    expect(proveedoresConPreciosViejos(lista, '2026-11-18').map((v) => v.proveedor.nombre)).toEqual(['Rionda']);
+    const cat = conProveedores([], [{ id: 'p1', categoria: 'proveedor', nombre: 'X', preciosAl: '2026-11-01' }, { id: 'p2', categoria: 'proveedor', nombre: 'Y', preciosAl: 'ayer' }]);
+    expect(cat.filter((i) => i.categoria === 'proveedor').map((p) => p.preciosAl)).toEqual(['2026-11-01', '']);
   });
 });

@@ -178,8 +178,9 @@ cambia la cantidad y el presupuesto.
 - **Mano de obra por segmento** (en el mismo bloque): pilotines, estructura, revestimiento, tabiques, tapial, pozo
   séptico, electricista, plomero (y los que agregues). Elegís cómo cobra cada uno (monto, por m², por metro de tabique,
   por pilotín, por kg…) y te muestra cuánto da.
+- **Precios viejos**: cada proveedor dice de qué fecha son sus precios; pasados 30 días el Presupuesto avisa. Si le preguntaste y no cambiaron, tocá "Siguen iguales hoy" en su ficha.
 - **Lista de compras** (sub-pestaña, también en Obra): cada material por proveedor y por parte. Poné cuánto retiraste y
-  tocá **Retirado** (queda como deuda) o **Pagado** (se anota solo en Compras hechas); **Pagar lo retirado** salda la
+  tocá **Retirado** (queda como deuda) o **Pagado** (se anota solo en Compras hechas); **↶ Deshacer** borra la última marca si te equivocaste; **Pagar lo retirado** salda la
   deuda. En **Se lo compro a…** cambiás el proveedor de ese renglón, o "a nadie" si lo conseguís vos.
 - Sub-pestañas: **Lista de materiales** (para pedir), **Por proveedor**, **Cortes** (la hoja de corte: Barra 2.3 = grupo 2,
   barra 3; cada pieza con su letra, 2.3b, igual que en el 3D y en los planos; ⛓ = tramo de un empalme),
@@ -216,7 +217,9 @@ que los materiales y la pestaña "Presupuesto" muestra ese precio.
 
 - **Partes de la obra**: cada parte (Pilotines y zapatas, Paredes, Techo, el pozo…) con su casilla **Terminada**: lo
   que lleva ya no falta comprar. **+ Agregar a…** suma extras a esa parte (ej. 20 m de manguera de riego para el nivel,
-  tanza para alinear), que entran al presupuesto.
+  tanza para alinear), que entran al presupuesto. En **Mano de obra** ves el trabajo de esa parte (quién, % hecho,
+  pagado); con la parte terminada, **Marcar el trabajo terminado** lo pone al 100 %. El trabajo se une desde la parte
+  ("Unir un trabajo") o desde el seguimiento ("Parte de la obra").
 - **Compras hechas**: **+ Compra** (fecha y proveedor) y en cada renglón el material de la lista (ej. Cemento · 12
   bolsas · $ 150.000 · para Pilotines) u "Otro" para un ticket suelto. Queda pagada; si dejaste seña, destildá "Pagada
   entera" y poné cuánto falta. El Presupuesto muestra **ya gastado** y **falta comprar**, y la lista de materiales lo
@@ -243,6 +246,8 @@ que los materiales y la pestaña "Presupuesto" muestra ese precio.
 ---
 
 ## 8. Planos e Imprimir / Exportar
+
+- En **Imprimir / Exportar → Datos**: "Lista de compras por proveedor y compras hechas" (en el PDF y en la hoja *Compras* del Excel). Con "solo lo que falta comprar" sale la lista para llevar al corralón, con una casilla para tildar a mano.
 
 - **Planos**: cada pared y planta acotadas. Abajo de cada pared, la tabla de **tiras de panel** (ancho, qué pedir y qué
   cortar) y en el dibujo las juntas punteadas. Con **"Paredes para el proveedor de paneles"** quedan solo el contorno y las

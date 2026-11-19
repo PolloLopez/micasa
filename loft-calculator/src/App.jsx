@@ -52,11 +52,11 @@ import { resolverCatalogo, PERFIL_NUEVO, perfilesDeLista } from './motor/perfile
 import { proveedoresDe, aplicarProveedor, faltanPrecios, MAS_BARATO, planDeCompra, precioEn, masBaratoEn, totalDeLaObra, listaDeMateriales, kilosDeMateriales } from './motor/proveedores.js';
 import { cerrarPresupuesto } from './motor/cierre.js';
 import { useSinCambiosSalvo } from './hooks/useSinCambiosSalvo.js';
-import { partesDelPresupuesto, resumenSeguimiento, informeDeSeguimiento } from './motor/seguimiento.js';
+import { partesDelPresupuesto, resumenSeguimiento, informeDeSeguimiento, hoy } from './motor/seguimiento.js';
 import PanelSeguimiento from './componentes/PanelSeguimiento.jsx';
 import PanelCompras from './componentes/PanelCompras.jsx';
 import { resumenDeCompras } from './motor/compras.js';
-import { filasDeLaLista } from './motor/listaCompras.js';
+import { filasDeLaLista, informeDeCompras } from './motor/listaCompras.js';
 import ListaDeCompras from './componentes/ListaDeCompras.jsx';
 import { PARTES_FIJAS, partesDeLaObra, descuentoPorTerminadas, itemsDeExtras } from './motor/partesObra.js';
 import PanelPartesObra from './componentes/PanelPartesObra.jsx';
@@ -496,7 +496,7 @@ export default function App() {
     { clave: 'pisos', icono: '🟫', nombre: 'Pisos y entrepiso', tarjetas: ['pisos'] },
     { clave: 'escalera', icono: '🪜', nombre: 'Escalera', tarjetas: ['escalera'] },
     { clave: 'techo', icono: '🏠', nombre: 'Techo', tarjetas: ['techo'] },
-    { clave: 'fundacion', icono: '🧱', nombre: 'Fundación y terreno', tarjetas: ['fundacion', 'terreno', 'obraCivil'] },
+    { clave: 'fundacion', icono: '🧱', nombre: 'Fundación, obra civil y terreno', tarjetas: ['fundacion', 'obraCivil', 'terreno'] },
     { clave: 'piezas', icono: '✂️', nombre: 'Piezas a mano', marca: cantidadPiezasAMano || null, tarjetas: ['eliminadas'] },
   ];
   const opcionesParedes = [
@@ -671,6 +671,8 @@ export default function App() {
   // --- Proveedores y precios (v1.25) ---
   /** Precio de un material en un proveedor: campo 'efectivo' o 'tarjeta'; null = sin precio. */
   const cambiarPrecio = (idMaterial, idProveedor, campo, valor) => setCatalogo((prev) => prev.map((p) => {
+    // v1.74: el proveedor anota la fecha de sus precios (para avisar cuando tienen más de un mes).
+    if (p.id === idProveedor && p.categoria === 'proveedor') return { ...p, preciosAl: hoy() };
     if (p.id !== idMaterial) return p;
     const anterior = p.precios?.[idProveedor] ?? { efectivo: null, tarjeta: null };
     return { ...p, precios: { ...p.precios, [idProveedor]: { ...anterior, [campo]: valor } } };
@@ -987,6 +989,7 @@ export default function App() {
       plan: proveedores.length > 1 ? planCompra : null, materiales: listaMateriales, aberturas: aberturasValidas, cierre,
       seguimiento: informeDeSeguimiento(params.seguimiento, partesSeguimiento, params.finanzas),
       instalaciones, // v1.57
+      compras: informeDeCompras(filasCompra, proveedores, params.seguimiento?.compras ?? [], opcionesImpresion.comprasSoloFalta), // v1.74
     }, opcionesImpresion);
     const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const enlace = document.createElement('a');
@@ -1458,12 +1461,8 @@ export default function App() {
           </Tarjeta>
           </PanelSub>
 
-          {/* FUNDACIÓN Y TERRENO (v1.73: juntos en su sub-pestaña) */}
+          {/* FUNDACIÓN, OBRA CIVIL Y TERRENO (v1.73: juntos en su sub-pestaña; v1.74: la fundación primero) */}
           <PanelSub grupo="estructura" activa={subEstructuraVista} clave="fundacion">
-          {/* TERRENO (v1.32): el lote, dónde va la casa, pozo, árboles, accesos y el norte. */}
-          {moduloTerreno && <PanelTerreno params={params} unidad={unidad} cambiar={cambiar} implantacion={implantacion} onVerTerreno={verTerreno} />}
-          {/* v1.56: obra civil (pilotines hormigonados, tapial, pilar de luz, cámara y pozo). */}
-          {params.tipoProyecto === 'construccion' && <PanelObraCivil params={params} estructura={estructura} unidad={unidad} cambiar={cambiar} />}
           {/* FUNDACIÓN */}
           <Tarjeta id="fundacion" titulo="Fundación">
             <div className="grid-params">
@@ -1510,6 +1509,10 @@ export default function App() {
               </p>
             )}
           </Tarjeta>
+          {/* v1.56: obra civil (pilotines hormigonados, tapial, pilar de luz, cámara y pozo). */}
+          {params.tipoProyecto === 'construccion' && <PanelObraCivil params={params} estructura={estructura} unidad={unidad} cambiar={cambiar} />}
+          {/* TERRENO (v1.32): el lote, dónde va la casa, pozo, árboles, accesos y el norte. */}
+          {moduloTerreno && <PanelTerreno params={params} unidad={unidad} cambiar={cambiar} implantacion={implantacion} onVerTerreno={verTerreno} />}
           </PanelSub>
           </>)}
 
@@ -1733,8 +1736,8 @@ export default function App() {
             <BarraSubPestanas grupo="obra" opciones={opcionesObra} activa={subObra} onElegir={setSubObra} />
             <PanelSub grupo="obra" activa={subObra} clave="lista"><Tarjeta id="lista-compras" titulo="Lista de compras (tildar lo comprado)">{listaDeCompras}</Tarjeta></PanelSub>
             <PanelSub grupo="obra" activa={subObra} clave="compras"><PanelCompras params={params} materiales={listaConPrecioReal} proveedores={proveedores} totalMateriales={totalObra} terminado={terminado} cambiar={cambiar} /></PanelSub>
-            <PanelSub grupo="obra" activa={subObra} clave="partes"><PanelPartesObra params={params} partes={partesObra} cambiar={cambiar} /></PanelSub>
-            <PanelSub grupo="obra" activa={subObra} clave="seguimiento"><PanelSeguimiento params={params} partes={partesSeguimiento} precioObra={cierre.total} cambiar={cambiar} /></PanelSub>
+            <PanelSub grupo="obra" activa={subObra} clave="partes"><PanelPartesObra params={params} partes={partesObra} partesPresupuesto={partesSeguimiento} cambiar={cambiar} /></PanelSub>
+            <PanelSub grupo="obra" activa={subObra} clave="seguimiento"><PanelSeguimiento params={params} partes={partesSeguimiento} precioObra={cierre.total} cambiar={cambiar} partesObra={partesObra} /></PanelSub>
             <PanelSub grupo="obra" activa={subObra} clave="finanzas"><PanelFinanzas params={params} cambiar={cambiar} cambiarVarios={cambiarVarios} /></PanelSub>
           </section>
         </div>
@@ -1745,7 +1748,8 @@ export default function App() {
         leyenda3D={cartelResaltado ? `Resaltado en rosa — ${cartelResaltado.replace(' (fijado)', '')}` : null}
         resumen={resumen} items={items} total={total} gruposCortes={gruposCortes} vistas={vistas} params={params}
         plan={proveedores.length > 1 ? planCompra : null} materiales={listaMateriales} implantacion={implantacion} aberturas={aberturasValidas} cierre={cierre}
-        seguimiento={informeDeSeguimiento(params.seguimiento, partesSeguimiento, params.finanzas)} estructura={estructura} />
+        seguimiento={informeDeSeguimiento(params.seguimiento, partesSeguimiento, params.finanzas)} estructura={estructura}
+        compras={opcionesImpresion.compras ? informeDeCompras(filasCompra, proveedores, params.seguimiento?.compras ?? [], opcionesImpresion.comprasSoloFalta) : null} />
     </div>
     </ContextoFoco>
     </ContextoResaltado>

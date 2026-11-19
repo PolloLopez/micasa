@@ -10,6 +10,8 @@ export const OPCIONES_IMPRESION_INICIALES = {
   partePisos: true, parteEntrepiso: true, parteTecho: true, parteInteriores: true,
   // v1.50: lo contratado, lo pagado y lo que falta de la obra (sale si hay rubros cargados).
   seguimiento: true,
+  // v1.74: la lista de compras (por proveedor) y las compras hechas; "solo lo que falta" = la lista para ir a comprar.
+  compras: true, comprasSoloFalta: false,
   // v1.57: el plano de cada instalación con sus tramos y su lista de materiales (sale si tiene puntos).
   instElectrica: true, instAgua: true, instDesague: true, instGas: true,
   instEquipos: true, // v1.58: aires, salamandra y solar

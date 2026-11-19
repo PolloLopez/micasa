@@ -713,6 +713,9 @@ kbd {
 .subpestanas button:focus-visible { outline: 2px solid var(--acento); outline-offset: -2px; }
 .subpestanas .marca-sub { font-size: 0.68rem; font-weight: 700; padding: 0 6px; border-radius: 999px; background: var(--borde); color: var(--texto); }
 .subpestanas button.activa .marca-sub { background: rgba(255, 255, 255, 0.25); color: #fff; }
+.pestana > .subpestanas { position: sticky; top: var(--alto-pestanas, 64px); z-index: 3; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); }
+/* En el celular no se pega: con 2 o 3 renglones de botones taparía media pantalla al bajar (la barra de pestañas va abajo). */
+@media (max-width: 1000px) { .pestana > .subpestanas { position: static; box-shadow: none; } }
 .panel-sub { display: flex; flex-direction: column; gap: 16px; }
 .panel-sub.oculto-sub { display: none; }
 .panel-sub:empty { display: none; }
@@ -996,3 +999,14 @@ option { background: var(--tarjeta); color: var(--texto); }
 @media print {
   select, input[type="text"], input[type="number"], input[type="date"] { background: #fff; color: #000; border: none; padding: 0; }
 }
+
+/* v1.74: la mano de obra de cada parte y deshacer en la lista. */
+.trabajos-parte { margin: 4px 0 8px; padding-left: 18px; font-size: 0.85rem; }
+.trabajos-parte li { margin: 4px 0; }
+.trabajos-parte .btn-mini { margin-left: 6px; }
+.unir-trabajo { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; font-size: 0.8rem; color: var(--texto-suave); margin-bottom: 6px; }
+.btn-deshacer { border-style: dashed; }
+.aviso-precios { margin: 0 0 8px; padding: 6px 10px; border: 1px solid var(--peligro); border-radius: 8px; font-size: 0.82rem; }
+.fecha-precios .btn-mini { margin-left: 4px; }
+.tabla-impresion .casilla { width: 18px; text-align: center; }
+.bloque-compras .grupo-impresion { break-inside: avoid-page; }

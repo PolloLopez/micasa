@@ -112,6 +112,40 @@ function ListasDePlanos({ perfiles, aberturas }) {
   );
 }
 
+/** v1.74: la lista de compras (por proveedor) y las compras hechas en el PDF. */
+function InformeCompras({ informe, soloFalta }) {
+  const t = informe.totales;
+  return (
+    <div className="bloque-seguimiento bloque-compras">
+      <h2>Lista de compras{soloFalta ? ' (lo que falta)' : ''}</h2>
+      <p>Total {pesos(t.total)} · <strong>Falta comprar {pesos(t.falta)}</strong>{t.sinPagar > 0 ? ` · Retirado sin pagar ${pesos(t.sinPagar)}` : ''}
+        {' '}· Ya gastado {pesos(informe.gastado)}{informe.debe > 0 ? ` · Debés de compras ${pesos(informe.debe)}` : ''}</p>
+      {informe.grupos.map((g) => (
+        <div key={g.nombre} className="grupo-impresion">
+          <h3>{g.nombre} <small>{g.total > 0 ? `· ${pesos(g.total)}` : ''}{g.falta > 0 ? ` · falta ${pesos(g.falta)}` : ''}</small></h3>
+          <table className="tabla-impresion">
+            <thead><tr><th className="casilla">✓</th><th>Material</th><th>Para</th><th className="num">Cantidad</th><th>Estado</th><th className="num">Subtotal</th></tr></thead>
+            <tbody>{g.filas.map((f, i) => (
+              <tr key={i}><td className="casilla">☐</td><td>{f.material}</td><td>{f.parte} · {f.uso}</td><td className="num">{f.cantidad}</td>
+                <td>{f.estado}</td><td className="num">{f.subtotal ? pesos(f.subtotal) : ''}</td></tr>
+            ))}</tbody>
+          </table>
+        </div>
+      ))}
+      {informe.compras.length > 0 && (<>
+        <h3>Compras hechas</h3>
+        <table className="tabla-impresion">
+          <thead><tr><th>Fecha</th><th>Proveedor</th><th>Qué</th><th className="num">Total</th><th className="num">Falta pagar</th></tr></thead>
+          <tbody>{informe.compras.map((c, i) => (
+            <tr key={i}><td>{fechaLegible(c.fecha)}</td><td>{c.proveedor}</td><td>{c.que}{c.nota ? <small className="detalle"> ({c.nota})</small> : null}</td>
+              <td className="num">{pesos(c.total)}</td><td className="num">{c.falta > 0 ? pesos(c.falta) : '✓'}</td></tr>
+          ))}</tbody>
+        </table>
+      </>)}
+    </div>
+  );
+}
+
 /** v1.50: el seguimiento de la obra en el PDF. */
 function InformeSeguimiento({ informe }) {
   const r = informe.resumen;
@@ -166,7 +200,7 @@ function InformeSeguimiento({ informe }) {
 
 export default function HojasImpresion({
   opciones, capturas, nombre, subtitulo, leyenda3D, resumen, items, total, gruposCortes, vistas, params, plan = null, materiales = [], implantacion = null,
-  aberturas = [], cierre = null, seguimiento = null, estructura = null,
+  aberturas = [], cierre = null, seguimiento = null, estructura = null, compras = null,
 }) {
   const fotos = capturas ?? { actual: null, fijas: [], medidas: [] };
   const equiposPdf = materialesDeEquipos(params, estructura); // v1.58
@@ -276,6 +310,8 @@ export default function HojasImpresion({
           )}
           {/* v1.50: seguimiento de la obra (contratado, pagado y lo que falta, con los pagos de cada rubro). */}
           {opciones.seguimiento && (seguimiento?.rubros.length > 0 || seguimiento?.finanzas) && <InformeSeguimiento informe={seguimiento} />}
+          {/* v1.74: la lista de compras por proveedor y las compras hechas. */}
+          {opciones.compras && compras && (compras.grupos.length > 0 || compras.compras.length > 0) && <InformeCompras informe={compras} soloFalta={opciones.comprasSoloFalta} />}
           {/* v1.32: implantación (la casa en su lote), con las plantas. */}
           {conPlantas && implantacion && params.terreno?.activo && (
             <div className="bloque-implantacion plano-impresion">

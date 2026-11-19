@@ -14,15 +14,62 @@
 import Tarjeta from './Tarjeta.jsx';
 import FichaPlegable from './FichaPlegable.jsx';
 import CampoNumero from './CampoNumero.jsx';
-import { extraNuevo } from '../motor/partesObra.js';
+import { extraNuevo, trabajosDeLaParte } from '../motor/partesObra.js';
+import { cuentasDelRubro, estadoSegunAvance, hoy } from '../motor/seguimiento.js';
+import { esDeMateriales } from '../motor/compras.js';
 
 const pesos = (n) => n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
 const cantidad = (n) => n.toLocaleString('es-AR', { maximumFractionDigits: 2 });
 
 /**
- * @param partes partesDeLaObra(…) (con sus renglones, su obra civil, sus extras y si está terminada)
+ * v1.74: los trabajos (rubros del seguimiento) unidos a la parte: quién, cuánto está hecho y cuánto se pagó.
+ * Si la parte está terminada y el trabajo no llegó al 100 %, se ofrece completarlo. También se une uno que no tenga parte.
  */
-export default function PanelPartesObra({ params, partes, cambiar }) {
+function TrabajosDeLaParte({ parte, seguimiento, partesPresupuesto, cambiar }) {
+  const rubros = seguimiento.rubros ?? [];
+  const trabajos = trabajosDeLaParte(rubros, parte.clave);
+  const sueltos = rubros.filter((r) => !r.parteObra && !esDeMateriales(r));
+  const nombreDe = (r) => (seguimiento.contratistas ?? []).find((x) => x.id === r.contratista)?.nombre || r.quien || 'sin contratista';
+  const indice = (r) => rubros.findIndex((x) => x.id === r.id);
+  const unir = (id) => { const i = rubros.findIndex((x) => x.id === Number(id)); if (i >= 0) cambiar(`seguimiento.rubros.${i}.parteObra`)(parte.clave); };
+  const completar = (r) => cambiar(`seguimiento.rubros.${indice(r)}`)({ ...r, avance: 100, estado: estadoSegunAvance(100, r.estado), fechaFin: r.fechaFin || hoy() });
+  return (<>
+    <h4 className="subtitulo-pared">Mano de obra</h4>
+    {trabajos.length === 0 && <p className="vacio">Ningún trabajo unido a esta parte.</p>}
+    {trabajos.length > 0 && (
+      <ul className="trabajos-parte">
+        {trabajos.map((r) => {
+          const c = cuentasDelRubro(r, partesPresupuesto, seguimiento.compras);
+          const avance = Math.round(r.avance ?? 0);
+          return (
+            <li key={r.id}>
+              <strong>{r.nombre}</strong> · {nombreDe(r)} · {avance} % hecho · pagado {pesos(c.pagado)} de {pesos(c.contratado)}
+              {c.saldo > 0 && <span className="falta"> · falta {pesos(c.saldo)}</span>}
+              {parte.terminada && avance < 100 && (
+                <button type="button" className="btn-mini" onClick={() => completar(r)}>Marcar el trabajo terminado (100 %)</button>
+              )}
+              <button type="button" className="btn-mini" onClick={() => cambiar(`seguimiento.rubros.${indice(r)}.parteObra`)(null)}>Separar</button>
+            </li>
+          );
+        })}
+      </ul>
+    )}
+    {sueltos.length > 0 && (
+      <label className="unir-trabajo no-print">Unir un trabajo{' '}
+        <select value="" onChange={(e) => e.target.value && unir(e.target.value)}>
+          <option value="">elegir del seguimiento…</option>
+          {sueltos.map((r) => <option key={r.id} value={r.id}>{r.nombre} · {nombreDe(r)}</option>)}
+        </select>
+      </label>
+    )}
+  </>);
+}
+
+/**
+ * @param partes partesDeLaObra(…) (con sus renglones, su obra civil, sus extras y si está terminada)
+ * @param partesPresupuesto lo presupuestado de cada rubro (partesDelPresupuesto), para las cuentas de la mano de obra
+ */
+export default function PanelPartesObra({ params, partes, cambiar, partesPresupuesto = [] }) {
   const seguimiento = params.seguimiento ?? {};
   const terminadas = seguimiento.terminadas ?? [];
   const extras = seguimiento.extras ?? [];
@@ -58,6 +105,7 @@ export default function PanelPartesObra({ params, partes, cambiar }) {
                 {p.obraCivil && <li>{p.obraCivil.nombre}: {p.obraCivil.detalle} (cemento, arena, piedra y hierro de obra civil)</li>}
               </ul>
             )}
+            <TrabajosDeLaParte parte={p} seguimiento={seguimiento} partesPresupuesto={partesPresupuesto} cambiar={cambiar} />
             <h4 className="subtitulo-pared">Extras</h4>
             {p.extras.length === 0 && <p className="vacio">Nada agregado.</p>}
             {p.extras.map((x) => {

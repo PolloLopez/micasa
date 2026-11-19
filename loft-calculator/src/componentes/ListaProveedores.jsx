@@ -15,7 +15,8 @@ import CampoNumero from './CampoNumero.jsx';
 import FichaPlegable from './FichaPlegable.jsx';
 import { CampoPrecio } from './PreciosProveedores.jsx';
 import { LIMITES_RECARGO, LIMITES_FLETE, precioEn } from '../motor/proveedores.js';
-import { preciosCargados, PRECIO_SOSPECHOSO } from '../motor/resumenPrecios.js';
+import { preciosCargados, PRECIO_SOSPECHOSO, antiguedadDePrecios, DIAS_PRECIO_VIEJO } from '../motor/resumenPrecios.js';
+import { hoy } from '../motor/seguimiento.js';
 
 const pesos = (n) => n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
 
@@ -83,6 +84,7 @@ export default function ListaProveedores({ proveedores, materiales = [], idElegi
       <div className="lista-proveedores">
         {activos.map((p, i) => {
           const { cargados, total, sospechosos } = preciosCargados(p, materiales);
+          const antiguedad = antiguedadDePrecios(p, hoy()); // v1.74
           return (
             <FichaPlegable key={p.id} clave={`proveedor:${p.id}`} className="rubro ficha-proveedor"
               abiertaAlInicio={recienAgregado && i === activos.length - 1}
@@ -91,6 +93,9 @@ export default function ListaProveedores({ proveedores, materiales = [], idElegi
                   {p.id === idElegido ? 'elegido en el Presupuesto · ' : ''}{cargados} de {total} precios
                   {p.recargoTarjeta ? ` · tarjeta +${p.recargoTarjeta} %` : ''}{p.flete ? ` · flete ${pesos(p.flete)}` : ''}
                   {sospechosos > 0 ? ` · ⚠ ${sospechosos} precio${sospechosos === 1 ? '' : 's'} para revisar` : ''}
+                  {cargados > 0 && (antiguedad
+                    ? <span className={antiguedad.vieja ? 'falta' : ''}> · {antiguedad.vieja ? '⚠ ' : ''}{antiguedad.texto}</span>
+                    : ' · precios sin fecha')}
                 </small></>}
 >
               <div className="grid-params">
@@ -114,6 +119,17 @@ export default function ListaProveedores({ proveedores, materiales = [], idElegi
                     onChange={(e) => onActualizar(p.id, { nota: e.target.value })} />
                 </div>
               </div>
+              {/* v1.74: la fecha de los precios (se pone sola al cambiar uno; o a mano si siguen iguales). */}
+              {cargados > 0 && (
+                <p className={`nota fecha-precios${antiguedad?.vieja ? ' falta' : ''}`}>
+                  {antiguedad ? `${antiguedad.texto[0].toUpperCase()}${antiguedad.texto.slice(1)}.` : 'Estos precios no tienen fecha (se cargaron antes de que la app la guardara).'}
+                  {antiguedad?.vieja && ` Tienen más de ${DIAS_PRECIO_VIEJO} días: con la inflación, conviene pedir la lista nueva.`}{' '}
+                  {antiguedad?.dias !== 0 && (
+                    <button type="button" className="btn-mini no-print" onClick={() => onActualizar(p.id, { preciosAl: hoy() })}
+                      title="Si le preguntaste y no cambiaron, la fecha pasa a hoy sin tocar los precios">Siguen iguales hoy</button>
+                  )}
+                </p>
+              )}
               {onCambiarPrecio && materiales.length > 0 && (<>
                 <h4 className="subtitulo-pared">Precios en {p.nombre || 'este proveedor'}</h4>
                 <PreciosDelProveedor proveedor={p} materiales={materiales} onCambiarPrecio={onCambiarPrecio} />

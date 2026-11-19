@@ -1,6 +1,7 @@
 // Tests de las partes de la obra: terminadas y extras (v1.70). Correr con: npm test
 import { describe, it, expect } from 'vitest';
-import { partesDeLaObra, descuentoPorTerminadas, itemsDeExtras, extraNuevo, errorDeExtra } from './partesObra.js';
+import { partesDeLaObra, descuentoPorTerminadas, itemsDeExtras, extraNuevo, errorDeExtra, trabajosDeLaParte, trabajosSinTerminar } from './partesObra.js';
+import { rubroNuevo, validarSeguimiento } from './seguimiento.js';
 import { generarEstructura } from './estructura.js';
 import { calcularPresupuesto, CATALOGO_INICIAL } from './presupuesto.js';
 import { PARAMS_INICIALES as P, ABERTURAS_INICIALES } from './parametrosIniciales.js';
@@ -46,5 +47,21 @@ describe('extras de una parte', () => {
     // Terminada: los extras tampoco faltan.
     expect(descuentoPorTerminadas(its, e, { terminadas: ['pilotines'] }).get('extra:1')).toBe(20);
     expect(errorDeExtra({ ...extras[0], precio: -1 })).toBe('Precio inválido');
+  });
+});
+
+describe('mano de obra unida a cada parte (v1.74)', () => {
+  const jose = { ...rubroNuevo([], { nombre: 'Pilotines (José)' }), parteObra: 'pilotines', avance: 80 };
+  const pintor = { ...rubroNuevo([jose], { nombre: 'Pintura' }), avance: 100 };
+  it('la parte encuentra sus trabajos y avisa los que no llegaron al 100 %', () => {
+    expect(rubroNuevo([]).parteObra).toBeNull();
+    expect(trabajosDeLaParte([jose, pintor], 'pilotines').map((r) => r.nombre)).toEqual(['Pilotines (José)']);
+    expect(trabajosSinTerminar([jose, pintor], 'pilotines')).toHaveLength(1);
+    expect(trabajosSinTerminar([{ ...jose, avance: 100 }], 'pilotines')).toHaveLength(0);
+    expect(trabajosDeLaParte([jose], 'techo')).toEqual([]);
+  });
+  it('se valida el campo', () => {
+    expect(validarSeguimiento({ rubros: [jose, pintor] })).toEqual({});
+    expect(Object.keys(validarSeguimiento({ rubros: [{ ...jose, parteObra: 'x'.repeat(61) }] }))).toEqual(['seguimiento.rubros.0']);
   });
 });

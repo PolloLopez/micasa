@@ -9,28 +9,22 @@
 //   - Cantidad (de fábrica, lo que falta) + "Retirado" (queda como deuda) o
 //     "Pagado": crea sola la compra en Obra → Compras hechas.
 //   - "Pagar lo retirado": la deuda de ese renglón pasa a pagada.
+//   - v1.74: "↶ Deshacer": borra la última marca de ese renglón.
 // La usan el Presupuesto (sub-pestaña) y la pestaña Obra. Cuentas en
 // motor/listaCompras.js.
 // ==========================================================
 
 import { useState } from 'react';
-import { agruparLista, compraDesdeLista, pagarRetirado, PROPIO } from '../motor/listaCompras.js';
+import { agruparLista, compraDesdeLista, pagarRetirado, ultimaDesdeLista, deshacerMarca, estadoDeFila, PROPIO } from '../motor/listaCompras.js';
 import { NINGUNO, cantidadPedida } from '../motor/proveedores.js';
 import { useEstadoGuardado } from '../hooks/useEstadoGuardado.js';
 
 const pesos = (n) => n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
 const num = (n) => n.toLocaleString('es-AR', { maximumFractionDigits: 2 });
 
-/** El estado de un renglón en palabras (y su clase para el color). */
-function estadoDe(f) {
-  if (f.terminada) return ['✓ parte terminada', 'ok'];
-  if (f.sinPagar > 0) return [`retirado ${num(f.sinPagar)} sin pagar${f.falta > 0 ? ` · faltan ${num(f.falta)}` : ''}`, 'debe'];
-  if (f.retirado > 0 && f.falta === 0) return ['✓ comprado y pagado', 'ok'];
-  if (f.retirado > 0) return [`${num(f.retirado)} de ${num(f.cantidad)} · faltan ${num(f.falta)}`, 'parcial'];
-  return ['falta', 'falta'];
-}
+const estadoDe = estadoDeFila; // v1.74: la cuenta vive en el motor (también la usan el PDF y el Excel)
 
-function Fila({ f, proveedores, opcionesDe, onAsignar, onMarcar, onPagarRetirado }) {
+function Fila({ f, proveedores, opcionesDe, onAsignar, onMarcar, onPagarRetirado, ultima, onDeshacer }) {
   const [cantidad, setCantidad] = useState(null); // null = lo que falta
   const valor = cantidad ?? f.falta;
   const [texto, clase] = estadoDe(f);
@@ -64,6 +58,13 @@ function Fila({ f, proveedores, opcionesDe, onAsignar, onMarcar, onPagarRetirado
             onClick={() => { onMarcar(f, valor, true); setCantidad(null); }}>Pagado</button>
         </>)}
         {f.sinPagar > 0 && <button type="button" className="btn-mini" onClick={() => onPagarRetirado(f.id)}>Pagar lo retirado</button>}
+        {/* v1.74: deshacer la última marca de este renglón (borra esa compra de Compras hechas). */}
+        {ultima && (
+          <button type="button" className="btn-mini btn-deshacer" onClick={() => onDeshacer(f.id)}
+            title={`Borra la compra del ${ultima.fecha.split('-').reverse().join('/')}: ${num(ultima.renglones[0].cantidad)} ${ultima.pagada ? 'pagado' : 'retirado'}`}>
+            ↶ Deshacer {num(ultima.renglones[0].cantidad)} {ultima.pagada ? 'pagado' : 'retirado'}
+          </button>
+        )}
       </td>
     </tr>
   );
@@ -91,6 +92,7 @@ export default function ListaDeCompras({ filas, proveedores, compras, asignacion
     cambiar('seguimiento.compras')([compraDesdeLista(compras, f, cantidad, nombre, pagada), ...compras]);
   };
   const pagar = (idRenglon) => cambiar('seguimiento.compras')(pagarRetirado(compras, idRenglon));
+  const deshacer = (idRenglon) => cambiar('seguimiento.compras')(deshacerMarca(compras, idRenglon));
   const opcionesDe = (f) => proveedores.map((p) => {
     const precio = precioEnProveedor(f, p.id);
     return { id: p.id, texto: `${p.nombre}${precio !== null ? ` · ${pesos(precio)}` : ' (sin precio)'}` };
@@ -126,7 +128,8 @@ export default function ListaDeCompras({ filas, proveedores, compras, asignacion
                   <thead><tr><th>Material</th><th className="num">Cantidad</th><th>Estado</th><th>Se lo compro a</th><th className="no-print">Marcar</th></tr></thead>
                   <tbody>
                     {p.filas.map((f) => (
-                      <Fila key={f.id} f={f} proveedores={proveedores} opcionesDe={opcionesDe} onAsignar={asignar} onMarcar={marcar} onPagarRetirado={pagar} />
+                      <Fila key={f.id} f={f} proveedores={proveedores} opcionesDe={opcionesDe} onAsignar={asignar} onMarcar={marcar} onPagarRetirado={pagar}
+                        ultima={ultimaDesdeLista(compras, f.id)} onDeshacer={deshacer} />
                     ))}
                   </tbody>
                 </table>

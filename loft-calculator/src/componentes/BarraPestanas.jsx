@@ -8,7 +8,10 @@
 // total del presupuesto y lo pagado van como un dato chico abajo.
 // En el celular va fija abajo, con una más ("3D"). Accesible: role="tab" +
 // aria-selected; con el teclado se pasa de una a otra con ← y →.
+// v1.73.1: mide su alto y lo deja en --alto-pestanas (la barra de sub-pestañas se pega justo debajo).
 // ==========================================================
+
+import { useEffect, useRef } from 'react';
 
 /** Un ícono por sección (los emojis se ven en cualquier compu y celular, sin bajar nada). */
 const ICONOS = {
@@ -21,6 +24,17 @@ const ICONOS = {
  * @param activa   clave de la pestaña elegida
  */
 export default function BarraPestanas({ pestanas, activa, onElegir }) {
+  // El alto de la barra (cambia con el ancho del panel): las sub-pestañas se pegan debajo (App.css, --alto-pestanas).
+  const ref = useRef(null);
+  useEffect(() => {
+    const barra = ref.current;
+    if (!barra || typeof ResizeObserver === 'undefined') return undefined;
+    const medir = () => barra.parentElement?.style.setProperty('--alto-pestanas', `${barra.offsetHeight + 4}px`);
+    medir();
+    const observador = new ResizeObserver(medir);
+    observador.observe(barra);
+    return () => observador.disconnect();
+  }, []);
   /** ← / →: pasa a la pestaña de al lado (patrón de pestañas accesibles). */
   const alTeclear = (ev, i) => {
     const paso = ev.key === 'ArrowRight' ? 1 : ev.key === 'ArrowLeft' ? -1 : 0;
@@ -32,7 +46,7 @@ export default function BarraPestanas({ pestanas, activa, onElegir }) {
   };
 
   return (
-    <nav className="pestanas no-print" role="tablist" aria-label="Secciones del proyecto">
+    <nav ref={ref} className="pestanas no-print" role="tablist" aria-label="Secciones del proyecto">
       {pestanas.map((p, i) => (
         <button key={p.clave} id={`boton-${p.clave}`} type="button" role="tab"
           className={`pestana-boton${p.soloMovil ? ' solo-movil' : ''}`}

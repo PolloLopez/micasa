@@ -57,7 +57,7 @@ function Pago({ p, ruta, cambiar, onQuitar, plan, acreedores }) {
   );
 }
 
-function Rubro({ r, i, partes, acreedores, cambiar, onQuitar, abiertaAlInicio, contratistas = [], compras = [] }) {
+function Rubro({ r, i, partes, acreedores, cambiar, onQuitar, abiertaAlInicio, contratistas = [], compras = [], partesObra = [] }) {
   const ruta = `seguimiento.rubros.${i}`;
   const c = cuentasDelRubro(r, partes, compras);
   const contratista = contratistas.find((x) => x.id === r.contratista);
@@ -116,6 +116,18 @@ function Rubro({ r, i, partes, acreedores, cambiar, onQuitar, abiertaAlInicio, c
             </label>
           </div>
         )}
+        {/* v1.74: qué parte de la obra es este trabajo (Pilotines ↔ el trabajo de José): se ve en Obra → Partes. */}
+        {!esDeMateriales(r) && partesObra.length > 0 && (
+          <div className="group">
+            <label>Parte de la obra
+              <select value={r.parteObra ?? ''} onChange={(e) => cambiar(`${ruta}.parteObra`)(e.target.value || null)}>
+                <option value="">Ninguna en particular</option>
+                {partesObra.map((p) => <option key={p.clave} value={p.clave}>{p.nombre}</option>)}
+                {r.parteObra && !partesObra.some((p) => p.clave === r.parteObra) && <option value={r.parteObra}>{r.parteObra} (ya no está)</option>}
+              </select>
+            </label>
+          </div>
+        )}
         <CampoNumero etiqueta="Avance (cuánto está hecho)" sufijo="%" decimales={0} valor={r.avance ?? 0} onCambio={cambiarAvance} />
         {!r.origen && (
           <CampoNumero etiqueta="Presupuestado" sufijo="$" decimales={0} valor={r.presupuestado} onCambio={cambiar(`${ruta}.presupuestado`)} />
@@ -164,7 +176,7 @@ function Rubro({ r, i, partes, acreedores, cambiar, onQuitar, abiertaAlInicio, c
  * @param partes  lo que dice el presupuesto de cada parte (partesDelPresupuesto)
  * @param precioObra el precio de la obra (cierre), para comparar
  */
-export default function PanelSeguimiento({ params, partes, precioObra, cambiar }) {
+export default function PanelSeguimiento({ params, partes, precioObra, cambiar, partesObra = [] }) {
   const seguimiento = params.seguimiento ?? { rubros: [] };
   const rubros = seguimiento.rubros;
   const [recien, setRecien] = useState(null);
@@ -207,7 +219,7 @@ export default function PanelSeguimiento({ params, partes, precioObra, cambiar }
       {rubros.length === 0 && <p className="vacio">Todavía no hay rubros. Armalos desde el presupuesto o agregá uno a mano.</p>}
       {ordenados.map(({ r, i }) => (
         <Rubro key={r.id} r={r} i={i} partes={partes} acreedores={acreedores} cambiar={cambiar} onQuitar={() => quitar(r.id)} abiertaAlInicio={r.id === recien}
-          contratistas={contratistas} compras={compras} />
+          contratistas={contratistas} compras={compras} partesObra={partesObra} />
       ))}
       <div className="acciones-seguimiento">
         {faltanDelPresupuesto.length > 0 && (
