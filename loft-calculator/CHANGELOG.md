@@ -1,5 +1,12 @@
 # Changelog
 
+## [Sin versión] - 2026-11-19
+### Documentación
+- PENDIENTES.md ordenado y limpio: solo lo abierto (de 588 a 140 líneas), agrupado por tema y prioridad, con "Lo que
+  sigue" y "De tu lado"; se sacaron los ya resueltos que seguían abiertos (tabiques, aleros, norte, links de la nube,
+  accesorios calculados, total a la vista) y se juntaron los repetidos. Lo resuelto y el detalle de cada pedido quedó
+  tal cual en HISTORIAL-PENDIENTES.md (nada se perdió).
+
 ## [1.78.0] - 2026-11-18
 ### Cambiado
 - **El aviso de lo que no tiene precio es una sola línea** ("⚠ 12 materiales sin precio en ningún proveedor · no están

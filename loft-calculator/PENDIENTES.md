@@ -1,588 +1,140 @@
 # PENDIENTES — loft-calculator
 
-Última limpieza: 2026-11-11 (v1.49.0). Espejo en Trello: tablero "Desarrollo", tarjetas `[CALC]`.
+Última limpieza: **2026-11-19 (v1.78.0)**. Acá queda solo lo abierto, por tema y prioridad (🔴 importante ·
+🟡 conviene · 🟢 detalle). Lo resuelto y el detalle de cada pedido viejo: `HISTORIAL-PENDIENTES.md`; lo hecho en cada
+versión: `CHANGELOG.md`. Espejo en Trello: tablero "Desarrollo", tarjetas `[CALC]`.
 
-## 📌 Estado y próximos pasos (11/11)
-**En GitHub: hasta v1.61.0. hasta v1.76.0 (18/11). v1.77.0 a v1.78.0 por subir** (desde v1.54 el deploy es automático al pushear). Manual de uso para chequear: `MANUAL.md`.
+**En GitHub: hasta v1.78.0 (19/11)**; el deploy a https://pollolopez.github.io/micasa/ es automático al pushear.
+Manual: `MANUAL.md` y el doc "Pollo Calculator — Manual de usuario" (Claude Docs).
 
-🟡 **Para chequear en pantalla** (probado con tests, no visto): el sol con "Ver adentro" entra solo por las aberturas;
-la persona se sienta en el sillón y se acuesta en la cama; las puertas de los tabiques se abren al pasar.
+## 📌 Lo que sigue (orden sugerido)
+1. 🟡 **Lista de compras en un solo lugar** (hoy en Presupuesto y en Obra): dejarla en Obra y un botón desde el Presupuesto.
+2. 🟡 **Notas de ayuda cortas**: una línea arriba de cada tarjeta y el resto plegado (Materiales repite la misma en cada sub-pestaña).
+3. 🟡 **Desperdicio de placas editable** (OSB y machimbre, hoy fijo en 10 %), como el excedente de las barras.
+4. 🟡 **Lint de dependencias de los `useMemo`** (react-hooks en `.oxlintrc.json`): así se coló el error de la comparación.
+5. 🟡 **Partir `App.jsx`** (1.800 líneas) en pocos hooks por tema (`useObra`, `useCompras`…), con su test.
 
-Lo que falta, en orden de prioridad (detalle en cada sección de abajo):
-1. 🔴 **Validar con el herrero** los supuestos de obra (sección "Antes de considerar el presupuesto de obra") y
-   llevarle la hoja de preguntas: es lo que más cambia el número final.
-2. ✅ v1.48.0 **Consumibles automáticos** (electrodos, autoperforantes, sellador, antióxido) con coeficientes editables.
-   - 🟡 [ ] Validar los coeficientes con el herrero (y el rendimiento del antióxido con el pintor).
-   - ✅ v1.76.0 Tornillos del Durlock por m² de placa de los tabiques (T1 y T2, más cinta y masilla).
-3. ✅ v1.50.0 **Seguimiento en el PDF y el Excel**.
-4. ✅ v1.74.0 **Precios con fecha** por proveedor y aviso de precios viejos (> 30 días).
-5. ✅ v1.76.0 **Tabiques de Durlock completos**: PGU (soleras) aparte de PGC (montantes), tornillos, cinta y masilla (rendimientos editables, a validar con el durlero).
-6. ✅ v1.50.0 **Tabiques, mesadas, muebles, pilotines y zapatas en las plantas** (en pantalla y PDF).
-   - 🟢 [ ] La escalera en la planta; cotas de los tabiques y muebles; los interiores también en la hoja "Plantas" del Excel.
-   - 🟡 [ ] Baño de Leandro: si siguen sin poder entrar, mirar el aviso "puerta tapada" o mandar el link (Compartir) para revisarlo con su proyecto.
-7. 🟢 Personas: subir y bajar la escalera, puertas de muebles (heladera, placard), esquivarse entre ellas.
-   (✅ sentarse y acostarse: v1.49.0)
-8. 🟢 Mover mesadas y tabiques desde el 3D (hoy: muebles y aberturas); frenar la escalera en la pared.
+## 🙋 De tu lado (Leandro)
+- 🔴 [ ] Borrar `C:\Users\LLopez\loft-calculator\.git-token.txt` y revocar el token `claude-micasa` en GitHub
+  (Settings → Developer settings).
+- 🔴 [ ] Llevar la hoja **"Preguntas para el herrero y el durlero — Loft amueblado"** (Claude Docs, 18/11) y cargar las
+  respuestas en la app: es lo que más mueve el total.
+- 🔴 [ ] En centrosider.com.ar, **borrar los 7 precios de ejemplo** ("Borrar los de ejemplo" en su ficha) y cargar los
+  reales; cargar también los 12 materiales "sin precio" (el aviso del Presupuesto lleva a cada uno).
+- 🟡 [ ] Datos: el caño 40x40x1.6 tiene $ 11.111.111.111.111 en centrosider (sale ⚠); Vastek tiene 2 de 30 precios
+  (descartarlo si ya no se usa).
+- 🟡 [ ] Decidir: en el Frente (A) la faja de 2,40 m queda a 10 cm del borde del entrepiso (2,30 m): ¿se unifican?
+- 🟡 [ ] Decidir el empalme de fábrica: sobre apoyo (78 barras) o donde rinda más (77).
+- 🟡 [ ] Probar en vivo los links de la nube (crear, guardar con el de editar desde otro navegador, que el de ver no
+  guarde) y restringir la API key de Firebase a `pollolopez.github.io` y Firestore.
+- 🟢 [ ] La carpeta `C:\Users\LLopez\loft-calculator` es una copia vieja del proyecto (septiembre) con ~100 bundles:
+  dejar solo los bundles o moverla, para no confundirla con `C:\Users\LLopez\micasa`.
 
-## 🔍 Auditoría del 18/11 (v1.74.0) — deuda técnica, rendimiento, UX/UI, seguridad y datos — sin arreglos aplicados
-Medido con el proyecto real ("Amueblada, casi definida", 9 proveedores, 84 piezas a mano), build de producción, Chromium.
+## 🔨 Validar en obra (herrero, durlero, albañil) — todo va en la hoja de preguntas
+- 🔴 [ ] Perfiles de cada parte, ubicación de columnas, separaciones y uniones (red soldada, jerarquía, "medida vista").
+- 🔴 [ ] Horizontales de pared: hoy NO se cortan en las aberturas (sobra material). Reglas de vanos: columna dentro del
+  vano se corta; jamba a menos de 10 cm de una columna no se agrega.
+- 🔴 [ ] Rendimientos de obra civil (`RENDIMIENTOS` en obraCivil.js): ladrillos, secciones, panal del pozo, empalmes.
+- 🟡 [ ] Excedente de las barras de SU proveedor (1 % de fábrica), disco, retazo y cómo empalma.
+- 🟡 [ ] Consumibles (electrodos, autoperforantes, sellador, antióxido) y Durlock (T1, T2, cinta, masilla).
+- 🟡 [ ] Escalera: zanca, ángulos de apoyo, espesor del piso 2 (8 cm), columnas; tirantes de madera (2" x 5" / 2" x 6").
+- 🟡 [ ] Mesada (fondo al piso, patas del zócalo, travesaños; esquina de la L/U) y tabiques (montantes cortos sobre la
+  puerta, dintel, barras de 2,60 m).
 
-### Rendimiento
-- ✅ v1.74.1 **Cada letra que escribís en Obra (una nota, un pago) tarda ~250 ms** (ahora ~90 ms; la causa de fondo era `conPanelesExistentes`) (tendría que ser < 50): se recalcula
-  TODA la obra. Causa: `aberturasValidas` (App.jsx) depende de `params` entero, así que al tocar el seguimiento cambia,
-  y con ella la estructura, el presupuesto, los 20 presupuestos de la comparación de proveedores, los planos y el 3D.
-  Arreglo de 1 línea: que dependa de `paramsObra` (como la estructura). Probado aparte: baja a ~210 ms.
-- ✅ v1.74.1 **La lista de compras pide el catálogo resuelto ~330 veces por render** (`precioEnProveedor` llama a
-  `resolverCatalogo(catalogo)` por cada renglón × proveedor). Arreglo: usar `catalogoResuelto` (ya existe). Lo metí yo en v1.72.
-- 🟡 [ ] **Todo el panel se vuelve a dibujar en cada cambio** (12.300 elementos en pantalla: las 8 pestañas y sus
-  sub-pestañas montadas + las hojas del PDF, 2.700). Lo que más pesa: los desplegables de perfil (`SelectorPerfil`,
-  ~20 ms por letra) y las filas de la lista de compras. ✅ v1.74.1: los desplegables de perfil ya no rearman sus textos. Falta: `memo` en los paneles pesados (requiere que
-  `cambiar` sea estable con `useCallback`) y montar las hojas del PDF solo al imprimir.
-- ✅ v1.75.0 **El 3D se dibuja 60 veces por segundo siempre**, aunque nada se mueva y aunque esté oculto ("Ocultar 3D"):
-  gasta batería en el celular y la notebook. Dibujar solo cuando cambia algo (cámara, piezas, personas caminando).
-- ✅ v1.74.1 **La comparación de proveedores no se actualiza** al cambiar el disco, el retazo mínimo o los empalmes
-  (`comparacion` en App.jsx no los tiene en sus dependencias; el presupuesto principal sí). Es un error de cuentas, no solo de velocidad.
-- 🟢 [ ] Un solo archivo JS de 1,5 MB (420 KB comprimido): carga en ~1,2 s. Separar Three.js y los planos
-  (`import()` dinámico) si se usa desde el celular con mala señal.
-- ✅ El motor es rápido: estructura 10 ms, presupuesto 4 ms, planos 3 ms, comparar revestimientos 33 ms (solo abierta).
+## 👀 Para mirar en pantalla (probado con tests, no visto)
+- 🟡 [ ] El sol con "Ver adentro" entra solo por las aberturas; personas sentadas y acostadas; puertas de tabiques que
+  se abren al pasar; bisagra y riel del lado elegido.
+- 🟡 [ ] Con "al ras", el OSB apoya parejo; con tirantes apoyados, subir también el OSB del 3D.
+- 🟡 [ ] Baño de tu proyecto: si las personas siguen sin poder entrar, mirar el aviso "puerta tapada".
+- 🟢 [ ] La leyenda "Por perfil" sigue listando los montantes PGC con "Ver estructura de hierro" prendido.
 
-### Deuda técnica / código
-- 🟡 [ ] **App.jsx tiene 1.757 líneas, 31 `useMemo` y 200 constantes**: dos veces se rompió por usar algo antes de
-  definirlo (TDZ, v1.71/v1.72). Propuesta sin sobreingeniería: sacar los cálculos a hooks por tema
-  (`useObra` = estructura + presupuesto + proveedores; `useCompras` = lista, compras, partes; `useSubPestanasDeApp`)
-  y dejar App solo con el armado de pantalla. Un hook por archivo, con su test.
-- 🟡 [ ] **Las dependencias de los `useMemo` no se revisan**: hay 9 `eslint-disable … exhaustive-deps` pero el lint es
-  oxlint sin el plugin de hooks, así que nadie avisa (así pasó lo de la comparación de arriba). Activar `react-hooks` en `.oxlintrc.json`.
-- 🟡 [ ] **LoftCanvas.jsx tiene 2.472 líneas** (escena, personas, puertas, teclado, selección). Partir por tema
-  como ya se hizo con `personas3d.js` e `interiores3d.js`.
-- 🟢 [ ] `pesos()` está copiado en 16 archivos y `num()`/`cantidad()` en 7: un `formato.js` común (y todos iguales).
-- 🟢 [ ] `cambiar` es una función nueva en cada render: impide `memo` en los hijos (ver rendimiento).
-- ✅ 700 tests en 68 archivos; el motor está separado de la pantalla y testeado.
+## Presupuesto, precios y compras
+- 🟡 [ ] Empalmes: contar la unión (soldadura o cubrejunta) y mostrar cuántos hay; opcional, renglón de refuerzos.
+- 🟡 [ ] Desperdicio que no se arregla compartiendo (columnas de ~4,70 m en barras de 6 m): sugerir largo de barra o
+  usar los sobrantes en otro perfil compatible; retazos del taller y de otras obras.
+- 🟡 [ ] Instalaciones: precios de ejemplo solo en caños y cables; precios por proveedor (hoy una lista propia).
+- 🟢 [ ] PDF del presupuesto con número y "válido por N días"; hoja de corte imprimible aparte; PDF propio sin el navegador.
+- 🟢 [ ] Largos de la madera configurables (hoy 3,05 / 3,66 / 4,27 / 4,88 m); separación de tirantes según la luz.
+- 🟢 [ ] Una compra de hierro de un perfil que no está en la lista va como ticket; los accesorios generales no son de
+  ninguna parte de la obra.
+- 🟢 [ ] Flete por viaje (cada N barras o kg); proveedores compartidos entre proyectos; comparar "lo más barato" y el
+  plan cuando dan igual (sobra una fila).
+- 🟢 [ ] Bulonería, soldadura, pintura final, babetas y zinguería (hoy no se calculan).
 
-### UX / UI (celular y compu)
-- 🟡 [ ] **En el celular la barra de sub-pestañas ocupa 2 o 3 renglones** (Estructura tiene 6 botones): un tercio de la
-  pantalla antes de ver un dato. Ya no queda pegada al bajar (arreglado en esta versión); falta decidir: nombres más
-  cortos en el celular ("Fundación") o un renglón deslizable.
-- 🟡 [ ] **La Lista de compras está en dos lugares** (Presupuesto → Lista de compras y Obra → Lista de compras): es la
-  misma, pero confunde. Dejarla en Obra y en el Presupuesto un botón "Ir a la lista de compras".
-- 🟡 [ ] **Las notas de ayuda de arriba de cada tarjeta son largas** y se repiten (Materiales repite la misma en cada
-  sub-pestaña). Dejar una línea y lo demás en "?" o plegado.
-- ✅ v1.78.0 El aviso de "sin precio" es una línea; al abrirla, cada material lleva a su ficha en Materiales para cargar el precio.
-- 🟢 [ ] Abajo, las pestañas se cortan en el celular ("Estruc…", "Materi…", "$ 90…" en Obra).
-- 🟢 [ ] El nombre del proyecto arriba se corta ("Amueblada, ca") y el aviso verde de "archivo abierto" queda fijo hasta cerrarlo.
-- ✅ No hay desborde de costado a 390 px; todos los desplegables tienen estilo (v1.73); la lista de compras va en fichas.
+## Estructura, cortes y planos
+- 🟡 [ ] Escalera que atraviesa el entrepiso: el hueco con su marco en la estructura del piso 2 y dibujado en el 3D y el
+  plano (el OSB ya lo descuenta, v1.76); que llegue a un borde lateral; baranda (escalera y borde del entrepiso);
+  escalones compensados.
+- 🟡 [ ] Perfil por pared de columnas y horizontales; patrón "cada N columnas, una de otro perfil"; acortar horizontales
+  "desde / hasta" de la esquina; pegar una abertura en OTRA pared; "aplicar a todas las paredes".
+- 🟡 [ ] Comparar perfiles (100x100 contra 80x80) y el techo; escenarios completos guardados.
+- 🟢 [ ] Planos: escalera, pilotines y zapatas, mesadas y tabiques en la planta; cotas de interiores; escalonar cotas
+  juntas; interiores en la hoja "Plantas" del Excel; DXF para CAD.
+- 🟢 [ ] Riostras cortadas contra columnas (inglete); columnas del entrepiso contra las de pared; varias filas del medio
+  en el entrepiso; columnas del borde libre por borde.
+- 🟢 [ ] El 3D dibuja todo con el grosor de la lista; peso con tablas del fabricante; pieza editada con otro perfil
+  dibujada con ese perfil.
+- 🟢 [ ] Piezas eliminadas o editadas se reconocen por su posición: si una medida las mueve, el cambio deja de aplicarse.
 
-### Seguridad y datos
-- 🔴 [ ] **`C:\Users\LLopez\loft-calculator\.git-token.txt` sigue en tu compu** (93 bytes, del 13/11). Borralo y
-  revocá el token `claude-micasa` en GitHub → Settings → Developer settings (no lo leí).
-- ✅ v1.76.0 **El link de Compartir lleva todo el proyecto** → de fábrica va "sin la parte de plata" (pagos, compras, contratistas, finanzas).
-- ✅ v1.76.0 `npm audit fix`: vite 8.3.8 y source-map-js 1.2.3; 0 vulnerabilidades.
-- 🟢 [ ] Un link armado a propósito (comprimido) podría colgar la pestaña al abrirlo: limitar el tamaño al descomprimir.
-- 🟢 [ ] La carpeta `C:\Users\LLopez\loft-calculator` es una copia vieja del proyecto (de septiembre) con ~100
-  bundles: confunde con el repo de verdad (`C:\Users\LLopez\micasa`). Dejar solo los bundles o moverla.
-- ✅ Sin `innerHTML` ni `eval`; React escapa los textos; el JSON que se abre se valida y se migra; las reglas de
-  Firestore no dejan listar ni pisar sin la clave; la clave web de Firebase es pública por diseño.
+## Paneles y revestimientos
+- 🟡 [ ] Placas fijas (OSB, durlock): despiece de cada placa y aprovechar recortes.
+- 🟡 [ ] Paneles por caras (chapa/chapa, chapa/madera, SIP), cielorraso (revestimiento interior del techo), precio por
+  metro lineal para chapas a medida; colores por capa o por material.
+- 🟢 [ ] Tocar un panel del techo en el 3D (hoy solo las paredes).
 
-## ✂️ Pedido del 16/11 (noche)
-- ✅ v1.64.0 Piezas eliminadas vistas en el 3D (fantasma) con sus datos; "Ver estructura de hierro" sin tabiques.
-- ✅ v1.65.0 Materiales plegable, precios de cada proveedor en su ficha, "+ Agregar material"; tocar una tira de panel en el 3D.
-  - 🔴 [ ] Datos de Leandro: el Presupuesto calcula con **Vastek**, que tiene 2 de 30 precios: los hierros entran en $ 0.
-    Elegir otro proveedor o "el más barato", o cargar la lista de Vastek.
-  - 🟡 [ ] Datos de Leandro: Caño 40x40x1.6 tiene $ 11.111.111.111.111 en centrosider.com.ar (sale ⚠).
-  - 🟢 [ ] La leyenda de "Por perfil" sigue listando los montantes PGC con "Ver estructura de hierro" prendido.
-  - 🟢 [ ] Tocar un panel del techo (hoy solo las paredes).
-- ✅ v1.66.0 El borde del entrepiso sale en el plano de la pared donde apoya.
-- ✅ v1.67.0 Tiras partidas por aberturas (costado < 30 cm → dos pedazos + relleno), plano de cada panel con el lado que
-  superpone, cartel del 3D más chico y plegable.
-- ✅ v1.68.0 Pisos por piso (sin repetir en Uniones), hoja de corte numerada, empalmes sobre apoyo, disco y retazo
-  editables, revestimiento con ancho total y encastre, costado mínimo y tira angosta configurables, rellenos de recortes.
-  - 🟡 [ ] En la obra de Leandro, empalmes sobre apoyo: 78 barras (se tiran 3,54 m); donde rinda más: 77 (4,49 m).
-    Elegir el de fábrica.
-  - 🟢 [ ] Hoja de corte imprimible aparte (hoy sale con "Cortes" del PDF).
-  - 🟢 [ ] Retazos del taller (cargar los que ya hay) — Leandro no lo eligió por ahora.
-- ✅ v1.69.0 Compras hechas (por material o ticket), gastado y falta en el Presupuesto, contratistas con sus trabajos.
-  - ✅ v1.74.0 Las compras en el PDF y el Excel (hoja "Compras").
-  - 🟢 [ ] Una compra de hierro de un perfil que no está en la lista (otro proveedor, otra medida): hoy va como ticket.
-- ✅ v1.70.0 Proveedores descartados; partes de la obra terminadas y con extras.
-  - ✅ v1.74.0 Una parte terminada con su rubro de mano de obra ("Parte de la obra" en el trabajo; la parte lo muestra y ofrece completarlo).
-  - 🟢 [ ] Los accesorios generales (tornillería, electrodos…) no son de ninguna parte.
-- ✅ v1.71.0 Descontar o no las aberturas en cada revestimiento, con el ahorro en m² y $.
-  - ✅ El lint revisa variables sin definir (no-undef) desde v1.72.0.
-- ✅ v1.72.0 Lista de compras para tildar (retirado / pagado), proveedor por renglón, precios solo de quien lo tiene,
-  proveedor nuevo desde un material, perfil de la pieza por la lista de perfiles.
-  - ✅ v1.74.0 La lista de compras en el PDF y el Excel (con "solo lo que falta" para ir al corralón).
-  - ✅ v1.74.0 "↶ Deshacer" la última marca de un renglón.
-  - 🟡 [ ] En el Frente (A) de Leandro la faja de 2,40 m queda a 10 cm del borde del entrepiso (2,30 m): ¿se unifican
-    (la faja a la altura del piso 2, o que el borde reemplace a la faja en ese tramo)? Decidir con Leandro.
-- ✅ v1.73.0 Sub-pestañas en Estructura, Paredes, Materiales, Instalaciones y Obra (siguen al 3D); estilo de todos los
-  desplegables; lista de compras en fichas en el celular.
-  - ✅ v1.74.0 La barra de sub-pestañas queda pegada debajo de las pestañas (en la compu; en el celular no).
-  - ✅ v1.74.0 "Fundación, obra civil y terreno", en ese orden.
-- ✅ v1.63.0 Barra del 3D en grupos; cortes de hierro mejorados con retazos; tamaños y cortes de paneles; retazos de
-  paneles entre paredes; sugerencia para correr las ventanas a las juntas.
-  - 🟡 [ ] Paneles de placa fija (OSB, durlock): el despiece de cada placa (hoy solo la cantidad).
-  - 🟢 [ ] Retazos de hierro de un grupo usados en otro perfil compatible (hoy cada perfil por su lado).
+## Interiores (mesadas, tabiques, muebles)
+- 🟢 [ ] Mesada: bacha bajo mesada o apoyada; anafe y horno empotrados como huecos.
+- 🟢 [ ] Tabiques: unirlos en L; cerramiento de ducha de vidrio; puertas de abrir dibujadas entreabiertas con su barrido.
+- 🟢 [ ] Mover y girar mesadas y tabiques desde el 3D; elegirlos por sus placas; frenar la escalera en la pared al moverla.
+- 🟢 [ ] Muebles: foto del frente; muebles en el plano; apoyar un electrodoméstico chico sobre una mesada; más equipos
+  (microondas, lavavajillas, termotanque, estufa); puertas de muebles que se abren.
 
-## 🎨 Pedido del 16/11 (tarde)
-- ✅ v1.62.0 Un color por hierro de fábrica; ver estructura de hierro sin personas, perros, mesadas ni instalaciones;
-  pestañas rediseñadas; ancho del 3D regulable.
-  - 🟡 [ ] Revisar con Leandro el resto de la barra del 3D (los botones también fueron creciendo: agrupar en menús).
+## Instalaciones, equipos, terreno y sol
+- 🟡 [ ] Tes y derivaciones (hoy cada tramo es punto a punto); cálculo de la correa que aguanta el solar.
+- 🟡 [ ] Probar el terreno con un lote real (medidas, orientación, retiros de Mercedes).
+- 🟢 [ ] Mover puntos de instalación desde el 3D; pendiente de los desagües; ambientes con nombre (para los aires).
+- 🟢 [ ] Lugar del sol editable (hoy Mercedes); sombras en el PDF; vereda municipal y ochava.
 
-## 🔧 Pedido del 16/11
-- ✅ v1.60.0 Arreglado el cuelgue al cambiar tirantes y transversales (pieza editada cortada en tramos).
-- ✅ v1.60.0 Paredes para el proveedor de paneles (sin estructura). Perfiles C al ras del borde por piso; techo en el
-  mismo plano o apoyado.
-  - ✅ v1.61.0 Techo en el mismo plano: el marco perimetral queda entero y las vigas y correas terminan contra él.
-- ✅ v1.61.0 Personas y perros sin encimarse; sillón por cuerpos y cama de 2 lugares; los perros se suben.
-  - 🟢 [ ] Que dos que se cruzan en un pasillo angosto (una puerta) se den paso (hoy esperan y buscan otro camino).
-  - 🟢 [ ] Mirar en pantalla, en tu proyecto, que con "al ras" el OSB apoye parejo.
+## 3D y personas
+- 🟡 [ ] Barra del 3D: agrupar en menús (fue creciendo); textos de ayuda largos → uno corto y un "?".
+- 🟡 [ ] Seleccionar en el 3D con el dedo (margen de toque más grande o lista de piezas por pared); varias piezas a la vez.
+- 🟢 [ ] Personas: subir y bajar la escalera, salir al terreno, esquivarse y darse paso en una puerta, usar sillas;
+  que el perro siga a alguien.
+- 🟢 [ ] Elegir qué vistas por partes van al PDF; ocultar los carteles en las vistas fijas; texturas en el modo realista;
+  guardar las medidas fijadas en el proyecto; "perfiles de exportación" con nombre (Panelero, Herrero, Cliente).
 
-## 🧱 Pedido del 12/11 (orden elegido: finanzas → obra civil → instalaciones → visual)
-- ✅ v1.54.0 **Finanzas**: checklist por avance, cuotas con meses dobles, por proveedor/contratista, terreno en USD,
-  créditos (previsto), acreedores ("lo pagó X") y devoluciones. Deploy automático por GitHub Actions.
-  - 🟢 [ ] Crédito: interés y sistema francés (hoy cuotas fijas que cargás vos).
-- ✅ v1.56.0 **Obra civil** (dosificación editable): pilotines hormigonados, tapial, pilar de luz, cámara y pozo.
-  - 🔴 [ ] Validar con el albañil los rendimientos (`RENDIMIENTOS` en obraCivil.js): ladrillos por m², secciones de
-    columnas, viga de fundación y encadenado, panal del pozo, empalmes.
-  - 🟢 [ ] Revoque e hidrófugo de la cámara; mano de obra del tapial por m² (hoy monto total).
-- ✅ v1.57.0 **Instalaciones**: puntos, tramos por afuera, materiales por sistema, capas en 3D, planos y export.
-  - 🟡 [ ] Precios de ejemplo solo en caños y cables: cargar los del resto (cajas, grifería, garrafa…).
-  - 🟡 [ ] Tes y derivaciones (hoy cada tramo es de punto a punto; una derivación se arma con una "caja de paso").
-  - 🟢 [ ] Mover los puntos desde el 3D (✥ Mover, como los muebles); pendiente de los desagües (hoy horizontal).
-  - 🟢 [ ] Precios por proveedor de los materiales de las instalaciones (hoy una lista propia).
-- (pedido original) **Instalaciones** (puntos como los muebles + recorrido que trazás vos; por fuera, atornilladas a la estructura):
-  eléctrica (canalización elegible por tramo: bandeja, caño rígido PVC, metálico, cablecanal; tablero, tomas, lámparas),
-  agua (termofusión 20/25 editable; termotanque, cisterna, bomba presurizadora; grifería, ducha, lavamanos),
-  desagües (PVC 40/50/63/110), gas (garrafa en el exterior). Cada plano se prende y apaga y se exporta con medidas y
-  lista (cajas, uniones, curvas, cuplas, terminales).
-- ✅ v1.58.0 **Equipos**: aires con frigorías, salamandra con su caño, paneles y termotanque solar con su peso.
-  - 🟡 [ ] Cálculo de verdad de la correa o viga que aguanta el solar (hoy aviso por kg/m²); paneles en el 3D.
-  - 🟢 [ ] Ambientes con nombre (para elegir el ambiente del aire en vez de cargar los m²).
-- ✅ v1.59.0 **Visual**: ver estructura de hierro, abertura a futuro y comparar revestimientos.
-  - 🟡 [ ] Comparar también perfiles (ej. columnas 100x100 contra 80x80) y el techo; comparar escenarios completos guardados.
-  - ✅ v1.55.0 **Color por perfil** en el 3D (el mismo 80x80x2 siempre del mismo color, con leyenda).
+## Obra, seguimiento y finanzas
+- 🟢 [ ] Crédito con interés y sistema francés (hoy cuotas fijas); revoque e hidrófugo de la cámara; mano de obra del
+  tapial por m²; medidas propias del tapial y el pozo; precios de mano de obra por contratista.
+- 🟢 [ ] Comprobantes (foto o PDF del recibo): necesita dónde guardarlos (Firebase Storage o Django).
 
-Mejoras propuestas (técnicas, sin cambios aplicados):
-- 🟡 **App.jsx y LoftCanvas.jsx muy grandes** (~1.500 y ~1.900 líneas): separar en hooks (`usePresupuesto`,
-  `useSeguimiento`, `usePersonas3D`) y componentes de la barra del 3D. Hace más fácil cada cambio y testear.
-- 🟡 **Tests de pantalla**: los flujos de Playwright que se usan para probar (mueble, personas, cierre, seguimiento)
-  guardarlos en el repo (`e2e/`) para correrlos antes de cada deploy (`npm run e2e`).
-- 🟡 **Respaldo del proyecto**: el trabajo vive en el navegador (localStorage); avisar si hace más de N días que no
-  se guarda en archivo o en la nube, y guardar solo una copia en la nube al cerrar.
-- 🟢 **Rendimiento del 3D**: geometrías y materiales compartidos entre piezas iguales (hoy una malla nueva por pieza);
-  el modo realista con muchas piezas puede ir lento en el celular.
-- 🟢 **Decisión pendiente (Construcción Modular)**: escribir el ADR "seguimiento dentro de Pollo Calculator, Django
-  cuando crezca" para cerrar la opción A/B que quedó abierta en septiembre.
+## Pantalla (UX / UI)
+- 🟡 [ ] Lista de compras en un solo lugar · notas de ayuda cortas (ver "Lo que sigue").
+- 🟡 [ ] En el celular las sub-pestañas ocupan 2 o 3 renglones: nombres más cortos o un renglón deslizable.
+- 🟡 [ ] Modo claro para usar a pleno sol; largo de barra y precios siempre en m y $ aunque la unidad sea cm/mm.
+- 🟢 [ ] Pestañas cortadas en el celular ("Estruc…", "$ 90…"); nombre del proyecto cortado; el aviso verde de "archivo
+  abierto" queda fijo hasta cerrarlo; el mismo estilo de botón para la misma acción; tooltips en campos poco obvios.
 
-## 🗺️ Hoja de ruta (28/10, decisiones de Leandro): Estructura → Sol → Muebles
-- ✅ **Pisos**: tirantes ↔ transversales con 3 opciones (mismo plano tirantes enteros / mismo plano
-  transversales enteros / tirantes apoyados sobre los transversales) — v1.35.0.
-- ✅ **Zapatas**: lado x lado x alto y profundidad de fundación; dibujo bajo tierra (capa propia); hormigón y
-  excavación en el presupuesto — v1.35.0.
-  - 🟢 [ ] Con tirantes apoyados, subir también el OSB del 3D (hoy queda a la altura de siempre).
-- ✅ **Alero por lado** (v1.35.1) (frente, fondo, laterales; 0 = sin); vigas y correas: llegan al borde del alero o
-  terminan en la estructura (cada una por separado).
-- ✅ **Pilotines: forma y medida** (v1.36.0) (pedido de Leandro 29/10): redondo (diámetro) o cuadrado (lado), con su
-  dibujo en el 3D y en los planos, y que el presupuesto lo diga ("Pilotín de hormigón ø 30 cm").
-  - 🟢 [ ] Pilotines y zapatas en el plano de planta (hoy solo 3D y presupuesto).
-- ✅ **Ejes** (v1.36.0): vigas de techo sobre columnas; columnas sobre pilotines; modulación única (una medida ordena
-  columnas, vigas, tirantes y pilotines).
-- ✅ **Sol** (módulo, v1.37.0): entrada del sol por las aberturas, sombras, ▶ animación del día (usa el norte).
-  - 🟢 [ ] Lugar del sol (latitud/longitud/huso) editable en pantalla (hoy queda Mercedes de fábrica).
-  - 🟢 [ ] Sombras en el PDF (foto del 3D con el sol de una fecha/hora).
-- 🔴 [ ] **Tabiques interiores** (divisiones del baño y antebaño; pedido de Leandro 31/10): reusando el motor de
-  paredes (soleras, montantes, uniones, cortes). Perfiles elegibles de la lista (ej. steel frame 70 mm); revestimiento
-  POR CARA de la lista de revestimientos (Durlock común, verde para húmedos, cementicia…) con placas y recortes.
-  Ubicación con medidas: paralelo a una pared, a X m de ella, desde Y m de la esquina, largo; alto hasta el techo,
-  hasta el piso 2 o una medida. Puede llevar puerta (las aberturas de siempre). En 3D y planta.
-- ✅ **Mesada** (v1.38.0): estructura (perfil de la lista) contra una pared; largo, profundidad, alto; revestimiento
-  de la lista al frente y costados; tapa y estantes en m²; huecos bajo mesada sin estructura al frente; zócalo
-  retirado con patas. En 3D, presupuesto y diagrama de cortes.
-  - 🟡 [ ] Validar con el herrero cómo arma la estructura (fondo al piso, patas del zócalo, travesaños arriba y abajo).
-  - 🟢 [ ] Mesadas en los planos (planta y vista de frente acotada).
-  - 🟢 [ ] Mesada en L (dos tramos unidos en la esquina); bacha (hueco en la tapa).
-- ✅ **Muebles** (módulo, v1.38.0): por tipo con medidas a mano, material, distancias, giro y nivel; aviso si se
-  sale de la planta.
-  - 🟢 [ ] Foto del frente pegada en su cara; fotos guardadas en este navegador (achicadas), no viajan en el link.
-  - 🟢 [ ] Muebles en el plano de planta; mover con el mouse en el 3D.
-  - ✅ Color propio por mueble y color de tapa y estantes por mesada (v1.38.2).
-- ✅ Capas en pestañas, una sección a la vez, sin tapar el 3D (v1.38.2).
-- 🗺️ **Pedido de Leandro 04/11** (orden acordado: muebles → mesada → tabiques):
-  - ✅ v1.39.0 Muebles: pared de referencia, distancias y alto libre calculados, lavarropas frontal/superior, hornallas, vanitory.
-  - ✅ v1.40.0 Mesada en L o U, huecos con/sin tapa y sobre zócalo con el electrodoméstico adentro, bachas en la mesada.
-    - 🟡 [ ] Validar con el herrero la esquina de la L/U (el frente tapado del principal va sin solera de abajo ni zócalo).
-    - 🟢 [ ] Bacha bajo mesada vs. apoyada; anafe y horno empotrados como huecos.
-  - ✅ v1.41.0 Tabiques de Durlock con puerta de abrir o granero; mesada L/U de largo libre; cajones de cama; doble clic
-    para el centro de giro del 3D.
-    - 🟡 [ ] Validar con el herrero/durlero: montantes cortos sobre la puerta, dintel simple y barras de 2,60 m.
-    - 🟢 [ ] Tabiques en los planos (planta); unir tabiques entre sí en L (hoy cada uno es recto).
-    - 🟢 [ ] Cerramiento de ducha de vidrio (hoy es un tabique de placa con puerta).
-    - 🟢 [ ] Puertas de abrir dibujadas entreabiertas con su barrido.
-- ✅ Etiquetas de mesadas y muebles en el 3D, apagables una por una y por capa (v1.38.1).
-- ✅ **Sol más fuerte** (v1.38.0): intensidad regulable (50–300 %, 150 % de fábrica).
+## Código, rendimiento y pruebas
+- 🟡 [ ] Lint de hooks · partir `App.jsx` (ver "Lo que sigue"); partir `LoftCanvas.jsx` (2.500 líneas) por tema.
+- 🟡 [ ] El panel entero se vuelve a dibujar en cada cambio (12.300 elementos): `memo` en los paneles pesados (con
+  `cambiar` estable) y montar las hojas del PDF solo al imprimir.
+- 🟡 [ ] Guardar en el repo (`e2e/`) los flujos de Playwright que se usan para probar y correrlos antes de cada deploy.
+- 🟡 [ ] Respaldo: avisar si hace más de N días que el proyecto no se guarda en archivo o en la nube.
+- 🟢 [ ] Un JS de 1,5 MB (420 KB comprimido): cargar Three.js y los planos aparte; geometrías compartidas en el 3D.
+- 🟢 [ ] `pesos()` copiado en 16 archivos: un `formato.js` común; tests de componentes (testing-library).
 
-## v1.53.0 Mano de obra por segmento (pedido de Leandro 12/11)
-- ✅ Pilotines, estructura, revestimiento, tabiques, tapial, pozo séptico, electricista y plomero, cada uno con su forma de cobro; rubros en Obra.
-  - 🟢 [ ] Medidas propias para tapial (metros) y pozo séptico (m³) si se cargan en el terreno.
-  - 🟢 [ ] Precios de mano de obra guardados por proveedor/contratista (hoy por proyecto).
+## Seguridad
+- 🟢 [ ] Limitar el tamaño al descomprimir un link (uno armado a propósito podría colgar la pestaña).
+- 🟢 [ ] Historial de versiones del link de la nube (para volver atrás).
 
-## v1.52.0 Paredes con su nombre (pedido de Leandro 12/11)
-- ✅ La etiqueta de cada pared ("Vecino", "Patio") es su nombre en toda la app (con la letra entre paréntesis).
-  - 🟢 [ ] Si molesta la letra, opción para ocultarla (hoy ayuda a ubicar aberturas, tabiques y mesadas).
+## Grada y montaje industrial (proyectos aparte)
+- 🟢 [ ] Grada: baranda trasera y lateral, peso por módulo, planchuelas de unión, pasillo entre filas, riostras de
+  adelante hacia atrás; validar perfiles y carga por pórtico.
+- 🟢 [ ] Montaje: cinta transportadora, cilindro/cono/tolva de chapa, chapa por espesor, anclajes y bridas, giro libre,
+  croquis en la tablet.
 
-## v1.51.0 Tabiques: sentido de la puerta y desde dónde se mide (pedido de Leandro 12/11)
-- ✅ Bisagra izquierda/derecha y corrediza hacia un lado u otro; puerta desde arranque o punta; paralelo desde su pared o la de enfrente.
-  - 🟡 [ ] Mirar en el 3D que la bisagra y el riel quedan del lado elegido (probado con tests del sentido, no visto).
-  - ✅ v1.51.1 Aviso explícito de la puerta trabada (qué, de qué lado, a cuánto, cuánto correrlo); "Mostrarla abierta"; barrido en el piso.
-  - ✅ v1.51.2 El lugar libre para pasar se configura por puerta (de fábrica 0,50 m de abrir, 0,35 m corrediza).
-
-## v1.49.0 Sol con "Ver adentro", choques, aberturas y personas que se sientan (pedido de Leandro 11/11)
-- ✅ Sombras con paredes ocultas; mueble frenado en la pared y aviso de choques; mover aberturas; apoyar en la mesada; sentarse y acostarse.
-  - 🟡 [ ] Mirar en pantalla el sol entrando por las aberturas con "Ver adentro" y a la persona sentada/acostada (probado con tests, no visto).
-  - 🟢 [ ] Escalera: frenarla en la pared al moverla (hoy solo avisa en su tarjeta).
-
-## v1.48.0 Electrodomésticos (pedido de Leandro 11/11)
-- ✅ Muebles, electrodomésticos y baño por separado; televisor, cafetera, horno de aire y máquina de pan.
-  - 🟢 [ ] Apoyar un electrodoméstico chico "sobre" una mesada o un mueble elegido (hoy se ubica con distancias y altura).
-  - 🟢 [ ] Más: microondas, lavavajillas, termotanque, aire acondicionado, estufa.
-
-## v1.47.1 Personas y perros (pedido de Leandro 11/11) — falta subir
-- ✅ Pasar bajo la escalera, entrar al baño y a la ducha; las personas abren las puertas; perros que caminan solos.
-  - 🟡 [ ] Probar con el proyecto real de Leandro (el de la nube es del 4/11, sin el antebaño): el arreglo se probó con una copia vieja + una puerta.
-  - 🟢 [ ] Puertas de los muebles (heladera, placard) que se abran cuando la persona los busca.
-  - 🟢 [ ] Que el perro siga a una persona elegida.
-
-## v1.47.0 Seguimiento de la obra (pedido de Leandro 11/11)
-- ✅ Rubros con estado, contrato, fechas y pagos parciales; armar desde el presupuesto; resumen de la obra.
-  - ✅ Seguimiento en el PDF y en el Excel (ya salía desde v1.50; revisado en v1.74).
-  - 🟢 [ ] Comprobantes (foto o PDF del recibo): necesita dónde guardarlos (Firebase Storage o Django).
-  - 🟢 [ ] Si crece (varias obras, usuarios, comprobantes, historial), pasarlo a la app Django (opción B de Construcción Modular) y escribir el ADR.
-
-## Revisión de presupuesto y materiales (11/11, pedido de Leandro) — sin cambios aplicados
-Revisado: motor/presupuesto.js, proveedores.js, revestimientos.js, optimizadorCortes.js, TablaPresupuesto y el PDF.
-Lo que ya está bien: cortes compartidos entre renglones del mismo perfil, merma por corte (3 mm), excedente de
-barra por proveedor, flete con "gratis desde", lista de materiales con kilos, plan de compra por proveedor.
-
-### 🔴 Importante
-- [x] ✅ v1.46.0 **El total no es un precio de obra**: suma solo materiales. Faltan mano de obra, consumibles, imprevistos,
-      margen e IVA (ya estaba en 🟡 Funcionalidad → Presupuesto; lo subo porque el total se lee como "lo que cuesta").
-      Propuesta: un bloque de cierre "Materiales + Consumibles + Mano de obra (por kg de hierro, por m² o global)
-      + Imprevistos % + Margen % + IVA (opcional) = Total", que salga igual en pantalla, PDF y Excel.
-- [x] ✅ v1.48.0 **Consumibles en 0 sin aviso**: tornillería, electrodos y selladores arrancan en cantidad 0 y no suman nada.
-      Propuesta: cantidad estimada automática (que se pueda pisar a mano), por ejemplo electrodos ≈ 1–1,5 % de los kg
-      de hierro, autoperforantes por m² de panel, sellador por metro de junta, antióxido/esmalte por m² de hierro
-      (perímetro de la sección x largo). Los coeficientes, a validar con el herrero.
-
-### 🟡 Conviene
-- ✅ v1.74.0 **Precios con fecha**: cada proveedor guarda cuándo se cargaron; aviso en el Presupuesto pasados 30 días y "Siguen iguales hoy".
-- ✅ v1.76.0 **Tabiques de Durlock**: soleras PGU en su renglón; tornillos T1/T2, cinta y masilla por m² de placa.
-- ✅ v1.77.0 **Tirantes de madera** por largo comercial (3,05 / 3,66 / 4,27 / 4,88 m) con el optimizador.
-- [ ] **Desperdicio de placas fijo en 10 %** (OSB y machimbre, `DESPERDICIO_PLACAS`): editable como el excedente de barras.
-- [ ] **Empalmes**: las piezas más largas que la barra se cortan en tramos, pero no se cuenta la unión (soldadura o
-      cubrejunta). Mostrar cuántos empalmes hay en el resumen y, opcional, un renglón de refuerzos.
-- ✅ v1.77.0 **Precio por kilo**: cada hierro se puede cotizar en $/kg por proveedor (la barra sale de su peso); "Poner a los N hierros" en la ficha del proveedor.
-
-### 🟢 Detalles
-- ✅ v1.76.0 El OSB (o machimbre) del entrepiso descuenta el hueco de la escalera si sube por adentro del entrepiso. Falta: dibujar el hueco en el 3D y en el plano.
-- [ ] PDF del presupuesto: número de presupuesto y "válido por N días".
-
-## v1.43.0 (pedido de Leandro 10/11)
-- ✅ Puertas de muebles con su margen sombreado y aviso; copero, alacena y altura desde el piso.
-- ✅ Tirantes de madera y machimbre en los dos pisos; fichas plegables; del 3D a su tarjeta.
-  - 🟡 [ ] Validar sección y precio de los tirantes de madera (2" x 6" PB, 2" x 5" altillo) y si se compran por largo comercial (3,05 / 3,66 / 4,27 m).
-  - 🟢 [ ] Separación recomendada de tirantes de madera según la luz (tabla simple).
-  - 🟢 [ ] Seleccionar mesadas/tabiques en el 3D por sus placas (hoy por sus hierros).
-
-## v1.45.0 (pedido de Leandro 11/11)
-- ✅ v1.45.1 Capa "Lo enterrado" para no ver pilotines y zapatas bajo tierra.
-- ✅ Personas con altura y sexo que caminan (clic o teclado), se agachan/estiran; primera persona; paredes que tapan ocultas; mover muebles solo con "✥ Mover".
-  - 🟢 [ ] Subir y bajar la escalera caminando (hoy cada persona se queda en su piso; se cambia en su ficha).
-  - 🟢 [ ] Salir por las puertas al terreno (hoy caminan solo adentro).
-  - 🟢 [ ] Acciones con muebles: sentarse en sillas/sillón, acostarse en la cama, abrir la heladera.
-  - 🟢 [ ] Que las personas se esquiven entre ellas.
-
-## v1.44.0 (pedido de Leandro 11/11)
-- ✅ Mover y girar muebles desde el 3D (arrastre, flechas, R); modo realista; exportar por partes (pisos y lados sin pared).
-  - 🟢 [ ] Mover y girar también mesadas y tabiques desde el 3D (hoy se editan por sus campos).
-  - 🟢 [ ] Elegir en la exportación qué vistas por partes van (hoy van todas).
-  - 🟢 [ ] Texturas en el modo realista (madera, placa) si hace falta más realismo.
-
-## Exportación (v1.42.0, pedido de Leandro 10/11)
-- ✅ Solo planos; caños y perfiles (tipo, barras, dónde va); aberturas; partes de la obra y atajo "para quien cotiza paneles".
-- 🟢 [ ] Tabiques y mesadas dibujados en las plantas (hoy solo en la lista de caños).
-- 🟢 [ ] Guardar "perfiles de exportación" con nombre (ej. "Panelero", "Herrero", "Cliente").
-
-## Uniones y marcos (v1.33.0, pedido de Leandro 27/10)
-- ✅ Fajas cortadas en los vanos; uniones en red con jerarquía y luz; perfil propio del marco de cada abertura.
-- 🟡 [ ] Validar con el herrero la "medida vista" que se descuenta (ala del C, ancho del caño rectangular) y la jerarquía.
-- 🟢 [ ] Riostras: cortarlas contra columnas y marcos (corte a inglete, hoy van eje a eje).
-- 🟢 [ ] Columnas del entrepiso y bordes del piso 2 contra las columnas de pared (hoy no se tocan).
-- 🟢 [ ] Techo: bordes contra vigas si se arma como red (hoy las correas van apoyadas, que es lo correcto).
-- ✅ Jerarquía elegible por obra (4 pares) y por abertura (v1.34.0).
-- 🟢 [ ] Si hace falta, jerarquía por pared (se decidió no hacerlo por ahora: por obra + por abertura alcanza).
-
-## 🗺️ Hoja de ruta acordada (27/10): terreno → sol → muebles
-Decisiones de Leandro: lote rectangular; ubicar pozo séptico y cámara, árboles y otras construcciones, accesos y
-veredas; sol con animación del día; orden Terreno → Sol → Muebles.
-- ✅ **Etapa 1 — Terreno e implantación (v1.32.0)**: lote frente × fondo, línea municipal en el frente, casa
-  ubicada por distancia a frente/fondo/laterales (con aviso si no entra o invade retiros que carga Leandro),
-  pozo séptico + cámara (con distancias), árboles/otras construcciones (cajas o cilindros con altura), accesos y
-  veredas (rectángulos en el piso), flecha del norte. En el 3D, en una planta "Implantación" en Planos y en el PDF.
-  - 🟡 [ ] Probar con Leandro en un lote real (medidas, orientación, retiros de Mercedes) y ajustar.
-  - 🟢 [ ] Mover elementos arrastrando en el 3D (hoy se cargan las distancias); se resuelve junto con los muebles.
-  - 🟢 [ ] Vereda municipal y ochava (lotes en esquina) si hace falta.
-- ✅ **Módulos por instalación** (v1.32.0, `src/modulos.js`): Terreno es el primero. Cada etapa nueva (Sol, Muebles)
-  entra como módulo propio.
-  - 🟢 [ ] Pasar a módulo lo que ya existe y no todos usan: Grada, Montaje industrial, Nube (links cortos).
-  - 🟢 [ ] Opción C (más adelante): usuarios con login (Firebase Auth) y módulos por usuario/organización con
-    superadmin. Enchufa en `moduloActivo` sin tocar los módulos.
-- 🟡 [ ] **Etapa 2 — Sol (v1.33)**: posición del sol por latitud/fecha/hora (fórmulas astronómicas, sin
-  librerías), luz con sombras en el 3D, día y hora elegibles + botones invierno/verano + ▶ animación del día;
-  sombras de árboles y otras construcciones; sol que entra por cada abertura. Cuidar el rendimiento en celular.
-- 🟢 [ ] **Etapa 3 — Muebles (v1.34)**: cajas con nombre, medidas y color en un piso; mover (arrastre/flechas) y
-  girar; separar "mover mueble" de "girar cámara".
-
-## 🔴 Antes de considerar el presupuesto "de obra" (validar con el herrero)
-- [ ] Llevarle la hoja nueva "Preguntas para el herrero y el durlero — Loft amueblado" (Claude Docs, 18/11, con los valores de tu proyecto) y cargar las respuestas en la app.
-- [ ] Supuestos de `constantes.js` y del modelo: ubicación de columnas, empalmes, perfil de cada renglón
-      y separación de transversales.
-- [ ] Horizontales de pared: hoy NO se cortan en las aberturas (cálculo conservador: sobra material). ¿Se cortan en obra?
-- [ ] Reglas de vanos: columna dentro del vano se corta (tramo bajo el antepecho y sobre el dintel);
-      jamba a menos de 10 cm de una columna no se agrega.
-- [ ] Escalera: perfil de zanca (caño 120x60), ángulos de apoyo, espesor de piso 2 (8 cm para la altura
-      automática) y cantidad de columnas.
-- [ ] Excedente de las barras: depende del proveedor. El herrero tiene que cargar el % de SU proveedor
-      (viene en 1 %; avisado en la pantalla y en el manual).
-
-## Pruebas de Leandro (16/10) — a ordenar
-- ✅ Tiras y placas: descontar aberturas (v1.24.0; solo lo tapado entero por el hueco).
-- 🟡 [ ] Placas estándar: aprovechar recortes (hoy cada recorte se tira).
-- 🟡 [ ] Revestimiento interior también en el techo (cielorraso) y precio por metro lineal para chapas a medida.
-- 🟡 [ ] En cada pared: elegir el perfil de sus columnas y horizontales (no solo el panel / revestimiento).
-- 🟡 [ ] Patrón de perfiles en una pared: "cada N columnas, una de otro perfil" o dos capas de perfiles.
-- 🟡 [ ] Elegir color en todos los materiales (como en los tipos de panel).
-- 🟡 [ ] Acortar piezas horizontales con "desde X m / hasta Y m de la esquina" (las verticales ya lo tienen).
-- 🟡 [ ] Pegar una abertura en OTRA pared (hoy se pega al lado y después se cambia la pared en sus datos).
-
-## Revisión UX/UI (19/10, v1.17.0) — skill experiencia-ux-ui, sin cambios aplicados
-Quién la usa: el herrero (y Leandro) cargando una obra, en la compu del taller o en el celular en la obra.
-Medido: panel derecho de ~7.400 px de alto en escritorio y ~10.000 px en el celular, 155 campos, 9 tarjetas
-abiertas a la vez, 15+ botones de menos de 40 px en el celular.
-
-### 🔴 Lo que más fricción genera (✅ resuelto en v1.18.0)
-- [x] **Panel demasiado largo**: 9 tarjetas abiertas y 155 campos, sin índice. Propuesta: 3 pestañas o un índice
-      fijo (Estructura · Paredes y aberturas · Materiales y presupuesto); tarjetas plegadas salvo la que se usa;
-      un resumen en el título de cada tarjeta plegada (ej. "Paredes · 4 · 3 aberturas", "Presupuesto · $ 7,8 M").
-- [x] **No hay deshacer**: la ✕ de una abertura, de un revestimiento o "Eliminar pieza" no se pueden deshacer con
-      Ctrl+Z. Propuesta: historial deshacer/rehacer (Ctrl+Z / Ctrl+Y) de las medidas, aberturas y piezas, y un
-      aviso "Abertura #2 quitada · Deshacer" por unos segundos.
-- [x] **Celular**: el 3D ocupa toda la primera pantalla y los datos quedan abajo; el encabezado ocupa 3 renglones;
-      botones de menos de 40 px (difíciles de tocar con el dedo en obra). Propuesta: barra inferior fija con
-      "3D · Datos · Presupuesto", botones de 44 px, encabezado en un renglón con menú "⋯".
-
-### 🟡 Mejoras importantes
-- [ ] **Total del presupuesto siempre a la vista** (hoy solo al final de la tabla): en el título de la tarjeta o
-      fijo arriba.
-- [x] **Valor inválido** (v1.18.1): lo escrito queda con el aviso al salir del campo ("se sigue usando 7.50");
-      Esc vuelve al último valor válido.
-- [x] **"0 = sin"** → casilla + valor (v1.19.0): transversales, entrepiso, entrepiso parcial, columnas del borde
-      libre, montantes, altura de escalera, solape, patas y travesaños de montaje, parantes de grada.
-- [x] **Cambios sin guardar** (v1.18.1): el navegador avisa al cerrar o recargar si el proyecto abierto tiene
-      cambios sin guardar. Queda evaluar autoguardado en Mis proyectos.
-- [ ] **Seleccionar en el 3D**: los hierros finos cuestan, y más con el dedo. Margen de toque más grande y, como
-      alternativa, una lista de piezas filtrable por pared.
-- [x] **Leyenda de capas** agrupada (v1.19.0): Estructura · Superficies · Ayudas · Opacidad · Partes, con "todo / nada".
-- [x] **Diálogos propios** (v1.19.0) en vez de `window.confirm` / `prompt`: dicen qué se borra o qué se pierde.
-- [x] **Texto chico y tenue** (v1.19.0): mínimo 0,75 rem en textos de lectura y gris más claro.
-- [ ] **Modo claro** para usar a pleno sol en la obra.
-- [ ] **Unidades**: largo de barra y precios siempre en m y $ aunque la unidad global sea cm/mm (ya anotado en Uso).
-- [x] **Medir**: varias medidas fijas en el 3D (v1.28.0).
-
-### 🟢 Prolijidad
-- [x] **Foco de teclado visible** en todos los botones (v1.18.0).
-- [x] **Encabezado en el celular** en un renglón (v1.18.1): 🐤, nombre, ●, ↶ ↷, Guardar y ⋯ (la versión va en el menú).
-- [x] **Atajos a la vista** (v1.19.0): botón "?" (o la tecla ?) con primeros pasos y atajos.
-- [ ] **Consistencia de botones**: "Duplicar" y "✕" de aberturas vs "+ Agregar revestimiento" grande y verde vs
-      "+ Puerta" secundario; un mismo estilo para la misma acción.
-- [x] **Primer uso** (v1.19.0): bienvenida con 3 pasos la primera vez (el ejemplo ya viene cargado).
-- [ ] **Textos de ayuda largos** en la barra del 3D: dejar uno corto y el resto en un "?".
-
-## Pruebas de Leandro (18/10) — para la versión de materiales
-- ✅ **Cortes compartidos** (v1.20.0, pedido del 20/10): renglones con el mismo perfil (80x80x2 = 80x80x2.0),
-      largo de barra y precio cortan de las mismas barras; aviso si el mismo perfil tiene otro precio.
-      Siguiente paso natural: la lista de perfiles de abajo (elegir en vez de escribir).
-      v1.20.1: botón "Usar $X en todos" cuando el mismo perfil tiene precios distintos (el precio es por renglón y
-      no sigue al perfil: con la lista de perfiles el precio pasa a ser del perfil y esto desaparece).
-- 🟡 [ ] Desperdicio que no se arregla compartiendo: columnas de ~4,70 m en barras de 6 m dejan ~1,30 m cada una.
-      Ideas: usar esos sobrantes en piezas de otro renglón del mismo perfil (ya lo hace si lo hay), sugerir
-      largo de barra (ej. 12 m si el proveedor lo vende) o listar los sobrantes reutilizables.
-- 🟡 [ ] Cortes compartidos: aprovechar también recortes de **otras obras** o del stock del taller (sobrantes guardados).
-- ✅ **Lista de perfiles** (v1.21.0): tipo, medidas, barra, precio y peso; cada parte elige su perfil.
-- ✅ Perfil por **pared** (columnas, fajas, montantes, marco de piso y solera) y **patrón alternado** con montantes (v1.22.0).
-- 🟢 [ ] El 3D dibuja todo con el grosor de la lista (hoy solo grada/montaje leen la medida del nombre).
-- 🟢 [ ] Peso con tablas del fabricante (esquinas redondeadas) en vez del cálculo aproximado.
-- ✅ Perfiles con **medidas reales** (v1.21.0): tipo, medidas y espesor → peso (kg/m); ya no es texto libre.
-- ✅ Precio de los revestimientos también en Materiales (v1.23.0).
-- ✅ Proveedores y comparar presupuestos (v1.25.0): precio por proveedor en efectivo/tarjeta, "lo más barato de cada material".
-- ✅ Exportar las paredes completas (v1.26.0): pestaña Planos, PDF y Excel.
-- ✅ Separaciones por medida o por cantidad, en paredes, pisos y techo (v1.27.0).
-- ✅ Imprimir/exportar eligiendo qué sale: PDF de 3 hojas y Excel de 4 (v1.28.0).
-- ✅ Imprimir el 3D con lo seleccionado, cotas generales, medidas fijadas y vistas fijas (v1.28.0).
-- ✅ Bordes de pisos y techo con perfil propio; interior por sentido (v1.28.0).
-- ✅ Travesaños de abertura hasta las columnas, arriba y abajo (v1.28.0).
-- ✅ Altura del piso 2 elegible; columnas del entrepiso con perfil propio, hasta el piso 2 o al techo, y fila del medio con viga (v1.28.0).
-- 🟢 [ ] Fila del medio del entrepiso: hoy una sola, a media profundidad. Evaluar varias filas o elegir dónde.
-- 🟢 [ ] Medidas fijadas: hoy son de la sesión (no se guardan en el proyecto). Evaluar guardarlas.
-- 🟢 [ ] Vistas fijas del PDF: ocultar los carteles de las paredes (se superponen en las vistas chicas).
-- 🟡 [ ] Paneles por caras, colores por capa o material, cielorraso (próxima versión de Materiales).
-- ✅ Resaltar en el 3D lo que se señala (perfil, renglón, pared, pisos, techo…) con el mouse o fijo con 👁 (v1.27.0).
-- ✅ Botones de borrar con texto "Eliminar"; carteles del 3D con ✕ arriba y acciones en el pie (v1.27.0).
-- 🟢 [ ] Resaltar también desde la pestaña Planos (cada pared/planta) y cada componente del montaje por separado.
-- 🟢 [ ] Columnas del borde libre por cantidad: hoy es la misma cantidad en cada borde libre (podría ser una por borde).
-- 🟢 [ ] Revisar con Leandro si los otros listados (proveedores, perfiles) también quieren Eliminar al pie.
-- 🟢 [ ] Planos: escalonar las cotas cuando quedan muy juntas (hoy se omiten las de menos de 15 cm); escalera en planta; DXF para CAD.
-- 🟢 [ ] Proveedores compartidos entre proyectos (hoy viajan con cada proyecto).
-- ✅ Flete por proveedor, plan de compra contando el flete y "más barato en" (v1.29.0).
-- ✅ Accesorios con cantidad a mano y precio por proveedor (v1.29.0).
-- ✅ Link compacto (la mitad) y links cortos de ver/editar en Firebase (v1.30.0; falta que Leandro cree el proyecto Firebase: ver firebase/COMO-CONFIGURAR.md).
-- ✅ Proyecto Firebase `pollo-calculator` creado (Firestore Standard, southamerica-east1, modo producción) y cargado en configNube.js (v1.30.1).
-- ✅ Total de la obra = plan de compra con varios proveedores (v1.30.2).
-- ✅ Lista de materiales por proveedor + "Copiar pedido" (v1.30.3); con tipo, medidas, espesor y kilos (v1.30.4).
-- ✅ Presupuesto reordenado en sub-pestañas + lista de materiales sin proveedor (v1.31.0).
-- 🟢 [ ] Si "Lo más barato de cada material" y el plan dan igual (sin flete), quizás sobra una de las dos filas en la comparación.
-- 🔴 [ ] Prueba en vivo después del deploy: crear links, guardar con el de editar desde otro navegador/celular, confirmar que el de ver no guarda. Opcional: probar las reglas con firebase/probarReglas.mjs (las reglas reales no se pudieron correr en el emulador desde la sesión: se probó la misma lógica con un Firestore falso).
-- 🟡 [ ] Restringir la API key de Firebase al dominio pollolopez.github.io y a la API de Firestore.
-- 🟢 [ ] Historial de versiones del link (hoy `cambios/` guarda solo quién/cuándo; se podría guardar la versión para volver atrás).
-- 🟢 [ ] Accesorios calculados (ej. tornillos por m² de panel, electrodos por metro de soldadura).
-- 🟢 [ ] Flete por viaje según cantidad (cada N barras o kg) si algún proveedor lo cobra así.
-- 🟡 [ ] Paneles sándwich por **caras**: chapa/chapa, chapa/madera (interior), madera/madera (paneles SIP).
-      Cada cara con su material y color.
-- 🟡 [ ] Perfil por pared y **patrón alternado en la misma capa**: ej. caño 80x80 cada 2 m y 60x60 entre medio
-      (decisión de Leandro: mejor que dos capas).
-- ✅ Columnas de esquina: perfil propio, elegible en Materiales (v1.22.0).
-- 🟡 [ ] Colores: **elegible** "por capa" o "por material" en el 3D (decisión de Leandro).
-- ✅ Hecho en v1.14.1: marcos de aberturas con renglón propio; paredes plegables (aria-expanded); "Eliminar
-      pieza" menos llamativo que "Cerrar"; textos del editor ("Perfil de esta pieza", "Acortar la punta de…");
-      nombre de archivo sin "pollo-pollo".
-
-## 🟡 Funcionalidad
-
-### Estructura
-- [ ] Entrepiso parcial — confirmar con el herrero (hoja de preguntas, sección 4): si el borde libre necesita
-      columnas y cada cuánto (hoy 2,50 m), sentido de los tirantes, perfil de la viga de cierre.
-- [ ] Escalera que llegue a un borde LATERAL del entrepiso parcial (hoy solo al borde de enfrente de la pared).
-- [ ] Aleros del techo (voladizo de vigas y chapa más allá de las paredes).
-
-### Escalera
-- [ ] Baranda (en la escalera y en el borde del entrepiso).
-- [ ] Escalera atravesando el entrepiso (hueco en la estructura de piso 2 con su marco; descontar OSB).
-- [ ] Escalones compensados (en abanico) en los giros, como alternativa al descanso plano.
-
-### Grada
-- [ ] Baranda trasera y lateral (aviso cuando pasa de 1 m de alto).
-- [ ] Peso por módulo (para saber si lo levantan dos personas): necesita kg/m de cada caño.
-- [ ] Planchuelas o placas de unión entre módulos (hoy solo se cuentan los bulones).
-- [ ] Escalera o pasillo de acceso entre filas; riostras también en el sentido de adelante hacia atrás.
-- [ ] Validar con el herrero los perfiles de la grada y la carga por pórtico.
-
-### Montaje industrial
-- [ ] Cinta transportadora (estructura, rodillos de carga y retorno, tambores, largo de banda).
-- [ ] Cilindro / cono / tolva sueltos de chapa, con su desarrollo.
-- [ ] Croquis en la tablet (dibujar o calcar una foto, acotar líneas, repetir el bastidor a lo largo).
-- [ ] Chapa por espesor: hoy hay un solo renglón para tanques y uno para tapas; si hay tanques de distinto espesor,
-      separar renglones. Tamaño de chapa comercial editable (hoy 2,44 x 1,22).
-- [ ] Anclajes, bridas, bocas y accesorios de tanques; giro libre (no solo 0° / 90°).
-- [ ] Más adelante: que la IA lea la foto de un croquis (necesita servidor, Construcción Modular).
-
-### Presupuesto
-- [ ] Bulonería, soldadura, pintura, fijaciones de paneles, babetas/zinguería y mano de obra.
-- ✅ Vistas fijas (frente, lateral, desde arriba) en el PDF (v1.28.0). [ ] PDF propio sin pasar por el navegador.
-
-### Uso
-- [ ] Botón "aplicar a todas las paredes" para no cargar 4 veces la misma separación.
-- [ ] Largo de barra y precios se editan siempre en metros/pesos, aunque la unidad global sea cm/mm.
-- [ ] Seleccionar varias piezas a la vez (ej. Shift + clic) para eliminarlas o editarlas juntas.
-- [ ] Pieza editada con otro perfil: dibujarla con la sección/color de ese perfil en el 3D (hoy solo cambia el presupuesto).
-- [ ] Orientación real (norte) en el 3D para estudiar asoleamiento de aberturas.
-
-### Requiere backend (Construcción Modular / Django o Firebase) — a futuro
-- [ ] Cuentas por herrero (usuario y contraseña): cada uno ve sus planos desde cualquier compu o celular.
-- [ ] Proyectos en la nube: verlos desde cualquier compu/celular y compartirlos con el herrero por link.
-- [ ] Catálogo compartido: el herrero carga sus precios una sola vez ("plantilla de catálogo").
-
-## 🟢 Técnico
-- [x] En el celular el encabezado ocupa ~3 renglones: resuelto en v1.18.1 (un renglón de 61 px).
-- [ ] Ayuda (tooltip) en campos poco obvios: "Dist. a esquina", "Sep. verticales" (glosario en CONTEXT.md).
-- [ ] Bundle de ~906 KB (Three.js completo; Vite avisa al deployar): evaluar carga diferida del visor.
-- [ ] Tests de componentes (testing-library) para CampoNumero, SelectorLado, PanelAberturas y EditorPieza.
-- [ ] Piezas eliminadas/editadas se reconocen por su posición: si una medida las mueve, el cambio deja de
-      aplicarse (se avisa en la lista). Evaluar si hace falta algo más robusto.
-- [ ] Migrar el motor a Django cuando arranque Construcción Modular (los tests sirven de especificación).
-
-## ✅ Resuelto en v1.18.0 (2026-10-19)
-- [x] Pestañas (Estructura · Paredes y aberturas · Materiales · Presupuesto con total).
-- [x] Deshacer / rehacer del proyecto (↶ ↷, Ctrl+Z / Ctrl+Y, 50 pasos).
-- [x] Celular: barra de pestañas abajo con "3D", menú ⋯, botones de 44 px. Foco visible en botones.
-
-## ✅ Resuelto en v1.17.0 (2026-10-19)
-- [x] Aberturas dentro de cada pared, con etiqueta en el 3D.
-- [x] Montantes (y de dintel / de antepecho), riostras en cruz de pared, jambas de piso a solera.
-- [x] Glosario unificado (travesaño de antepecho, horizontales/fajas, montante).
-
-## ✅ Resuelto en v1.16.0 (2026-10-18)
-- [x] Medir en el 3D (de eje a eje entre columnas).
-- [x] Aberturas seleccionables desde el 3D, con número (#1, #2…); copiar y pegar aberturas y piezas.
-- [x] Duplicar piezas (piezas agregadas a mano).
-- [x] Juntas de paneles en el 3D.
-- [x] Planta de la escalera (escalón más bajo y más alto, a la vista).
-- [x] "Arranca a / Termina a" en piezas verticales; versión visible en el encabezado.
-
-## ✅ Resuelto en v1.15.0 (2026-10-16)
-- [x] Tarjeta Materiales; Presupuesto solo con cantidades y precios.
-- [x] Revestimientos a medida (ancho útil, largo máximo, solape) y en placa fija (ancho × largo): tiras y placas enteras.
-- [x] Ubicación del revestimiento (sobre los perfiles / embutido) y espesor, a elección del herrero.
-- [x] Revestimiento interior por pared (base para el durlock).
-- [x] Duplicar aberturas desde su tarjeta.
-
-## ✅ Resuelto en v1.14.1 (2026-10-16)
-- [x] Dintel, jambas y alféizar en su propio renglón "Marcos de aberturas" (antes con las columnas).
-- [x] Cada pared se pliega desde su título; "Eliminar pieza" aparte y con borde; textos del editor más claros.
-- [x] Archivo "Pollo casa" => pollo-casa-fecha.json (antes pollo-pollo-casa-…).
-
-## ✅ Resuelto en v1.14.0 (2026-10-15)
-- [x] Entrepiso parcial (largo × profundidad, desde una esquina) con viga de cierre en los bordes libres (renglón
-      propio) y columnas del borde libre cada X m.
-- [x] Encabezado "🐤 Pollo Calculator".
-
-## ✅ Resuelto en v1.13.1 (2026-10-14)
-- [x] La app se llama Pollo Calculator.
-
-## ✅ Resuelto en v1.13.0 (2026-10-14)
-- [x] Grada: caño que une los parantes, tabla de respaldo, elegir el caño de cada parte, módulos y filas atornillables.
-
-## ✅ Resuelto en v1.12.0 (2026-10-14)
-- [x] Opacidad de paneles, OSB y hierros; color interior y exterior de los paneles.
-- [x] Compartir un proyecto por link (con las medidas, no el ejemplo).
-- [x] El PDF incluye la imagen de la estructura.
-
-## ✅ Resuelto en v1.11.0 (2026-10-14)
-- [x] Montaje industrial con varios componentes: mesa / bastidor y tanque cilíndrico (chapas, soldadura, peso, litros).
-
-## ✅ Resuelto en v1.10.0 (2026-10-14)
-- [x] Grada: asiento y pie pueden ser el mismo tablón, o un solo tipo de tablón por fila.
-
-## ✅ Resuelto en v1.9.0 (2026-10-14)
-- [x] Grada para espectadores como proyecto propio, con parantes, vigas longitudinales y riostras en cruz.
-- [x] Escalera: parantes (hasta 12 por tramo) y riostras en cruz entre parantes.
-
-## ✅ Resuelto en v1.8.0 (2026-10-14)
-- [x] Escalera con más de un descanso (U y 3/4 de vuelta) y aviso de paso libre.
-- [x] Editar piezas sueltas: recortar, mover y cambiar el perfil (ej. columna del altillo hasta el piso 2).
-- [x] Etiquetas de las paredes en el 3D: nombre propio y mostrar/ocultar.
-
-## ✅ Resuelto en v1.7.0 (2026-10-13)
-- [x] Diseño de escaleras: recta o en L con descanso, al borde del entrepiso; ancho, huella, contrahuella,
-      altura total; zanca central, apoyos de ángulo o recorte de caño, columnas de soporte; presupuesto y 3D.
-- [x] Tarjetas del panel y leyenda de capas plegables; ocultar el 3D para cargar datos (sobre todo en celular).
-
-Versiones anteriores (v1.0 a v1.6): ver `CHANGELOG.md`.
+## A futuro (con servidor: Construcción Modular / Django)
+- 🟢 [ ] Cuentas por herrero, catálogo compartido, varias obras y comprobantes; migrar el motor a Django (los tests
+  sirven de especificación) y escribir el ADR "seguimiento en Pollo Calculator, Django cuando crezca".
+- 🟢 [ ] Usuarios con login y módulos por usuario (Grada, Montaje y Nube como módulos); IA que lea la foto de un croquis.
