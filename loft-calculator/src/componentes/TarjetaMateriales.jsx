@@ -16,7 +16,7 @@
 // la lista de TODOS los precios de la obra en él.
 // ==========================================================
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import CampoNumero from './CampoNumero.jsx';
 import CampoOpcional from './CampoOpcional.jsx';
 import CampoSelect from './CampoSelect.jsx';
@@ -253,7 +253,9 @@ export default function TarjetaMateriales({
 }) {
   const ver = (grupo) => !seccion || seccion === grupo;
   // v1.25: para mostrar, cada material con el precio del proveedor y la forma de pago elegidos.
-  const conPrecios = aplicarProveedor(catalogo, proveedor, pago);
+  // v1.74.1: guardado (useMemo): así los perfiles son los mismos objetos mientras no cambie el catálogo y los
+  // desplegables de perfil no rearman sus nombres en cada letra que se escribe en otra parte.
+  const conPrecios = useMemo(() => aplicarProveedor(catalogo, proveedor, pago), [catalogo, proveedor, pago]);
   const pasar = useResaltar(); // v1.27: resaltar en el 3D las piezas de cada renglón
   const proveedores = proveedoresDe(catalogo);
   const perfiles = perfilesDeLista(conPrecios);

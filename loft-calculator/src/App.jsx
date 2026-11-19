@@ -9,7 +9,7 @@
 // válidos. Un valor inválido se muestra en el campo pero no se guarda.
 // ==========================================================
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import LoftCanvas from './LoftCanvas.jsx';
 import { ContextoFoco, focoDe } from './componentes/contextoFoco.js';
 import { moverMueble, encerrarEnLaPlanta, alturaDeApoyo, seApoya, girarMueble } from './motor/interiores.js';
@@ -47,7 +47,7 @@ import { esEdicionVacia, piezaEditadaEnLaEstructura } from './motor/edicionPieza
 import { duplicarPieza, PREFIJO_AGREGADA } from './motor/piezasAgregadas.js';
 import { generarEstructura, listarPiezas, infoSeparacion } from './motor/estructura.js';
 import { CAMPOS_CON_CANTIDAD, MAXIMO_CANTIDAD, cantidadDe } from './motor/cantidades.js';
-import { calcularPresupuesto, CATALOGO_INICIAL, tiposDePanel, panosPorRevestimiento } from './motor/presupuesto.js';
+import { calcularPresupuesto, CATALOGO_INICIAL, tiposDePanel, panosPorRevestimiento, conPanelesExistentes } from './motor/presupuesto.js';
 import { resolverCatalogo, PERFIL_NUEVO, perfilesDeLista } from './motor/perfiles.js';
 import { proveedoresDe, aplicarProveedor, faltanPrecios, MAS_BARATO, planDeCompra, precioEn, masBaratoEn, totalDeLaObra, listaDeMateriales, kilosDeMateriales } from './motor/proveedores.js';
 import { cerrarPresupuesto } from './motor/cierre.js';
@@ -128,20 +128,6 @@ const PERFILES_PARED_UI = [
 
 const catalogoGuardadoValido = (c) => Array.isArray(c) && c.some((p) => p.categoria === 'panel');
 const aberturasGuardadasValidas = (a) => Array.isArray(a) && a.every((op) => LADOS.includes(op.lado));
-
-/**
- * Red de seguridad: si una pared o el techo apunta a un tipo de panel
- * que ya no está en el catálogo, usa el primero disponible.
- */
-function conPanelesExistentes(params, catalogo) {
-  const ids = tiposDePanel(catalogo).map((p) => p.id);
-  const ok = (id) => (ids.includes(id) ? id : ids[0]);
-  return {
-    ...params,
-    panelTecho: ok(params.panelTecho),
-    paredes: Object.fromEntries(LADOS.map((l) => [l, { ...params.paredes[l], panel: ok(params.paredes[l].panel) }])),
-  };
-}
 
 /** Opacidad de fábrica del 3D: paneles y OSB se ven a través; los hierros, sólidos. */
 const OPACIDADES_INICIALES = { paneles: 0.35, osb: 0.45, hierros: 1, juntas: 1, terreno: 0.9 }; // juntas: v1.24; terreno: v1.34.3
@@ -271,8 +257,10 @@ export default function App() {
   // --- Cálculos (solo se rehacen si cambian sus datos) ---
   // Por seguridad se ignoran aberturas que no entren (ej. datos viejos guardados).
   const aberturasValidas = useMemo(
-    () => aberturas.filter((op) => validarAbertura(op, params) === null),
-    [aberturas, params]
+    // v1.74.1: con paramsObra (sin seguimiento ni finanzas): antes, cada letra en la pestaña Obra (una nota, un pago)
+    // hacía una lista nueva y se recalculaba toda la obra (estructura, presupuesto, comparación, planos y 3D).
+    () => aberturas.filter((op) => validarAbertura(op, paramsObra) === null),
+    [aberturas, paramsObra]
   );
   // v1.33: con el catálogo, las piezas que se cruzan se cortan contra la que queda entera (uniones).
   const estructura = useMemo(() => generarEstructura(paramsObra, aberturasValidas, catalogo), [paramsObra, aberturasValidas, catalogo]);
@@ -320,16 +308,20 @@ export default function App() {
   }))], [itemsEstructura, instalaciones, itemsExtras, totalExtras]);
   const total = totalEstructura + totalInstalaciones;
   // v1.25: el total con cada proveedor (y con lo más barato de cada material), en efectivo y con tarjeta.
+  // v1.74.1: son ~20 presupuestos (lo que más tarda al cambiar una medida): se calculan "diferidos"
+  // (useDeferredValue): primero se ve el cambio en pantalla y la comparación se pone al día enseguida, sin trabar.
+  const estructuraParaComparar = useDeferredValue(estructura);
   const comparacion = useMemo(() => [...proveedores.map((p) => ({ id: p.id, nombre: p.nombre })),
     { id: MAS_BARATO, nombre: 'Lo más barato de cada material' }].map(({ id, nombre }) => ({
     id,
     nombre,
     ...Object.fromEntries(['efectivo', 'tarjeta'].map((pago) => {
-      const r = calcularPresupuesto(estructura, catalogo, { ...opcionesPresupuesto, proveedor: id, pago });
+      const r = calcularPresupuesto(estructuraParaComparar, catalogo, { ...opcionesPresupuesto, proveedor: id, pago });
       return [pago, { total: r.total, faltan: faltanPrecios(r.items) }];
     })),
+  // v1.74.1: + disco, retazo y empalmes (antes faltaban: la comparación no cambiaba al tocarlos y el presupuesto sí).
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  })), [estructura, catalogo, proveedores, params.excedenteBarras, params.compartirCortes]);
+  })), [estructuraParaComparar, catalogo, proveedores, params.excedenteBarras, params.compartirCortes, params.mermaCorte, params.retazoMinimo, params.empalmesSobreApoyo]);
   // v1.29: plan de compra (a quién comprarle cada material, contando el flete), con las cantidades de este presupuesto.
   // v1.72: con lo que se eligió a mano en la lista de compras ("Se lo compro a…" o a nadie).
   const asignaciones = params.seguimiento?.asignaciones ?? {};
@@ -373,8 +365,10 @@ export default function App() {
       unidad: m.unidad, cantidad: m.cantidad, precio: m.precio }))), ...itemsExtras],
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [itemsEstructura, planCompra, catalogo, proveedores, params.seguimiento, formaPago, estructura, partesObra, instalaciones, itemsExtras]);
+  // v1.74.1: el catálogo resuelto una vez (antes se resolvía entero por cada renglón × proveedor, ~330 veces por dibujo).
+  const materialPorId = useMemo(() => new Map(resolverCatalogo(catalogo).map((m) => [m.id, m])), [catalogo]);
   const precioEnProveedor = (fila, idProveedor) => {
-    const material = resolverCatalogo(catalogo).find((m) => m.id === fila.clave);
+    const material = materialPorId.get(fila.clave);
     const p = proveedores.find((x) => x.id === idProveedor);
     return material && p ? precioEn(material, p, formaPago) : null;
   };

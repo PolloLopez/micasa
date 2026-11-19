@@ -3,7 +3,7 @@
 Última limpieza: 2026-11-11 (v1.49.0). Espejo en Trello: tablero "Desarrollo", tarjetas `[CALC]`.
 
 ## 📌 Estado y próximos pasos (11/11)
-**En GitHub: hasta v1.61.0. v1.62.0 a v1.74.0 por subir** (desde v1.54 el deploy es automático al pushear). Manual de uso para chequear: `MANUAL.md`.
+**En GitHub: hasta v1.61.0. v1.62.0 a v1.74.1 por subir** (desde v1.54 el deploy es automático al pushear). Manual de uso para chequear: `MANUAL.md`.
 
 🟡 **Para chequear en pantalla** (probado con tests, no visto): el sol con "Ver adentro" entra solo por las aberturas;
 la persona se sienta en el sillón y se acuesta en la cama; las puertas de los tabiques se abren al pasar.
@@ -28,19 +28,19 @@ Lo que falta, en orden de prioridad (detalle en cada sección de abajo):
 Medido con el proyecto real ("Amueblada, casi definida", 9 proveedores, 84 piezas a mano), build de producción, Chromium.
 
 ### Rendimiento
-- 🔴 [ ] **Cada letra que escribís en Obra (una nota, un pago) tarda ~250 ms** (tendría que ser < 50): se recalcula
+- ✅ v1.74.1 **Cada letra que escribís en Obra (una nota, un pago) tarda ~250 ms** (ahora ~90 ms; la causa de fondo era `conPanelesExistentes`) (tendría que ser < 50): se recalcula
   TODA la obra. Causa: `aberturasValidas` (App.jsx) depende de `params` entero, así que al tocar el seguimiento cambia,
   y con ella la estructura, el presupuesto, los 20 presupuestos de la comparación de proveedores, los planos y el 3D.
   Arreglo de 1 línea: que dependa de `paramsObra` (como la estructura). Probado aparte: baja a ~210 ms.
-- 🔴 [ ] **La lista de compras pide el catálogo resuelto ~330 veces por render** (`precioEnProveedor` llama a
+- ✅ v1.74.1 **La lista de compras pide el catálogo resuelto ~330 veces por render** (`precioEnProveedor` llama a
   `resolverCatalogo(catalogo)` por cada renglón × proveedor). Arreglo: usar `catalogoResuelto` (ya existe). Lo metí yo en v1.72.
 - 🟡 [ ] **Todo el panel se vuelve a dibujar en cada cambio** (12.300 elementos en pantalla: las 8 pestañas y sus
   sub-pestañas montadas + las hojas del PDF, 2.700). Lo que más pesa: los desplegables de perfil (`SelectorPerfil`,
-  ~20 ms por letra) y las filas de la lista de compras. Opciones simples: `memo` en los paneles pesados (requiere que
+  ~20 ms por letra) y las filas de la lista de compras. ✅ v1.74.1: los desplegables de perfil ya no rearman sus textos. Falta: `memo` en los paneles pesados (requiere que
   `cambiar` sea estable con `useCallback`) y montar las hojas del PDF solo al imprimir.
 - 🟡 [ ] **El 3D se dibuja 60 veces por segundo siempre**, aunque nada se mueva y aunque esté oculto ("Ocultar 3D"):
   gasta batería en el celular y la notebook. Dibujar solo cuando cambia algo (cámara, piezas, personas caminando).
-- 🟡 [ ] **La comparación de proveedores no se actualiza** al cambiar el disco, el retazo mínimo o los empalmes
+- ✅ v1.74.1 **La comparación de proveedores no se actualiza** al cambiar el disco, el retazo mínimo o los empalmes
   (`comparacion` en App.jsx no los tiene en sus dependencias; el presupuesto principal sí). Es un error de cuentas, no solo de velocidad.
 - 🟢 [ ] Un solo archivo JS de 1,5 MB (420 KB comprimido): carga en ~1,2 s. Separar Three.js y los planos
   (`import()` dinámico) si se usa desde el celular con mala señal.

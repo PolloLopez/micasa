@@ -18,7 +18,7 @@ import { optimizarCortes } from './optimizadorCortes.js';
 import { apoyosDePieza } from './empalmes.js';
 import { listarPiezas } from './estructura.js';
 import { textoPilotin } from './ejes.js';
-import { INSUMO, PLACA_OSB, DESPERDICIO_PLACAS } from './constantes.js';
+import { INSUMO, PLACA_OSB, DESPERDICIO_PLACAS, LADOS } from './constantes.js';
 import { cuentaRevestimiento, REVESTIMIENTO_POR_DEFECTO } from './revestimientos.js';
 import { medidasParaConsumibles, cantidadDeConsumible } from './consumibles.js';
 
@@ -160,6 +160,29 @@ export const CATALOGO_INICIAL = conProveedores([
 
 /** Tipos de panel del catálogo. */
 export const tiposDePanel = (catalogo) => catalogo.filter((p) => p.categoria === 'panel');
+
+/**
+ * Red de seguridad: si una pared o el techo apunta a un tipo de panel
+ * que ya no está en el catálogo, usa el primero disponible.
+ */
+export function conPanelesExistentes(params, catalogo) {
+  const ids = tiposDePanel(catalogo).map((p) => p.id);
+  const ok = (id) => (ids.includes(id) ? id : ids[0]);
+  // v1.74.1: si todo apunta a paneles que existen (lo normal), devuelve el MISMO objeto. Antes armaba siempre un
+  // `paredes` nuevo, y eso rompía useSinCambiosSalvo: cada letra en la pestaña Obra recalculaba toda la obra.
+  const techoBien = ok(params.panelTecho) === params.panelTecho;
+  const paredesBien = LADOS.every((l) => ok(params.paredes[l].panel) === params.paredes[l].panel);
+  if (techoBien && paredesBien) return params;
+  return {
+    ...params,
+    panelTecho: ok(params.panelTecho),
+    paredes: paredesBien ? params.paredes
+      : Object.fromEntries(LADOS.map((l) => {
+        const pared = params.paredes[l];
+        return [l, ok(pared.panel) === pared.panel ? pared : { ...pared, panel: ok(pared.panel) }];
+      })),
+  };
+}
 
 const buscar = (catalogo, id) => catalogo.find((p) => p.id === id);
 

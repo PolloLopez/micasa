@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.74.1] - 2026-11-18
+### Arreglado (de la auditoría del 18/11)
+- **Escribir en la pestaña Obra ya no recalcula toda la obra.** La causa de fondo: `conPanelesExistentes` armaba
+  siempre un `paredes` nuevo, y eso anulaba `useSinCambiosSalvo` (v1.47): cada letra en una nota o un pago volvía a
+  generar la estructura, el presupuesto, ~20 presupuestos de la comparación, los planos y el 3D. Ahora devuelve el
+  mismo objeto si no hay nada que corregir (pasó a motor/presupuesto.js, con test). Además `aberturasValidas` depende
+  de `paramsObra` (no de `params`).
+- **Lista de compras**: el catálogo se resuelve una vez (`materialPorId`), no por cada renglón × proveedor.
+- **Desplegables de perfil**: el texto de cada perfil se arma una vez (WeakMap) y Materiales guarda su catálogo con
+  precios (`useMemo`): eran lo más lento del panel.
+- **Comparación de proveedores**: se calcula diferida (`useDeferredValue`): al cambiar una medida primero se ve el
+  cambio y la comparación se pone al día enseguida.
+- **Comparación de proveedores y de revestimientos**: ahora dependen también del disco, el retazo y los empalmes
+  (faltaban; no se notaba porque la obra se recalculaba de más por el error de arriba).
+### Medido (proyecto real, 3D oculto, Chromium sin GPU)
+- Una letra en Obra: ~250 ms → ~90 ms. Un cambio de medida: ~260 ms → ~150 ms. Con el 3D visible suma lo que tarda
+  en dibujar un cuadro (en una compu con placa de video, mucho menos que en la prueba).
+
 ## [1.74.0] - 2026-11-18
 ### Agregado
 - **Precios con fecha**: cada proveedor guarda cuándo se cargaron sus precios (se pone sola al cambiar uno). En su ficha

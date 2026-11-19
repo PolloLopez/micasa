@@ -16,8 +16,10 @@ const pesos = (n) => n.toLocaleString('es-AR', { style: 'currency', currency: 'A
 export default function ComparativaRevestimientos({ params, aberturas, catalogo, opciones, cambiarVarios }) {
   const [abierta, setAbierta] = useState(false);
   const filas = useMemo(() => (abierta ? compararRevestimientos(params, aberturas, catalogo, opciones) : []),
+    // v1.74.1: + disco, retazo y empalmes (faltaban: la comparación no los seguía).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [abierta, params, aberturas, catalogo, opciones.proveedor, opciones.pago, opciones.excedenteBarras, opciones.compartir]);
+    [abierta, params, aberturas, catalogo, opciones.proveedor, opciones.pago, opciones.excedenteBarras, opciones.compartir,
+      opciones.mermaCorte, opciones.retazoMinimo, opciones.empalmesSobreApoyo]);
   if (catalogo.filter((i) => i.categoria === 'panel').length < 2) return null;
   const usar = (id) => cambiarVarios(LADOS.map((l) => [`paredes.${l}.panel`, id]));
   return (
