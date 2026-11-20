@@ -115,6 +115,17 @@ export const CATALOGO_FIJO = [
   { id: INSUMO.TORNILLO_T2, categoria: 'unidad', nombre: 'Tornillos T2 (placa con perfil)', perfil: 'Tornillo T2 punta aguja', unidad: 'u', largoBarra: null, precio: 15 },
   { id: INSUMO.CINTA_JUNTAS, categoria: 'unidad', nombre: 'Cinta para juntas', perfil: 'Cinta de papel microperforada', unidad: 'm', largoBarra: null, precio: 40 },
   { id: INSUMO.MASILLA_JUNTAS, categoria: 'unidad', nombre: 'Masilla para juntas', perfil: 'Masilla lista para usar', unidad: 'kg', largoBarra: null, precio: 2500 },
+  // v1.80: tapial (ladrillos a elegir y encofrado fenólico) y portón corredizo (al final: no cambia la numeración).
+  { id: INSUMO.LADRILLO_HUECO_8, categoria: 'unidad', nombre: 'Ladrillo hueco 8', perfil: 'Ladrillo hueco 8x18x33', unidad: 'u', largoBarra: null, precio: 550 },
+  { id: INSUMO.LADRILLO_HUECO_18, categoria: 'unidad', nombre: 'Ladrillo hueco 18', perfil: 'Ladrillo hueco 18x18x33', unidad: 'u', largoBarra: null, precio: 900 },
+  { id: INSUMO.BLOQUE_HORMIGON, categoria: 'unidad', nombre: 'Bloque de hormigón', perfil: 'Bloque de hormigón 19x19x39', unidad: 'u', largoBarra: null, precio: 1100 },
+  { id: INSUMO.FENOLICO, categoria: 'unidad', nombre: 'Placas fenólicas (encofrado)', perfil: 'Placa fenólica 18 mm 1,22 x 2,44 m', unidad: 'placa', largoBarra: null, precio: 45000 },
+  { id: INSUMO.TIRANTE_ENCOFRADO, categoria: 'unidad', nombre: 'Tirantes de encofrado', perfil: 'Tirante de pino 2" x 3"', unidad: 'm', largoBarra: null, precio: 2500 },
+  { id: INSUMO.PORTON_BASTIDOR, categoria: 'perfil', nombre: 'Bastidor del portón', perfil: 'Caño estructural 40x40x1.6', unidad: 'barra', largoBarra: 6, precio: 15000 },
+  { id: INSUMO.PORTON_CHAPA, categoria: 'unidad', nombre: 'Chapa del portón', perfil: 'Chapa lisa o trapezoidal (hoja del portón)', unidad: 'm²', largoBarra: null, precio: 18000 },
+  { id: INSUMO.PORTON_MALLA, categoria: 'unidad', nombre: 'Metal desplegado del portón', perfil: 'Metal desplegado o malla (hoja del portón)', unidad: 'm²', largoBarra: null, precio: 14000 },
+  { id: INSUMO.PORTON_RIEL, categoria: 'unidad', nombre: 'Riel del portón', perfil: 'Riel de portón corredizo (ángulo invertido)', unidad: 'm', largoBarra: null, precio: 8000 },
+  { id: INSUMO.PORTON_KIT, categoria: 'unidad', nombre: 'Herrajes del portón corredizo', perfil: '2 ruedas, guía superior con rodillos, topes y cerradura', unidad: 'u', largoBarra: null, precio: 90000 },
 ];
 
 /** Renglones que solo se usan en un proyecto de grada. */
@@ -444,11 +455,36 @@ function calcularRenglones(estructura, catalogo, excedenteBarras, corte = {}) {
       [INSUMO.HIERRO_42, m.varillas42, `${texto(oc.total.hierro42, 0)} m de estribos + 10 %: ${de('hierro42')}`],
       [INSUMO.LADRILLO_HUECO, m.ladrilloHueco, de('ladrilloHueco')],
       [INSUMO.LADRILLO_COMUN, m.ladrilloComun, de('ladrilloComun')],
+      // v1.80: el tapial (el ladrillo elegido y el encofrado fenólico)
+      [INSUMO.LADRILLO_HUECO_8, m.ladrilloHueco8, de('ladrilloHueco8')],
+      [INSUMO.LADRILLO_HUECO_18, m.ladrilloHueco18, de('ladrilloHueco18')],
+      [INSUMO.BLOQUE_HORMIGON, m.bloqueHormigon, de('bloqueHormigon')],
+      [INSUMO.FENOLICO, m.fenolicos, 'se reusan tramo por tramo (una placa aguanta unos 10 usos)'],
+      [INSUMO.TIRANTE_ENCOFRADO, m.tirantesEncofrado, 'refuerzos y puntales del encofrado'],
       [INSUMO.EXCAVACION_OBRA, m.excavacion, de('excavacion')],
     ];
+    // v1.80: lo que se cargó "según el albañil" lo dice (así no se confunde con lo calculado).
+    if (oc.tapial?.conAlbanil) {
+      const deAlbanil = new Set(Object.keys(oc.tapial.final).filter((k) => oc.tapial.final[k] !== oc.tapial.calculado[k]));
+      const campoDe = { [INSUMO.CEMENTO]: 'bolsas', [INSUMO.ARENA]: 'arena', [INSUMO.PIEDRA]: 'piedra', [INSUMO.HIERRO_8]: 'varillas8',
+        [INSUMO.HIERRO_42]: 'varillas42', [INSUMO.FENOLICO]: 'fenolicos', [INSUMO.TIRANTE_ENCOFRADO]: 'tirantesEncofrado',
+        [INSUMO.LADRILLO_HUECO]: 'ladrilloHueco', [INSUMO.LADRILLO_HUECO_8]: 'ladrilloHueco8', [INSUMO.LADRILLO_HUECO_18]: 'ladrilloHueco18',
+        [INSUMO.BLOQUE_HORMIGON]: 'bloqueHormigon', [INSUMO.LADRILLO_COMUN]: 'ladrilloComun' };
+      renglones.forEach((r) => { if (deAlbanil.has(campoDe[r[0]])) r[2] = `${r[2]} · el tapial, según el albañil`; });
+    }
     renglones.filter(([, cantidad]) => cantidad > 0).forEach(([id, cantidad, detalle]) => items.push(itemSimple(insumo(id), cantidad, detalle)));
     const pilares = oc.partes.filter((x) => x.clave.startsWith('pilar:')).length;
     if (pilares > 0) items.push(itemSimple(insumo(INSUMO.KIT_PILAR), pilares, 'caja de medidor, caño, jabalina y tablero (según la distribuidora)'));
+  }
+  // v1.80: el portón corredizo del tapial (lo hace Leandro de hierro): bastidor en barras (con hoja de corte), la hoja,
+  // el riel y los herrajes.
+  const porton = e.obraCivil?.porton;
+  if (porton) {
+    const bastidor = perfil(INSUMO.PORTON_BASTIDOR, porton.piezas);
+    items.push({ ...bastidor, detalle: `${porton.detalle} · ${bastidor.detalle}` });
+    items.push(itemSimple(insumo(porton.relleno === 'malla' ? INSUMO.PORTON_MALLA : INSUMO.PORTON_CHAPA), porton.rellenoM2, porton.detalle));
+    items.push(itemSimple(insumo(INSUMO.PORTON_RIEL), porton.riel, 'lo que tapa la hoja + lo que corre'));
+    items.push(itemSimple(insumo(INSUMO.PORTON_KIT), 1, 'portón corredizo'));
   }
   // v1.38: mesadas: estructura (barras con cortes, o un renglón por perfil elegido), tapa y estantes en m².
   const mesadas = e.mesadas ?? [];

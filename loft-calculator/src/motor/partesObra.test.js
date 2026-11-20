@@ -84,5 +84,8 @@ describe('pedido para cotizar (v1.79.1)', () => {
     expect(texto).not.toContain('Excavación'); // es trabajo, no material
     expect(texto).not.toContain('$');
     expect(texto).not.toContain('ø6'); // lo que no lleva no se pide
+    // Las barras dicen su largo.
+    expect(textoParaCotizar({ nombre: 'Tapial', renglones: [{ id: 'portonBastidor', nombre: 'Bastidor del portón', cantidad: 4, unidad: 'barra', largoBarra: 6 }], obraCivil: null, extras: [] }))
+      .toContain('• 4 barras de 6 m — Bastidor del portón');
   });
 });

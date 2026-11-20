@@ -1,6 +1,6 @@
 # PENDIENTES — loft-calculator
 
-Última limpieza: **2026-11-19 (v1.78.0)**; actualizado 2026-11-20 (v1.79.1). Acá queda solo lo abierto, por tema y prioridad (🔴 importante ·
+Última limpieza: **2026-11-19 (v1.78.0)**; actualizado 2026-11-20 (v1.80.0). Acá queda solo lo abierto, por tema y prioridad (🔴 importante ·
 🟡 conviene · 🟢 detalle). Lo resuelto y el detalle de cada pedido viejo: `HISTORIAL-PENDIENTES.md`; lo hecho en cada
 versión: `CHANGELOG.md`. Espejo en Trello: tablero "Desarrollo", tarjetas `[CALC]`.
 
@@ -32,6 +32,8 @@ Manual: `MANUAL.md` y el doc "Pollo Calculator — Manual de usuario" (Claude Do
 - 🔴 [ ] Horizontales de pared: hoy NO se cortan en las aberturas (sobra material). Reglas de vanos: columna dentro del
   vano se corta; jamba a menos de 10 cm de una columna no se agrega.
 - 🔴 [ ] Rendimientos de obra civil (`RENDIMIENTOS` en obraCivil.js): ladrillos, secciones, panal del pozo, empalmes.
+- 🔴 [ ] v1.80 tapial: ø y profundidad de los pilotines, cuántos tramos encofra a la vez, tirante por m², la mezcla que usa
+  (1:2:3…) y los ladrillos por m² del que elijas; el portón: caño del bastidor, montantes cada 1 m, riel y herrajes.
 - 🟡 [ ] Excedente de las barras de SU proveedor (1 % de fábrica), disco, retazo y cómo empalma.
 - 🟡 [ ] Consumibles (electrodos, autoperforantes, sellador, antióxido) y Durlock (T1, T2, cinta, masilla).
 - 🟡 [ ] Escalera: zanca, ángulos de apoyo, espesor del piso 2 (8 cm), columnas; tirantes de madera (2" x 5" / 2" x 6").
@@ -39,6 +41,7 @@ Manual: `MANUAL.md` y el doc "Pollo Calculator — Manual de usuario" (Claude Do
   puerta, dintel, barras de 2,60 m).
 
 ## 👀 Para mirar en pantalla (probado con tests, no visto)
+- 🟡 [ ] v1.80: cargar el tapial (lados, ladrillo, portón en su lugar) y mirar el 3D y el plano de implantación.
 - 🟡 [ ] v1.79: cargar los 2 albañiles del Tapial y los ladrillos con precio de cada corralón; elegir uno y ver que el
   precio de la obra y el seguimiento cambian (probado con tu archivo en el Pozo absorbente).
 - 🟡 [ ] El sol con "Ver adentro" entra solo por las aberturas; personas sentadas y acostadas; puertas de tabiques que

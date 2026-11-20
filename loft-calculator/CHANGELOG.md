@@ -1,5 +1,28 @@
 # Changelog
 
+## [1.80.0] - 2026-11-20
+### Agregado
+- **Tapial encadenado** (Estructura → Fundación, obra civil y terreno → Obra civil): un **pilotín bajo cada columna**
+  (ø 0,20 x 1,50 m de fábrica, editables) unidos por la viga de fundación, columnas cada X m, encadenado y el muro.
+- **Ladrillo a elegir** para el tapial: hueco 8, 12 o 18, común o bloque de hormigón (cambia cuántos van por m² y el
+  mortero; cada uno con su renglón en el presupuesto).
+- **Encofrado con placas fenólicas propias**: las placas (1,22 x 2,44, 18 mm, +15 % de cortes) y los metros de tirante de
+  pino 2" x 3" para encofrar N tramos entre columnas a la vez (de fábrica 2; se reusan). O "no lo cuento" si es prestado.
+- **"Según el albañil"**: al lado de lo calculado del tapial (cemento, arena, piedra, hierro, ladrillos, fenólicos,
+  tirantes) se carga lo que dijo él; manda en el presupuesto, la lista de compras y el pedido para cotizar, y el
+  renglón lo dice ("el tapial, según el albañil"). 0 = vuelve a lo calculado.
+- **Dosificación "como la dice el albañil"**: 1:2:3, 1:2:2, 1:3:3 o 1:3:4 para el hormigón y 1:4, 1:3 o 1:5 para el
+  mortero; elegirla completa los kg y m³ (valores aproximados, a validar).
+- **Portón corredizo** en el tapial: lado, distancia desde la esquina, ancho y alto. El hueco no lleva muro ni encadenado
+  (la viga de fundación sigue, el riel va encima; una columna más). Lleva el **bastidor de caño 40x40** con su hoja de
+  corte (marco, travesaño y un montante por metro), la **chapa o el metal desplegado** (a elegir), el **riel** y los
+  **herrajes** (ruedas, guía con rodillos, topes, cerradura). Va en la parte "Tapial" de la obra. Se ve en el 3D (la
+  hoja gris) y en el plano de implantación.
+- **Capa "Tapial"** en el 3D (Capas → Terreno): se apaga aparte (antes iba con "Construcciones").
+### Cambiado
+- El pedido para cotizar dice el largo de las barras ("4 barras de 6 m").
+- Los tapiales que ya estaban cargados suman los pilotines y el encofrado de fábrica (se destildan en la tarjeta).
+
 ## [1.79.1] - 2026-11-20
 ### Agregado
 - **"📋 Copiar pedido para cotizar"** en cada parte de la obra (Obra → Partes de la obra): copia lo que lleva esa parte

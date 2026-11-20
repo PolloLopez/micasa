@@ -68,12 +68,24 @@ export default function PlanoImplantacion({ imp, terreno, tapial = null }) {
       {retiros.derecha > 0 && <line x1={lote.frente - retiros.derecha} y1={0} x2={lote.frente - retiros.derecha} y2={lote.fondo} className="retiro" />}
 
       {/* v1.56: el tapial del cerramiento por los lados elegidos (línea gruesa por dentro del lote). */}
-      {(tapial?.lados ?? []).map((lado) => {
+      {/* v1.80: por tramos (el lado del portón queda partido) y el portón como una línea fina en el hueco. */}
+      {(tapial?.tramos ?? []).map(({ lado, desde, hasta }) => {
         const d = 0.075; // medio espesor del tapial
-        const linea = { frente: [0, lote.fondo - d, lote.frente, lote.fondo - d], fondo: [0, d, lote.frente, d],
-          izquierda: [d, 0, d, lote.fondo], derecha: [lote.frente - d, 0, lote.frente - d, lote.fondo] }[lado];
-        return linea && <line key={lado} x1={linea[0]} y1={linea[1]} x2={linea[2]} y2={linea[3]} className="tapial" strokeWidth={0.15} />;
+        const linea = { frente: [desde, lote.fondo - d, hasta, lote.fondo - d], fondo: [desde, d, hasta, d],
+          izquierda: [d, y(desde), d, y(hasta)], derecha: [lote.frente - d, y(desde), lote.frente - d, y(hasta)] }[lado];
+        return linea && <line key={`${lado}-${desde}`} x1={linea[0]} y1={linea[1]} x2={linea[2]} y2={linea[3]} className="tapial" strokeWidth={0.15} />;
       })}
+      {tapial?.porton && (() => {
+        const { lado, desde, hasta } = tapial.porton;
+        const d = 0.25; // la hoja corre por dentro del muro
+        const linea = { frente: [desde, lote.fondo - d, hasta, lote.fondo - d], fondo: [desde, d, hasta, d],
+          izquierda: [d, y(desde), d, y(hasta)], derecha: [lote.frente - d, y(desde), lote.frente - d, y(hasta)] }[lado];
+        const [x1, y1, x2, y2] = linea;
+        return (<g className="porton-plano">
+          <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="#475569" strokeWidth={0.06} strokeDasharray="0.3 0.15" />
+          <text x={(x1 + x2) / 2} y={(y1 + y2) / 2 - T * 0.4} fontSize={T * 0.8} textAnchor="middle" className="rotulo-elemento">Portón {(hasta - desde).toFixed(2).replace('.', ',')} m</text>
+        </g>);
+      })()}
 
       {/* Lo que hay en el terreno */}
       {imp.elementos.map((el) => {

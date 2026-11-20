@@ -349,7 +349,10 @@ describe('calcularPresupuesto', () => {
 
   it('una construcción tiene un renglón por cada insumo, menos los de grada, montaje y los opcionales sin usar', () => {
     const OBRA_CIVIL = [INSUMO.CEMENTO, INSUMO.ARENA, INSUMO.PIEDRA, INSUMO.HIERRO_8, INSUMO.HIERRO_6, INSUMO.HIERRO_42,
-      INSUMO.LADRILLO_HUECO, INSUMO.LADRILLO_COMUN, INSUMO.EXCAVACION_OBRA, INSUMO.KIT_PILAR];
+      INSUMO.LADRILLO_HUECO, INSUMO.LADRILLO_COMUN, INSUMO.EXCAVACION_OBRA, INSUMO.KIT_PILAR,
+      // v1.80: tapial y portón
+      INSUMO.LADRILLO_HUECO_8, INSUMO.LADRILLO_HUECO_18, INSUMO.BLOQUE_HORMIGON, INSUMO.FENOLICO, INSUMO.TIRANTE_ENCOFRADO,
+      INSUMO.PORTON_BASTIDOR, INSUMO.PORTON_CHAPA, INSUMO.PORTON_MALLA, INSUMO.PORTON_RIEL, INSUMO.PORTON_KIT];
     // Opcionales: riostras y montantes (v1.17) aparecen solo si la obra los lleva.
     // Los perfiles de la lista (v1.21, categoria 'hierro') no son renglones del presupuesto.
     // (v1.25: los proveedores tampoco.)

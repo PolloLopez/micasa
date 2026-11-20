@@ -112,7 +112,7 @@ function dibujarElemento(el, aMundo, conEtiqueta = true) {
 const PARTE_DE_ELEMENTO = { pozo: 'pozos', camara: 'pozos', arbol: 'arboles', construccion: 'construcciones', pilarLuz: 'construcciones', acceso: 'accesos', vereda: 'accesos' };
 
 /** Las partes del terreno que se pueden prender y apagar (claves de la capa: terreno + Parte). */
-export const PARTES_TERRENO = ['lote', 'calle', 'retiros', 'pozos', 'arboles', 'construcciones', 'accesos', 'norte'];
+export const PARTES_TERRENO = ['lote', 'calle', 'retiros', 'pozos', 'arboles', 'construcciones', 'accesos', 'norte', 'tapial']; // v1.80: + tapial
 
 /** Baja la opacidad de todo lo que se dibujó (multiplica la que ya tenía cada material). */
 function aplicarOpacidadTerreno(grupo, factor) {
@@ -130,7 +130,7 @@ function aplicarOpacidadTerreno(grupo, factor) {
  * @param imp  resultado de implantacion(params)
  * @param retiros params.terreno.retiros (0 = no se dibuja)
  * @param opciones { etiquetas: bool (v1.33.1), partes: { lote, calle, … } (v1.34.3, todas por defecto), opacidad: 0..1,
- *                   tapial: { lados, alto } (v1.56: el tapial del cerramiento, por dentro del borde del lote) }
+ *                   tapial: dibujoDelTapial(params) (v1.80: { alto, tramos, porton }; el tapial por dentro del borde del lote) }
  */
 export function dibujarTerreno(grupo, imp, retiros = {}, { etiquetas: conEtiquetas = true, partes = {}, opacidad = 1, tapial = null } = {}) {
   const { aMundo, lote, norte } = imp;
@@ -167,21 +167,32 @@ export function dibujarTerreno(grupo, imp, retiros = {}, { etiquetas: conEtiquet
   }
 
   // v1.56: el tapial: un muro de 15 cm por dentro de cada lado elegido del lote (va con "Construcciones").
-  if (tapial && tapial.alto > 0 && ver('construcciones')) {
+  // v1.80: por tramos (el lado del portón queda partido) y la hoja del portón corredizo en el hueco.
+  if (tapial && tapial.alto > 0 && ver('tapial')) { // v1.80: su propia capa
     const e = 0.15;
-    const tramos = { frente: { u: 0, v: 0, ancho: lote.frente, largo: e }, fondo: { u: 0, v: lote.fondo - e, ancho: lote.frente, largo: e },
-      izquierda: { u: 0, v: 0, ancho: e, largo: lote.fondo }, derecha: { u: lote.frente - e, v: 0, ancho: e, largo: lote.fondo } };
-    const material = new THREE.MeshStandardMaterial({ color: '#c2410c', roughness: 0.9 });
-    tapial.lados.forEach((lado) => {
-      const c = tramos[lado];
-      if (!c) return;
+    // La caja de un tramo [desde, hasta] de un lado: frente y fondo van a lo ancho (u), los laterales a lo largo (v).
+    const cajaDe = ({ lado, desde, hasta }, espesor = e, corrida = 0) => ({
+      frente: { u: desde, v: corrida, ancho: hasta - desde, largo: espesor },
+      fondo: { u: desde, v: lote.fondo - e - corrida, ancho: hasta - desde, largo: espesor },
+      izquierda: { u: corrida, v: desde, ancho: espesor, largo: hasta - desde },
+      derecha: { u: lote.frente - e - corrida, v: desde, ancho: espesor, largo: hasta - desde },
+    })[lado];
+    const caja = (c, alto, material) => {
       const [p0, p1, , p3] = esquinasDe(aMundo, c);
-      const muro = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), material);
-      muro.scale.set(Math.abs(p1[0] - p0[0]) || Math.abs(p3[0] - p0[0]), tapial.alto, Math.abs(p3[1] - p0[1]) || Math.abs(p1[1] - p0[1]));
+      const malla = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), material);
+      malla.scale.set(Math.abs(p1[0] - p0[0]) || Math.abs(p3[0] - p0[0]), alto, Math.abs(p3[1] - p0[1]) || Math.abs(p1[1] - p0[1]));
       const [cx, cz] = aMundo(c.u + c.ancho / 2, c.v + c.largo / 2);
-      muro.position.set(cx, tapial.alto / 2, cz);
-      grupo.add(muro);
-    });
+      malla.position.set(cx, alto / 2, cz);
+      grupo.add(malla);
+    };
+    const ladrillo = new THREE.MeshStandardMaterial({ color: '#c2410c', roughness: 0.9 });
+    tapial.tramos.forEach((t) => { const c = cajaDe(t); if (c) caja(c, tapial.alto, ladrillo); });
+    if (tapial.porton) {
+      // La hoja cerrada: 4 cm de espesor, por dentro del muro, 10 cm más ancha de cada lado (la que corre).
+      const hoja = { ...tapial.porton, desde: tapial.porton.desde - 0.1, hasta: tapial.porton.hasta + 0.1 };
+      const c = cajaDe(hoja, 0.04, e);
+      if (c) caja(c, tapial.porton.alto, new THREE.MeshStandardMaterial({ color: '#475569', metalness: 0.5, roughness: 0.5 }));
+    }
   }
 
   imp.elementos.filter((el) => ver(PARTE_DE_ELEMENTO[el.tipo] ?? 'accesos'))

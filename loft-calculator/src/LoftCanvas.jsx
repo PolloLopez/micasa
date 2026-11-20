@@ -22,6 +22,7 @@ import { useEstadoGuardado } from './hooks/useEstadoGuardado.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { LADOS } from './motor/constantes.js';
+import { dibujoDelTapial } from './motor/obraCivil.js';
 import { CAPAS, AYUDAS, GRUPOS_LEYENDA, CAPAS_TERRENO, CAPAS_MESADAS, CAPAS_MUEBLES, CAPAS_TABIQUES, CAPAS_INSTALACIONES, CAPA_DE_SISTEMA, COLORES_INICIALES, capaDelProyecto } from './capas.js';
 import { recorridoDelTramo, posicionDelPunto, pisoDeLaObra } from './motor/instalaciones.js';
 import { ubicarAire, canoDeSalida } from './motor/equipos.js';
@@ -1767,12 +1768,12 @@ export default function LoftCanvas({
     if (conTerreno) {
       dibujarTerreno(visor.grupoTerreno, implantacion(params), params.terreno.retiros,
         { etiquetas: capas.etiquetasTerreno, partes: partesTerreno, opacidad: opacidades.terreno ?? 0.9,
-          tapial: params.obraCivil?.tapial ?? null }); // v1.56
+          tapial: dibujoDelTapial(params) }); // v1.56; v1.80: por tramos y con el portón
     }
     visor.grilla.visible = !conTerreno && !realista; // v1.44: la vista realista no lleva grilla
   // Solo lo que cambia el terreno (no todo params: redibujar el lote en cada cambio de la estructura no hace falta).
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conTerreno, params.terreno, params.obraCivil?.tapial, params.ladoFrente, params.largo, params.ancho, capas.etiquetasTerreno, clavePartes, opacidades.terreno]);
+  }, [conTerreno, params.terreno, params.obraCivil?.tapial, params.obraCivil?.porton, params.ladoFrente, params.largo, params.ancho, capas.etiquetasTerreno, clavePartes, opacidades.terreno]);
 
   /** Cámara para ver todo el lote: desde la calle, en diagonal y alto. */
   const verTerreno = () => {

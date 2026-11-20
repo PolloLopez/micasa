@@ -16,7 +16,7 @@
 //   extras:     [{ id, parte, nombre, cantidad, unidad, precio }]   (precio por unidad)
 // ==========================================================
 
-import { materialesDeObraCivil, completarObraCivil } from './obraCivil.js';
+import { materialesDeObraCivil, completarObraCivil, CAMPOS_OBRA_CIVIL } from './obraCivil.js';
 import { INSUMO } from './constantes.js';
 
 /** Las partes fijas y los renglones del presupuesto de cada una (por id; los "por pared" van por su base). */
@@ -35,8 +35,12 @@ export const PARTES_FIJAS = [
 
 // Los renglones de obra civil: de qué campo de materialesDeObraCivil sale la cantidad de cada uno.
 const OBRA_CIVIL = { cemento: 'bolsas', arena: 'arena', piedra: 'piedra', hierro8: 'varillas8', hierro6: 'varillas6', hierro42: 'varillas42',
-  ladrilloHueco: 'ladrilloHueco', ladrilloComun: 'ladrilloComun', excavacionObra: 'excavacion' };
-const CAMPOS_CIVIL = ['hormigon', 'mortero', 'hierro8', 'hierro6', 'hierro42', 'ladrilloHueco', 'ladrilloComun', 'excavacion'];
+  ladrilloHueco: 'ladrilloHueco', ladrilloComun: 'ladrilloComun', excavacionObra: 'excavacion',
+  // v1.80: el tapial
+  ladrilloHueco8: 'ladrilloHueco8', ladrilloHueco18: 'ladrilloHueco18', bloqueHormigon: 'bloqueHormigon', fenolico: 'fenolicos', tiranteEncofrado: 'tirantesEncofrado' };
+const CAMPOS_CIVIL = CAMPOS_OBRA_CIVIL;
+// v1.80: el portón corredizo es de la parte del tapial (sus renglones no son obra civil repartida).
+const DEL_TAPIAL = new Set([INSUMO.PORTON_BASTIDOR, INSUMO.PORTON_CHAPA, INSUMO.PORTON_MALLA, INSUMO.PORTON_RIEL, INSUMO.PORTON_KIT]);
 
 const base = (id) => String(id).split('@')[0]; // "columna@perfil-3" (renglón por pared) → "columna"
 const claveMaterial = (item) => item.perfilId ?? item.id; // la de la lista de materiales (listaDeMateriales)
@@ -46,6 +50,7 @@ export function parteDeItem(item, estructura) {
   if (String(item.id).startsWith('inst:')) return String(item.id).split(':').slice(0, 2).join(':'); // cada instalación es su parte (también sus materiales: inst:sistema:k)
   if (String(item.id).startsWith('extra:')) return item.parte ?? null;
   if (item.categoria === 'accesorio') return item.parte || null; // v1.79: un material agregado a una parte (precio por proveedor)
+  if (DEL_TAPIAL.has(base(item.id))) return 'oc:tapial';
   if (item.categoria === 'panel') return item.id === estructura?.techo?.panel ? 'techo' : 'revestimiento';
   return PARTES_FIJAS.find((p) => p.items.includes(base(item.id)))?.clave ?? null;
 }
@@ -155,7 +160,7 @@ const NO_SE_COMPRAN = new Set([INSUMO.EXCAVACION, INSUMO.EXCAVACION_OBRA]);
 function renglonesDeObraCivil(oc, obraCivilParams) {
   if (!oc) return [];
   const dosis = completarObraCivil(obraCivilParams);
-  const m = materialesDeObraCivil(oc, dosis);
+  const m = oc.materialesFinal ?? materialesDeObraCivil(oc, dosis); // v1.80: con lo que dijo el albañil, si lo cargó
   const varilla = (diametro) => `Hierro ø${diametro} (varillas de ${dosis.largoVarilla} m)`;
   return [
     ['Cemento', m.bolsas, `bolsas de ${dosis.bolsaKg} kg`],
@@ -164,8 +169,13 @@ function renglonesDeObraCivil(oc, obraCivilParams) {
     [varilla(8), m.varillas8, 'u'],
     [varilla(6), m.varillas6, 'u'],
     [varilla('4,2'), m.varillas42, 'u'],
-    ['Ladrillo hueco', m.ladrilloHueco, 'u'],
+    ['Ladrillo hueco 12', m.ladrilloHueco, 'u'],
+    ['Ladrillo hueco 8', m.ladrilloHueco8, 'u'],
+    ['Ladrillo hueco 18', m.ladrilloHueco18, 'u'],
+    ['Bloque de hormigón 19x19x39', m.bloqueHormigon, 'u'],
     ['Ladrillo común', m.ladrilloComun, 'u'],
+    ['Placa fenólica 18 mm 1,22 x 2,44 m', m.fenolicos, 'u'],
+    ['Tirante de pino 2" x 3"', m.tirantesEncofrado, 'm'],
   ].filter(([, cantidad]) => cantidad > 0).map(([nombre, cantidad, unidad]) => ({ nombre, cantidad, unidad }));
 }
 
@@ -182,6 +192,9 @@ export function textoParaCotizar(parte, obraCivilParams = undefined, nombreProye
     ...(parte.extras ?? []).filter((x) => x.cantidad > 0 && x.nombre.trim()),
   ];
   const titulo = `Hola, ¿me pasás precio de estos materiales? Son para: ${parte.nombre}${nombreProyecto ? ` (${nombreProyecto})` : ''}`;
-  const lineas = renglones.map((r) => `• ${numero(r.cantidad)} ${r.unidad ?? ''} — ${r.nombre}`.replace(/ {2,}/g, ' '));
+  // "4 barras de 6 m" (no "4 barra"): el corralón tiene que saber el largo.
+  const unidadDe = (r) => (r.unidad === 'barra' ? `${r.cantidad === 1 ? 'barra' : 'barras'}${r.largoBarra ? ` de ${numero(r.largoBarra)} m` : ''}`
+    : r.unidad === 'placa' && r.cantidad !== 1 ? 'placas' : r.unidad ?? '');
+  const lineas = renglones.map((r) => `• ${numero(r.cantidad)} ${unidadDe(r)} — ${r.nombre}`.replace(/ {2,}/g, ' '));
   return [titulo, '', ...lineas, '', '¿Hacen envío? ¿Cuánto sale? Gracias.'].join('\n');
 }

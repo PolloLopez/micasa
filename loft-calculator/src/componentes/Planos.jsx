@@ -17,6 +17,7 @@ import { SISTEMAS } from '../motor/instalaciones.js';
 import { useEstadoGuardado } from '../hooks/useEstadoGuardado.js';
 import { NOMBRE_PLANTA } from '../motor/planos.js';
 import { nombreDePared } from '../proyecto/exportarExcel.js';
+import { dibujoDelTapial } from '../motor/obraCivil.js'; // v1.80: tramos y portón
 
 const f2 = (n) => n.toFixed(2);
 /** "3.00 x 4.50 m": lo que ocupa un contorno (el entrepiso puede ser más chico que la planta). */
@@ -447,7 +448,7 @@ export default function Planos({ vistas, params, estructura = null, onExportar, 
       {implantacion && params.terreno?.activo && (
         <section className="card plano">
           <h3 className="subtitulo">Implantación (vista desde arriba, la calle abajo)</h3>
-          <PlanoImplantacion imp={implantacion} terreno={params.terreno} tapial={params.obraCivil?.tapial} />
+          <PlanoImplantacion imp={implantacion} terreno={params.terreno} tapial={dibujoDelTapial(params)} />
         </section>
       )}
       {vistas.paredes.map((v) => (

@@ -92,6 +92,17 @@ export const INSUMO = {
   LADRILLO_COMUN: 'ladrilloComun',
   EXCAVACION_OBRA: 'excavacionObra',
   KIT_PILAR: 'kitPilar',
+  // v1.80: el tapial (ladrillo a elegir y encofrado fenólico) y el portón corredizo de hierro
+  LADRILLO_HUECO_8: 'ladrilloHueco8',
+  LADRILLO_HUECO_18: 'ladrilloHueco18',
+  BLOQUE_HORMIGON: 'bloqueHormigon',
+  FENOLICO: 'fenolico',
+  TIRANTE_ENCOFRADO: 'tiranteEncofrado',
+  PORTON_BASTIDOR: 'portonBastidor',
+  PORTON_CHAPA: 'portonChapa',
+  PORTON_MALLA: 'portonMalla',
+  PORTON_RIEL: 'portonRiel',
+  PORTON_KIT: 'portonKit',
   // v1.76: Durlock de los tabiques (ver durlock.js): soleras PGU aparte de los montantes, tornillos, cinta y masilla.
   SOLERA_TABIQUE: 'soleraTabique',
   TORNILLO_T1: 'tornilloT1',

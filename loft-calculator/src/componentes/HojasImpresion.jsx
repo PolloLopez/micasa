@@ -22,6 +22,7 @@ import { fechaLegible } from '../motor/seguimiento.js';
 import { plata } from '../motor/finanzas.js';
 import { BloqueInstalacion } from './PlanoInstalaciones.jsx';
 import { materialesDeEquipos } from '../motor/equipos.js';
+import { dibujoDelTapial } from '../motor/obraCivil.js'; // v1.80: tramos y portón
 
 const SISTEMAS_PDF = [['electrica', 'instElectrica'], ['agua', 'instAgua'], ['desague', 'instDesague'], ['gas', 'instGas']]; // v1.57
 
@@ -316,7 +317,7 @@ export default function HojasImpresion({
           {conPlantas && implantacion && params.terreno?.activo && (
             <div className="bloque-implantacion plano-impresion">
               <h2>Implantación (la calle abajo)</h2>
-              <PlanoImplantacion imp={implantacion} terreno={params.terreno} tapial={params.obraCivil?.tapial} />
+              <PlanoImplantacion imp={implantacion} terreno={params.terreno} tapial={dibujoDelTapial(params)} />
             </div>
           )}
           {conPlantas && (

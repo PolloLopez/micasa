@@ -31,6 +31,17 @@ pilotines **hormigonados en obra**, el **tapial** (los lados del lote, el alto y
 profundidad del pilar, la cámara y el pozo. El pilar de luz, la cámara y el pozo se agregan en **Terreno** (+ Pilar de
 luz, + Cámara séptica, + Pozo séptico). Abajo, "Lo que lleva" cada parte y lo que hay que comprar.
 
+- **Mezcla**: elegí **"como lo dice el albañil"** (1:2:3 = 1 balde de cemento, 2 de arena y 3 de piedra). Si no sabés,
+  dejá la de fábrica.
+- **Tapial encadenado**: un **pilotín bajo cada columna** (diámetro y profundidad), la viga de fundación que los une, las
+  columnas cada X m y el encadenado. Elegí el **ladrillo** (hueco 8, 12 o 18, común o bloque).
+- **Encofrado**: con **placas fenólicas propias** calcula las placas y los tirantes para los tramos que encofrás a la
+  vez (se reusan en los siguientes).
+- **Portón corredizo**: tildá "Dejar el hueco…", elegí el lado, desde dónde, el ancho y el alto, y con qué cerrás la hoja
+  (chapa o metal desplegado). Suma el bastidor de caño (con su hoja de corte), la chapa, el riel y los herrajes.
+- **Según el albañil**: lo que él te dijo que lleva el tapial (ej. 25 bolsas de cemento) manda sobre lo calculado. 0 =
+  vuelve a lo calculado.
+
 En **Pisos**, cada piso: **Tirantes y transversales** (en el mismo plano o los tirantes apoyados encima); en el mismo
 plano, **Queda entero** (el tirante o el transversal) y la **Altura** (al ras del borde o eje con eje); y **Borde y
 tirantes** (cuál queda entero). Ya no están repetidos en Materiales → Uniones. Los **tirantes de madera** se piden en tablas de largo comercial (3,05 / 3,66 / 4,27 / 4,88 m): el renglón dice cuántas de cada una.
@@ -98,7 +109,7 @@ Por perfil) y **herramientas** (Recorrer, Medir, **?** = cómo moverse). Con el 
 | 🏠 Ver adentro | Oculta las paredes (y el techo) que te tapan mientras girás |
 | 👁 Primera persona | Ves a la altura de los ojos (arrastrás para mirar, W A S D para caminar, Esc sale) |
 | 📏 Medir | Tocás dos puntos y te da la medida |
-| ▸ Capas | Prender y apagar partes (por ejemplo **Lo enterrado**, para no ver pilotines bajo tierra). Las **etiquetas del terreno** (línea municipal, calle, pozo, pilar) arrancan apagadas: se prenden acá |
+| ▸ Capas | Prender y apagar partes (por ejemplo **Lo enterrado**, para no ver pilotines bajo tierra). Las **etiquetas del terreno** (línea municipal, calle, pozo, pilar) arrancan apagadas: se prenden acá. En **Terreno → Tapial** se apaga el tapial |
 
 **Tocar un panel**: un clic en una pared revestida (donde no hay un hierro) pinta de amarillo esa **tira** y un cartel
 dice cuál es (tira 4 de 8, de izquierda a derecha vista desde afuera, igual que en Planos), su ancho, de qué largo se

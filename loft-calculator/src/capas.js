@@ -62,7 +62,7 @@ export const CAPAS_SOLO_PROYECTOS_SUELTOS = ['grada', 'montaje', 'chapa'];
  * Cada grupo tiene "todo / nada". Las capas que no existen en el tipo de proyecto no se muestran.
  */
 /** Las casillas del terreno (una por parte, ver terreno3d.js PARTES_TERRENO). */
-export const CAPAS_TERRENO = ['terrenoLote', 'terrenoCalle', 'terrenoRetiros', 'terrenoPozos', 'terrenoArboles', 'terrenoConstrucciones', 'terrenoAccesos', 'terrenoNorte'];
+export const CAPAS_TERRENO = ['terrenoLote', 'terrenoCalle', 'terrenoRetiros', 'terrenoPozos', 'terrenoArboles', 'terrenoConstrucciones', 'terrenoAccesos', 'terrenoNorte', 'terrenoTapial'];
 
 export const GRUPOS_LEYENDA = [
   { titulo: 'Estructura', capas: ['pilotines', 'zapatas', 'bajoTierra', 'columnas', 'marcos', 'piso', 'piso2', 'transversales', 'correas', 'techo', 'escalera', 'grada', 'montaje'] },
@@ -98,6 +98,7 @@ export const AYUDAS = {
   terrenoConstrucciones: { nombre: 'Construcciones' },
   terrenoAccesos: { nombre: 'Accesos y veredas' },
   terrenoNorte: { nombre: 'Norte', titulo: 'La flecha del norte' },
+  terrenoTapial: { nombre: 'Tapial', titulo: 'El tapial del cerramiento y el portón (v1.80: antes iba con Construcciones)' },
 };
 
 /**
