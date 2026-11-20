@@ -9,6 +9,7 @@
 import Tarjeta from './Tarjeta.jsx';
 import CampoSelect from './CampoSelect.jsx';
 import CampoNumero from './CampoNumero.jsx';
+import NotaPlegable from './NotaPlegable.jsx';
 
 /**
  * @param uniones   params.uniones ({ modo: 'red'|'eje', luz en m })
@@ -37,10 +38,10 @@ export default function TarjetaUniones({ uniones, resultado, cambiar }) {
         )}
       </div>
       {enRed ? (<>
-        <p className="nota">
+        <NotaPlegable>
           En cada cruce, una pieza queda <strong>entera</strong> y la otra se corta contra sus caras: se le descuenta la
           mitad del perfil entero en cada punta (más la luz, si cargaste). Elegí cuál queda entera en cada par:
-        </p>
+        </NotaPlegable>
         {/* v1.34: en cada par se elige cuál queda entera (por obra). El marco de cada abertura se elige en la abertura. */}
         <div className="grid-params pares-uniones">
           {PARES.map(([par, etiqueta, opciones]) => (
@@ -48,17 +49,17 @@ export default function TarjetaUniones({ uniones, resultado, cambiar }) {
               opciones={opciones} onCambio={cambiar(`uniones.enteras.${par}`)} />
           ))}
         </div>
-        <p className="nota"><strong>Pisos</strong> (qué queda entero, altura, borde y tirantes) y <strong>techo</strong> (vigas y correas)
-          se eligen en Estructura, en cada piso y en Techo.</p>
+        <NotaPlegable><strong>Pisos</strong> (qué queda entero, altura, borde y tirantes) y <strong>techo</strong> (vigas y correas)
+          se eligen en Estructura, en cada piso y en Techo.</NotaPlegable>
         <ul className="jerarquia-uniones">
           <li>Los lados <strong>largos</strong> de soleras, marcos y bordes quedan enteros y llegan a la esquina; los cortos van entre ellos.</li>
           <li>El <strong>marco de cada abertura</strong> (jambas enteras o dintel y alféizar enteros) se elige en la abertura, en Paredes.</li>
           <li><strong>Igual que antes:</strong> techo (las correas van apoyadas sobre las vigas), riostras y escalera.</li>
         </ul>
-        <p className="nota">
+        <NotaPlegable>
           Se descuenta la medida del perfil que queda en el plano de la red: el ala de un perfil C o U, el lado de un
           caño cuadrado y el ancho (el segundo número) de un caño rectangular.
-        </p>
+        </NotaPlegable>
         {resultado?.modo === 'red' && (
           <p className="resultado-uniones">
             {resultado.metrosDescontados >= 0 ? 'Se descontaron' : 'Se sumaron'} <strong>{Math.abs(resultado.metrosDescontados).toLocaleString('es-AR')} m</strong> de hierro
@@ -66,7 +67,7 @@ export default function TarjetaUniones({ uniones, resultado, cambiar }) {
           </p>
         )}
       </>) : (
-        <p className="nota">Cada pieza se mide de eje a eje y se cruzan una encima de la otra (sin descuentos).</p>
+        <NotaPlegable>Cada pieza se mide de eje a eje y se cruzan una encima de la otra (sin descuentos).</NotaPlegable>
       )}
     </Tarjeta>
   );

@@ -17,6 +17,7 @@ import FichaPlegable from './FichaPlegable.jsx';
 import CampoNumero from './CampoNumero.jsx';
 import { compraNueva, renglonNuevo, cuentasDeCompra, resumenDeCompras } from '../motor/compras.js';
 import { cantidadPedida } from '../motor/proveedores.js';
+import NotaPlegable from './NotaPlegable.jsx';
 
 const pesos = (n) => n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
 const fecha = (f) => f.split('-').reverse().join('/');
@@ -92,10 +93,10 @@ export default function PanelCompras({ params, materiales, proveedores, totalMat
   const ordenadas = compras.map((c, i) => ({ c, i })).sort((a, b) => b.c.fecha.localeCompare(a.c.fecha) || b.c.id - a.c.id);
   return (
     <Tarjeta id="compras" titulo={`Compras hechas (${compras.length})`}>
-      <p className="nota">
+      <NotaPlegable>
         Lo que ya compraste. Elegí el material de la lista (descuenta la cantidad y la plata de lo que falta) o "Otro" para un
         ticket suelto (descuenta solo la plata). Queda <strong>pagada</strong>; si dejaste una seña, destildala y poné cuánto falta.
-      </p>
+      </NotaPlegable>
       <div className="resumen-seguimiento">
         <div><small>Materiales (presupuesto)</small><strong>{pesos(totalMateriales)}</strong></div>
         <div><small>Ya gastado</small><strong>{pesos(resumen.gastado)}</strong></div>

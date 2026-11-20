@@ -18,6 +18,7 @@ import {
 import { LADOS } from '../motor/constantes.js';
 import { nombreDePared } from '../motor/geometria.js';
 import { ubicarMueble, bajoElEntrepiso } from '../motor/interiores.js';
+import NotaPlegable from './NotaPlegable.jsx';
 
 const pesos = (n) => n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
 const n1 = (n) => n.toLocaleString('es-AR', { maximumFractionDigits: 1 });
@@ -40,8 +41,8 @@ export default function PanelEquipos({ params, estructura, unidad, cambiar }) {
   return (
     <Tarjeta id="equipos" titulo="Equipos: aires, salamandra y solar">
       <h4 className="subtitulo-pared">Aires acondicionados</h4>
-      <p className="nota">El split va adentro, en la pared; la condensadora, afuera en la misma pared (sobre su ménsula). Se calcula ≈ 50
-        frigorías por m³ (más con sol de la tarde o mucho vidrio: subí el factor).</p>
+      <NotaPlegable>El split va adentro, en la pared; la condensadora, afuera en la misma pared (sobre su ménsula). Se calcula ≈ 50
+        frigorías por m³ (más con sol de la tarde o mucho vidrio: subí el factor).</NotaPlegable>
       {eq.aires.map((a, i) => {
         const ruta = `equipos.aires.${i}`;
         const r = alcanceDelAire(a, params, estructura);
@@ -124,9 +125,9 @@ export default function PanelEquipos({ params, estructura, unidad, cambiar }) {
           <tbody>
             {materiales.map((m) => (
               <tr key={m.nombre}>
-                <td>{m.nombre}</td><td className="num">{m.cantidad} {m.unidad}</td>
-                <td className="num"><CampoNumero etiqueta="" sufijo="$" decimales={0} valor={m.precio} onCambio={cambiarPrecio(m.nombre)} /></td>
-                <td className="num">{pesos(m.total)}</td>
+                <td>{m.nombre}</td><td className="num" data-etiqueta="Cantidad">{m.cantidad} {m.unidad}</td>
+                <td className="num" data-etiqueta="Precio"><CampoNumero etiqueta="" sufijo="$" decimales={0} valor={m.precio} onCambio={cambiarPrecio(m.nombre)} /></td>
+                <td className="num" data-etiqueta="Total">{pesos(m.total)}</td>
               </tr>
             ))}
           </tbody>

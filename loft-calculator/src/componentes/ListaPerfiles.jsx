@@ -17,6 +17,7 @@ import { BotonResaltar } from './Resaltar.jsx';
 import { usePasarParaResaltar } from './contextoResaltado.js';
 import { useEnFoco } from './contextoFoco.js';
 import { textoDePrecio } from '../motor/resumenPrecios.js';
+import NotaPlegable from './NotaPlegable.jsx';
 
 const pesos = (n) => n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
 const OPCIONES_TIPO = Object.entries(TIPOS_PERFIL).map(([valor, { nombre }]) => [valor, nombre]);
@@ -143,7 +144,7 @@ export default function ListaPerfiles({ perfiles, todos = perfiles, usadoEn, pro
   };
   return (
     <>
-      {perfiles.length === 0 && <p className="nota">Todavía no hay perfiles: agregá los hierros que usás.</p>}
+      {perfiles.length === 0 && <NotaPlegable>Todavía no hay perfiles: agregá los hierros que usás.</NotaPlegable>}
       <ul className="lista-perfiles">
         {perfiles.map((p) => (
           <FilaPerfil key={p.id} perfil={p} usadoEn={usadoEn[p.id] ?? []} repetido={repetido(p)} proveedores={proveedores} idElegido={idElegido} pago={pago}

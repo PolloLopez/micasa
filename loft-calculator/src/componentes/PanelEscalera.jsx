@@ -12,6 +12,7 @@ import { DESCANSOS_POR_FORMA, calcularEscalones, repartirDescansos } from '../mo
 import { LADOS } from '../motor/constantes.js';
 import Tarjeta from './Tarjeta.jsx';
 import PlantaEscalera from './PlantaEscalera.jsx';
+import NotaPlegable from './NotaPlegable.jsx';
 
 /** Select simple con etiqueta y mensaje de error. */
 function CampoOpciones({ etiqueta, valor, opciones, onCambio }) {
@@ -143,11 +144,11 @@ export default function PanelEscalera({ params, resumen, unidad, cambiar, cambia
               {resumen.avisos.map((a) => <p key={a} className="error">{a}</p>)}
             </div>
           )}
-          <p className="nota">
+          <NotaPlegable>
             Zanca central por tramo. Los escalones son de madera y van sobre los apoyos. Con varios descansos,
             cada giro es de 90° para el mismo lado (como un caracol) y cada descanso es un cuadrado plano del
             ancho de la escalera. La baranda y el hueco en el entrepiso quedan para una próxima versión.
-          </p>
+          </NotaPlegable>
         </>
       )}
     </Tarjeta>

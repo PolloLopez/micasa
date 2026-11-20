@@ -10,6 +10,7 @@
 import { useMemo, useState } from 'react';
 import { compararRevestimientos } from '../motor/comparativa.js';
 import { LADOS } from '../motor/constantes.js';
+import NotaPlegable from './NotaPlegable.jsx';
 
 const pesos = (n) => n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
 
@@ -31,17 +32,17 @@ export default function ComparativaRevestimientos({ params, aberturas, catalogo,
           {filas.map((f) => (
             <tr key={f.id} className={f.actual ? 'fila-actual' : ''}>
               <td>{f.nombre}<br /><small>{f.perfil}{f.sinPrecio ? ' · ⚠ sin precio en este proveedor' : ''}</small></td>
-              <td className="num">{f.espesor ? `${f.espesor} mm` : '—'}</td>
-              <td className="num">{f.cantidad.toLocaleString('es-AR', { maximumFractionDigits: 2 })} {f.unidad}</td>
-              <td className="num">{pesos(f.total)}</td>
-              <td className="num">{f.actual ? 'el de ahora' : `${f.diferencia > 0 ? '+' : ''}${pesos(f.diferencia)}`}</td>
-              <td>{!f.actual && <button type="button" className="btn-mini" onClick={() => usar(f.id)}>Usar en las 4 paredes</button>}</td>
+              <td className="num" data-etiqueta="Espesor">{f.espesor ? `${f.espesor} mm` : '—'}</td>
+              <td className="num" data-etiqueta="Hace falta">{f.cantidad.toLocaleString('es-AR', { maximumFractionDigits: 2 })} {f.unidad}</td>
+              <td className="num" data-etiqueta="Total de la obra">{pesos(f.total)}</td>
+              <td className="num" data-etiqueta="Diferencia">{f.actual ? 'el de ahora' : `${f.diferencia > 0 ? '+' : ''}${pesos(f.diferencia)}`}</td>
+              <td className="accion-fila">{!f.actual && <button type="button" className="btn-mini" onClick={() => usar(f.id)}>Usar en las 4 paredes</button>}</td>
             </tr>
           ))}
         </tbody>
       </table>
-      <p className="nota">Para comparar otro panel (ej. uno de 10 mm), agregalo en Materiales → Revestimientos con su precio. Para comparar
-        proveedores, mirá "Precios y detalle" (el total con cada uno).</p>
+      <NotaPlegable>Para comparar otro panel (ej. uno de 10 mm), agregalo en Materiales → Revestimientos con su precio. Para comparar
+        proveedores, mirá "Precios y detalle" (el total con cada uno).</NotaPlegable>
     </details>
   );
 }

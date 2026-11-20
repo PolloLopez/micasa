@@ -373,20 +373,23 @@ function calcularRenglones(estructura, catalogo, excedenteBarras, corte = {}) {
 
   // Placas OSB: superficie / placa, + desperdicio de recortes. v1.42.1: solo los pisos con OSB (el resto, machimbre).
   const areaPlaca = PLACA_OSB.largo * PLACA_OSB.ancho;
+  // v1.79: el % de recortes lo elige Leandro (Estructura → Piso); sin dato, el 10 % de siempre.
+  const recortes = Number.isFinite(e.desperdicioPlacas) ? e.desperdicioPlacas / 100 : DESPERDICIO_PLACAS;
+  const textoRecortes = `${Math.round(recortes * 1000) / 10} % recortes`;
   // v1.76: el piso 2 sin el hueco por donde sube la escalera (si sube por adentro del entrepiso).
   const hueco = Math.min(s.piso2 ?? 0, e.escalera?.huecoEntrepiso?.m2 ?? 0);
   const conOsb = [['piso', e.cubiertas?.piso ?? 'osb', s.piso], [hueco > 0 ? `piso 2 sin el hueco de la escalera (${hueco.toFixed(2)} m²)` : 'piso 2', e.cubiertas?.piso2 ?? 'osb', (s.piso2 ?? 0) - hueco]];
   const areaOsb = conOsb.filter(([, c]) => c === 'osb').reduce((a, [, , m2]) => a + m2, 0);
   const nombresOsb = conOsb.filter(([, c, m2]) => c === 'osb' && m2 > 0).map(([n]) => n).join(' + ') || 'sin OSB';
   items.push(
-    itemSimple(insumo(INSUMO.OSB), Math.max(0, Math.ceil((areaOsb * (1 + DESPERDICIO_PLACAS)) / areaPlaca - 1e-9)),
-      areaOsb > 0 ? `${areaOsb.toFixed(2)} m² (${nombresOsb}) + ${DESPERDICIO_PLACAS * 100} % recortes` : 'no lleva')
+    itemSimple(insumo(INSUMO.OSB), Math.max(0, Math.ceil((areaOsb * (1 + recortes)) / areaPlaca - 1e-9)),
+      areaOsb > 0 ? `${areaOsb.toFixed(2)} m² (${nombresOsb}) + ${textoRecortes}` : 'no lleva')
   );
   // v1.42.1: machimbre (m² + recortes) y tirantes de madera (metros), solo si algún piso los lleva.
   const areaMachimbre = conOsb.filter(([, c]) => c === 'machimbre').reduce((a, [, , m2]) => a + m2, 0);
   if (areaMachimbre > 0) {
-    items.push(itemSimple(insumo(INSUMO.MACHIMBRE), Math.ceil(areaMachimbre * (1 + DESPERDICIO_PLACAS) * 100 - 1e-9) / 100,
-      `${areaMachimbre.toFixed(2)} m² + ${DESPERDICIO_PLACAS * 100} % recortes`));
+    items.push(itemSimple(insumo(INSUMO.MACHIMBRE), Math.ceil(areaMachimbre * (1 + recortes) * 100 - 1e-9) / 100,
+      `${areaMachimbre.toFixed(2)} m² + ${textoRecortes}`));
   }
   [[INSUMO.TIRANTE_MADERA, e.piso.tirantes], [INSUMO.TIRANTE_MADERA_2, e.piso2.tirantes]].forEach(([id, tirantes]) => {
     const madera = tirantes.filter((p) => p.madera);

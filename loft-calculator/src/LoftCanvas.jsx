@@ -1160,7 +1160,7 @@ export default function LoftCanvas({
     etiquetasMesadas: true, // v1.38.1
     etiquetasTabiques: true, // v1.41
     etiquetasMuebles: true,
-    etiquetasTerreno: true, // v1.33.1: línea municipal, calle, N, pozo…
+    etiquetasTerreno: false, // v1.33.1: línea municipal, calle, pozo, pilar…; v1.79: apagadas de fábrica (pedido de Leandro: tapaban el 3D)
     cotas: false, // v1.28: largo, ancho y altos (en el PDF se pueden pedir aunque estén apagadas)
     medidasFijas: true, // v1.28: las medidas fijadas con 📌
     ...Object.fromEntries(CAPAS_TERRENO.map((c) => [c, true])), // v1.34.3: cada parte del terreno

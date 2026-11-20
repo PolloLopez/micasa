@@ -16,6 +16,7 @@ import CampoSelect from './CampoSelect.jsx';
 import SelectorColor from './SelectorColor.jsx';
 import { SEXOS, ALTURA_SEGUN_SEXO, personaNueva, perroNuevo, TAMANIOS_PERRO, ALTURA_PERRO } from '../motor/personas.js';
 import { PELAJE_DE_FABRICA } from '../perros3d.js';
+import NotaPlegable from './NotaPlegable.jsx';
 
 const f2 = (n) => n.toFixed(2).replace('.', ',');
 const ROPA_DE_FABRICA = { mujer: '#db2777', hombre: '#2563eb' }; // la misma que usa personas3d.js sin color propio
@@ -83,7 +84,7 @@ function Perro({ p, i, params, unidad, cambiar, onQuitar, abiertaAlInicio }) {
             onCambio={cambiar(`${ruta}.colorRopa`)} onRestablecer={() => cambiar(`${ruta}.colorRopa`)('')} />
         </div>
       </div>
-      <p className="nota">Camina solo por la casa y olfatea. Las puertas cerradas no las abre: espera a que pase alguien.</p>
+      <NotaPlegable>Camina solo por la casa y olfatea. Las puertas cerradas no las abre: espera a que pase alguien.</NotaPlegable>
     </FichaPlegable>
   );
 }
@@ -100,11 +101,11 @@ export default function PanelPersonas({ params, unidad, cambiar }) {
   const quitar = (id) => cambiar('personas')(personas.filter((p) => p.id !== id));
   return (
     <Tarjeta id="personas" titulo={`Personas y perros (${personas.length})`}>
-      <p className="nota">
+      <NotaPlegable>
         Para ver la casa a escala humana. En el 3D tocá una persona y después el piso (camina hasta ahí, esquivando
         paredes y muebles) o algo (va a buscarlo: se agacha o se estira). También se maneja con el teclado o se ve
         con sus ojos (👁 Primera persona). No van al presupuesto.
-      </p>
+      </NotaPlegable>
       {personas.length === 0 && <p className="vacio">Todavía no hay personas ni perros.</p>}
       {personas.map((p, i) => {
         const Ficha = p.especie === 'perro' ? Perro : Persona;

@@ -14,6 +14,7 @@ import Tarjeta from './Tarjeta.jsx';
 import { MESA_INICIAL, TANQUE_INICIAL, idNuevoComponente } from '../motor/montaje.js';
 import { LARGO_MAXIMO_NOMBRE_COMPONENTE } from '../motor/validacion.js';
 import { nombreLado } from '../motor/geometria.js';
+import NotaPlegable from './NotaPlegable.jsx';
 
 /** Select con etiqueta y mensaje de error (devuelto por onCambio). */
 function Opciones({ etiqueta, valor, opciones, onCambio }) {
@@ -126,16 +127,16 @@ export default function PanelMontaje({ params, resumenes, unidad, cambiar }) {
 
   return (
     <Tarjeta id="montaje" titulo={`Montaje (${componentes.length} componente${componentes.length === 1 ? '' : 's'})`} resaltar={{ tipo: 'grupo', id: 'montaje', nombre: 'Montaje' }}>
-      <p className="nota">
+      <NotaPlegable>
         Cada componente se ubica en la planta: <strong>x</strong> y <strong>z</strong> son cuánto se corre su centro desde
         el centro del 3D. Con <strong>Giro 90°</strong> el largo pasa a ir de adelante hacia atrás.
-      </p>
+      </NotaPlegable>
       <div className="acciones-montaje">
         <button className="btn-sec" onClick={() => agregar(MESA_INICIAL)}>+ Mesa / bastidor</button>
         <button className="btn-sec" onClick={() => agregar(TANQUE_INICIAL)}>+ Tanque</button>
       </div>
       {error && <p className="error" role="alert">{error}</p>}
-      {componentes.length === 0 && <p className="nota">Todavía no hay componentes: agregá una mesa o un tanque.</p>}
+      {componentes.length === 0 && <NotaPlegable>Todavía no hay componentes: agregá una mesa o un tanque.</NotaPlegable>}
       {componentes.map((c, i) => (
         <Componente key={c.id} c={c} i={i} resumen={resumenes[c.id]} unidad={unidad} cambiar={cambiar}
           ladoFrente={params.ladoFrente} onQuitar={() => quitar(c.id)} />

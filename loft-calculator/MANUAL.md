@@ -22,6 +22,9 @@ Página: https://pollolopez.github.io/micasa/
 ## 2. Estructura
 
 Medidas de la planta, alturas, pisos (perfil C o tirantes de madera), entrepiso, escalera, techo, pilotines y zapatas.
+En **Pisos**, **Recortes de placas** es el % que se suma al OSB y al machimbre (de fábrica 10 %).
+
+Las notas grises largas muestran una línea: tocá **más ▾** para leerlas enteras.
 
 **Obra civil (hormigón y ladrillos)** (debajo de Terreno): la dosificación (cemento, arena y piedra por m³), los
 pilotines **hormigonados en obra**, el **tapial** (los lados del lote, el alto y cada cuánto van las columnas) y la
@@ -95,7 +98,7 @@ Por perfil) y **herramientas** (Recorrer, Medir, **?** = cómo moverse). Con el 
 | 🏠 Ver adentro | Oculta las paredes (y el techo) que te tapan mientras girás |
 | 👁 Primera persona | Ves a la altura de los ojos (arrastrás para mirar, W A S D para caminar, Esc sale) |
 | 📏 Medir | Tocás dos puntos y te da la medida |
-| ▸ Capas | Prender y apagar partes (por ejemplo **Lo enterrado**, para no ver pilotines bajo tierra) |
+| ▸ Capas | Prender y apagar partes (por ejemplo **Lo enterrado**, para no ver pilotines bajo tierra). Las **etiquetas del terreno** (línea municipal, calle, pozo, pilar) arrancan apagadas: se prenden acá |
 
 **Tocar un panel**: un clic en una pared revestida (donde no hay un hierro) pinta de amarillo esa **tira** y un cartel
 dice cuál es (tira 4 de 8, de izquierda a derecha vista desde afuera, igual que en Planos), su ancho, de qué largo se
@@ -183,7 +186,7 @@ cambia la cantidad y el presupuesto.
 - **Precios de ejemplo**: si la ficha de un proveedor dice "⚠ N precios de ejemplo", son números que puso la app (no los de ese proveedor): cargá los de verdad o tocá "Borrar los de ejemplo".
 - **Precio por kilo**: si el corralón te cotiza el hierro en $/kg, cargalo en la columna "o $/kg" (en el proveedor o en el perfil): la barra sale de su peso. En la ficha del proveedor podés poner el mismo $/kg a todos sus hierros de una vez.
 - **Precios viejos**: cada proveedor dice de qué fecha son sus precios; pasados 30 días el Presupuesto avisa. Si le preguntaste y no cambiaron, tocá "Siguen iguales hoy" en su ficha.
-- **Lista de compras** (sub-pestaña, también en Obra): cada material por proveedor y por parte. Poné cuánto retiraste y
+- **Lista de compras** (en Obra; desde acá, el botón **🛒 Lista de compras (en Obra)**): cada material por proveedor y por parte. Poné cuánto retiraste y
   tocá **Retirado** (queda como deuda) o **Pagado** (se anota solo en Compras hechas); **↶ Deshacer** borra la última marca si te equivocaste; **Pagar lo retirado** salda la
   deuda. En **Se lo compro a…** cambiás el proveedor de ese renglón, o "a nadie" si lo conseguís vos.
 - Sub-pestañas: **Lista de materiales** (para pedir), **Por proveedor**, **Cortes** (la hoja de corte: Barra 2.3 = grupo 2,
@@ -220,8 +223,11 @@ que los materiales y la pestaña "Presupuesto" muestra ese precio.
 ## 7. Obra (seguimiento)
 
 - **Partes de la obra**: cada parte (Pilotines y zapatas, Paredes, Techo, el pozo…) con su casilla **Terminada**: lo
-  que lleva ya no falta comprar. **+ Agregar a…** suma extras a esa parte (ej. 20 m de manguera de riego para el nivel,
-  tanza para alinear), que entran al presupuesto. En **Mano de obra** ves el trabajo de esa parte (quién, % hecho,
+  que lleva ya no falta comprar.
+- **Comparar presupuestos en una parte** (ej. el Tapial): **+ Material para Tapial** (Ladrillo hueco 8, 300 u) y en su
+  ficha el precio de cada corralón: entra al presupuesto y a la lista de compras, comprando donde conviene. **+
+  Presupuesto de mano de obra**: quién y cuánto te cobra en total (uno por albañil); el más barato sale marcado.
+  **Elegir** pasa ese monto a la mano de obra del Presupuesto y crea el trabajo en el seguimiento con su nombre. En **Mano de obra** ves el trabajo de esa parte (quién, % hecho,
   pagado); con la parte terminada, **Marcar el trabajo terminado** lo pone al 100 %. El trabajo se une desde la parte
   ("Unir un trabajo") o desde el seguimiento ("Parte de la obra").
 - **Compras hechas**: **+ Compra** (fecha y proveedor) y en cada renglón el material de la lista (ej. Cemento · 12

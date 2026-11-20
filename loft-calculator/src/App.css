@@ -881,6 +881,28 @@ input[type=date] { color-scheme: dark; }
 .tabla-segmentos td, .tabla-segmentos th { padding: 0.2rem 0.3rem; border-bottom: 1px solid var(--borde, #334155); }
 .tabla-segmentos input[type=text] { width: 100%; min-width: 7rem; }
 .tabla-segmentos .group { margin: 0; }
+/* v1.79: con el panel angosto (la mitad de la pantalla o el celular) cada renglón pasa a ser una "ficha": el nombre
+   arriba a lo ancho y los demás datos debajo, cada uno con su título chico (data-etiqueta). Antes la tabla medía
+   ~510 px fijos y se salía de costado. Sirve para las 6 tablas que usan esta clase (mano de obra, obra civil,
+   instalaciones, equipos, comparativa de revestimientos y contratistas). */
+@container panel (max-width: 600px) {
+  .tabla-segmentos, .tabla-segmentos tbody { display: block; width: 100%; }
+  .tabla-segmentos thead { display: none; }
+  .tabla-segmentos tr { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 6px 14px; padding: 8px 0;
+    border-bottom: 1px solid var(--borde, #334155); }
+  .tabla-segmentos td { border: none; padding: 0; flex: 1 1 6.5rem; min-width: 0; }
+  .tabla-segmentos td:first-child { flex-basis: calc(100% - 3rem); }   /* deja lugar al ✕ si viene al final */
+  .tabla-segmentos td.num { text-align: left; }
+  .tabla-segmentos td[data-etiqueta]::before { content: attr(data-etiqueta); display: block; font-size: 0.72rem;
+    color: var(--texto-suave, #94a3b8); margin-bottom: 2px; }
+  .tabla-segmentos td.accion-fila { flex: 0 0 auto; }
+  .tabla-segmentos td.accion-fila:empty { display: none; }
+  /* el ✕ de quitar sube al lado del nombre (el resto de los datos va debajo) */
+  .tabla-segmentos td { order: 2; }
+  .tabla-segmentos td:first-child { order: 0; }
+  .tabla-segmentos td.accion-fila:has(.btn-del) { order: 1; }
+  .tabla-segmentos input[type=text], .tabla-segmentos select { min-width: 0; width: 100%; }
+}
 
 /* v1.57: planos de las instalaciones */
 .plano-instalacion { width: 100%; max-height: 520px; background: #fff; border-radius: 6px; }
@@ -1028,3 +1050,15 @@ option { background: var(--tarjeta); color: var(--texto); }
    sub-pestañas pegadas arriba (en la compu; en el celular no se pegan). */
 .columna-panel .ficha-plegable, .columna-panel .fila-perfil, .columna-panel .card { scroll-margin-top: calc(var(--alto-pestanas, 64px) + 130px); } /* + las sub-pestañas (hasta 2 renglones) */
 @media (max-width: 1000px) { .columna-panel .ficha-plegable, .columna-panel .fila-perfil, .columna-panel .card { scroll-margin-top: 8px; } }
+/* v1.79: presupuestos de mano de obra por parte. */
+.cotizacion { border: 1px solid var(--borde); border-radius: 8px; padding: 6px 8px; margin: 6px 0; }
+.cotizacion.elegida { border-color: var(--acento); }
+.acciones-cotizacion { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 4px; }
+
+/* v1.79: notas de ayuda en una línea (NotaPlegable.jsx): "más ▾" las abre enteras. */
+.nota-plegable { display: flex; align-items: baseline; gap: 6px; }
+.nota-plegable .texto-nota { flex: 1; min-width: 0; }
+.nota-plegable.plegada .texto-nota { display: -webkit-box; -webkit-line-clamp: 1; line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.mas-nota { flex: none; background: none; border: none; padding: 0 2px; color: var(--acento); font: inherit; font-size: 0.75rem; cursor: pointer; white-space: nowrap; }
+.mas-nota:hover { text-decoration: underline; }
+@media print { .nota-plegable.plegada .texto-nota { display: inline; -webkit-line-clamp: unset; overflow: visible; } }

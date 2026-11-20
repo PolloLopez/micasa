@@ -9,6 +9,7 @@
 import CampoNumero from './CampoNumero.jsx';
 import CampoSelect from './CampoSelect.jsx';
 import { MODOS_MANO_DE_OBRA, IVAS, MODOS_SEGMENTO, segmentoNuevo, manoDeObra, completarCierre } from '../motor/cierre.js';
+import NotaPlegable from './NotaPlegable.jsx';
 
 const pesos = (n) => n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
 const SUFIJO = { global: '$', porM2: '$/m²', porKg: '$/kg', porcentaje: '%', porM2Revestimiento: '$/m²', porMetroTabique: '$/m', porPilotin: '$/u' };
@@ -23,24 +24,24 @@ function Segmentos({ segmentos, medidas, materiales, cambiar }) {
   return (
     <div className="segmentos-mano-de-obra">
       <h4 className="subtitulo-pared">Mano de obra por segmento</h4>
-      <p className="nota">Lo que cobra cada uno. En 0 no suma. En la pestaña Obra, "Armar desde el presupuesto" crea un rubro por cada uno para cargarle los pagos.</p>
+      <NotaPlegable>Lo que cobra cada uno. En 0 no suma. En la pestaña Obra, "Armar desde el presupuesto" crea un rubro por cada uno para cargarle los pagos.</NotaPlegable>
       <table className="tabla-segmentos">
         <thead><tr><th>Segmento</th><th>Se cobra</th><th className="num">Precio</th><th className="num">Da</th><th /></tr></thead>
         <tbody>
           {segmentos.map((x, i) => (
             <tr key={x.id}>
               <td><input type="text" maxLength={40} value={x.nombre} aria-label="Nombre del segmento" onChange={(e) => cambiarSegmento(i, { nombre: e.target.value })} /></td>
-              <td>
+              <td data-etiqueta="Se cobra">
                 <select value={x.modo} aria-label={`Cómo se cobra ${x.nombre}`} onChange={(e) => cambiarSegmento(i, { modo: e.target.value })}>
                   {MODOS_SEGMENTO.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
                 </select>
               </td>
-              <td className="num">
+              <td className="num" data-etiqueta="Precio">
                 <CampoNumero etiqueta="" sufijo={SUFIJO[x.modo]} decimales={x.modo === 'porcentaje' ? 1 : 0} valor={x.valor}
                   onCambio={(v) => { if (v < 0) return 'No puede ser negativo'; cambiarSegmento(i, { valor: v }); return null; }} />
               </td>
-              <td className="num" title={manoDeObra(x, materiales, medidas).detalle}>{pesos(manoDeObra(x, materiales, medidas).monto)}</td>
-              <td><button type="button" className="btn-del" aria-label={`Quitar ${x.nombre}`} title="Quitar"
+              <td className="num" data-etiqueta="Da" title={manoDeObra(x, materiales, medidas).detalle}>{pesos(manoDeObra(x, materiales, medidas).monto)}</td>
+              <td className="accion-fila"><button type="button" className="btn-del" aria-label={`Quitar ${x.nombre}`} title="Quitar"
                 onClick={() => cambiar('cierre.segmentos')(segmentos.filter((_, k) => k !== i))}>✕</button></td>
             </tr>
           ))}
@@ -78,8 +79,8 @@ export default function CierrePresupuesto({ cierre: guardado, resultado, medidas
           opciones={IVAS.map((v) => [String(v), v === 0 ? 'Sin IVA' : `${String(v).replace('.', ',')} %${v === 10.5 ? ' (vivienda)' : ''}`])}
           onCambio={(v) => cambiar('cierre.iva')(Number(v))} />
       </div>
-      {modo === 'porM2' && <p className="nota">Superficie cubierta: {medidas.m2.toFixed(2).replace('.', ',')} m² (planta baja + entrepiso).</p>}
-      {modo === 'porKg' && <p className="nota">Hierro: ≈ {Math.round(medidas.kg).toLocaleString('es-AR')} kg (barras enteras, como en la lista de materiales).</p>}
+      {modo === 'porM2' && <NotaPlegable>Superficie cubierta: {medidas.m2.toFixed(2).replace('.', ',')} m² (planta baja + entrepiso).</NotaPlegable>}
+      {modo === 'porKg' && <NotaPlegable>Hierro: ≈ {Math.round(medidas.kg).toLocaleString('es-AR')} kg (barras enteras, como en la lista de materiales).</NotaPlegable>}
       <Segmentos segmentos={cierre.segmentos} medidas={medidas} materiales={materiales} cambiar={cambiar} />
       {resultado.conCierre && <TablaCierre resultado={resultado} />}
     </details>

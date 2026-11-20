@@ -16,6 +16,7 @@ import { MEDIOS_PAGO, hoy, rubroNuevo, pagoNuevo, rubrosDesdePresupuesto, cuenta
   etapaDelRubro, estadoSegunAvance } from '../motor/seguimiento.js';
 import { PlanDeCuotas, EstadoDeCuotas, SelectorCuota, SelectorAcreedor } from './Cuotas.jsx';
 import { esDeMateriales, trabajosPorContratista, contratistaNuevo } from '../motor/compras.js';
+import NotaPlegable from './NotaPlegable.jsx';
 
 const pesos = (n) => n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
 
@@ -137,13 +138,13 @@ function Rubro({ r, i, partes, acreedores, cambiar, onQuitar, abiertaAlInicio, c
         <CampoFecha etiqueta="Fecha de contrato" valor={r.fechaContrato} onCambio={cambiar(`${ruta}.fechaContrato`)} />
         <CampoFecha etiqueta="Terminado el" valor={r.fechaFin} onCambio={cambiar(`${ruta}.fechaFin`)} />
       </div>
-      <p className="nota">
+      <NotaPlegable>
         {r.origen ? `Presupuestado: ${pesos(c.presupuestado)} (sale del presupuesto, se actualiza solo)` : `Presupuestado: ${pesos(c.presupuestado)}`}
         {r.contratado !== null && r.contratado !== c.presupuestado && (<>
           {' · '}contratado {c.contratado > c.presupuestado ? 'por encima' : 'por debajo'} ({pesos(Math.abs(c.contratado - c.presupuestado))}){' '}
           <button type="button" className="btn-mini" onClick={() => cambiar(`${ruta}.contratado`)(null)}>usar lo presupuestado</button>
         </>)}
-      </p>
+      </NotaPlegable>
       {c.sinOrigen && <p className="falta">⚠ Esta parte ya no está en el presupuesto (¿se quitó el proveedor?). Lo presupuestado queda en 0.</p>}
       <textarea className="detalle-rubro" maxLength={300} rows={2} value={r.detalle} placeholder="Detalle (qué incluye, condiciones, contacto…)"
         aria-label="Detalle" onChange={(e) => cambiar(`${ruta}.detalle`)(e.target.value)} />
@@ -166,7 +167,7 @@ function Rubro({ r, i, partes, acreedores, cambiar, onQuitar, abiertaAlInicio, c
       {/* v1.69: de una, lo que falta como un pago de hoy. */}
       {c.saldo > 0 && <button type="button" className="btn-sec" onClick={marcarPagado}>Marcar pagado todo ({pesos(c.saldo)})</button>}
       {c.pagado > r.pagos.reduce((a, p) => a + p.monto, 0) && (
-        <p className="nota">Incluye {pesos(c.pagado - r.pagos.reduce((a, p) => a + p.monto, 0))} de las compras hechas a {r.quien}.</p>
+        <NotaPlegable>Incluye {pesos(c.pagado - r.pagos.reduce((a, p) => a + p.monto, 0))} de las compras hechas a {r.quien}.</NotaPlegable>
       )}
     </FichaPlegable>
   );
@@ -200,10 +201,10 @@ export default function PanelSeguimiento({ params, partes, precioObra, cambiar, 
 
   return (
     <Tarjeta id="seguimiento" titulo="Seguimiento de la obra">
-      <p className="nota">
+      <NotaPlegable>
         Lo contratado, lo pagado (en partes o todo) y lo terminado, por rubro. Se guarda con el proyecto. No es
         contabilidad: es para saber cuánto se pagó y cuánto falta.
-      </p>
+      </NotaPlegable>
       <div className="resumen-seguimiento">
         <div><small>Presupuestado</small><strong>{pesos(resumen.presupuestado)}</strong></div>
         <div><small>Contratado</small><strong>{pesos(resumen.contratado)}</strong></div>
@@ -213,8 +214,8 @@ export default function PanelSeguimiento({ params, partes, precioObra, cambiar, 
       </div>
       {resumen.rubros > 0 && <BarraPagado pagado={resumen.pagado} contratado={resumen.contratado} />}
       {precioObra > 0 && Math.abs(precioObra - resumen.presupuestado) > 1 && resumen.rubros > 0 && (
-        <p className="nota">El precio de la obra es {pesos(precioObra)}: la diferencia con lo presupuestado acá son los
-          imprevistos, la ganancia y el IVA (o rubros que todavía no agregaste).</p>
+        <NotaPlegable>El precio de la obra es {pesos(precioObra)}: la diferencia con lo presupuestado acá son los
+          imprevistos, la ganancia y el IVA (o rubros que todavía no agregaste).</NotaPlegable>
       )}
       {rubros.length === 0 && <p className="vacio">Todavía no hay rubros. Armalos desde el presupuesto o agregá uno a mano.</p>}
       {ordenados.map(({ r, i }) => (
@@ -286,7 +287,7 @@ function Contratistas({ seguimiento, partes, cambiar, onNuevoTrabajo }) {
                 <tbody>
                   {g.trabajos.map((t) => (
                     <tr key={t.rubro.id}><td>{t.rubro.nombre}{t.rubro.detalle ? <small> · {t.rubro.detalle}</small> : ''}</td>
-                      <td className="num">{pesos(t.contratado)}</td><td className="num">{pesos(t.pagado)}</td><td className="num">{t.saldo > 0 ? pesos(t.saldo) : '✓'}</td></tr>
+                      <td className="num" data-etiqueta="Contratado">{pesos(t.contratado)}</td><td className="num" data-etiqueta="Pagado">{pesos(t.pagado)}</td><td className="num" data-etiqueta="Falta">{t.saldo > 0 ? pesos(t.saldo) : '✓'}</td></tr>
                   ))}
                 </tbody>
               </table>
@@ -300,7 +301,7 @@ function Contratistas({ seguimiento, partes, cambiar, onNuevoTrabajo }) {
         );
       })}
       <button type="button" className="btn-sec" onClick={agregar}>+ Contratista</button>
-      <p className="nota">Cada trabajo (rubro) elige su contratista arriba, en su ficha. Los de materiales van por proveedor.</p>
+      <NotaPlegable>Cada trabajo (rubro) elige su contratista arriba, en su ficha. Los de materiales van por proveedor.</NotaPlegable>
     </section>
   );
 }

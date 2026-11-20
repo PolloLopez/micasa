@@ -36,6 +36,20 @@ describe('altillo con perfiles C y tirantes de madera con machimbre', () => {
     expect(renglon({ ...altillo, cubiertaPiso: 'machimbre' }, INSUMO.OSB)).toMatchObject({ cantidad: 0, detalle: 'no lleva' });
   });
 
+  it('v1.79: el % de recortes de placas se puede cambiar (OSB y machimbre)', () => {
+    const s = generarEstructura(altillo, ABERTURAS_INICIALES).superficies;
+    const con = (pct) => ({ ...altillo, desperdicioPlacas: pct });
+    expect(renglon(con(0), INSUMO.MACHIMBRE).cantidad).toBeCloseTo(Math.ceil(s.piso2 * 100 - 1e-9) / 100, 6);
+    expect(renglon(con(25), INSUMO.MACHIMBRE)).toMatchObject({ detalle: expect.stringContaining('25 % recortes') });
+    expect(renglon(con(30), INSUMO.OSB).cantidad).toBeGreaterThan(renglon(con(0), INSUMO.OSB).cantidad);
+    // Sin dato (proyecto viejo) = 10 %; fuera de rango no vale.
+    const { desperdicioPlacas, ...viejo } = P;
+    expect(desperdicioPlacas).toBe(10);
+    expect(migrarParams(viejo).desperdicioPlacas).toBe(10);
+    expect(migrarParams({ ...P, desperdicioPlacas: 80 }).desperdicioPlacas).toBe(10);
+    expect(validarParametros({ ...P, desperdicioPlacas: 80 }).desperdicioPlacas).toBe('Entre 0 y 50 %');
+  });
+
   it('sin madera, como siempre: no aparecen sus renglones', () => {
     const ids = items(P).map((i) => i.id);
     [INSUMO.TIRANTE_MADERA, INSUMO.TIRANTE_MADERA_2, INSUMO.MACHIMBRE].forEach((id) => expect(ids).not.toContain(id));

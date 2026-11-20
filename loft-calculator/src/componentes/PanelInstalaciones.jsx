@@ -22,6 +22,7 @@ import {
 } from '../motor/instalaciones.js';
 import { LADOS } from '../motor/constantes.js';
 import { nombreDePared } from '../motor/geometria.js';
+import NotaPlegable from './NotaPlegable.jsx';
 
 const pesos = (n) => n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
 const m2 = (n) => `${n.toFixed(2).replace('.', ',')} m`;
@@ -49,7 +50,7 @@ function Punto({ p, i, params, unidad, cambiar, onQuitar, abierta }) {
         <CampoNumero etiqueta="Altura (desde el piso)" unidad={unidad} valor={p.altura} onCambio={cambiar(`${ruta}.altura`)} />
         <CampoNumero etiqueta="Hacia adentro (ej. lámpara de techo)" unidad={unidad} valor={p.adentro} onCambio={cambiar(`${ruta}.adentro`)} />
       </div>
-      <p className="nota">Lleva: {tipo.lleva.map(([n, c]) => (c > 1 ? `${c} ${n}` : n)).join(', ')}.</p>
+      <NotaPlegable>Lleva: {tipo.lleva.map(([n, c]) => (c > 1 ? `${c} ${n}` : n)).join(', ')}.</NotaPlegable>
     </FichaPlegable>
   );
 }
@@ -82,8 +83,8 @@ function Tramo({ t, i, puntos, params, estructura, unidad, cambiar, onQuitar, ab
         <CampoNumero etiqueta="Altura del recorrido por afuera (desde el piso)" unidad={unidad} valor={t.alturaRecorrido} onCambio={cambiar(`${ruta}.alturaRecorrido`)} />
         <CampoNumero etiqueta="Largo extra (afuera: hasta la cámara, la garrafa…)" unidad={unidad} valor={t.largoExtra} onCambio={cambiar(`${ruta}.largoExtra`)} />
       </div>
-      {r && <p className="nota">Recorrido: {m2(r.horizontal)} por afuera{r.esquinas ? ` (${r.esquinas} esquina${r.esquinas > 1 ? 's' : ''})` : ''} + {m2(r.vertical)} de subidas y bajadas
-        {t.largoExtra > 0 ? ` + ${m2(t.largoExtra)} extra` : ''} = <strong>{m2(r.largo)}</strong>, {r.curvas} curvas.</p>}
+      {r && <NotaPlegable>Recorrido: {m2(r.horizontal)} por afuera{r.esquinas ? ` (${r.esquinas} esquina${r.esquinas > 1 ? 's' : ''})` : ''} + {m2(r.vertical)} de subidas y bajadas
+        {t.largoExtra > 0 ? ` + ${m2(t.largoExtra)} extra` : ''} = <strong>{m2(r.largo)}</strong>, {r.curvas} curvas.</NotaPlegable>}
     </FichaPlegable>
   );
 }
@@ -120,8 +121,8 @@ export default function PanelInstalaciones({ params, estructura, unidad, cambiar
 
   return (
     <Tarjeta id="instalaciones" titulo="Instalaciones">
-      <p className="nota">Van por afuera de la casa, atornilladas a la estructura: cada tramo sale del punto, atraviesa la pared, sube o
-        baja a la altura del recorrido y da la vuelta por afuera por el lado más corto. Se ven en el 3D (Capas → Instalaciones) y en Planos.</p>
+      <NotaPlegable>Van por afuera de la casa, atornilladas a la estructura: cada tramo sale del punto, atraviesa la pared, sube o
+        baja a la altura del recorrido y da la vuelta por afuera por el lado más corto. Se ven en el 3D (Capas → Instalaciones) y en Planos.</NotaPlegable>
       <div className="pestanas-capas" role="tablist" aria-label="Sistema">
         {SISTEMAS.map(([v, nombre, color]) => (
           <button key={v} type="button" role="tab" aria-selected={v === sistema} className={`chip-capas${v === sistema ? ' activa' : ''}`}
@@ -160,9 +161,9 @@ export default function PanelInstalaciones({ params, estructura, unidad, cambiar
             {materiales.map((m) => (
               <tr key={m.nombre}>
                 <td>{m.nombre}</td>
-                <td className="num">{Number.isInteger(m.cantidad) ? m.cantidad : m.cantidad.toFixed(1)} {m.unidad}</td>
-                <td className="num"><CampoNumero etiqueta="" sufijo="$" decimales={0} valor={m.precio} onCambio={cambiarPrecio(m.nombre)} /></td>
-                <td className="num">{pesos(m.total)}</td>
+                <td className="num" data-etiqueta="Cantidad">{Number.isInteger(m.cantidad) ? m.cantidad : m.cantidad.toFixed(1)} {m.unidad}</td>
+                <td className="num" data-etiqueta="Precio"><CampoNumero etiqueta="" sufijo="$" decimales={0} valor={m.precio} onCambio={cambiarPrecio(m.nombre)} /></td>
+                <td className="num" data-etiqueta="Total">{pesos(m.total)}</td>
               </tr>
             ))}
           </tbody>

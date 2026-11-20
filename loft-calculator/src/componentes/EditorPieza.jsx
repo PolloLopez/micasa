@@ -16,6 +16,7 @@ import { nombreDePared } from '../motor/geometria.js';
 import {
   EDICION_VACIA, esEdicionVacia, esVertical, revisarEdicionDePieza,
 } from '../motor/edicionPiezas.js';
+import NotaPlegable from './NotaPlegable.jsx';
 
 /**
  * Nombre de cada extremo de la pieza según hacia dónde apunta:
@@ -74,18 +75,18 @@ export default function EditorPieza({ pieza, edicion, catalogo, unidad, ladoFren
 
   return (
     <div className="editor-pieza">
-      <p className="nota">
+      <NotaPlegable>
         Largo original {original.largo.toFixed(2)} m · ahora {pieza.largo.toFixed(2)} m.
         {pieza.recorteIgnorado && <strong className="error"> El recorte ya no entra (cambió una medida): revisalo.</strong>}
-      </p>
+      </NotaPlegable>
 
       {esVertical(original) ? (<>
         {/* Vertical (v1.16): se dice directo a qué altura arranca y termina, medida desde el piso del loft. */}
         <h3 className="subtitulo">Altura</h3>
-        <p className="nota">
+        <NotaPlegable>
           Medida desde el piso del loft. La pieza original va de {(yAbajo - elevacion).toFixed(2)} a {(yArriba - elevacion).toFixed(2)} m:
           se puede acortar, no alargar (para alargarla, duplicala o movela).
-        </p>
+        </NotaPlegable>
         <div className="grid-params">
           <CampoNumero etiqueta="Arranca a" unidad={unidad} valor={yAbajo - elevacion + actual[campoAbajo]}
             onCambio={(v) => (v < yAbajo - elevacion - 1e-9
@@ -98,7 +99,7 @@ export default function EditorPieza({ pieza, edicion, catalogo, unidad, ladoFren
         </div>
       </>) : (<>
       <h3 className="subtitulo">Acortar</h3>
-      <p className="nota">Cuánto se le saca a cada punta de la pieza.</p>
+      <NotaPlegable>Cuánto se le saca a cada punta de la pieza.</NotaPlegable>
       <div className="grid-params">
         <CampoNumero etiqueta={`Acortar la punta ${extremos.inicio === 'abajo' || extremos.inicio === 'arriba' ? `de ${extremos.inicio}` : extremos.inicio}`}
           unidad={unidad} valor={actual.recorteInicio} onCambio={cambiarCampo('recorteInicio')} />
@@ -120,7 +121,7 @@ export default function EditorPieza({ pieza, edicion, catalogo, unidad, ladoFren
       <h3 className="subtitulo">Perfil</h3>
       {/* v1.72 (Leandro: "debe mostrarme los tipos de materiales que tengo, no la lista de dónde lo uso"): los perfiles
           de la lista (Caño 80x80x2.0, Perfil C 80x40…). La pieza se compra con ese perfil. */}
-      <p className="nota">Con qué hierro se hace esta pieza (de tu lista de perfiles, en Materiales).</p>
+      <NotaPlegable>Con qué hierro se hace esta pieza (de tu lista de perfiles, en Materiales).</NotaPlegable>
       <div className="group">
         <label htmlFor={idPerfil}>Perfil de esta pieza</label>
         <select id={idPerfil} value={perfilElegido} onChange={(e) => onEditar(pieza.id, { ...actual, perfil: null, perfilLista: e.target.value || null })}>

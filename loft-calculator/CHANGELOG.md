@@ -1,5 +1,34 @@
 # Changelog
 
+## [1.79.0] - 2026-11-20
+### Agregado
+- **Comparar presupuestos por parte de la obra** (Obra → Partes de la obra, en cada parte):
+  - **Materiales con precio por proveedor**: "+ Material para <parte>" (ej. Ladrillo hueco 8 para el Tapial), con
+    cantidad, unidad y el precio de cada corralón. Son accesorios con `parte` (se guarda con el proyecto) y entran al
+    presupuesto, al plan de compra y a la lista de compras como cualquier material.
+  - **Presupuestos de mano de obra**: "+ Presupuesto de mano de obra" (quién y cuánto cobra el total), con "el más
+    barato" marcado. **Elegir** uno lo pasa al cierre (el segmento de esa parte, como monto total) y al seguimiento
+    (el trabajo con quién lo hace). Cambiar el monto del elegido lo actualiza en los dos.
+  - `motor/manoDeObraPartes.js` (cotizaciones en `seguimiento.cotizaciones`, validadas).
+- **Desperdicio de placas editable**: Estructura → Pisos, "Recortes de placas (los 2 pisos)" en % (0 a 50; de fábrica
+  10 %, los proyectos de antes también). Cambia las placas de OSB y los m² de machimbre (`params.desperdicioPlacas`).
+- **Notas de ayuda en una línea** (`NotaPlegable`): las notas grises largas muestran la primera línea y "más ▾" para
+  verlas enteras (84 notas de las tarjetas; los diálogos, los planos y el manual quedan como estaban). Al imprimir
+  salen enteras.
+### Cambiado
+- **La lista de compras está solo en Obra** (estaba dos veces): el Presupuesto tiene el botón "🛒 Lista de compras (en
+  Obra)" que lleva a esa sub-pestaña.
+- **Las etiquetas del terreno arrancan apagadas** en el 3D (línea municipal, calle, pozo, pilar de luz): tapaban la
+  casa. Se prenden en Capas.
+- Los materiales que se agregaban por parte con precio único ("+ Agregar a…") se reemplazan por los de arriba; los ya
+  cargados siguen, bajo "Extras con precio único (cargados antes)".
+### Arreglado
+- **Las tablas angostas se salían de costado** (`tabla-segmentos`: mano de obra, obra civil, instalaciones, equipos,
+  comparativa de revestimientos y contratistas): con el panel de menos de 600 px cada renglón es una ficha con el
+  nombre arriba y cada dato con su título.
+- Elegir un presupuesto reconoce el segmento aunque lo hayas renombrado ("Pozo séptico-Jose", "Pilotines+Pilar"): antes
+  creaba otro y esa mano de obra se sumaba dos veces.
+
 ## [Sin versión] - 2026-11-19
 ### Documentación
 - PENDIENTES.md ordenado y limpio: solo lo abierto (de 588 a 140 líneas), agrupado por tema y prioridad, con "Lo que

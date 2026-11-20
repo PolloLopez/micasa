@@ -19,6 +19,7 @@ import { ladoOpuesto, nombreDePared } from '../motor/geometria.js';
 import { tabiqueNuevo, carasDelTabique, altosDelTabique, TIPOS_PUERTA, SENTIDOS_PUERTA, distanciasDelTabique } from '../motor/tabiques.js';
 import { completarDurlock } from '../motor/durlock.js';
 import { puertasTapadas, textoDePuertaTapada, libreDelanteDePuerta, LIBRE_DELANTE_SEGUN_TIPO } from '../motor/recorrido.js';
+import NotaPlegable from './NotaPlegable.jsx';
 
 const f2 = (n) => n.toFixed(2).replace('.', ',');
 
@@ -87,9 +88,9 @@ function Tabique({ t, i, params, unidad, cambiar, onQuitar, paneles, perfiles, p
           : <>; de su punta a la pared de enfrente quedan <strong>{f2(d.alaPunta)} m</strong>.</>}
         {d.puertaDesdeArranque !== undefined && <> La puerta, a {f2(d.puertaDesdeArranque)} m del arranque y a {f2(d.puertaDesdePunta)} m de la punta.</>}
       </p>
-      <p className="nota">Alto: {f2(h0)}{Math.abs(h0 - h1) > 0.005 ? ` a ${f2(h1)}` : ''} m. {t.orientacion === 'perpendicular'
+      <NotaPlegable>Alto: {f2(h0)}{Math.abs(h0 - h1) > 0.005 ? ` a ${f2(h1)}` : ''} m. {t.orientacion === 'perpendicular'
         ? 'La distancia a la esquina es al eje del tabique; sale desde la cara de adentro de la pared.'
-        : 'La separación es de la cara de adentro de la pared al eje del tabique.'}</p>
+        : 'La separación es de la cara de adentro de la pared al eje del tabique.'}</NotaPlegable>
 
       <h4 className="subtitulo-pared">Estructura y placas</h4>
       <div className="grid-params">
@@ -101,7 +102,7 @@ function Tabique({ t, i, params, unidad, cambiar, onQuitar, paneles, perfiles, p
       </div>
 
       <h4 className="subtitulo-pared">Puerta</h4>
-      {t.puerta.tipo !== 'ninguna' && <p className="nota">Izquierda y derecha: parado del lado de la cara A ({caras.A}), mirando el tabique.</p>}
+      {t.puerta.tipo !== 'ninguna' && <NotaPlegable>Izquierda y derecha: parado del lado de la cara A ({caras.A}), mirando el tabique.</NotaPlegable>}
       <div className="grid-params">
         <CampoSelect etiqueta="Tipo" valor={t.puerta.tipo} opciones={TIPOS_PUERTA} onCambio={cambiar(`${ruta}.puerta.tipo`)} />
         {t.puerta.tipo !== 'ninguna' && (<>
@@ -130,13 +131,13 @@ function Tabique({ t, i, params, unidad, cambiar, onQuitar, paneles, perfiles, p
         </label>
       )}
       {t.puerta.tipo !== 'ninguna' && (
-        <p className="nota">
+        <NotaPlegable>
           Lugar libre para pasar: de fábrica {(LIBRE_DELANTE_SEGUN_TIPO[t.puerta.tipo] ?? 0.5).toFixed(2).replace('.', ',')} m para
           {t.puerta.tipo === 'granero' ? ' una corrediza (no barre el piso)' : ' una de abrir'}.{' '}
           {Number.isFinite(t.puerta.libreDelante) && (
             <button type="button" className="btn-mini" onClick={() => cambiar(`${ruta}.puerta.libreDelante`)(undefined)}>volver al de fábrica</button>
           )}
-        </p>
+        </NotaPlegable>
       )}
       <div className="grid-params">
       </div>
@@ -170,11 +171,11 @@ function MaterialesDurlock({ params, durlock, cambiar }) {
         <small>{durlock?.m2Placa > 0 || durlock?.t1 > 0
           ? `${n(durlock.m2Placa)} m² de placa · ${durlock.t2} T2 · ${durlock.t1} T1 · ${durlock.cinta} m de cinta · ${durlock.masilla} kg de masilla`
           : 'sin tabiques'}</small></>}>
-      <p className="nota">
+      <NotaPlegable>
         Las <strong>soleras y el dintel</strong> van a su renglón "Soleras de tabiques" (PGU) y los montantes a "Estructura de
         tabiques" (PGC): el perfil de cada uno se elige en Materiales → Perfiles. Tornillos, cinta y masilla salen de los m² de
         placa (por cara) y de los montantes. Los rendimientos de fábrica son orientativos: <strong>validalos con el durlero</strong>.
-      </p>
+      </NotaPlegable>
       <div className="grid-params">
         <CampoNumero etiqueta="Tornillos T2 (placa) por m²" sufijo="u" decimales={0} valor={r.t2PorM2} onCambio={cambiarRendimiento('t2PorM2')} />
         <CampoNumero etiqueta="Tornillos T1 (perfil) por montante" sufijo="u" decimales={0} valor={r.t1PorMontante} onCambio={cambiarRendimiento('t1PorMontante')} />
@@ -197,10 +198,10 @@ export default function PanelTabiques({ params, unidad, cambiar, paneles, perfil
   const quitar = (id) => cambiar('tabiques')(tabiques.filter((t) => t.id !== id));
   return (
     <Tarjeta id="tabiques" titulo={`Tabiques (${tabiques.length})`} resaltar={{ tipo: 'grupo', id: 'tabique', nombre: 'Tabiques' }}>
-      <p className="nota">
+      <NotaPlegable>
         Divisiones de Durlock (baño, antebaño, cerramiento de la ducha): estructura con un perfil de tu lista, placa por
         cara de tus revestimientos y puerta de abrir o corrediza tipo granero. Van al presupuesto y al diagrama de cortes.
-      </p>
+      </NotaPlegable>
       {tabiques.length === 0 && <p className="vacio">Todavía no hay tabiques.</p>}
       {tabiques.map((t, i) => (
         <Tabique key={t.id} t={t} i={i} params={params} unidad={unidad} cambiar={cambiar} onQuitar={() => quitar(t.id)}

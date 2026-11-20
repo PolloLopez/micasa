@@ -13,6 +13,7 @@
 
 import CampoSelect from './CampoSelect.jsx';
 import { completarUniones } from '../motor/uniones.js';
+import NotaPlegable from './NotaPlegable.jsx';
 
 /**
  * @param nivel        'piso' (planta baja) o 'piso2'
@@ -49,8 +50,8 @@ export default function ArmadoPiso({ nivel, uniones, transversales = true, cambi
             opciones={[['bordes', 'El borde entero (tirantes entre los bordes)'], ['tirantes', 'Los tirantes enteros (borde cortado)']]} />
         )}
       </div>
-      {!enRed && <p className="nota">Con "eje a eje" (Materiales → Uniones) nada se corta: cada pieza va de eje a eje.</p>}
-      {transversales && apoyados && <p className="nota">Los tirantes van enteros encima de los transversales (no se cruzan con el borde).</p>}
+      {!enRed && <NotaPlegable>Con "eje a eje" (Materiales → Uniones) nada se corta: cada pieza va de eje a eje.</NotaPlegable>}
+      {transversales && apoyados && <NotaPlegable>Los tirantes van enteros encima de los transversales (no se cruzan con el borde).</NotaPlegable>}
     </div>
   );
 }

@@ -15,6 +15,7 @@ import CampoOpcional from './CampoOpcional.jsx';
 import CampoSelect from './CampoSelect.jsx';
 import { TIPOS_ELEMENTO, RUMBOS, elementoNuevo, rumboDe } from '../motor/terreno.js';
 import { nombreDePared } from '../motor/geometria.js';
+import NotaPlegable from './NotaPlegable.jsx';
 
 const f2 = (n) => `${n.toFixed(2)} m`;
 
@@ -54,10 +55,10 @@ function Elemento({ el, i, unidad, cambiar, onQuitar, pozo }) {
         {(el.tipo === 'arbol' || el.tipo === 'construccion' || el.tipo === 'pilarLuz') && medida('alto', 'Alto')}
       </div>
       {pozo && (
-        <p className="nota">
+        <NotaPlegable>
           Desde el borde del pozo: a la casa <strong>{f2(pozo.aCasa)}</strong> · lateral izq. {f2(pozo.izquierda)} ·
           lateral der. {f2(pozo.derecha)} · fondo {f2(pozo.fondo)}
-        </p>
+        </NotaPlegable>
       )}
     </section>
   );
@@ -91,13 +92,13 @@ export default function PanelTerreno({ params, unidad, cambiar, implantacion, on
         <input type="checkbox" checked={t.activo} onChange={(e) => cambiar('terreno.activo')(e.target.checked)} />
         Ubicar la obra en un terreno
       </label>
-      {!t.activo && <p className="nota">Cargá el lote, a qué distancia va la casa, el pozo, árboles, accesos y el norte. Se ve en el 3D y en Planos.</p>}
+      {!t.activo && <NotaPlegable>Cargá el lote, a qué distancia va la casa, el pozo, árboles, accesos y el norte. Se ve en el 3D y en Planos.</NotaPlegable>}
       {t.activo && (<>
-        <p className="nota">
+        <NotaPlegable>
           Todo se mide parado en la vereda mirando el lote: desde la <strong>línea municipal</strong> hacia el fondo y
           desde el <strong>lateral izquierdo</strong>, hasta el borde de cada cosa. El {nombreDePared(params.ladoFrente, params).toLowerCase()} de
           la casa (lado {params.ladoFrente}) mira a la calle.
-        </p>
+        </NotaPlegable>
 
         <h3 className="subtitulo">Lote</h3>
         <div className="grid-params">
@@ -120,7 +121,7 @@ export default function PanelTerreno({ params, unidad, cambiar, implantacion, on
         </p>
 
         <h3 className="subtitulo">Retiros y mínimos de tu municipio</h3>
-        <p className="nota">Cambian según la zona: cargá los que te pidan. Sin tildar, no se controlan.</p>
+        <NotaPlegable>Cambian según la zona: cargá los que te pidan. Sin tildar, no se controlan.</NotaPlegable>
         <div className="grid-params">
           {minimo('retiros.frente', 'Retiro de frente', 'Mínimo')}
           {minimo('retiros.fondo', 'Retiro de fondo', 'Mínimo')}

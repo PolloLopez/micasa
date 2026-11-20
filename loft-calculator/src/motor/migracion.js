@@ -124,6 +124,8 @@ export function migrarParams(params) {
   // v1.42.1: pisos de antes: tirantes de hierro y OSB.
   ['tirantesPiso', 'tirantesPiso2'].forEach((c) => { nuevos[c] = nuevos[c] === 'madera' ? 'madera' : 'hierro'; });
   ['cubiertaPiso', 'cubiertaPiso2'].forEach((c) => { nuevos[c] = nuevos[c] === 'machimbre' ? 'machimbre' : 'osb'; });
+  // v1.79: los proyectos de antes, con el 10 % de recortes de siempre.
+  if (!(Number.isFinite(nuevos.desperdicioPlacas) && nuevos.desperdicioPlacas >= 0 && nuevos.desperdicioPlacas <= 50)) nuevos.desperdicioPlacas = 10;
   nuevos.tabiques = Array.isArray(nuevos.tabiques) ? nuevos.tabiques.map(completarTabique) : []; // v1.41
   nuevos.muebles = Array.isArray(nuevos.muebles) ? nuevos.muebles.map(completarMueble) : []; // v1.38.1: con cartel
   nuevos.personas = Array.isArray(nuevos.personas) ? nuevos.personas.map(completarPersona) : []; // v1.45
@@ -315,6 +317,8 @@ function normalizarAccesorio(p) {
     ...(['manual', 'estimado'].includes(p.modo) ? { modo: p.modo } : {}),
     base: typeof p.base === 'string' ? p.base : '',
     coeficiente: Number.isFinite(p.coeficiente) && p.coeficiente >= 0 && p.coeficiente <= 1000 ? p.coeficiente : 0,
+    // v1.79: de qué parte de la obra es (ej. 'oc:tapial'): lo agregado desde Obra → Partes ('' = de toda la obra).
+    parte: typeof p.parte === 'string' ? p.parte.slice(0, 60) : '',
   };
 }
 

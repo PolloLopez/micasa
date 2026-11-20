@@ -13,6 +13,7 @@ import { TIPOS_TABLONES } from '../motor/grada.js';
 import SelectorPerfil from './SelectorPerfil.jsx';
 import { perfilesDeLista } from '../motor/perfiles.js';
 import { INSUMO } from '../motor/constantes.js';
+import NotaPlegable from './NotaPlegable.jsx';
 
 /** Partes de la grada a las que se les elige el caño (cada una es un renglón del presupuesto). */
 const PARTES_CANO = [
@@ -50,10 +51,10 @@ export default function PanelGrada({ params, resumen, unidad, cambiar, catalogo,
 
   return (
     <Tarjeta id="grada" titulo="Grada para espectadores" resaltar={{ tipo: 'grupo', id: 'grada', nombre: 'Grada' }}>
-      <p className="nota">
+      <NotaPlegable>
         La fila 1 (la más baja) queda adelante, del lado del <strong>Frente (A)</strong>; las filas suben hacia atrás.
         Se sienta en el tablón de adelante de cada fila y se apoyan los pies en la fila de abajo.
-      </p>
+      </NotaPlegable>
 
       <h3 className="subtitulo">Filas</h3>
       <div className="grid-params">
@@ -81,11 +82,11 @@ export default function PanelGrada({ params, resumen, unidad, cambiar, catalogo,
         <Casilla etiqueta="Respaldo (tabla sobre la contrahuella)" valor={grada.respaldo} onCambio={cambiar('grada.respaldo')} />
         {grada.respaldo && medida('anchoRespaldo', 'Ancho del respaldo')}
       </div>
-      <p className="nota">
+      <NotaPlegable>
         {grada.tipoTablones === 'separados' && 'Asiento y pie son tablones distintos: cada uno tiene su renglón y su precio en el presupuesto.'}
         {grada.tipoTablones === 'mismoMaterial' && 'Asiento y pie son el mismo tablón: un solo renglón "Tablones de grada" con los metros sumados.'}
         {tablonUnico && 'Tablones iguales repartidos de adelante hacia atrás: sirven de asiento y de pie. Un solo renglón en el presupuesto.'}
-      </p>
+      </NotaPlegable>
 
       <h3 className="subtitulo">Estructura</h3>
       <div className="grid-params">
@@ -114,17 +115,17 @@ export default function PanelGrada({ params, resumen, unidad, cambiar, catalogo,
             perfiles={perfilesDeLista(catalogo)} onElegir={(perfilId) => onCambiarInsumo(id, 'perfilId', perfilId)} />
         ))}
       </div>
-      <p className="nota">Los perfiles (medidas, barra y precio) se cargan en la pestaña Materiales. El elegido cambia el grosor en el 3D.</p>
+      <NotaPlegable>Los perfiles (medidas, barra y precio) se cargan en la pestaña Materiales. El elegido cambia el grosor en el 3D.</NotaPlegable>
 
       <h3 className="subtitulo">Desmontable</h3>
       <div className="grid-params">
         {entero('modulos', 'Módulos a lo largo (1 = una pieza)')}
         <Casilla etiqueta="Filas atornillables" valor={grada.filasAtornillables} onCambio={cambiar('grada.filasAtornillables')} />
       </div>
-      <p className="nota">
+      <NotaPlegable>
         En módulos, cada bloque lleva sus pórticos en las puntas y se atornilla al de al lado (bulones en los parantes y
         la zanca). Con filas atornillables, los tablones se fijan con tornillos para poder sacarlos.
-      </p>
+      </NotaPlegable>
 
       {resumen && (
         <div className="resumen-escalera" role="status">
@@ -136,11 +137,11 @@ export default function PanelGrada({ params, resumen, unidad, cambiar, catalogo,
           {resumen.avisos.map((a) => <p key={a} className="error">{a}</p>)}
         </div>
       )}
-      <p className="nota">
+      <NotaPlegable>
         Cada pórtico lleva una zanca inclinada, un apoyo por fila y parantes en las líneas de fila. Las vigas
         longitudinales unen los pórticos y las riostras en cruz evitan que la grada se mueva de costado. La baranda
         todavía no se calcula.
-      </p>
+      </NotaPlegable>
     </Tarjeta>
   );
 }

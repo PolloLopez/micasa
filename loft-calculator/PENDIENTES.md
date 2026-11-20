@@ -1,6 +1,6 @@
 # PENDIENTES — loft-calculator
 
-Última limpieza: **2026-11-19 (v1.78.0)**. Acá queda solo lo abierto, por tema y prioridad (🔴 importante ·
+Última limpieza: **2026-11-19 (v1.78.0)**; actualizado 2026-11-20 (v1.79.0). Acá queda solo lo abierto, por tema y prioridad (🔴 importante ·
 🟡 conviene · 🟢 detalle). Lo resuelto y el detalle de cada pedido viejo: `HISTORIAL-PENDIENTES.md`; lo hecho en cada
 versión: `CHANGELOG.md`. Espejo en Trello: tablero "Desarrollo", tarjetas `[CALC]`.
 
@@ -8,11 +8,9 @@ versión: `CHANGELOG.md`. Espejo en Trello: tablero "Desarrollo", tarjetas `[CAL
 Manual: `MANUAL.md` y el doc "Pollo Calculator — Manual de usuario" (Claude Docs).
 
 ## 📌 Lo que sigue (orden sugerido)
-1. 🟡 **Lista de compras en un solo lugar** (hoy en Presupuesto y en Obra): dejarla en Obra y un botón desde el Presupuesto.
-2. 🟡 **Notas de ayuda cortas**: una línea arriba de cada tarjeta y el resto plegado (Materiales repite la misma en cada sub-pestaña).
-3. 🟡 **Desperdicio de placas editable** (OSB y machimbre, hoy fijo en 10 %), como el excedente de las barras.
-4. 🟡 **Lint de dependencias de los `useMemo`** (react-hooks en `.oxlintrc.json`): así se coló el error de la comparación.
-5. 🟡 **Partir `App.jsx`** (1.800 líneas) en pocos hooks por tema (`useObra`, `useCompras`…), con su test.
+1. 🟢 **"Copiar pedido para cotizar"** por corralón: el texto con los materiales de una parte para mandarle por WhatsApp.
+2. 🟡 **Lint de dependencias de los `useMemo`** (react-hooks en `.oxlintrc.json`): así se coló el error de la comparación.
+3. 🟡 **Partir `App.jsx`** (1.800 líneas) en pocos hooks por tema (`useObra`, `useCompras`…), con su test.
 
 ## 🙋 De tu lado (Leandro)
 - 🔴 [ ] Borrar `C:\Users\LLopez\loft-calculator\.git-token.txt` y revocar el token `claude-micasa` en GitHub
@@ -42,6 +40,8 @@ Manual: `MANUAL.md` y el doc "Pollo Calculator — Manual de usuario" (Claude Do
   puerta, dintel, barras de 2,60 m).
 
 ## 👀 Para mirar en pantalla (probado con tests, no visto)
+- 🟡 [ ] v1.79: cargar los 2 albañiles del Tapial y los ladrillos con precio de cada corralón; elegir uno y ver que el
+  precio de la obra y el seguimiento cambian (probado con tu archivo en el Pozo absorbente).
 - 🟡 [ ] El sol con "Ver adentro" entra solo por las aberturas; personas sentadas y acostadas; puertas de tabiques que
   se abren al pasar; bisagra y riel del lado elegido.
 - 🟡 [ ] Con "al ras", el OSB apoya parejo; con tirantes apoyados, subir también el OSB del 3D.
@@ -109,7 +109,6 @@ Manual: `MANUAL.md` y el doc "Pollo Calculator — Manual de usuario" (Claude Do
 - 🟢 [ ] Comprobantes (foto o PDF del recibo): necesita dónde guardarlos (Firebase Storage o Django).
 
 ## Pantalla (UX / UI)
-- 🟡 [ ] Lista de compras en un solo lugar · notas de ayuda cortas (ver "Lo que sigue").
 - 🟡 [ ] En el celular las sub-pestañas ocupan 2 o 3 renglones: nombres más cortos o un renglón deslizable.
 - 🟡 [ ] Modo claro para usar a pleno sol; largo de barra y precios siempre en m y $ aunque la unidad sea cm/mm.
 - 🟢 [ ] Pestañas cortadas en el celular ("Estruc…", "$ 90…"); nombre del proyecto cortado; el aviso verde de "archivo

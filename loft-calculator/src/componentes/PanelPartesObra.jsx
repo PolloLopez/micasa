@@ -15,8 +15,12 @@ import Tarjeta from './Tarjeta.jsx';
 import FichaPlegable from './FichaPlegable.jsx';
 import CampoNumero from './CampoNumero.jsx';
 import { extraNuevo, trabajosDeLaParte } from '../motor/partesObra.js';
+import { cotizacionNueva, cotizacionesDeLaParte, elegirCotizacion, nombreDeCotizacion } from '../motor/manoDeObraPartes.js';
+import { completarCierre } from '../motor/cierre.js';
+import PreciosProveedores from './PreciosProveedores.jsx';
 import { cuentasDelRubro, estadoSegunAvance, hoy } from '../motor/seguimiento.js';
 import { esDeMateriales } from '../motor/compras.js';
+import NotaPlegable from './NotaPlegable.jsx';
 
 const pesos = (n) => n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
 const cantidad = (n) => n.toLocaleString('es-AR', { maximumFractionDigits: 2 });
@@ -66,10 +70,90 @@ function TrabajosDeLaParte({ parte, seguimiento, partesPresupuesto, cambiar }) {
 }
 
 /**
+ * v1.79: los presupuestos de mano de obra de la parte (ej. dos albañiles para el tapial). El más barato se marca;
+ * "Elegir" lo pasa al cierre del Presupuesto (segmento de la parte) y al seguimiento (su trabajo, con el contratista).
+ */
+function PresupuestosManoDeObra({ parte, params, cambiar, cambiarVarios }) {
+  const seguimiento = params.seguimiento ?? {};
+  const cotizaciones = seguimiento.cotizaciones ?? [];
+  const contratistas = seguimiento.contratistas ?? [];
+  const deLaParte = cotizacionesDeLaParte(cotizaciones, parte.clave);
+  const indice = (id) => cotizaciones.findIndex((c) => c.id === id);
+  const elegir = (c) => {
+    const r = elegirCotizacion({ seguimiento, cierre: params.cierre, cotizacion: c, parteNombre: parte.nombre });
+    cambiarVarios([['seguimiento.cotizaciones', r.cotizaciones], ['cierre', { ...completarCierre(params.cierre), segmentos: r.segmentos }], ['seguimiento.rubros', r.rubros]]);
+  };
+  const cambiarQuien = (c, quien) => {
+    const x = contratistas.find((k) => k.nombre.trim().toLowerCase() === quien.trim().toLowerCase());
+    cambiar(`seguimiento.cotizaciones.${indice(c.id)}`)({ ...c, quien, contratista: x ? x.id : null });
+  };
+  // El monto de la elegida sigue al presupuesto (si cambia, se vuelve a elegir con el monto nuevo).
+  const cambiarMonto = (c) => (monto) => (c.elegida ? elegir({ ...c, monto }) : cambiar(`seguimiento.cotizaciones.${indice(c.id)}.monto`)(monto));
+  return (<>
+    <h4 className="subtitulo-pared">Mano de obra: presupuestos</h4>
+    {deLaParte.length === 0 && <p className="vacio">Cargá lo que te cobra cada uno (ej. dos albañiles) para comparar.</p>}
+    <datalist id={`contratistas-${parte.clave}`}>{contratistas.map((x) => <option key={x.id} value={x.nombre} />)}</datalist>
+    {deLaParte.map((c) => (
+      <div key={c.id} className={`cotizacion${c.elegida ? ' elegida' : ''}`}>
+        <div className="grid-params">
+          <div className="group"><label>Quién
+            <input type="text" maxLength={60} value={nombreDeCotizacion(c, contratistas) === 'Sin nombre' ? '' : nombreDeCotizacion(c, contratistas)}
+              list={`contratistas-${parte.clave}`} placeholder="ej. José (albañil)" onChange={(e) => cambiarQuien(c, e.target.value)} />
+          </label></div>
+          <CampoNumero etiqueta="Me cobra (total)" sufijo="$" decimales={0} valor={c.monto} onCambio={cambiarMonto(c)} />
+        </div>
+        <div className="acciones-cotizacion">
+          {c.masBarata && <span className="chip-compra ok">el más barato</span>}
+          {c.elegida ? <span className="chip-compra ok">✓ elegido (en el Presupuesto y el seguimiento)</span>
+            : <button type="button" className="btn-mini" disabled={!(c.monto > 0)} onClick={() => elegir(c)}>Elegir</button>}
+          <button type="button" className="btn-mini" onClick={() => cambiar('seguimiento.cotizaciones')(cotizaciones.filter((x) => x.id !== c.id))}>Quitar</button>
+        </div>
+      </div>
+    ))}
+    <button type="button" className="btn-sec" onClick={() => cambiar('seguimiento.cotizaciones')([...cotizaciones, cotizacionNueva(cotizaciones, parte.clave)])}>
+      + Presupuesto de mano de obra
+    </button>
+  </>);
+}
+
+/**
+ * v1.79: los materiales que se agregan a la parte (ej. el tapial), con su precio en cada proveedor como cualquier
+ * material: entran al presupuesto, al plan de compra y a la lista de compras. Son "accesorios" con `parte`.
+ */
+function MaterialesDeLaParte({ parte, materiales, proveedores, onActualizar, onAgregar, onQuitar, onCambiarPrecio }) {
+  const deLaParte = materiales.filter((m) => m.parte === parte.clave);
+  return (<>
+    <h4 className="subtitulo-pared">Materiales que agregás (precio por proveedor)</h4>
+    {deLaParte.length === 0 && <p className="vacio">Nada agregado.</p>}
+    {deLaParte.map((m) => (
+      <FichaPlegable key={m.id} clave={`accesorio:${m.id}`} className="rubro" abiertaAlInicio={m.nombre === 'Material nuevo'}
+        encabezado={<><strong>{m.nombre}</strong><small>{cantidad(m.cantidad)} {m.unidad}</small></>}>
+        <div className="grid-params">
+          <div className="group"><label>Qué es
+            <input type="text" maxLength={60} value={m.nombre} placeholder="ej. Ladrillo hueco 8x18x33" onChange={(e) => onActualizar(m.id, { nombre: e.target.value })} />
+          </label></div>
+          <CampoNumero etiqueta="Cantidad" decimales={2} valor={m.cantidad} onCambio={(v) => (v >= 0 ? (onActualizar(m.id, { cantidad: v }), null) : 'No puede ser negativa')} />
+          <div className="group"><label>Unidad
+            <input type="text" maxLength={15} value={m.unidad} placeholder="u, m, bolsa…" onChange={(e) => onActualizar(m.id, { unidad: e.target.value })} />
+          </label></div>
+        </div>
+        <PreciosProveedores material={m} proveedores={proveedores} unidad={m.unidad || 'u'}
+          onCambiar={(idProveedor, campo, valor) => onCambiarPrecio(m.id, idProveedor, campo, valor)} />
+        <div className="pie-acciones no-print">
+          <button type="button" className="btn-del eliminar-aparte" onClick={() => onQuitar(m.id)}>Quitar material</button>
+        </div>
+      </FichaPlegable>
+    ))}
+    <button type="button" className="btn-sec" onClick={() => onAgregar(parte.clave)}>+ Material para {parte.nombre}</button>
+  </>);
+}
+
+/**
  * @param partes partesDeLaObra(…) (con sus renglones, su obra civil, sus extras y si está terminada)
  * @param partesPresupuesto lo presupuestado de cada rubro (partesDelPresupuesto), para las cuentas de la mano de obra
  */
-export default function PanelPartesObra({ params, partes, cambiar, partesPresupuesto = [] }) {
+export default function PanelPartesObra({ params, partes, cambiar, cambiarVarios, partesPresupuesto = [],
+  materiales = [], proveedores = [], onActualizarMaterial, onAgregarMaterial, onQuitarMaterial, onCambiarPrecio }) {
   const seguimiento = params.seguimiento ?? {};
   const terminadas = seguimiento.terminadas ?? [];
   const extras = seguimiento.extras ?? [];
@@ -80,11 +164,11 @@ export default function PanelPartesObra({ params, partes, cambiar, partesPresupu
   const hechas = partes.filter((p) => p.terminada).length;
   return (
     <Tarjeta id="partes-obra" titulo={`Partes de la obra (${hechas} de ${partes.length} terminadas)`}>
-      <p className="nota">
+      <NotaPlegable>
         Tildá <strong>Terminada</strong> cuando una parte está hecha: sus materiales ya no cuentan en "falta comprar" ni en la lista
-        para pedir. En cada parte podés <strong>agregar lo que haga falta</strong> (ej. manguera de riego para el nivel, tanza para
-        alinear): suma al presupuesto y a la lista de materiales.
-      </p>
+        para pedir. En cada parte: <strong>los materiales que agregás</strong> con su precio en cada proveedor (para comparar
+        corralones) y <strong>los presupuestos de mano de obra</strong> (para comparar albañiles y elegir uno).
+      </NotaPlegable>
       {partes.map((p) => {
         const totalExtras = p.extras.reduce((a, x) => a + x.cantidad * x.precio, 0);
         return (
@@ -101,13 +185,19 @@ export default function PanelPartesObra({ params, partes, cambiar, partesPresupu
             </label>
             {(p.renglones.length > 0 || p.obraCivil) && (
               <ul className="materiales-parte">
-                {p.renglones.map((r) => <li key={r.id}>{cantidad(r.cantidad)} {r.unidad} · {r.nombre}</li>)}
+                {p.renglones.filter((r) => !materiales.some((m) => m.id === r.id && m.parte === p.clave)) // los agregados van abajo, editables
+                  .map((r) => <li key={r.id}>{cantidad(r.cantidad)} {r.unidad} · {r.nombre}</li>)}
                 {p.obraCivil && <li>{p.obraCivil.nombre}: {p.obraCivil.detalle} (cemento, arena, piedra y hierro de obra civil)</li>}
               </ul>
             )}
+            {onAgregarMaterial && (
+              <MaterialesDeLaParte parte={p} materiales={materiales} proveedores={proveedores} onActualizar={onActualizarMaterial}
+                onAgregar={onAgregarMaterial} onQuitar={onQuitarMaterial} onCambiarPrecio={onCambiarPrecio} />
+            )}
+            {cambiarVarios && <PresupuestosManoDeObra parte={p} params={params} cambiar={cambiar} cambiarVarios={cambiarVarios} />}
             <TrabajosDeLaParte parte={p} seguimiento={seguimiento} partesPresupuesto={partesPresupuesto} cambiar={cambiar} />
-            <h4 className="subtitulo-pared">Extras</h4>
-            {p.extras.length === 0 && <p className="vacio">Nada agregado.</p>}
+            {/* Los extras de antes (v1.70, precio único): se siguen viendo y editando; los nuevos van arriba, por proveedor. */}
+            {p.extras.length > 0 && <h4 className="subtitulo-pared">Extras con precio único (cargados antes)</h4>}
             {p.extras.map((x) => {
               const ruta = `seguimiento.extras.${indiceDe(x.id)}`;
               return (
@@ -127,8 +217,8 @@ export default function PanelPartesObra({ params, partes, cambiar, partesPresupu
                 </div>
               );
             })}
-            <button type="button" className="btn-sec" onClick={() => agregarExtra(p.clave)}>+ Agregar a {p.nombre}</button>
-            <p className="nota">Si ya lo compraste, cargalo también en Compras hechas (elegilo de la lista de materiales).</p>
+            {!onAgregarMaterial && <button type="button" className="btn-sec" onClick={() => agregarExtra(p.clave)}>+ Agregar a {p.nombre}</button>}
+            <NotaPlegable>Si ya lo compraste, cargalo también en Compras hechas (elegilo de la lista de materiales).</NotaPlegable>
           </FichaPlegable>
         );
       })}

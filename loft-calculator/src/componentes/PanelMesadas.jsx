@@ -19,6 +19,7 @@ import SelectorColor from './SelectorColor.jsx';
 import { LADOS } from '../motor/constantes.js';
 import { largoLado, nombreDePared } from '../motor/geometria.js';
 import { mesadaNueva, tramosDeMesada, FORMAS_MESADA, NOMBRE_TRAMO, ELECTROS_HUECO, TAPA_SEGUN_ELECTRO, HUECO_NUEVO, BACHA_NUEVA, ajustarMesada, limitesDeMesada, tabiquesQueCruzaLaMesada } from '../motor/interiores.js';
+import NotaPlegable from './NotaPlegable.jsx';
 
 const f2 = (n) => n.toFixed(2).replace('.', ',');
 
@@ -116,10 +117,10 @@ function Mesada({ m, i, params, unidad, cambiar, onQuitar, paneles, perfiles, pe
         {medida('alto', 'Alto (con la tapa)')}
         {medida('espesorTapa', 'Espesor de la tapa')}
       </div>
-      <p className="nota">
+      <NotaPlegable>
         La pared mide {f2(largoPared)} m: quedan {f2(Math.max(0, largoPared - m.desde - m.largo))} m del otro lado.
         {forma !== 'recta' && ' Los tramos que siguen salen derechos desde las puntas y se miden desde la cara de adentro de la pared principal (con la esquina).'}
-      </p>
+      </NotaPlegable>
       {/* v1.41.1: llevar las puntas hasta lo que la limita: la esquina o la cara de un tabique de esa pared. */}
       <div className="fila-casillas">
         {limites.izquierda && (
@@ -180,11 +181,11 @@ function Mesada({ m, i, params, unidad, cambiar, onQuitar, paneles, perfiles, pe
       )}
 
       <h4 className="subtitulo-pared">Huecos bajo mesada</h4>
-      <p className="nota">
+      <NotaPlegable>
         Se miden desde la punta izquierda de su tramo, mirándolo de frente. <strong>Con tapa</strong>: la tapa sigue por
         arriba (lavarropas de carga frontal). <strong>Sin tapa</strong>: ahí se corta la mesada (cocina, heladera).
         <strong> Sobre zócalo</strong>: la base sigue por debajo y el electrodoméstico apoya arriba.
-      </p>
+      </NotaPlegable>
       {m.huecos.map((h, k) => {
         const rutaH = `${ruta}.huecos.${k}`;
         return (
@@ -211,7 +212,7 @@ function Mesada({ m, i, params, unidad, cambiar, onQuitar, paneles, perfiles, pe
       ))}
 
       <h4 className="subtitulo-pared">Bachas</h4>
-      <p className="nota">Cortan la tapa (menos m²) y suman su renglón al presupuesto. Desde la punta izquierda de su tramo.</p>
+      <NotaPlegable>Cortan la tapa (menos m²) y suman su renglón al presupuesto. Desde la punta izquierda de su tramo.</NotaPlegable>
       {(m.bachas ?? []).map((b, k) => {
         const rutaB = `${ruta}.bachas.${k}`;
         return (
@@ -257,10 +258,10 @@ export default function PanelMesadas({ params, unidad, cambiar, paneles, perfile
   const quitar = (id) => cambiar('mesadas')(mesadas.filter((m) => m.id !== id));
   return (
     <Tarjeta id="mesadas" titulo={`Mesadas (${mesadas.length})`} resaltar={{ tipo: 'grupo', id: 'mesada', nombre: 'Mesadas' }}>
-      <p className="nota">
+      <NotaPlegable>
         Estructura con perfiles de tu lista, revestida al frente y a los costados (Durlock u otro de tus revestimientos),
         con tapa, estantes, huecos bajo mesada y zócalo para el pie. Va al presupuesto y al diagrama de cortes.
-      </p>
+      </NotaPlegable>
       {mesadas.length === 0 && <p className="vacio">Todavía no hay mesadas.</p>}
       {mesadas.map((m, i) => (
         <Mesada key={m.id} m={m} i={i} params={params} unidad={unidad} cambiar={cambiar} onQuitar={() => quitar(m.id)}

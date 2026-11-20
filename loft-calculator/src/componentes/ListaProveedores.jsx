@@ -17,6 +17,7 @@ import { CampoPrecio } from './PreciosProveedores.jsx';
 import { LIMITES_RECARGO, LIMITES_FLETE, precioEn, precioBarraPorKg } from '../motor/proveedores.js';
 import { preciosCargados, PRECIO_SOSPECHOSO, antiguedadDePrecios, DIAS_PRECIO_VIEJO, esPrecioDeEjemplo, preciosDeEjemplo } from '../motor/resumenPrecios.js';
 import { hoy } from '../motor/seguimiento.js';
+import NotaPlegable from './NotaPlegable.jsx';
 
 const pesos = (n) => n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
 
@@ -85,7 +86,7 @@ function PreciosDelProveedor({ proveedor, materiales, onCambiarPrecio }) {
           </tbody>
         </table>
       </div>
-      {visibles.length === 0 && <p className="nota">{proveedor.nombre} todavía no tiene precios de esta obra: tildá "Ver también" para cargarlos.</p>}
+      {visibles.length === 0 && <NotaPlegable>{proveedor.nombre} todavía no tiene precios de esta obra: tildá "Ver también" para cargarlos.</NotaPlegable>}
     </>
   );
 }

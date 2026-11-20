@@ -37,6 +37,7 @@ import SeccionPlegable from './SeccionPlegable.jsx';
 import { textoDePrecio, preciosOrdenados } from '../motor/resumenPrecios.js';
 import { nombrePerfil } from '../motor/perfiles.js';
 import { BASES_CONSUMIBLE, ESTIMACION_DE_FABRICA, esEstimado } from '../motor/consumibles.js';
+import NotaPlegable from './NotaPlegable.jsx';
 
 /** Valida un número contra sus límites y, si está bien, lo guarda. */
 const conLimites = ({ min, max }, actualizar, enTexto = (n) => `${n} m`) => (v) => {
@@ -297,19 +298,19 @@ export default function TarjetaMateriales({
   return (
     <ContextoAgregarProveedor value={onAgregarProveedor}>
     <Tarjeta id="materiales" titulo={TITULOS[seccion] ?? 'Materiales'}>
-      <p className="nota">
+      <NotaPlegable>
         Qué es cada material: perfil, medidas y cómo se vende. Las cantidades están en el <strong>Presupuesto</strong>.
         Tocá un título para plegarlo o desplegarlo; cada renglón muestra su precio en el proveedor elegido
         en el Presupuesto (y el más barato, si es otro).
         {sinPrecio > 0 && <strong className="falta"> {sinPrecio} material{sinPrecio === 1 ? '' : 'es'} sin precio en ningún proveedor.</strong>}
-      </p>
+      </NotaPlegable>
 
       {/* v1.25: proveedores. v1.65: cada uno plegable, con todos los precios de la obra adentro. */}
       {ver('proveedores') && <SeccionPlegable plana={seccion === 'proveedores'} clave="proveedores" titulo="Proveedores" resumen={`${proveedores.length}${todosLosProveedores(catalogo).length > proveedores.length ? ` (+${todosLosProveedores(catalogo).length - proveedores.length} descartados)` : ''}`}>
-        <p className="nota">
+        <NotaPlegable>
           Abrí un proveedor para cargar <strong>todos sus precios de una vez</strong> (con su lista en la mano), o cargalos
           en cada material. Vacío = ese proveedor no lo vende. En el <strong>Presupuesto</strong> elegís con cuál calcular.
-        </p>
+        </NotaPlegable>
         <ListaProveedores proveedores={todosLosProveedores(catalogo)} materiales={materialesDeLaObra} idElegido={proveedor}
           onActualizar={onActualizarProveedor} onAgregar={onAgregarProveedor} onQuitar={onQuitarProveedor} onCambiarPrecio={onCambiarPrecio} />
       </SeccionPlegable>}
@@ -317,10 +318,10 @@ export default function TarjetaMateriales({
       {/* v1.21: lista de perfiles. Cada parte de la obra elige uno; el precio y el largo de barra son del perfil. */}
       {ver('perfiles') && (<>
       <SeccionPlegable clave="perfiles" titulo="Perfiles (los hierros que usás)" resumen={`${visibles.length}`}>
-        <p className="nota">
+        <NotaPlegable>
           Cargá cada hierro una sola vez: tipo, medidas en mm, largo de barra y precio. El peso sale de las medidas
           (aproximado). Las partes que usan el mismo perfil comparten barras y precio.
-        </p>
+        </NotaPlegable>
         <ListaPerfiles perfiles={visibles} todos={perfiles} usadoEn={usadoEn} proveedores={proveedores} onCambiarPrecio={onCambiarPrecio}
           idElegido={proveedor} pago={pago} onActualizar={onActualizarPerfil} onAgregar={onAgregarPerfil} onQuitar={onQuitarPerfil} />
       </SeccionPlegable>
@@ -363,10 +364,10 @@ export default function TarjetaMateriales({
             <CampoNumero etiqueta="Retazo que se guarda, desde" sufijo="m" decimales={2} valor={retazoMinimo} onCambio={onCambiarCorte('retazoMinimo')} />
           </>)}
         </div>
-        <p className="nota">
+        <NotaPlegable>
           Las barras suelen venir entre 1 % y 2 % más largas que su medida nominal, <strong>según el proveedor</strong>:
           cargá el de tu proveedor. El optimizador corta sobre ese largo real.
-        </p>
+        </NotaPlegable>
         {/* v1.20: las partes del mismo perfil cortan de las mismas barras (como en el taller). */}
         <label className="casilla-opcional">
           <input type="checkbox" checked={compartirCortes} onChange={(e) => onCambiarCompartir(e.target.checked)} />
@@ -385,7 +386,7 @@ export default function TarjetaMateriales({
       {/* v1.65: antes una tabla; ahora cada material plegable con su precio en el encabezado. */}
       {ver('otros') && otros.length > 0 && (
         <SeccionPlegable clave="otros" titulo="Otros materiales de la obra" resumen={`${otros.length}`}>
-          <p className="nota">Los que salen solos de la obra (OSB, pilotines, madera, mesadas, obra civil…). La cantidad la calcula la app.</p>
+          <NotaPlegable>Los que salen solos de la obra (OSB, pilotines, madera, mesadas, obra civil…). La cantidad la calcula la app.</NotaPlegable>
           <div className="lista-fichas">
             {otros.map((item) => (
               <FichaPlegable key={item.id} clave={`material:${item.id}`} className="rubro"
@@ -408,11 +409,11 @@ export default function TarjetaMateriales({
 
       {/* v1.29: accesorios. v1.48: la cantidad se estima sola o se carga a mano. v1.65: acá se agrega cualquier material. */}
       {ver('otros') && <SeccionPlegable clave="accesorios" titulo="Materiales que agregás vos (accesorios, consumibles y lo que falte)" resumen={`${accesorios.length}`}>
-        <p className="nota">
+        <NotaPlegable>
           Todo lo que se compra y la app no calcula sola: tornillería, electrodos, selladores, antióxido, o cualquier
           material nuevo. "Estimada sola" calcula la cantidad con los kilos de hierro, su superficie o los m² de paneles
           por un coeficiente; "a mano" usa la que cargues. Con cantidad 0 no entra al presupuesto.
-        </p>
+        </NotaPlegable>
         <div className="lista-fichas">
           {accesorios.map((a) => (
             <Accesorio key={a.id} accesorio={a} calculado={items.find((i) => i.id === a.id) ?? null} proveedores={proveedores}
@@ -425,12 +426,12 @@ export default function TarjetaMateriales({
 
       {ver('revestimientos') && revestimientos && (
         <SeccionPlegable plana={seccion === 'revestimientos'} clave="revestimientos" titulo="Revestimientos (paneles, chapas, placas)" resumen={`${revestimientos.length}`}>
-          <p className="nota">
+          <NotaPlegable>
             Cada pared elige su revestimiento exterior y, si lleva, el interior; el techo, el suyo.
             <strong> A medida</strong>: se piden tiras del alto de la pared (si pasa el largo máximo, van en tramos).
             <strong> Placa fija</strong>: se cuentan placas enteras. <strong>Ubicación</strong>: sobre los perfiles (tapa
             la estructura) o embutido entre perfiles; lo decide el herrero según el revestimiento.
-          </p>
+          </NotaPlegable>
           <div className="lista-fichas">
             {revestimientos.map((tipo) => (
               <Revestimiento key={tipo.id} tipo={tipo} unidad={unidad} usos={usosDeRevestimiento(tipo.id)}

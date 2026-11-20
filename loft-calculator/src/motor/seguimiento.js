@@ -16,6 +16,7 @@
 // los precios, se actualiza solo). Los rubros a mano guardan el suyo.
 // ==========================================================
 
+import { errorDeCotizacion } from './manoDeObraPartes.js';
 import { estadoDeCuotas, errorDelPlan, textoDeCuotas, mesDe, informeDeFinanzas } from './finanzas.js';
 import { errorDeCompra, errorDeContratista, contratistasDesdeQuien, cuentasDeCompra, esDeMateriales } from './compras.js';
 import { errorDeExtra } from './partesObra.js';
@@ -229,6 +230,9 @@ export function validarSeguimiento(s) {
   if (s.terminadas !== undefined && !(Array.isArray(s.terminadas) && s.terminadas.every((t) => typeof t === 'string' && t.length <= 60))) errores['seguimiento.terminadas'] = 'Partes terminadas inválidas';
   if (s.extras !== undefined && !Array.isArray(s.extras)) errores['seguimiento.extras'] = 'Extras inválidos';
   (s.extras ?? []).forEach((x, i) => { const e = errorDeExtra(x); if (e) errores[`seguimiento.extras.${i}`] = e; });
+  // v1.79: los presupuestos de mano de obra de cada parte (cotizaciones de cada albañil).
+  if (s.cotizaciones !== undefined && !Array.isArray(s.cotizaciones)) errores['seguimiento.cotizaciones'] = 'Presupuestos de mano de obra inválidos';
+  (s.cotizaciones ?? []).forEach((c, i) => { const e = errorDeCotizacion(c); if (e) errores[`seguimiento.cotizaciones.${i}`] = e; });
   // v1.72: el proveedor elegido a mano para cada renglón de la lista de compras.
   if (s.asignaciones !== undefined && !(s.asignaciones && typeof s.asignaciones === 'object' && !Array.isArray(s.asignaciones)
     && Object.values(s.asignaciones).every((v) => typeof v === 'string' && v.length <= 60))) errores['seguimiento.asignaciones'] = 'Proveedores elegidos inválidos';

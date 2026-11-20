@@ -60,6 +60,7 @@ export const PARAMS_INICIALES = {
   separacionTransversalesPiso2: 1.5,
   // v1.42.1: tirantes de hierro o de madera (con las transversales de perfil C abajo) y cubierta de OSB o machimbre.
   tirantesPiso: 'hierro', tirantesPiso2: 'hierro', cubiertaPiso: 'osb', cubiertaPiso2: 'osb',
+  desperdicioPlacas: 10, // v1.79: % de recortes que se suma a las placas OSB y al machimbre de los pisos
 
   // Techo a una agua
   caidaTecho: 'C', // cae hacia el fondo si el frente es A

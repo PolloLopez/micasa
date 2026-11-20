@@ -19,6 +19,7 @@ import Tarjeta from './Tarjeta.jsx';
 import CierrePresupuesto from './CierrePresupuesto.jsx';
 import { BotonResaltar } from './Resaltar.jsx';
 import { useResaltar, criterioDeRenglon as criterioDe } from './contextoResaltado.js';
+import NotaPlegable from './NotaPlegable.jsx';
 
 const pesos = (n) => n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
 
@@ -69,9 +70,9 @@ function DiagramaCortes({ grupo, numero }) {
         </div>
       )}
       {(cortes.empalmes ?? []).length > 0 && (
-        <p className="nota">{cortes.empalmes.length} pieza{cortes.empalmes.length > 1 ? 's' : ''} empalmada{cortes.empalmes.length > 1 ? 's' : ''}
+        <NotaPlegable>{cortes.empalmes.length} pieza{cortes.empalmes.length > 1 ? 's' : ''} empalmada{cortes.empalmes.length > 1 ? 's' : ''}
           {' '}({cortes.empalmes.map((e) => e.tramos.map((t) => t.toFixed(2)).join(' + ')).join(' · ')})
-          {sinApoyo > 0 ? ` · ⚠ ${sinApoyo} sin un apoyo donde unir (la unión queda al aire: reforzala)` : ' · todas las uniones caen sobre un apoyo'}.</p>
+          {sinApoyo > 0 ? ` · ⚠ ${sinApoyo} sin un apoyo donde unir (la unión queda al aire: reforzala)` : ' · todas las uniones caen sobre un apoyo'}.</NotaPlegable>
       )}
       <div className="bar-cuts-container">
         {cortes.barras.map((b) => (
@@ -156,11 +157,11 @@ function ComparacionProveedores({ proveedores, proveedor, pago, comparacion, onE
           </table>
         </div>
       )}
-      <p className="nota">
+      <NotaPlegable>
         Un material sin precio en un proveedor es porque <strong>no lo vende</strong>: ese total no lo incluye ("no vende N"),
         así que para comparar mirá <strong>Por proveedor</strong>. Los totales incluyen el flete de cada uno.
         Los precios y el flete se cargan en <strong>Materiales</strong>; acá se puede corregir el precio del proveedor elegido.
-      </p>
+      </NotaPlegable>
     </div>
   );
 }
@@ -239,11 +240,11 @@ function PlanDeCompra({ plan, mejorUnico, nombreProyecto }) {
   return (
     <div className="plan-compra">
       <h3 className="subtitulo">Plan de compra: dónde conviene cada material</h3>
-      <p className="nota">
+      <NotaPlegable>
         La combinación más barata <strong>contando el flete</strong>: si un proveedor ahorra menos que lo que cobra de
         flete, no se usa. Total del plan: <strong>{pesos(plan.total)}</strong>
         {ahorro > 0 && mejorUnico && <> · {pesos(ahorro)} menos que comprar todo en {mejorUnico.nombre}</>}.
-      </p>
+      </NotaPlegable>
       {/* "Ningún proveedor vende" se avisa arriba, junto al total (v1.31.0). */}
       <div className="compras-plan">
         {plan.compras.map((c) => (
@@ -293,7 +294,7 @@ function MasInfo({ material: m }) {
 /** Las sub-pestañas del presupuesto (v1.31.0): una cosa por vez, en el orden en que se usan. */
 const SUBPESTANAS = [
   { clave: 'materiales', nombre: 'Lista de materiales', ayuda: 'Todo lo que lleva la obra, sin proveedor' },
-  { clave: 'compras', nombre: 'Lista de compras', ayuda: 'Tildar lo retirado y lo pagado, por proveedor' }, // v1.72
+  // v1.79: la lista de compras ya no está acá (estaba dos veces): vive en Obra y se llega con el botón 🛒 de arriba.
   { clave: 'proveedores', nombre: 'Por proveedor', ayuda: 'Qué comprarle a cada uno' },
   { clave: 'cortes', nombre: 'Cortes', ayuda: 'Cómo cortar cada barra' },
   { clave: 'precios', nombre: 'Precios y detalle', ayuda: 'Comparar proveedores y editar precios' },
@@ -368,7 +369,7 @@ function ListaMateriales({ materiales, nombreProyecto, conCompras = false }) {
   const kilos = kilosDeMateriales(materiales);
   return (
     <>
-      <p className="nota">Todo lo que lleva la obra, sumado por material, sin importar dónde lo compres.</p>
+      <NotaPlegable>Todo lo que lleva la obra, sumado por material, sin importar dónde lo compres.</NotaPlegable>
       <div className="table-wrap">
         <table className="tabla-materiales">
           <thead><tr><th>Cantidad</th><th>Material</th>{conCompras && <th>Ya está</th>}<th className="num">Peso</th></tr></thead>
@@ -412,7 +413,7 @@ function ListaMateriales({ materiales, nombreProyecto, conCompras = false }) {
 export default function TablaPresupuesto({
   items, total, gruposCortes = [], proveedores = [], proveedor, pago = 'efectivo', comparacion = [],
   onElegirProveedor, onElegirPago, onCambiarPrecio, onIrAPrecio = null, plan = null, masBaratoDe = () => null, nombreProyecto = '',
-  materiales = [], cierre = null, resultadoCierre = null, medidasCierre = { m2: 0, kg: 0 }, cambiar = null, compras = null, listaDeCompras = null,
+  materiales = [], cierre = null, resultadoCierre = null, medidasCierre = { m2: 0, kg: 0 }, cambiar = null, compras = null, onIrALista = null,
 }) {
   // v1.31.0: la sub-pestaña elegida se recuerda en este navegador.
   // v1.70: hay compras cargadas o partes terminadas: la lista dice qué ya no falta.
@@ -454,6 +455,9 @@ export default function TablaPresupuesto({
           {kilos > 0 && <span>≈ {Math.round(kilos).toLocaleString('es-AR')} kg de hierro</span>}
           {conPlan && <span>{plan.compras.length} {plan.compras.length === 1 ? 'proveedor' : 'proveedores'}</span>}
           <CampoSelect etiqueta="Pago" valor={pago} opciones={[['efectivo', 'Efectivo'], ['tarjeta', 'Tarjeta']]} onCambio={onElegirPago} />
+          {/* v1.79: la lista para ir a comprar (tildar lo retirado y lo pagado) está en Obra. */}
+          {onIrALista && <button type="button" className="btn-sec no-print" id="ir-a-lista-compras" onClick={onIrALista}
+            title="Tildar lo retirado y lo pagado, por proveedor">🛒 Lista de compras (en Obra)</button>}
         </div>
         {/* v1.78: una línea (antes la lista entera ocupaba media pantalla en el celular); abierta, cada material lleva a cargar su precio. */}
         <AvisoSinPrecio items={conPlan ? plan.sinVendedor ?? [] : items.filter((i) => i.cantidad > 0 && i.sinPrecio && !i.sinPrecioCargado)}
@@ -486,9 +490,6 @@ export default function TablaPresupuesto({
         <ListaMateriales materiales={hayAvance ? compras.materiales : materiales} nombreProyecto={nombreProyecto} conCompras={hayAvance} />
       </div>
 
-      <div {...panel('compras')}>
-        {listaDeCompras ?? <p className="vacio">La lista de compras está en la pestaña Obra.</p>}
-      </div>
 
       <div {...panel('proveedores')}>
         {proveedores.length === 0 || !plan || plan.compras.length === 0 ? (
@@ -499,12 +500,12 @@ export default function TablaPresupuesto({
       </div>
 
       <div {...panel('cortes')}>
-        <p className="nota">
+        <NotaPlegable>
           La <strong>hoja de corte</strong>: cada barra numerada (Barra 2.3 = grupo 2, barra 3) y cada pieza con su letra. El
           mismo código (2.3b) sale en el 3D al tocar la pieza y en los planos. Con el mouse encima de una barra (o su 👁) se
           ven sus piezas en el 3D. Las piezas más largas que la barra se empalman (⛓) con la unión sobre un apoyo. El disco y
           desde qué largo un sobrante se guarda se cargan en Materiales; lo que sobra desde ahí es un <strong>retazo</strong>.
-        </p>
+        </NotaPlegable>
         {gruposConBarras.length > 0 && <ResumenSobrantes grupos={gruposConBarras} />}
         {gruposConBarras.length === 0
           ? <p className="vacio">No hay barras para cortar.</p>
@@ -522,10 +523,10 @@ export default function TablaPresupuesto({
             {faltan.length > 0 && <small> (sin lo que no vende: {faltan.join(', ')})</small>}</span>
           <span>{pesos(total)}</span>
         </div>
-        <p className="nota">
+        <NotaPlegable>
           El precio de una barra es el de su perfil: cambiarlo acá lo cambia en todas las partes que lo usan (y se guarda
           en el proveedor elegido). Pasá el mouse por un renglón para verlo en el 3D.
-        </p>
+        </NotaPlegable>
       </div>
     </Tarjeta>
   );

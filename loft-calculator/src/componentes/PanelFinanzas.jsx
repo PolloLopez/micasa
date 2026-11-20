@@ -18,6 +18,7 @@ import {
   deudasConAcreedores, resumenDeFinanzas, plata, completarFinanzas,
 } from '../motor/finanzas.js';
 import { fechaLegible } from '../motor/seguimiento.js';
+import NotaPlegable from './NotaPlegable.jsx';
 
 function Compromiso({ c, i, acreedores, cambiar, onQuitar, abiertaAlInicio }) {
   const ruta = `finanzas.compromisos.${i}`;
@@ -51,7 +52,7 @@ function Compromiso({ c, i, acreedores, cambiar, onQuitar, abiertaAlInicio }) {
           decimales={0} valor={c.total} onCambio={cambiar(`${ruta}.total`)} />
         <CampoNumero etiqueta="Anticipo (cuota inicial)" sufijo={sufijo} decimales={0} valor={c.anticipo} onCambio={cambiar(`${ruta}.anticipo`)} />
       </div>
-      {c.tipo === 'credito' && <p className="nota">Crédito: cargá en "Cada cuota" lo que devolvés por mes. Lo que te prestaron va en la nota.</p>}
+      {c.tipo === 'credito' && <NotaPlegable>Crédito: cargá en "Cada cuota" lo que devolvés por mes. Lo que te prestaron va en la nota.</NotaPlegable>}
       <textarea className="detalle-rubro" maxLength={300} rows={2} value={c.nota} placeholder="Nota (vendedor, lote, condiciones, interés…)"
         aria-label="Nota" onChange={(e) => cambiar(`${ruta}.nota`)(e.target.value)} />
       <h4 className="subtitulo-pared">Cuotas</h4>
@@ -82,7 +83,7 @@ function Compromiso({ c, i, acreedores, cambiar, onQuitar, abiertaAlInicio }) {
       </ul>
       <p className="nota resumen-mesada" role="status">Pagado {plata(k.pagado, c.moneda)} · falta {plata(k.falta, c.moneda)}</p>
       <button type="button" className="btn-sec" onClick={agregarPago}>+ Pago</button>
-      {acreedores.length === 0 && <p className="nota">¿Alguien pagó una cuota por vos? Agregalo abajo en Acreedores y acá elegís "Lo pagó…".</p>}
+      {acreedores.length === 0 && <NotaPlegable>¿Alguien pagó una cuota por vos? Agregalo abajo en Acreedores y acá elegís "Lo pagó…".</NotaPlegable>}
     </FichaPlegable>
   );
 }
@@ -162,8 +163,8 @@ export default function PanelFinanzas({ params, cambiar, cambiarVarios }) {
   };
   return (
     <Tarjeta id="finanzas" titulo="Terreno, créditos y acreedores">
-      <p className="nota">Lo que pagás en cuotas aparte de la obra (el terreno, un crédito). Cada uno en su moneda: los dólares
-        no se convierten ni se suman con los pesos.</p>
+      <NotaPlegable>Lo que pagás en cuotas aparte de la obra (el terreno, un crédito). Cada uno en su moneda: los dólares
+        no se convierten ni se suman con los pesos.</NotaPlegable>
       {Object.keys(resumen).length > 0 && (
         <div className="resumen-seguimiento">
           {Object.entries(resumen).map(([m, r]) => (
@@ -185,7 +186,7 @@ export default function PanelFinanzas({ params, cambiar, cambiarVarios }) {
       </div>
 
       <h3 className="subtitulo-pared">Acreedores (a quién le debés)</h3>
-      <p className="nota">Si alguien pagó una cuota o un gasto por vos, agregalo acá y en ese pago elegí "Lo pagó…".</p>
+      <NotaPlegable>Si alguien pagó una cuota o un gasto por vos, agregalo acá y en ese pago elegí "Lo pagó…".</NotaPlegable>
       {f.acreedores.map((a, i) => (
         <Acreedor key={a.id} a={a} i={i} deuda={deudas[i]} cambiar={cambiar} onQuitar={() => quitarAcreedor(a.id)} />
       ))}

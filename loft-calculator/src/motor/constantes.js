@@ -16,7 +16,7 @@ export const MERMA_POR_CORTE = 0.003;
 export const PLACA_OSB = { largo: 2.44, ancho: 1.22 };
 
 // Desperdicio estimado al cortar placas OSB (recortes en bordes y huecos).
-export const DESPERDICIO_PLACAS = 0.1; // 10 %
+export const DESPERDICIO_PLACAS = 0.1; // 10 % (de fábrica; v1.79: se cambia en Estructura → Piso, params.desperdicioPlacas)
 
 // Los 4 lados de la planta, en orden recorriendo el perímetro.
 // El nombre (frente, fondo, laterales) depende de cuál se elija como frente.

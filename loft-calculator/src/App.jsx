@@ -114,6 +114,7 @@ const limitarAnchoPanel = (px) => Math.round(Math.max(ANCHO_PANEL_MINIMO, Math.m
 // eslint-disable-next-line no-undef
 const VERSION_APP = typeof __VERSION_APP__ === 'string' ? __VERSION_APP__ : '';
 import Tarjeta from './componentes/Tarjeta.jsx';
+import NotaPlegable from './componentes/NotaPlegable.jsx';
 
 // --- Validadores para descartar datos viejos de localStorage ---
 const paramsGuardadosValidos = (p) =>
@@ -469,6 +470,14 @@ export default function App() {
     setSubMateriales(sub);
     setFoco({ pestana: 'materiales', tarjeta: null, item: clave }); // tarjeta null: no se marca la tarjeta entera, solo la ficha
   };
+  // v1.79: desde el Presupuesto, a la lista de compras (que vive solo en Obra).
+  const irALista = () => {
+    setVistaMovil('datos');
+    setPestanaGuardada('obra');
+    setSubObra('lista');
+    setFoco(null);
+    window.scrollTo?.({ top: 0 });
+  };
   // La pared elegida (sus hierros o una abertura) se trae a la vista.
   useEffect(() => {
     if (!foco?.item?.startsWith('pared:')) return;
@@ -729,6 +738,13 @@ export default function App() {
     return [...prev, { id: `acc-${n}`, categoria: 'accesorio', nombre: 'Accesorio nuevo', perfil: '', unidad: 'u', cantidad: 0, largoBarra: null, precio: 0, precios: {}, modo: 'manual', base: '', coeficiente: 0 }];
   });
   const quitarAccesorio = (id) => setCatalogo((prev) => prev.filter((p) => p.id !== id));
+  /** v1.79: un material para una parte de la obra (ej. el tapial), con precio por proveedor como cualquier material. */
+  const agregarMaterialAParte = (parte) => setCatalogo((prev) => {
+    const usados = new Set(prev.map((p) => p.id));
+    let n = 1;
+    while (usados.has(`acc-${n}`)) n++;
+    return [...prev, { id: `acc-${n}`, categoria: 'accesorio', nombre: 'Material nuevo', perfil: '', unidad: 'u', cantidad: 1, largoBarra: null, precio: 0, precios: {}, modo: 'manual', base: '', coeficiente: 0, parte }];
+  });
 
   const agregarAbertura = (abertura) => setAberturas((prev) => [...prev, abertura]);
   const actualizarAbertura = (abertura) =>
@@ -1295,11 +1311,11 @@ export default function App() {
               {opcional('ejes.modulo', 'Modulación única', 'Cada', 1.25)}
             </div>
             {params.ejes?.modulo > 0 && (
-              <p className="nota">
+              <NotaPlegable>
                 Grilla cada {params.ejes.modulo.toFixed(2)} m desde la esquina: las columnas van en sus líneas (manda sobre la
                 separación de columnas de cada pared), las vigas de techo y los tirantes también (y entre dos líneas se reparten
                 parejos a no más de su separación). Los pilotines se eligen en Fundación.
-              </p>
+              </NotaPlegable>
             )}
           </Tarjeta>
           </PanelSub>
@@ -1321,6 +1337,9 @@ export default function App() {
                 opciones={[['hierro', 'De hierro (perfil)'], ['madera', 'De madera']]} onCambio={(v) => cambiarTirantes('', v)} />
               <CampoSelect etiqueta="Cubierta" valor={params.cubiertaPiso ?? 'osb'}
                 opciones={[['osb', 'Placas OSB'], ['machimbre', 'Machimbre clavado']]} onCambio={cambiar('cubiertaPiso')} />
+              {/* v1.79: el % de recortes de OSB y machimbre (antes fijo en 10 %); vale para los dos pisos. */}
+              <CampoNumero etiqueta="Recortes de placas (los 2 pisos)" sufijo="%" decimales={0} valor={params.desperdicioPlacas ?? 10}
+                onCambio={(v) => { if (v < 0 || v > 50) return 'Entre 0 y 50 %'; cambiar('desperdicioPlacas')(v); return null; }} />
             </div>
             {/* v1.28: borde e interior con perfiles propios (y cada sentido el suyo). */}
             <div className="grid-params grid-perfiles-pared">
@@ -1378,9 +1397,9 @@ export default function App() {
               <ArmadoPiso nivel="piso2" uniones={params.uniones} transversales={(estructura.piso2?.transversales.length ?? 0) > 0} cambiar={cambiar} />
             )}
             {(params.tirantesPiso === 'madera' || (params.anchoEntrepiso > 0 && params.tirantesPiso2 === 'madera')) && (
-              <p className="nota">Con tirantes de madera, la estructura de perfil C son las transversales y el borde, y los tirantes
+              <NotaPlegable>Con tirantes de madera, la estructura de perfil C son las transversales y el borde, y los tirantes
                 van apoyados arriba (se elige solo al pasar a madera; se puede cambiar). La madera va al presupuesto por metro
-                (Materiales → Tirantes de madera).</p>
+                (Materiales → Tirantes de madera).</NotaPlegable>
             )}
             {params.anchoEntrepiso > 0 && (
               <div className="grid-params grid-perfiles-pared">
@@ -1392,13 +1411,13 @@ export default function App() {
                 {selectorPerfilDe(INSUMO.VIGA_CIERRE, 'Vigas de cierre y de apoyo')}
               </div>
             )}
-            <p className="nota">
+            <NotaPlegable>
               Entrepiso parcial: poné el largo y desde qué esquina arranca (vista desde afuera, como las
               aberturas). Los bordes que no tocan una pared llevan <strong>viga de cierre</strong>, con su
               propio renglón en el presupuesto para elegir el perfil.
               La estructura de cada piso cruza la luz más corta. Las transversales unen la estructura para que
               no arquee; su separación la define el herrero según el panel.
-            </p>
+            </NotaPlegable>
           </Tarjeta>
           </PanelSub>
 
@@ -1458,8 +1477,8 @@ export default function App() {
               </div>
             )}
             {LADOS.some((lado) => params.alero?.[lado] > 0) && (
-              <p className="nota">El revestimiento del techo siempre cubre los aleros. Las vigas salen en los aleros del lado bajo
-                y del alto; las correas, en los de los costados. Si terminan en la estructura, el alero lo hace el panel solo.</p>
+              <NotaPlegable>El revestimiento del techo siempre cubre los aleros. Las vigas salen en los aleros del lado bajo
+                y del alto; las correas, en los de los costados. Si terminan en la estructura, el alero lo hace el panel solo.</NotaPlegable>
             )}
             <h4 className="subtitulo-pared">Perfiles del techo</h4>
             <div className="grid-params grid-perfiles-pared">
@@ -1467,10 +1486,10 @@ export default function App() {
               {selectorPerfilDe(INSUMO.VIGA_TECHO, 'Vigas (interior)')}
               {selectorPerfilDe(INSUMO.CORREA_TECHO, params.techoConBorde ? 'Correas (interior)' : 'Correas')}
             </div>
-            <p className="nota">
+            <NotaPlegable>
               Lado bajo: {params.altura.toFixed(2)} m ({nombreDePared(params.caidaTecho, params).toLowerCase()}) ·
               lado alto: {alturaMaxima(params).toFixed(2)} m
-            </p>
+            </NotaPlegable>
           </Tarjeta>
           </PanelSub>
 
@@ -1516,10 +1535,10 @@ export default function App() {
               </div>
             )}
             {params.zapata?.activa && (
-              <p className="nota">
+              <NotaPlegable>
                 La profundidad se mide desde el nivel del terreno hasta el fondo de la zapata; el pilotín va de la zapata
                 al piso. Suma hormigón y excavación al presupuesto (precios de ejemplo: cargá los tuyos en Materiales).
-              </p>
+              </NotaPlegable>
             )}
           </Tarjeta>
           {/* v1.56: obra civil (pilotines hormigonados, tapial, pilar de luz, cámara y pozo). */}
@@ -1532,12 +1551,12 @@ export default function App() {
           {/* PIEZAS ELIMINADAS Y EDITADAS */}
           <PanelSub grupo="estructura" activa={subEstructuraVista} clave="piezas">
           <Tarjeta id="eliminadas" titulo={`Piezas agregadas, eliminadas y editadas (${params.piezasAgregadas.length + params.piezasEliminadas.length + Object.keys(params.piezasEditadas).length})`}>
-            <p className="nota">
+            <NotaPlegable>
               Hacé clic en un hierro del 3D: podés <strong>eliminarlo</strong> o <strong>editarlo</strong> (recortar,
               mover o cotizarlo con otro perfil). Lo eliminado sale del dibujo y del presupuesto; lo editado se dibuja
               y se cotiza con el cambio. Cada pieza se reconoce por su posición: si cambiás una medida y la pieza se
               mueve, el cambio deja de aplicarse.
-            </p>
+            </NotaPlegable>
             {params.piezasAgregadas.length > 0 && (
               <>
                 <h3 className="subtitulo">Agregadas (duplicadas)</h3>
@@ -1607,13 +1626,13 @@ export default function App() {
           {/* PAREDES (PANELES) */}
           <PanelSub grupo="paredes" activa={subParedes} clave="paredes">
           <Tarjeta id="paredes" titulo="Paredes">
-            <p className="nota">
+            <NotaPlegable>
               <strong>Columnas</strong>: verticales principales a lo largo de la pared.{' '}
               <strong>Horizontales (fajas)</strong>: separación en altura.{' '}
               <strong>Montantes</strong>: verticales livianos entre columnas (en una abertura quedan arriba del dintel
               y abajo del antepecho). Cada pared tiene sus <strong>aberturas</strong>; las medidas se toman mirando la
               pared desde afuera y el <strong>antepecho</strong> es la altura del piso a la ventana.
-            </p>
+            </NotaPlegable>
             {LADOS.map((lado) => {
               const [h1, h2] = alturasPared(lados[lado], params);
               return (
@@ -1720,7 +1739,7 @@ export default function App() {
             proveedores={proveedores} proveedor={proveedorElegido} pago={formaPago} comparacion={comparacion}
             onElegirProveedor={cambiar('proveedorElegido')} onElegirPago={cambiar('formaPago')}
             onCambiarPrecio={(item, valor) => cambiarPrecio(item.perfilId ?? item.id, proveedorElegido, formaPago, valor)} onIrAPrecio={irAPrecio}
-            plan={planCompra} nombreProyecto={nombreProyecto} materiales={listaMateriales} compras={resumenCompras} listaDeCompras={listaDeCompras} masBaratoDe={(item) => masBaratoEn(item, catalogoResuelto, formaPago)}
+            plan={planCompra} nombreProyecto={nombreProyecto} materiales={listaMateriales} compras={resumenCompras} onIrALista={irALista} masBaratoDe={(item) => masBaratoEn(item, catalogoResuelto, formaPago)}
             cierre={params.cierre} resultadoCierre={cierre} medidasCierre={medidasCierre} cambiar={cambiar} />
           {/* v1.59: la obra con cada panel en las 4 paredes, para elegir el revestimiento. */}
           {esConstruccion && (
@@ -1749,7 +1768,9 @@ export default function App() {
             <BarraSubPestanas grupo="obra" opciones={opcionesObra} activa={subObra} onElegir={setSubObra} />
             <PanelSub grupo="obra" activa={subObra} clave="lista"><Tarjeta id="lista-compras" titulo="Lista de compras (tildar lo comprado)">{listaDeCompras}</Tarjeta></PanelSub>
             <PanelSub grupo="obra" activa={subObra} clave="compras"><PanelCompras params={params} materiales={listaConPrecioReal} proveedores={proveedores} totalMateriales={totalObra} terminado={terminado} cambiar={cambiar} /></PanelSub>
-            <PanelSub grupo="obra" activa={subObra} clave="partes"><PanelPartesObra params={params} partes={partesObra} partesPresupuesto={partesSeguimiento} cambiar={cambiar} /></PanelSub>
+            <PanelSub grupo="obra" activa={subObra} clave="partes"><PanelPartesObra params={params} partes={partesObra} partesPresupuesto={partesSeguimiento} cambiar={cambiar} cambiarVarios={cambiarVarios}
+              materiales={catalogo.filter((i) => i.categoria === 'accesorio')} proveedores={proveedores} onCambiarPrecio={cambiarPrecio}
+              onActualizarMaterial={actualizarInsumo} onAgregarMaterial={agregarMaterialAParte} onQuitarMaterial={quitarAccesorio} /></PanelSub>
             <PanelSub grupo="obra" activa={subObra} clave="seguimiento"><PanelSeguimiento params={params} partes={partesSeguimiento} precioObra={cierre.total} cambiar={cambiar} partesObra={partesObra} /></PanelSub>
             <PanelSub grupo="obra" activa={subObra} clave="finanzas"><PanelFinanzas params={params} cambiar={cambiar} cambiarVarios={cambiarVarios} /></PanelSub>
           </section>

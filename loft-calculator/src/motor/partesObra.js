@@ -44,6 +44,7 @@ const claveMaterial = (item) => item.perfilId ?? item.id; // la de la lista de m
 export function parteDeItem(item, estructura) {
   if (String(item.id).startsWith('inst:')) return String(item.id).split(':').slice(0, 2).join(':'); // cada instalación es su parte (también sus materiales: inst:sistema:k)
   if (String(item.id).startsWith('extra:')) return item.parte ?? null;
+  if (item.categoria === 'accesorio') return item.parte || null; // v1.79: un material agregado a una parte (precio por proveedor)
   if (item.categoria === 'panel') return item.id === estructura?.techo?.panel ? 'techo' : 'revestimiento';
   return PARTES_FIJAS.find((p) => p.items.includes(base(item.id)))?.clave ?? null;
 }
@@ -58,17 +59,18 @@ export function partesDeLaObra(items, estructura, seguimiento = {}) {
   const extras = seguimiento.extras ?? [];
   const partes = PARTES_FIJAS.map((p) => ({ clave: p.clave, nombre: p.nombre, renglones: [], obraCivil: null }));
   const de = (clave) => partes.find((p) => p.clave === clave);
-  items.filter((i) => i.cantidad > 0 && i.categoria !== 'flete' && !String(i.id).startsWith('extra:')).forEach((i) => { // los extras van aparte
-    const clave = parteDeItem(i, estructura);
-    if (!clave) return;
-    if (!de(clave)) partes.push({ clave, nombre: i.nombre, renglones: [], obraCivil: null }); // una instalación
-    de(clave).renglones.push({ id: i.id, nombre: i.nombre, cantidad: i.cantidad, unidad: i.unidad, subtotal: i.subtotal ?? 0 });
-  });
-  // Obra civil: los pilotines van con su parte; tapial, pilar, cámara y pozo son partes propias.
+  // Obra civil (v1.79: antes que los renglones, así un material agregado al tapial cae en SU parte): los pilotines van con su parte; tapial, pilar, cámara y pozo son partes propias.
   (estructura?.obraCivil?.partes ?? []).forEach((oc) => {
     const fija = PARTES_FIJAS.find((p) => p.obraCivil?.includes(oc.clave));
     if (fija) de(fija.clave).obraCivil = oc;
     else partes.push({ clave: `oc:${oc.clave}`, nombre: oc.nombre, renglones: [], obraCivil: oc });
+  });
+  items.filter((i) => i.cantidad > 0 && i.categoria !== 'flete' && !String(i.id).startsWith('extra:')).forEach((i) => { // los extras van aparte
+    const clave = parteDeItem(i, estructura);
+    if (!clave) return;
+    // Una instalación (su nombre); un material de una parte que ya no está (ej. se sacó el tapial): "Otra parte".
+    if (!de(clave)) partes.push({ clave, nombre: i.categoria === 'accesorio' ? 'Otra parte' : i.nombre, renglones: [], obraCivil: null });
+    de(clave).renglones.push({ id: i.id, nombre: i.nombre, cantidad: i.cantidad, unidad: i.unidad, subtotal: i.subtotal ?? 0 });
   });
   return partes
     .map((p) => ({ ...p, extras: extras.filter((x) => x.parte === p.clave), terminada: terminadas.has(p.clave) }))

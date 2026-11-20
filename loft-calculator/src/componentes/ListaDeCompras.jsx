@@ -18,6 +18,7 @@ import { useState } from 'react';
 import { agruparLista, compraDesdeLista, pagarRetirado, ultimaDesdeLista, deshacerMarca, estadoDeFila, PROPIO } from '../motor/listaCompras.js';
 import { NINGUNO, cantidadPedida } from '../motor/proveedores.js';
 import { useEstadoGuardado } from '../hooks/useEstadoGuardado.js';
+import NotaPlegable from './NotaPlegable.jsx';
 
 const pesos = (n) => n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
 const num = (n) => n.toLocaleString('es-AR', { maximumFractionDigits: 2 });
@@ -99,10 +100,10 @@ export default function ListaDeCompras({ filas, proveedores, compras, asignacion
   });
   return (
     <div className="lista-compras">
-      <p className="nota">
+      <NotaPlegable>
         Cada material con su proveedor (el que conviene, o el que elijas en "Se lo compro a…") y por parte de la obra. Poné cuánto
         retiraste y tocá <strong>Retirado</strong> (queda como deuda) o <strong>Pagado</strong>: se anota solo en Obra → Compras hechas.
-      </p>
+      </NotaPlegable>
       <div className="resumen-seguimiento">
         <div><small>Total</small><strong>{pesos(totales.total)}</strong></div>
         <div><small>Falta comprar</small><strong>{pesos(totales.falta)}</strong></div>

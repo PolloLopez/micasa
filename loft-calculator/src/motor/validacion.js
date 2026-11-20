@@ -117,6 +117,8 @@ export function validarParametros(params) {
   // v1.42.1: tirantes de madera y machimbre.
   ['tirantesPiso', 'tirantesPiso2'].forEach((c) => { if (params[c] !== undefined && !['hierro', 'madera'].includes(params[c])) anotar(c, 'Elegí hierro o madera'); });
   ['cubiertaPiso', 'cubiertaPiso2'].forEach((c) => { if (params[c] !== undefined && !['osb', 'machimbre'].includes(params[c])) anotar(c, 'Elegí OSB o machimbre'); });
+  // v1.79: % de recortes de las placas del piso (0 a 50).
+  if (params.desperdicioPlacas !== undefined && !(Number.isFinite(params.desperdicioPlacas) && params.desperdicioPlacas >= 0 && params.desperdicioPlacas <= 50)) anotar('desperdicioPlacas', 'Entre 0 y 50 %');
   if (params.tabiques !== undefined) { // v1.41
     if (!Array.isArray(params.tabiques)) anotar('tabiques', 'Lista inválida');
     else params.tabiques.forEach((t) => anotar(`tabiques.${t?.id}`, validarTabique(t ?? {}, params)));

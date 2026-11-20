@@ -11,6 +11,7 @@
 import Tarjeta from './Tarjeta.jsx';
 import CampoNumero from './CampoNumero.jsx';
 import { LADOS_LOTE, RENDIMIENTOS, completarObraCivil, cuentasDeObraCivil, largoDelTapial } from '../motor/obraCivil.js';
+import NotaPlegable from './NotaPlegable.jsx';
 
 const n2 = (n) => n.toLocaleString('es-AR', { maximumFractionDigits: 2 });
 
@@ -24,8 +25,8 @@ export default function PanelObraCivil({ params, estructura, unidad, cambiar }) 
     ? oc.tapial.lados.filter((l) => l !== lado) : [...oc.tapial.lados, lado]);
   return (
     <Tarjeta id="obraCivil" titulo="Obra civil (hormigón y ladrillos)">
-      <p className="nota">Cemento, arena, piedra, hierro y ladrillos de los pilotines, el tapial, el pilar de luz y el pozo. Van a la
-        lista de materiales y al presupuesto. Los rendimientos son de un cómputo común: validalos con el albañil.</p>
+      <NotaPlegable>Cemento, arena, piedra, hierro y ladrillos de los pilotines, el tapial, el pilar de luz y el pozo. Van a la
+        lista de materiales y al presupuesto. Los rendimientos son de un cómputo común: validalos con el albañil.</NotaPlegable>
 
       <h4 className="subtitulo-pared">Dosificación (por m³)</h4>
       <div className="grid-params">
@@ -58,7 +59,7 @@ export default function PanelObraCivil({ params, estructura, unidad, cambiar }) 
             </label>
           ))}
         </fieldset>
-      ) : <p className="nota">Sin terreno cargado, poné el largo a mano (con el terreno se eligen los lados del lote y se ve en el 3D).</p>}
+      ) : <NotaPlegable>Sin terreno cargado, poné el largo a mano (con el terreno se eligen los lados del lote y se ve en el 3D).</NotaPlegable>}
       <div className="grid-params">
         {(!conTerreno || oc.tapial.lados.length === 0) && (
           <CampoNumero etiqueta="Largo del tapial" unidad={unidad} valor={oc.tapial.largoManual} onCambio={cambiar('obraCivil.tapial.largoManual')} />
@@ -66,12 +67,12 @@ export default function PanelObraCivil({ params, estructura, unidad, cambiar }) 
         <CampoNumero etiqueta="Alto" unidad={unidad} valor={oc.tapial.alto} onCambio={cambiar('obraCivil.tapial.alto')} />
         <CampoNumero etiqueta="Columnas cada" unidad={unidad} valor={oc.tapial.columnasCada} onCambio={cambiar('obraCivil.tapial.columnasCada')} />
       </div>
-      {largoDelTapial(oc, params.terreno) > 0 && <p className="nota">Largo: {n2(largoDelTapial(oc, params.terreno))} m de ladrillo hueco 12x18x33, columnas de
-        {' '}{RENDIMIENTOS.columna * 100} x {RENDIMIENTOS.columna * 100} cm, viga de fundación y encadenado arriba.</p>}
+      {largoDelTapial(oc, params.terreno) > 0 && <NotaPlegable>Largo: {n2(largoDelTapial(oc, params.terreno))} m de ladrillo hueco 12x18x33, columnas de
+        {' '}{RENDIMIENTOS.columna * 100} x {RENDIMIENTOS.columna * 100} cm, viga de fundación y encadenado arriba.</NotaPlegable>}
 
       <h4 className="subtitulo-pared">Pilar de luz, cámara séptica y pozo</h4>
-      <p className="nota">Se ubican en <strong>Terreno e implantación</strong> (agregá "Pilar de luz", "Cámara séptica" o "Pozo séptico").
-        {conTerreno ? ` Hay ${cuantos('pilarLuz')} pilar(es), ${cuantos('camara')} cámara(s) y ${cuantos('pozo')} pozo(s).` : ' Primero tildá "Ubicar la obra en un terreno".'}</p>
+      <NotaPlegable>Se ubican en <strong>Terreno e implantación</strong> (agregá "Pilar de luz", "Cámara séptica" o "Pozo séptico").
+        {conTerreno ? ` Hay ${cuantos('pilarLuz')} pilar(es), ${cuantos('camara')} cámara(s) y ${cuantos('pozo')} pozo(s).` : ' Primero tildá "Ubicar la obra en un terreno".'}</NotaPlegable>
       <div className="grid-params">
         <CampoNumero etiqueta="Pilar: enterrado" unidad={unidad} valor={oc.pilar.enterrado} onCambio={cambiar('obraCivil.pilar.enterrado')} />
         <CampoNumero etiqueta="Cámara: profundidad" unidad={unidad} valor={oc.camara.profundidad} onCambio={cambiar('obraCivil.camara.profundidad')} />
@@ -86,10 +87,10 @@ export default function PanelObraCivil({ params, estructura, unidad, cambiar }) 
             {partes.map((x) => (
               <tr key={x.clave} title={x.detalle}>
                 <td>{x.nombre}<br /><small>{x.detalle}</small></td>
-                <td className="num">{n2(x.hormigon)} m³</td>
-                <td className="num">{n2(x.mortero)} m³</td>
-                <td className="num">{n2(x.hierro8 + x.hierro6 + x.hierro42)} m</td>
-                <td className="num">{Math.ceil(x.ladrilloHueco + x.ladrilloComun)}</td>
+                <td className="num" data-etiqueta="Hormigón">{n2(x.hormigon)} m³</td>
+                <td className="num" data-etiqueta="Mortero">{n2(x.mortero)} m³</td>
+                <td className="num" data-etiqueta="Hierro">{n2(x.hierro8 + x.hierro6 + x.hierro42)} m</td>
+                <td className="num" data-etiqueta="Ladrillos">{Math.ceil(x.ladrilloHueco + x.ladrilloComun)}</td>
               </tr>
             ))}
           </tbody>

@@ -17,6 +17,7 @@ import CampoSelect from './CampoSelect.jsx';
 import { nombreDePared } from '../motor/geometria.js';
 import SelectorColor from './SelectorColor.jsx';
 import { TIPOS_MUEBLE, GRUPOS_MUEBLE, MATERIALES_MUEBLE, muebleNuevo, colorDelMueble, distanciasDelMueble, libreArribaDelMueble, cajonesQueChocan, PUERTAS_MUEBLE, margenDePuerta, puertaQueChoca, puertaChocaCon, cajonesChocanCon, choquesDelMueble, avisoDeChoques, alturaDeApoyo, seApoya } from '../motor/interiores.js';
+import NotaPlegable from './NotaPlegable.jsx';
 
 const f2 = (n) => n.toFixed(2).replace('.', ',');
 const GIROS = [[0, 'Sin girar'], [90, '90°'], [180, '180° (de espaldas)'], [270, '270°']];
@@ -86,7 +87,7 @@ function Mueble({ m, i, params, unidad, cambiar, onQuitar, abiertaAlInicio }) {
         {/* v1.42.1: cómo abre la puerta (se ve el lugar que necesita) y, para la alacena, a qué altura va colgada. */}
         <CampoSelect etiqueta="Puerta" valor={m.puerta ?? 'ninguna'} opciones={PUERTAS_MUEBLE} onCambio={cambiar(`${ruta}.puerta`)} />
         {apoyado
-          ? <p className="nota">Apoyado a <strong>{f2(m.elevacion ?? 0)} m</strong> (sobre lo que tiene abajo)</p>
+          ? <NotaPlegable>Apoyado a <strong>{f2(m.elevacion ?? 0)} m</strong> (sobre lo que tiene abajo)</NotaPlegable>
           : medida('elevacion', 'Altura desde el piso')}
         <CampoSelect etiqueta="Giro" valor={String(m.giro)} opciones={GIROS.map(([g, t]) => [String(g), t])}
           onCambio={(v) => cambiarLugar('giro')(Number(v))} />
@@ -129,7 +130,7 @@ function Mueble({ m, i, params, unidad, cambiar, onQuitar, abiertaAlInicio }) {
         {(m.cajonesIzquierda || m.cajonesDerecha || m.cajonesPies) && (
           <div className="grid-params">{medida('aperturaCajones', 'Cajones abiertos salen')}</div>
         )}
-        <p className="nota">Izquierda y derecha mirando la cama desde los pies. Abiertos se ven sombreados en el 3D.</p>
+        <NotaPlegable>Izquierda y derecha mirando la cama desde los pies. Abiertos se ven sombreados en el 3D.</NotaPlegable>
         {cajonesContra.map((c) => (
           <p key={`con-${c.lado}`} className="aviso-mueble" role="status">⚠ Los cajones {c.lado === 'pies' ? 'de los pies' : `de la ${c.lado}`} abiertos chocan con {c.con.join(', ')}.</p>
         ))}
@@ -171,11 +172,11 @@ export default function PanelMuebles({ params, unidad, cambiar }) {
   const frente = nombreDePared(params.ladoFrente, params).toLowerCase();
   return (
     <Tarjeta id="muebles" titulo={`Muebles y electrodomésticos (${muebles.length})`}>
-      <p className="nota">
+      <NotaPlegable>
         Para ver cómo entran (no van al presupuesto). Elegí desde qué pared medís (laterales vistos desde afuera,
         mirando el {frente}): la distancia va de la cara de adentro de la pared al borde del mueble. Las otras
         distancias y lo libre arriba se calculan solos. Sin girar, el mueble mira hacia el {frente}.
-      </p>
+      </NotaPlegable>
       <div className="fila-agregar-mueble">
         {/* v1.48: la lista separada en muebles, electrodomésticos y baño (antes iba todo mezclado). */}
         <div className="group">

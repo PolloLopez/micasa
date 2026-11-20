@@ -902,6 +902,7 @@ export function generarEstructura(params, aberturas, catalogo = null) {
     durlock: null, // v1.76: se completa abajo (tornillos, cinta y masilla de los tabiques)
     obraCivil: null, // v1.56: se completa abajo (necesita los pilotines)
     cubiertas: { piso: params.cubiertaPiso ?? 'osb', piso2: params.cubiertaPiso2 ?? 'osb' }, // v1.42.1: OSB o machimbre
+    desperdicioPlacas: params.desperdicioPlacas ?? 10, // v1.79: % de recortes de OSB y machimbre (editable)
     superficies: {
       piso: planta.largoU * planta.largoV,
       piso2: entrepiso ? entrepiso.largoU * entrepiso.largoV : 0,
