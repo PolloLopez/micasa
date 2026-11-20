@@ -1062,3 +1062,11 @@ option { background: var(--tarjeta); color: var(--texto); }
 .mas-nota { flex: none; background: none; border: none; padding: 0 2px; color: var(--acento); font: inherit; font-size: 0.75rem; cursor: pointer; white-space: nowrap; }
 .mas-nota:hover { text-decoration: underline; }
 @media print { .nota-plegable.plegada .texto-nota { display: inline; -webkit-line-clamp: unset; overflow: visible; } }
+
+/* v1.81: lo que da en pesos un precio cargado en dólares (debajo del campo). */
+.en-pesos { display: block; font-size: 0.72rem; color: var(--texto-suave, #94a3b8); margin-top: 2px; }
+.cortes-tiras { margin: 12px 0; }
+.cortes-tiras h4 { margin: 6px 0; font-size: 0.9rem; }
+.tiras-pared { margin: 6px 0 10px; font-size: 0.82rem; }
+.lista-tiras { margin: 4px 0 0 1.2rem; padding: 0; }
+.lista-tiras li { margin: 2px 0; }

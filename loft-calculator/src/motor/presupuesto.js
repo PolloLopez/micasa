@@ -19,7 +19,7 @@ import { apoyosDePieza } from './empalmes.js';
 import { listarPiezas } from './estructura.js';
 import { textoPilotin } from './ejes.js';
 import { INSUMO, PLACA_OSB, DESPERDICIO_PLACAS, LADOS } from './constantes.js';
-import { cuentaRevestimiento, REVESTIMIENTO_POR_DEFECTO } from './revestimientos.js';
+import { cuentaRevestimiento, REVESTIMIENTO_POR_DEFECTO, unidadDeCompra } from './revestimientos.js';
 import { medidasParaConsumibles, cantidadDeConsumible } from './consumibles.js';
 import { tablasDeMadera } from './maderaComercial.js';
 
@@ -416,11 +416,12 @@ function calcularRenglones(estructura, catalogo, excedenteBarras, corte = {}) {
   tiposDePanel(catalogo).forEach((tipo) => {
     const uso = panos[tipo.id];
     if (!uso) {
-      items.push({ ...itemSimple(tipo, 0, 'sin uso'), unidad: tipo.venta === 'estandar' ? 'placas' : 'm²' });
+      items.push({ ...itemSimple(tipo, 0, 'sin uso'), unidad: unidadDeCompra(tipo) });
       return;
     }
     const cuenta = cuentaRevestimiento(tipo, uso);
-    items.push({ ...itemSimple(tipo, cuenta.cantidad, cuenta.detalle), unidad: cuenta.unidad, piezasRevestimiento: cuenta.piezas });
+    items.push({ ...itemSimple(tipo, cuenta.cantidad, cuenta.detalle), unidad: cuenta.unidad, piezasRevestimiento: cuenta.piezas,
+      ...(cuenta.tirasPorPared ? { tirasPorPared: cuenta.tirasPorPared, largoTira: cuenta.largoTira } : {}) }); // v1.81: cómo cortar cada tira entera
   });
 
   // v1.36: el pilotín dice su forma y medida ("Pilotín de hormigón ø 30 cm").

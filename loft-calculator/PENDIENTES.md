@@ -1,6 +1,6 @@
 # PENDIENTES — loft-calculator
 
-Última limpieza: **2026-11-19 (v1.78.0)**; actualizado 2026-11-20 (v1.80.0). Acá queda solo lo abierto, por tema y prioridad (🔴 importante ·
+Última limpieza: **2026-11-19 (v1.78.0)**; actualizado 2026-11-20 (v1.81.0). Acá queda solo lo abierto, por tema y prioridad (🔴 importante ·
 🟡 conviene · 🟢 detalle). Lo resuelto y el detalle de cada pedido viejo: `HISTORIAL-PENDIENTES.md`; lo hecho en cada
 versión: `CHANGELOG.md`. Espejo en Trello: tablero "Desarrollo", tarjetas `[CALC]`.
 
@@ -8,10 +8,14 @@ versión: `CHANGELOG.md`. Espejo en Trello: tablero "Desarrollo", tarjetas `[CAL
 Manual: `MANUAL.md` y el doc "Pollo Calculator — Manual de usuario" (Claude Docs).
 
 ## 📌 Lo que sigue (orden sugerido)
+0. 🟡 **Paneles (pedido 20/11)**: mover los recortes de ubicación (elegir de qué tira sale cada pedazo) y que se note cuál
+   tramo queda arriba de cuál en los empalmes verticales (el encimado ya es editable: "Tiras en tramos encimados").
 1. 🟡 **Lint de dependencias de los `useMemo`** (react-hooks en `.oxlintrc.json`): así se coló el error de la comparación.
 2. 🟡 **Partir `App.jsx`** (1.800 líneas) en pocos hooks por tema (`useObra`, `useCompras`…), con su test.
 
 ## 🙋 De tu lado (Leandro)
+- 🔴 [ ] ALPANEL: cargar el dólar del día en su ficha y el precio **por tira** en US$ del panel (el de antes, $ 68.000,
+  era por m² en pesos: hay que reemplazarlo); confirmar el largo de la tira entera (hoy 11,90 m).
 - 🔴 [ ] Borrar `C:\Users\LLopez\loft-calculator\.git-token.txt` y revocar el token `claude-micasa` en GitHub
   (Settings → Developer settings).
 - 🔴 [ ] Llevar la hoja **"Preguntas para el herrero y el durlero — Loft amueblado"** (Claude Docs, 18/11) y cargar las

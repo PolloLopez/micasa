@@ -11,7 +11,7 @@
 
 import { useContext, useState } from 'react';
 import { ContextoAgregarProveedor } from './contextoProveedores.js';
-import { precioEn, precioBarraPorKg } from '../motor/proveedores.js';
+import { precioEn, precioBarraPorKg, enDolares, leerPrecio } from '../motor/proveedores.js';
 import { kgPorMetro } from '../motor/perfiles.js';
 import { esPrecioDeEjemplo } from '../motor/resumenPrecios.js';
 
@@ -24,20 +24,20 @@ const pesos = (n) => n.toLocaleString('es-AR', { style: 'currency', currency: 'A
 export function CampoPrecio({ etiqueta, valor, ayuda, onCambio }) {
   const [texto, setTexto] = useState(null); // null = no se está editando: muestra el valor guardado
   const [error, setError] = useState(null);
-  const mostrado = texto ?? (valor === null || valor === undefined ? '' : String(valor));
+  // v1.81: con decimales (los dólares: "245,50"), con coma como se escribe acá.
+  const mostrado = texto ?? (valor === null || valor === undefined ? '' : String(valor).replace('.', ','));
 
   const guardar = () => {
     if (texto === null) return;
-    const limpio = texto.trim().replace(/\./g, '').replace(',', '.'); // "38.000" o "38000"
-    if (limpio === '') {
+    if (texto.trim() === '') {
       onCambio(null);
     } else {
-      const n = Number(limpio);
-      if (!Number.isFinite(n) || n < 0) {
+      const n = leerPrecio(texto); // "38.000", "38000", "245,50" o "245.5"
+      if (n === null) {
         setError('Precio inválido');
         return;
       }
-      onCambio(Math.round(n));
+      onCambio(n);
     }
     setError(null);
     setTexto(null);
@@ -109,12 +109,17 @@ export default function PreciosProveedores({ material, proveedores, unidad, onCa
           const precio = material.precios?.[p.id] ?? {};
           const porKg = esHierro ? precioBarraPorKg(material, precio.porKg) : null;
           const conRecargo = precioEn({ ...material, precios: { [p.id]: { efectivo: precio.efectivo, tarjeta: null, porKg: precio.porKg } } }, p, 'tarjeta');
+          // v1.81: un proveedor en dólares: se carga en US$ (como lo pasa) y abajo dice cuánto da en pesos.
+          const usd = enDolares(p);
+          const enPesos = usd ? precioEn(material, p, 'efectivo') : null;
           return (
             <tr key={p.id}>
-              <td className="nombre-proveedor">{p.nombre}{esPrecioDeEjemplo(material, p.id) && <small className="falta"> ⚠ de ejemplo</small>}</td>
+              <td className="nombre-proveedor">{p.nombre}{usd && <small> · en US$ (a {pesos(p.dolar ?? 0)})</small>}
+                {esPrecioDeEjemplo(material, p.id) && <small className="falta"> ⚠ de ejemplo</small>}</td>
               <td>
-                <CampoPrecio etiqueta={`Precio en efectivo de ${material.nombre} en ${p.nombre}`} valor={precio.efectivo}
-                  ayuda={porKg !== null ? `${pesos(porKg)} (por kg)` : 'no lo vende'} onCambio={(v) => onCambiar(p.id, 'efectivo', v)} />
+                <CampoPrecio etiqueta={`Precio en efectivo de ${material.nombre} en ${p.nombre}${usd ? ' (en dólares)' : ''}`} valor={precio.efectivo}
+                  ayuda={usd ? 'US$' : porKg !== null ? `${pesos(porKg)} (por kg)` : 'no lo vende'} onCambio={(v) => onCambiar(p.id, 'efectivo', v)} />
+                {usd && enPesos !== null && <small className="en-pesos">= {pesos(enPesos)}{p.dolar > 0 ? '' : ' (falta el dólar)'}</small>}
               </td>
               <td>
                 <CampoPrecio etiqueta={`Precio con tarjeta de ${material.nombre} en ${p.nombre}`} valor={precio.tarjeta}

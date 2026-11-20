@@ -176,7 +176,7 @@ function BotonCopiarPedido({ compra, nombreProyecto }) {
  * Detalle por uso (v1.31.0, antes era la tabla principal): cada renglón dice para qué es, con el precio
  * del proveedor elegido (editable) y el subtotal. Pasar el mouse resalta esas piezas en el 3D.
  */
-function TablaPorUso({ items, proveedor, onCambiarPrecio, masBaratoDe }) {
+function TablaPorUso({ items, proveedor, onCambiarPrecio, masBaratoDe, enDolares = false }) {
   const pasar = useResaltar(); // v1.27: resaltar en el 3D las piezas de cada renglón
   return (
     <div className="table-wrap">
@@ -205,7 +205,8 @@ function TablaPorUso({ items, proveedor, onCambiarPrecio, masBaratoDe }) {
                 {/* v1.21: el precio de una barra es del perfil de la lista: cambiarlo acá lo cambia en todas sus partes.
                     v1.25: se guarda en el proveedor y la forma de pago elegidos; con "lo más barato" no se edita. */}
                 {/* v1.29: el flete se carga en el proveedor (Materiales), no acá. */}
-                {proveedor === MAS_BARATO || item.categoria === 'flete' ? (
+                {/* v1.81: un proveedor en dólares se edita en US$ en Materiales (acá se ve en pesos). */}
+                {proveedor === MAS_BARATO || item.categoria === 'flete' || enDolares ? (
                   <span>{item.sinPrecio ? '—' : pesos(item.precio)}{item.proveedorDelPrecio && <small className="detalle"> {item.proveedorDelPrecio}</small>}</span>
                 ) : (
                   <CampoNumero etiqueta="" sufijo="$" decimales={0} valor={item.precio}
@@ -300,6 +301,36 @@ const SUBPESTANAS = [
   { clave: 'precios', nombre: 'Precios y detalle', ayuda: 'Comparar proveedores y editar precios' },
 ];
 
+
+/**
+ * v1.81: la hoja de corte de un revestimiento que se compra por tira entera (ALPANEL): por pared, cada tira con los
+ * pedazos que salen de ella y lo que sobra. Los recortes de una tira se usan en la misma pared.
+ */
+function CortesDeTiras({ item }) {
+  const m = (n) => n.toFixed(2).replace('.', ',');
+  let numero = 0;
+  return (
+    <section className="cortes-tiras">
+      <h4>{item.nombre}: {item.cantidad} tiras enteras de {m(item.largoTira)} m</h4>
+      {item.tirasPorPared.map((g) => (
+        <div key={g.donde} className="tiras-pared">
+          <strong>{g.donde}</strong> <small>({g.tiras.length} tira{g.tiras.length === 1 ? '' : 's'})</small>
+          <ol className="lista-tiras">
+            {g.tiras.map((t) => {
+              numero += 1;
+              return (
+                <li key={numero} value={numero}>
+                  Tira {numero}: {t.piezas.map((x) => `${m(x)} m`).join(' + ')}
+                  <small className={t.sobra >= 0.3 ? '' : 'falta'}> · sobra {m(t.sobra)} m{t.sobra >= 0.3 ? ' (sirve)' : ''}</small>
+                </li>
+              );
+            })}
+          </ol>
+        </div>
+      ))}
+    </section>
+  );
+}
 
 /** Barra de sub-pestañas accesible: flechas izquierda/derecha para moverse (como las pestañas de arriba). */
 function BarraSubpestanas({ activa, onElegir }) {
@@ -496,6 +527,8 @@ export default function TablaPresupuesto({
         {gruposConBarras.length === 0
           ? <p className="vacio">No hay barras para cortar.</p>
           : gruposConBarras.map((g, i) => <DiagramaCortes key={g.id} grupo={g} numero={i + 1} />)}
+        {/* v1.81: los revestimientos que se compran por tira entera: qué pedazos salen de cada tira, pared por pared. */}
+        {items.filter((i) => i.tirasPorPared?.length && i.cantidad > 0).map((i) => <CortesDeTiras key={i.id} item={i} />)}
       </div>
 
       <div {...panel('precios')}>
@@ -503,7 +536,8 @@ export default function TablaPresupuesto({
           <ComparacionProveedores proveedores={proveedores} proveedor={proveedor} pago={pago} comparacion={comparacion}
             onElegirProveedor={onElegirProveedor} />
         )}
-        <TablaPorUso items={items} proveedor={proveedor} onCambiarPrecio={onCambiarPrecio} masBaratoDe={masBaratoDe} />
+        <TablaPorUso items={items} proveedor={proveedor} onCambiarPrecio={onCambiarPrecio} masBaratoDe={masBaratoDe}
+          enDolares={proveedores.find((p) => p.id === proveedor)?.moneda === 'USD'} />
         <div className="total total-proveedor">
           <span>{conPlan ? `Todo con ${nombreProveedor}` : 'Total'}
             {faltan.length > 0 && <small> (sin lo que no vende: {faltan.join(', ')})</small>}</span>

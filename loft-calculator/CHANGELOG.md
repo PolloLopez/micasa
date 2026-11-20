@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.81.0] - 2026-11-20
+### Agregado
+- **Proveedores que cotizan en dólares** (ALPANEL): en su ficha, "Cotiza en: Dólares" y el **dólar** (pesos por US$ 1,
+  a mano). Sus precios se cargan en US$ (con centavos: "300,50") y debajo dice cuánto da en pesos; el presupuesto, el
+  plan de compra y la lista de compras usan los pesos. El flete sigue en pesos. Los de antes quedan en pesos.
+  (`precioEn` convierte, `enDolares`, `aPesos`, `leerPrecio` en proveedores.js.)
+- **Revestimiento cobrado por tira entera** de largo fijo (Materiales → Revestimientos → "Se cobra: por tira entera"):
+  los pedazos de cada pared se acomodan en tiras enteras (como las barras de hierro) con los recortes en la misma pared;
+  el precio va por tira. Si compartiendo los recortes entre paredes se compraría menos, el renglón lo dice. En
+  Presupuesto → Cortes, cada tira con los pedazos que salen de ella y lo que sobra, pared por pared (`tirasEnteras`).
+- **Vista "Solo paneles"** en el 3D: los revestimientos con sus juntas (dónde termina cada tira y cada tramo) y las
+  aberturas, sin hierros, OSB, muebles, terreno ni personas.
+### Cambiado
+- En "Precios y detalle", el precio de un proveedor en dólares no se edita (se ve en pesos): se carga en US$ en Materiales.
+
 ## [1.80.0] - 2026-11-20
 ### Agregado
 - **Tapial encadenado** (Estructura → Fundación, obra civil y terreno → Obra civil): un **pilotín bajo cada columna**

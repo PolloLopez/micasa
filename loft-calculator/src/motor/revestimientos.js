@@ -36,8 +36,14 @@
 // ==========================================================
 
 import { retazosEntreParedes, rellenosDeLaObra } from './cortesPaneles.js';
+import { optimizarCortes } from './optimizadorCortes.js';
 
 export const VENTAS = ['medida', 'estandar'];
+// v1.81 (Leandro: "Alpanel vende la tira entera", y la cobra por tira en dólares): los A MEDIDA se cobran por m²
+// (como siempre) o por TIRA ENTERA de largo fijo: los pedazos de cada pared se acomodan en tiras enteras como las
+// barras de hierro, y los recortes se usan en la misma pared.
+export const COBROS = ['m2', 'tira'];
+const MERMA_TIRA = 0.005; // m que se lleva cada corte de la tira (disco o sierra)
 export const UBICACIONES = ['cara', 'eje'];
 
 /** Valores de arranque de un tipo de revestimiento (también para migrar los viejos). */
@@ -56,7 +62,29 @@ export const REVESTIMIENTO_POR_DEFECTO = {
   descontarAberturas: true, // v1.71: false = tiras enteras (los huecos se cortan en obra): ver costadoEfectivo
   tiraAngosta: 'derecha', // v1.68: dónde va la tira cortada a lo largo: 'derecha', 'izquierda' o 'repartida' (media en cada punta)
   anchoTotal: 0, // v1.68: ancho total de la tira con su encastre (0 = no se sabe): el solape del costado = total − útil
+  cobro: 'm2', // v1.81: 'm2' o 'tira' (tira entera de largo fijo; ver tirasEnteras)
+  largoTira: 0, // v1.81: largo de la tira entera (0 = el largo máximo)
 };
+
+/** v1.81: el largo de la tira entera que vende el proveedor (si no se cargó, el largo máximo). */
+export const largoDeTira = (t) => (t.largoTira > 0 ? Math.min(t.largoTira, t.largoMaximo) : t.largoMaximo);
+
+/**
+ * v1.81: los pedazos de cada pared acomodados en tiras enteras de `largo` (los recortes de una tira se usan en la misma
+ * pared). Además, cuántas serían compartiendo los recortes entre todas las paredes (para avisar si conviene).
+ * @param grupos [{ donde, piezas: number[] }]
+ * @returns {{ tiras, compartiendo, porPared: { donde, tiras: { piezas: number[], sobra }[] }[] }}
+ */
+export function tirasEnteras(grupos, largo) {
+  const opciones = { merma: MERMA_TIRA, retazoUtil: 0.3 };
+  const porPared = grupos.filter((g) => g.piezas.length > 0).map(({ donde, piezas }) => {
+    const { barras } = optimizarCortes(piezas, largo, opciones);
+    return { donde, tiras: barras.map((b) => ({ piezas: [...b.piezas].sort((x, y) => y - x), sobra: Math.max(0, Math.round((largo - b.usado) * 100) / 100) })) };
+  });
+  const tiras = porPared.reduce((a, g) => a + g.tiras.length, 0);
+  const compartiendo = optimizarCortes(grupos.flatMap((g) => g.piezas), largo, opciones).totalBarras;
+  return { tiras, compartiendo, porPared };
+}
 
 /** Límites de cada dato (los usa la pantalla y la migración). */
 export const LIMITES_REVESTIMIENTO = {
@@ -68,6 +96,7 @@ export const LIMITES_REVESTIMIENTO = {
   espesor: { min: 1, max: 300 },
   costadoMinimo: { min: 0, max: 1 },
   anchoTotal: { min: 0, max: 3.5 },
+  largoTira: { min: 0, max: 20 }, // v1.81 (0 = el largo máximo)
 };
 export const TIRA_ANGOSTA = ['derecha', 'izquierda', 'repartida'];
 
@@ -224,6 +253,11 @@ export function placasDePano(pano, tipo) {
   return acostada.placas < parada.placas ? { ...acostada, parada: false } : { ...parada, parada: true };
 }
 
+/** v1.81: en qué se compra un revestimiento: 'placas', 'tiras' (tira entera) o 'm²'. */
+export const unidadDeCompra = (tipo) => (tipo.venta === 'estandar' ? 'placas' : tipo.cobro === 'tira' ? 'tiras' : 'm²');
+/** v1.81: por qué unidad se carga el precio: 'placa', 'tira' o 'm²'. */
+export const unidadDePrecio = (tipo) => (tipo.venta === 'estandar' ? 'placa' : tipo.cobro === 'tira' ? 'tira' : 'm²');
+
 /** "6 × 4.25 m + 2 × 1.10 m" a partir de una lista de largos (decimales con punto, como el resto de la app). */
 export function resumirLargos(largos) {
   const porLargo = new Map();
@@ -257,7 +291,11 @@ export function cuentaRevestimiento(tipo, panos) {
     };
   }
 
-  let piezas = panos.flatMap((p) => tirasDePano(p, t));
+  // v1.81: cobrando por tira entera, ningún pedazo puede pasar el largo de la tira.
+  if (t.cobro === 'tira') t.largoMaximo = largoDeTira(t);
+  // Los pedazos de cada pared (v1.81: por pared, para acomodarlos en tiras enteras de la misma pared).
+  const porPano = panos.map((p) => ({ donde: p.donde, piezas: tirasDePano(p, t) }));
+  let piezas = porPano.flatMap((g) => g.piezas);
   // v1.63: la tira angosta de una pared sale del retazo (a lo ancho) de la de otra: se compra una menos.
   // Se apaga con aprovecharRetazos: false en el tipo de revestimiento.
   let retazos = '';
@@ -268,6 +306,8 @@ export function cuentaRevestimiento(tipo, panos) {
     ahorroPedidos.forEach((largo) => {
       const i = piezas.findIndex((l) => Math.abs(l - largo) < 1e-6);
       if (i >= 0) piezas = [...piezas.slice(0, i), ...piezas.slice(i + 1)];
+      const g = porPano.find((x) => x.piezas.some((l) => Math.abs(l - largo) < 1e-6)); // v1.81: también de su pared
+      if (g) { const k = g.piezas.findIndex((l) => Math.abs(l - largo) < 1e-6); g.piezas = [...g.piezas.slice(0, k), ...g.piezas.slice(k + 1)]; }
     });
     if (reusos.length) retazos = ` · ${reusos.length} tira${reusos.length > 1 ? 's' : ''} angosta${reusos.length > 1 ? 's' : ''} sale${reusos.length > 1 ? 'n' : ''} de retazos`;
   }
@@ -278,13 +318,32 @@ export function cuentaRevestimiento(tipo, panos) {
     const deRecortes = rellenos.filter((r) => r.de).length;
     retazos += ` · ${rellenos.length} relleno${rellenos.length > 1 ? 's' : ''} al costado de aberturas (${deRecortes} de recortes${comprar.length ? `, ${comprar.length} pedazo${comprar.length > 1 ? 's' : ''} comprado${comprar.length > 1 ? 's' : ''}` : ''})`;
   }
+  const textoAberturas = t.descontarAberturas === false ? ' · tiras enteras: las aberturas se cortan en obra' : '';
+  // v1.81: por tira entera: cuántas tiras de largo fijo (los recortes, en la misma pared).
+  if (t.cobro === 'tira') {
+    const largo = largoDeTira(t);
+    const grupos = [...porPano, ...(comprar.length ? [{ donde: 'rellenos al costado de aberturas', piezas: comprar }] : [])];
+    const cuenta = tirasEnteras(grupos, largo);
+    const ahorro = cuenta.compartiendo < cuenta.tiras
+      ? ` · usando los recortes de una pared en otra serían ${cuenta.compartiendo} (${cuenta.tiras - cuenta.compartiendo} menos)` : '';
+    return {
+      cantidad: cuenta.tiras,
+      unidad: 'tiras',
+      piezas,
+      neto,
+      tirasPorPared: cuenta.porPared,
+      largoTira: largo,
+      detalle: `${cuenta.tiras} tiras enteras de ${largo.toFixed(2)} m para ${resumirLargos(piezas)} (ancho útil ${t.anchoUtil.toFixed(2)} m)`
+        + ` · recortes en la misma pared${ahorro}${retazos}${textoAberturas} · ${donde}`,
+    };
+  }
   const m2 = Math.ceil(piezas.reduce((acc, l) => acc + l, 0) * t.anchoUtil * 100 - 1e-6) / 100;
   return {
     cantidad: m2,
     unidad: 'm²',
     piezas,
     neto,
-    detalle: `${resumirLargos(piezas)} (ancho útil ${t.anchoUtil.toFixed(2)} m) · ${neto.toFixed(2)} m² netos${retazos}${t.descontarAberturas === false ? ' · tiras enteras: las aberturas se cortan en obra' : ''} · ${donde}`,
+    detalle: `${resumirLargos(piezas)} (ancho útil ${t.anchoUtil.toFixed(2)} m) · ${neto.toFixed(2)} m² netos${retazos}${textoAberturas} · ${donde}`,
   };
 }
 
@@ -354,7 +413,7 @@ export function pedazosDePared(largo, altoEn, huecos) {
  * @returns {{ conDescuento, sinDescuento, ahorro, unidad }}  cantidades a comprar (m² o placas)
  */
 export function ahorroPorAberturas(tipo, panos) {
-  if (!panos?.length) return { conDescuento: 0, sinDescuento: 0, ahorro: 0, unidad: tipo.venta === 'estandar' ? 'placas' : 'm²' };
+  if (!panos?.length) return { conDescuento: 0, sinDescuento: 0, ahorro: 0, unidad: unidadDeCompra(tipo) };
   const con = cuentaRevestimiento({ ...tipo, descontarAberturas: true }, panos);
   const sin = cuentaRevestimiento({ ...tipo, descontarAberturas: false }, panos);
   return { conDescuento: con.cantidad, sinDescuento: sin.cantidad, ahorro: Math.round((sin.cantidad - con.cantidad) * 100) / 100, unidad: con.unidad };

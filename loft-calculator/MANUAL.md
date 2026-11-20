@@ -95,7 +95,7 @@ como fantasma en su lugar, así ves cuál es antes de tocar **Restaurar**.
 
 ## 4. El 3D
 
-La barra está en tres grupos: **cámara** (Girar, Frente, Terreno), **qué se ve** (Realista, Sol, Adentro, Solo hierro,
+La barra está en tres grupos: **cámara** (Girar, Frente, Terreno), **qué se ve** (Realista, Sol, Adentro, **Solo paneles** (las tiras con sus juntas, para ver los cortes), Solo hierro,
 Por perfil) y **herramientas** (Recorrer, Medir, **?** = cómo moverse). Con el 3D angosto quedan los íconos.
 
 | Botón | Qué hace |
@@ -150,6 +150,14 @@ Cada apartado (Proveedores, Perfiles, Qué perfil va en cada parte, Otros materi
 Revestimientos) se pliega tocando su título, y cada material o proveedor es una ficha plegable. Plegada, cada ficha
 dice lo importante: el material, su precio en el proveedor elegido en el Presupuesto y, si ese no lo vende o hay uno
 más barato, **desde cuánto y dónde**. Arriba avisa cuántos materiales no tienen precio en ningún proveedor.
+
+**Proveedor en dólares** (ej. ALPANEL): en su ficha, **Cotiza en: Dólares** y cargá el **dólar** del día. Sus precios se
+cargan en US$ (con centavos, "300,50") y debajo ves cuánto da en pesos. El flete va en pesos.
+
+**Panel por tira entera**: en el revestimiento, **Se cobra: por tira entera** y el largo de la tira. La app acomoda los
+pedazos de cada pared en tiras enteras (los recortes, en la misma pared) y el precio es por tira. En **Presupuesto →
+Cortes** ves de qué tira sale cada pedazo. Si destildás "Descontar las aberturas", pedís todo entero y los huecos los
+cortás vos (la ficha dice cuántas tiras más son).
 
 **Precios de un material**: se ven solo los proveedores que lo tienen. **+ Precio en otro proveedor…** suma otro, o
 **+ Proveedor nuevo…** lo crea ahí mismo.

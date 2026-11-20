@@ -3,6 +3,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   cortarEnTramos, tirasDePano, placasDePano, cuentaRevestimiento, resumirLargos, REVESTIMIENTO_POR_DEFECTO, juntasDePano, pedazosDeTira, pedazosDePared,
+  tirasEnteras, unidadDePrecio,
 } from './revestimientos.js';
 import { generarEstructura } from './estructura.js';
 import { calcularPresupuesto, CATALOGO_INICIAL } from './presupuesto.js';
@@ -183,5 +184,46 @@ describe('pared con huecos para el 3D (v1.24)', () => {
     const pedazos = pedazosDePared(4, (x) => 3 + x / 4, []);
     expect(pedazos).toHaveLength(1);
     expect(area(pedazos)).toBeCloseTo(4 * 3.5);
+  });
+});
+
+describe('v1.81: cobrado por tira entera de largo fijo (ALPANEL)', () => {
+  const tipo = { ...REVESTIMIENTO_POR_DEFECTO, anchoUtil: 0.95, largoMaximo: 11.9, cobro: 'tira', largoTira: 11.9, aprovecharRetazos: false, descontarAberturas: false };
+  // Dos paredes: una de 3,8 m x 5 m de alto (4 tiras de 5 m) y otra de 1,9 m x 2,6 m (2 de 2,6 m).
+  const panos = [
+    { donde: 'pared A', largo: 3.8, h1: 5, h2: 5, neto: 19, huecos: [] },
+    { donde: 'pared B', largo: 1.9, h1: 2.6, h2: 2.6, neto: 4.94, huecos: [] },
+  ];
+
+  it('los pedazos de cada pared se acomodan en tiras enteras (como las barras), con los recortes en la misma pared', () => {
+    const c = cuentaRevestimiento(tipo, panos);
+    expect(c.unidad).toBe('tiras');
+    // Pared A: 4 x 5 m en tiras de 11,90: 2 por tira = 2 tiras. Pared B: 2 x 2,60 = 1 tira.
+    expect(c.cantidad).toBe(3);
+    expect(c.tirasPorPared.map((g) => [g.donde, g.tiras.length])).toEqual([['pared A', 2], ['pared B', 1]]);
+    expect(c.tirasPorPared[0].tiras[0]).toMatchObject({ piezas: [5, 5] });
+    expect(c.tirasPorPared[0].tiras[0].sobra).toBeCloseTo(1.9, 1); // 11,90 - 10 (menos lo que se lleva el corte)
+    expect(c.detalle).toMatch(/^3 tiras enteras de 11\.90 m/);
+    expect(unidadDePrecio(tipo)).toBe('tira');
+    expect(unidadDePrecio({ ...tipo, cobro: 'm2' })).toBe('m²');
+  });
+
+  it('avisa si compartiendo los recortes entre paredes se compra menos', () => {
+    // 3 pedazos de 4 m en cada pared, tiras de 10 m (2 por tira): por pared 2 + 2 = 4; compartiendo 3.
+    const r = tirasEnteras([{ donde: 'A', piezas: [4, 4, 4] }, { donde: 'B', piezas: [4, 4, 4] }], 10.02);
+    expect(r).toMatchObject({ tiras: 4, compartiendo: 3 });
+    // Tiras de 7,62: la pared A (4 x 5 m) sobra 2,62 en cada una, justo para los de 2,60 de la pared B.
+    const c = cuentaRevestimiento({ ...tipo, largoTira: 7.62 }, panos);
+    expect(c.cantidad).toBe(5);
+    expect(c.detalle).toMatch(/usando los recortes de una pared en otra serían/);
+  });
+
+  it('un pedazo más alto que la tira va en tramos; los de antes siguen por m²', () => {
+    const alta = cuentaRevestimiento({ ...tipo, largoTira: 3 }, [{ donde: 'pared', largo: 0.95, h1: 5, h2: 5, neto: 4.75, huecos: [] }]);
+    expect(alta.piezas).toEqual([3, 2]);
+    expect(alta.cantidad).toBe(2);
+    const m2 = cuentaRevestimiento({ ...tipo, cobro: undefined }, panos);
+    expect(m2.unidad).toBe('m²');
+    expect(normalizarCatalogo([{ id: 'p', categoria: 'panel', nombre: 'P', venta: 'medida' }]).find((i) => i.id === 'p')).toMatchObject({ cobro: 'm2', largoTira: 0 });
   });
 });

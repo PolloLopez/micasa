@@ -14,7 +14,8 @@ import { useState } from 'react';
 import CampoNumero from './CampoNumero.jsx';
 import FichaPlegable from './FichaPlegable.jsx';
 import { CampoPrecio } from './PreciosProveedores.jsx';
-import { LIMITES_RECARGO, LIMITES_FLETE, precioEn, precioBarraPorKg } from '../motor/proveedores.js';
+import { LIMITES_RECARGO, LIMITES_FLETE, LIMITES_DOLAR, precioEn, precioBarraPorKg, enDolares } from '../motor/proveedores.js';
+import CampoSelect from './CampoSelect.jsx';
 import { preciosCargados, PRECIO_SOSPECHOSO, antiguedadDePrecios, DIAS_PRECIO_VIEJO, esPrecioDeEjemplo, preciosDeEjemplo } from '../motor/resumenPrecios.js';
 import { hoy } from '../motor/seguimiento.js';
 import NotaPlegable from './NotaPlegable.jsx';
@@ -62,7 +63,7 @@ function PreciosDelProveedor({ proveedor, materiales, onCambiarPrecio }) {
       </label>
       <div className="table-wrap">
         <table className="tabla-precios tabla-precios-proveedor">
-          <thead><tr><th>Material</th><th>Por</th><th>Efectivo</th><th>Tarjeta</th><th>o $/kg</th></tr></thead>
+          <thead><tr><th>Material</th><th>Por</th><th>Efectivo{enDolares(proveedor) ? ' (US$)' : ''}</th><th>Tarjeta{enDolares(proveedor) ? ' (US$)' : ''}</th><th>o $/kg</th></tr></thead>
           <tbody>
             {visibles.map((m) => {
               const precio = m.precios?.[proveedor.id] ?? {};
@@ -75,7 +76,9 @@ function PreciosDelProveedor({ proveedor, materiales, onCambiarPrecio }) {
                     {esPrecioDeEjemplo(m, proveedor.id) && <small className="falta"> ⚠ precio de ejemplo</small>}</td>
                   <td>{m.unidadPrecio}</td>
                   <td><CampoPrecio etiqueta={`Precio en efectivo de ${m.nombre} en ${proveedor.nombre}`} valor={precio.efectivo}
-                    ayuda={porKg !== null ? `${pesos(porKg)} (por kg)` : 'no lo vende'} onCambio={(v) => onCambiarPrecio(m.id, proveedor.id, 'efectivo', v)} /></td>
+                    ayuda={enDolares(proveedor) ? 'US$' : porKg !== null ? `${pesos(porKg)} (por kg)` : 'no lo vende'} onCambio={(v) => onCambiarPrecio(m.id, proveedor.id, 'efectivo', v)} />
+                    {/* v1.81: en dólares, cuánto da en pesos */}
+                    {enDolares(proveedor) && precio.efectivo !== null && precio.efectivo !== undefined && <small className="en-pesos">= {pesos(precioEn(m, proveedor, 'efectivo') ?? 0)}</small>}</td>
                   <td><CampoPrecio etiqueta={`Precio con tarjeta de ${m.nombre} en ${proveedor.nombre}`} valor={precio.tarjeta}
                     ayuda={conRecargo !== null ? `auto ${pesos(conRecargo)}` : '—'} onCambio={(v) => onCambiarPrecio(m.id, proveedor.id, 'tarjeta', v)} /></td>
                   <td>{conKg ? <CampoPrecio etiqueta={`Precio por kilo de ${m.nombre} en ${proveedor.nombre}`} valor={precio.porKg}
@@ -123,6 +126,7 @@ export default function ListaProveedores({ proveedores, materiales = [], idElegi
               encabezado={<><strong>{p.nombre || 'Sin nombre'}</strong>
                 <small className={cargados === 0 ? 'falta' : ''}>
                   {p.id === idElegido ? 'elegido en el Presupuesto · ' : ''}{cargados} de {total} precios
+                  {enDolares(p) ? (p.dolar > 0 ? ` · en US$ (dólar ${pesos(p.dolar)})` : ' · en US$ ⚠ falta el dólar') : ''}
                   {p.recargoTarjeta ? ` · tarjeta +${p.recargoTarjeta} %` : ''}{p.flete ? ` · flete ${pesos(p.flete)}` : ''}
                   {sospechosos > 0 ? ` · ⚠ ${sospechosos} precio${sospechosos === 1 ? '' : 's'} para revisar` : ''}
                   {preciosDeEjemplo(materiales, p.id).length > 0 ? ` · ⚠ ${preciosDeEjemplo(materiales, p.id).length} de ejemplo` : ''}
@@ -139,8 +143,15 @@ export default function ListaProveedores({ proveedores, materiales = [], idElegi
                 </div>
                 <CampoNumero etiqueta="Recargo con tarjeta" sufijo="%" decimales={1} valor={p.recargoTarjeta ?? 0}
                   onCambio={cambiarRecargo(p.id)} />
+                {/* v1.81: ALPANEL cotiza en dólares: sus precios se cargan en US$ y se pasan a pesos con este dólar. */}
+                <CampoSelect etiqueta="Cotiza en" valor={enDolares(p) ? 'USD' : 'ARS'} onCambio={(v) => onActualizar(p.id, { moneda: v })}
+                  opciones={[['ARS', 'Pesos'], ['USD', 'Dólares (cargo el dólar)']]} />
+                {enDolares(p) && (
+                  <CampoNumero etiqueta="Dólar (pesos por US$ 1)" sufijo="$" decimales={2} valor={p.dolar ?? 0}
+                    onCambio={(v) => { if (!(v > LIMITES_DOLAR.min && v <= LIMITES_DOLAR.max)) return 'Poné el dólar del día (ej. 1450)'; onActualizar(p.id, { dolar: v }); return null; }} />
+                )}
                 {/* v1.29: flete por pedido (0 = sin flete) y desde qué compra no lo cobra (0 = siempre). */}
-                <CampoNumero etiqueta="Flete por pedido" sufijo="$" decimales={0} valor={p.flete ?? 0}
+                <CampoNumero etiqueta={enDolares(p) ? 'Flete por pedido (en pesos)' : 'Flete por pedido'} sufijo="$" decimales={0} valor={p.flete ?? 0}
                   onCambio={cambiarMonto(p.id, 'flete')} />
                 {p.flete > 0 && (
                   <CampoNumero etiqueta="Flete gratis desde (0 = nunca)" sufijo="$" decimales={0} valor={p.fleteGratisDesde ?? 0}

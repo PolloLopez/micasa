@@ -224,6 +224,8 @@ const OPACIDADES = [
   { clave: 'terreno', nombre: 'Terreno' }, // v1.34.3: el lote, la calle y lo que hay en el terreno
 ];
 
+// v1.81: lo que queda prendido con "Solo paneles" (las juntas, siempre: son las que muestran los cortes).
+const CAPAS_SOLO_PANELES = new Set(['paneles', 'juntas', 'aberturas', 'cotas', 'medidasFijas', 'etiquetasParedes', 'etiquetasAberturas']);
 /** Capas de hierro (todas menos superficies y madera): comparten la opacidad "Hierros". */
 const CAPAS_SUPERFICIE = ['paneles', 'osb', 'aberturas', 'chapa', 'escalones', 'zapatas', 'tapasMesada', 'muebles', 'placasTabiques', ...CAPAS_INSTALACIONES]; // v1.57: los caños, sólidos // zapatas: hormigón, no hierro
 const CAPAS_HIERRO = Object.keys(CAPAS).filter((c) => !CAPAS_SUPERFICIE.includes(c));
@@ -1188,6 +1190,10 @@ export default function LoftCanvas({
   // v1.59: "Ver estructura de hierro": sin maderas, revestimientos, aberturas ni muebles (los marcos, montantes y
   // perfiles C a la vista). No toca las casillas de Capas: al apagarlo vuelve todo como estaba.
   const [soloHierro, setSoloHierro] = useState(false);
+  // v1.81 (Leandro: "ver la vista solo paneles, para ver los recortes"): solo los revestimientos con sus juntas (dónde
+  // termina cada tira y cada tramo) y las aberturas; sin hierros, OSB, muebles, terreno ni personas. Es lo contrario de
+  // "Solo hierro" (prender uno apaga el otro).
+  const [soloPaneles, setSoloPaneles] = useState(false);
   const [verAyudaVisor, setVerAyudaVisor] = useState(false); // v1.63: la ayuda de cómo moverse, con "?"
   const capasVista = useMemo(() => {
     const base = realista
@@ -1201,9 +1207,13 @@ export default function LoftCanvas({
         tabiques: false, etiquetasTabiques: false,
         chapa: false, juntas: false, madera: false, mesadas: false, etiquetasMesadas: false, etiquetasMuebles: false,
         instElectrica: false, instAgua: false, instDesague: false, instGas: false }
-      : base;
-  }, [realista, capas, soloHierro]);
-  const opacidadesVista = useMemo(() => (realista ? { ...opacidades, paneles: 1, osb: 1, hierros: 1 } : opacidades), [realista, opacidades]);
+      : soloPaneles
+        ? Object.fromEntries(Object.entries(base).map(([k, v]) => [k, CAPAS_SOLO_PANELES.has(k) ? (k === 'juntas' ? true : v) : false]))
+        : base;
+  }, [realista, capas, soloHierro, soloPaneles]);
+  // v1.81: con "Solo paneles", los paneles casi opacos (para leer las juntas y los cortes).
+  const opacidadesVista = useMemo(() => (realista ? { ...opacidades, paneles: 1, osb: 1, hierros: 1 }
+    : soloPaneles ? { ...opacidades, paneles: Math.max(opacidades.paneles ?? 0, 0.9) } : opacidades), [realista, opacidades, soloPaneles]);
   // v1.55: "Color por perfil": la lista de perfiles en uso con su color (también es la leyenda). null = color por función.
   // v1.62 (pedido de Leandro: "el mismo 80x80x2 de dos colores es confuso"): de fábrica prendido. Clave nueva para
   // que también se prenda en los navegadores que lo tenían guardado apagado (antes venía apagado).
@@ -1757,7 +1767,7 @@ export default function LoftCanvas({
 
   // 2c) TERRENO (v1.32): el lote y lo que hay en él. Con terreno, la grilla se apaga (el lote hace de piso).
   const obraConTerreno = moduloActivo('terreno') && params.tipoProyecto === 'construccion' && params.terreno?.activo;
-  const conTerreno = obraConTerreno && CAPAS_TERRENO.some((c) => capas[c]);
+  const conTerreno = obraConTerreno && !soloPaneles && CAPAS_TERRENO.some((c) => capas[c]); // v1.81: sin terreno con "Solo paneles"
   // Qué partes se ven: { lote: true, calle: false, … } (la capa terrenoLote es la parte 'lote').
   const partesTerreno = Object.fromEntries(PARTES_TERRENO.map((parte, i) => [parte, capas[CAPAS_TERRENO[i]] !== false]));
   const clavePartes = JSON.stringify(partesTerreno);
@@ -2105,8 +2115,8 @@ export default function LoftCanvas({
   // v1.62: con "Ver estructura de hierro", las personas y los perros no se ven.
   useEffect(() => {
     const visor = visorRef.current;
-    if (visor?.personas) visor.personas.grupo.visible = !soloHierro;
-  }, [soloHierro]);
+    if (visor?.personas) visor.personas.grupo.visible = !soloHierro && !soloPaneles;
+  }, [soloHierro, soloPaneles]);
 
   // Con cada cambio de la obra o de las personas, se rehace el mapa de por dónde se camina.
   useEffect(() => {
@@ -2272,7 +2282,11 @@ export default function LoftCanvas({
               <span aria-hidden="true">🏠</span><span className="etiqueta-ctrl">Adentro</span>
             </button>
           )}
-          <button className={`btn-ctrl${soloHierro ? ' activo' : ''}`} aria-pressed={soloHierro} onClick={() => setSoloHierro((v) => !v)}
+          <button className={`btn-ctrl${soloPaneles ? ' activo' : ''}`} aria-pressed={soloPaneles} onClick={() => { setSoloPaneles((v) => !v); setSoloHierro(false); }}
+            title="Ver solo los paneles: las tiras con sus juntas (dónde termina cada tira y cada tramo) y las aberturas, sin hierros ni muebles">
+            <span aria-hidden="true">🧱</span><span className="etiqueta-ctrl">Solo paneles</span>
+          </button>
+          <button className={`btn-ctrl${soloHierro ? ' activo' : ''}`} aria-pressed={soloHierro} onClick={() => { setSoloHierro((v) => !v); setSoloPaneles(false); }}
             title="Ver estructura de hierro: sin maderas, revestimientos, aberturas, muebles, mesadas, instalaciones ni personas">
             <span aria-hidden="true">🔩</span><span className="etiqueta-ctrl">Solo hierro</span>
           </button>

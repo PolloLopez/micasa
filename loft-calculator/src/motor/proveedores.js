@@ -10,6 +10,9 @@ import { fichaDePerfil, kgPorMetro } from './perfiles.js';
 //       recargoTarjeta   = % que cobra de más con tarjeta (ej. 12)
 //       flete            = $ por pedido (v1.29), se suma una vez si se le compra algo
 //       fleteGratisDesde = compra desde la que no cobra flete (0 = siempre cobra)
+//       moneda, dolar    = v1.81: 'USD' si cotiza en dólares (ALPANEL) y a cuántos pesos el dólar (lo carga
+//                          Leandro). Sus precios se guardan en dólares (como se los pasan) y se pasan a pesos en
+//                          precioEn: el resto de la app ve pesos. El flete sigue en pesos.
 //
 //   Material SIN precio en un proveedor = ese proveedor NO LO VENDE (v1.29).
 //
@@ -54,6 +57,23 @@ export const todosLosProveedores = (catalogo) => catalogo.filter(esProveedor);
 export const llevaPrecios = (item) => item && item.categoria !== 'perfil' && item.categoria !== 'proveedor';
 
 const esPrecio = (n) => Number.isFinite(n) && n >= 0;
+/** v1.81: el proveedor cotiza en dólares (con un dólar cargado). */
+export const enDolares = (proveedor) => proveedor?.moneda === 'USD';
+/** v1.81: un precio de ese proveedor, en pesos (los de dólares x su dólar). */
+export const aPesos = (valor, proveedor) => (enDolares(proveedor) ? Math.round(valor * (proveedor.dolar > 0 ? proveedor.dolar : 0)) : valor);
+export const LIMITES_DOLAR = { min: 0, max: 1e6 };
+
+/**
+ * v1.81: un precio escrito a mano: "38.000" y "38000" (pesos, el punto separa los miles), "245,50" o "245.5" (con
+ * decimales: los dólares). Devuelve el número (redondeado al centavo) o null si no es un precio.
+ */
+export function leerPrecio(texto) {
+  const t = String(texto ?? '').trim().replace(/^(US)?\$\s*/i, '');
+  if (t === '') return null;
+  const limpio = /^\d+\.\d{1,2}$/.test(t) ? t : t.replace(/\./g, '').replace(',', '.');
+  const n = Number(limpio);
+  return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : null;
+}
 const esMonto = (n) => Number.isFinite(n) && n >= LIMITES_FLETE.min && n <= LIMITES_FLETE.max;
 
 /**
@@ -87,9 +107,10 @@ export function precioEn(item, proveedor, pago) {
   if (!p) return null;
   const efectivo = esPrecio(p.efectivo) ? p.efectivo : precioBarraPorKg(item, p.porKg);
   if (efectivo === null) return null;
-  if (pago !== 'tarjeta') return efectivo;
-  if (esPrecio(p.tarjeta)) return p.tarjeta;
-  return Math.round(efectivo * (1 + (proveedor.recargoTarjeta ?? 0) / 100));
+  // v1.81: lo cargado en dólares se pasa a pesos acá (y en ningún otro lado).
+  if (pago !== 'tarjeta') return aPesos(efectivo, proveedor);
+  if (esPrecio(p.tarjeta)) return aPesos(p.tarjeta, proveedor);
+  return Math.round(aPesos(efectivo, proveedor) * (1 + (proveedor.recargoTarjeta ?? 0) / 100));
 }
 
 /**
@@ -135,6 +156,8 @@ function normalizarProveedor(p) {
     fleteGratisDesde: esMonto(p.fleteGratisDesde) ? p.fleteGratisDesde : 0,
     descartado: p.descartado === true, // v1.70
     preciosAl: typeof p.preciosAl === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(p.preciosAl) ? p.preciosAl : '', // v1.74: cuándo se cargaron sus precios
+    moneda: p.moneda === 'USD' ? 'USD' : 'ARS', // v1.81: los de antes, en pesos
+    dolar: Number.isFinite(p.dolar) && p.dolar > LIMITES_DOLAR.min && p.dolar <= LIMITES_DOLAR.max ? p.dolar : 0,
   };
 }
 

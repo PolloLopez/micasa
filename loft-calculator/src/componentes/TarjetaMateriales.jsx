@@ -26,7 +26,7 @@ import SelectorPerfil from './SelectorPerfil.jsx';
 import { LIMITES_ACCESORIO } from '../motor/presupuesto.js';
 import { BotonResaltar } from './Resaltar.jsx';
 import { useResaltar, criterioDeRenglon as criterioDe } from './contextoResaltado.js';
-import { LIMITES_REVESTIMIENTO } from '../motor/revestimientos.js';
+import { LIMITES_REVESTIMIENTO, unidadDePrecio } from '../motor/revestimientos.js';
 import { perfilesDeLista } from '../motor/perfiles.js';
 import { aplicarProveedor, proveedoresDe, todosLosProveedores } from '../motor/proveedores.js';
 import PreciosProveedores from './PreciosProveedores.jsx';
@@ -77,7 +77,7 @@ function Revestimiento({ tipo, unidad, usos, unicoQueda, proveedores, precio, nu
   return (
     <FichaPlegable clave={`revestimiento:${tipo.id}`} className="rubro" abiertaAlInicio={nuevo}
       encabezado={<><span className="muestra-chica" style={{ background: tipo.color }} aria-hidden="true" /><strong>{tipo.nombre}</strong>
-        <small>{tipo.venta === 'estandar' ? 'placa fija' : 'a medida'} · {tipo.espesor} mm · {usos.length > 0 ? `en ${usos.length} lugar${usos.length === 1 ? '' : 'es'}` : 'sin uso'}</small>
+        <small>{tipo.venta === 'estandar' ? 'placa fija' : tipo.cobro === 'tira' ? 'tira entera' : 'a medida'} · {tipo.espesor} mm · {usos.length > 0 ? `en ${usos.length} lugar${usos.length === 1 ? '' : 'es'}` : 'sin uso'}</small>
         <PrecioCorto precio={precio} /></>}>
       <div className="abertura-titulo">
         {/* Dos colores: la cara de afuera y la de adentro (se ven distintas en el 3D). */}
@@ -115,6 +115,10 @@ function Revestimiento({ tipo, unidad, usos, unicoQueda, proveedores, precio, nu
             onCambio={(mm) => cambiarAnchos(total, mm / 1000)} />
           <p className="nota ancho-util" role="status">Cubre <strong>{tipo.anchoUtil.toFixed(3).replace('.', ',')} m</strong> por tira (ancho útil = total − encastre).</p>
           {medida('largoMaximo', 'Largo máximo de una tira')}
+          {/* v1.81: ALPANEL cobra la tira entera (de largo fijo): los pedazos se acomodan en tiras enteras. */}
+          <CampoSelect etiqueta="Se cobra" valor={tipo.cobro ?? 'm2'} onCambio={cambiar('cobro')}
+            opciones={[['m2', 'Por m² (cortada a medida)'], ['tira', 'Por tira entera (de largo fijo)']]} />
+          {tipo.cobro === 'tira' && medida('largoTira', 'Largo de la tira entera (0 = el máximo)')}
           <CampoOpcional casilla="Tiras en tramos encimados (solo si la pared pasa el largo máximo; si no, a tope)" etiqueta="Encimado entre tramos"
             unidad={unidad} valor={tipo.solape} valorPorDefecto={0.15}
             onCambio={conLimites({ ...LIMITES_REVESTIMIENTO.solape, max: Math.min(LIMITES_REVESTIMIENTO.solape.max, tipo.largoMaximo - 0.01) }, cambiar('solape'))} />
@@ -155,7 +159,7 @@ function Revestimiento({ tipo, unidad, usos, unicoQueda, proveedores, precio, nu
         </p>
       )}
       {/* v1.25: precio en cada proveedor. A medida se cobra por m²; placa fija, por placa. */}
-      <PreciosProveedores material={tipo} proveedores={proveedores} unidad={tipo.venta === 'estandar' ? 'placa' : 'm²'}
+      <PreciosProveedores material={tipo} proveedores={proveedores} unidad={unidadDePrecio(tipo)}
         onCambiar={(idProveedor, campo, valor) => onCambiarPrecio(tipo.id, idProveedor, campo, valor)} />
       {/* v1.27: Eliminar en el pie (antes un ✕ al lado del nombre, que parecía "cerrar"). */}
       <small className="detalle">{usos.length > 0 ? `Usado en: ${usos.join(', ')}` : 'Sin uso'}</small>
@@ -291,7 +295,7 @@ export default function TarjetaMateriales({
     ...visibles.map((p) => ({ ...p, nombre: nombrePerfil(p), unidadPrecio: 'barra' })),
     ...otros.map((item) => ({ ...delCatalogo(item), nombre: item.nombre, unidadPrecio: item.unidad })),
     ...accesorios.map((a) => ({ ...a, unidadPrecio: a.unidad || 'u' })),
-    ...(revestimientos ?? []).map((t) => ({ ...t, unidadPrecio: t.venta === 'estandar' ? 'placa' : 'm²' })),
+    ...(revestimientos ?? []).map((t) => ({ ...t, unidadPrecio: unidadDePrecio(t) })),
   ];
   const sinPrecio = materialesDeLaObra.filter((m) => precioDe(m).texto === 'sin precio').length;
 

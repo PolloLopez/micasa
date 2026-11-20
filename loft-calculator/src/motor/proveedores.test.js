@@ -1,6 +1,6 @@
 // Tests de proveedores y precios por proveedor (v1.25). Correr con: npm test
 import { describe, it, expect } from 'vitest';
-import { precioEn, aplicarProveedor, conProveedores, faltanPrecios, MAS_BARATO, PROVEEDOR_INICIAL, precioBarraPorKg, conPrecioCambiado } from './proveedores.js';
+import { precioEn, aplicarProveedor, conProveedores, faltanPrecios, MAS_BARATO, PROVEEDOR_INICIAL, precioBarraPorKg, conPrecioCambiado, leerPrecio } from './proveedores.js';
 import { kgPorMetro } from './perfiles.js';
 import { normalizarCatalogo } from './migracion.js';
 import { calcularPresupuesto, CATALOGO_INICIAL } from './presupuesto.js';
@@ -120,5 +120,34 @@ describe('v1.77: precio por kilo', () => {
     expect(cat.find((i) => i.id === 'perfil-9').precios.p1.porKg).toBe(2100);
     const malo = conProveedores([{ ...cano, precios: { p1: { efectivo: 5, porKg: -3 } } }], [{ id: 'p1', categoria: 'proveedor', nombre: 'Rionda' }]);
     expect(malo.find((i) => i.id === 'perfil-9').precios.p1.porKg).toBeUndefined();
+  });
+});
+
+describe('v1.81: proveedor en dólares (ALPANEL)', () => {
+  const alpanel = { id: 'prov-2', categoria: 'proveedor', nombre: 'ALPANEL', recargoTarjeta: 10, moneda: 'USD', dolar: 1450 };
+  const panel = { id: 'panelMuros', categoria: 'panel', precios: { 'prov-2': { efectivo: 245.5, tarjeta: null } } };
+
+  it('sus precios se cargan en US$ y se pasan a pesos con su dólar (y la tarjeta, con el recargo)', () => {
+    expect(precioEn(panel, alpanel, 'efectivo')).toBe(355975); // 245,50 x 1450
+    expect(precioEn(panel, alpanel, 'tarjeta')).toBe(Math.round(355975 * 1.1));
+    expect(precioEn(panel, { ...alpanel, moneda: 'ARS' }, 'efectivo')).toBe(245.5); // en pesos, tal cual
+    expect(precioEn(panel, { ...alpanel, dolar: 0 }, 'efectivo')).toBe(0); // sin dólar cargado: 0 (la ficha avisa)
+  });
+
+  it('se guarda la moneda y el dólar; los de antes quedan en pesos', () => {
+    const c = normalizarCatalogo([{ ...alpanel }, { id: 'prov-3', categoria: 'proveedor', nombre: 'Rionda' }]);
+    expect(c.find((i) => i.id === 'prov-2')).toMatchObject({ moneda: 'USD', dolar: 1450 });
+    expect(c.find((i) => i.id === 'prov-3')).toMatchObject({ moneda: 'ARS', dolar: 0 });
+    expect(normalizarCatalogo([{ ...alpanel, dolar: -3 }]).find((i) => i.id === 'prov-2').dolar).toBe(0);
+  });
+
+  it('un precio escrito a mano: con miles o con centavos', () => {
+    expect(leerPrecio('38.000')).toBe(38000);
+    expect(leerPrecio('38000')).toBe(38000);
+    expect(leerPrecio('245,50')).toBe(245.5);
+    expect(leerPrecio('245.5')).toBe(245.5);
+    expect(leerPrecio('US$ 1.234,56')).toBe(1234.56);
+    expect(leerPrecio('-4')).toBeNull();
+    expect(leerPrecio('abc')).toBeNull();
   });
 });
