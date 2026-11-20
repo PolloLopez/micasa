@@ -227,7 +227,9 @@ que los materiales y la pestaña "Presupuesto" muestra ese precio.
 - **Comparar presupuestos en una parte** (ej. el Tapial): **+ Material para Tapial** (Ladrillo hueco 8, 300 u) y en su
   ficha el precio de cada corralón: entra al presupuesto y a la lista de compras, comprando donde conviene. **+
   Presupuesto de mano de obra**: quién y cuánto te cobra en total (uno por albañil); el más barato sale marcado.
-  **Elegir** pasa ese monto a la mano de obra del Presupuesto y crea el trabajo en el seguimiento con su nombre. En **Mano de obra** ves el trabajo de esa parte (quién, % hecho,
+  **Elegir** pasa ese monto a la mano de obra del Presupuesto y crea el trabajo en el seguimiento con su nombre.
+  **📋 Copiar pedido para cotizar** copia la lista de esa parte (sin precios) para pegarla en WhatsApp y pedirle precio
+  a cada corralón. En **Mano de obra** ves el trabajo de esa parte (quién, % hecho,
   pagado); con la parte terminada, **Marcar el trabajo terminado** lo pone al 100 %. El trabajo se une desde la parte
   ("Unir un trabajo") o desde el seguimiento ("Parte de la obra").
 - **Compras hechas**: **+ Compra** (fecha y proveedor) y en cada renglón el material de la lista (ej. Cemento · 12

@@ -14,7 +14,8 @@
 import Tarjeta from './Tarjeta.jsx';
 import FichaPlegable from './FichaPlegable.jsx';
 import CampoNumero from './CampoNumero.jsx';
-import { extraNuevo, trabajosDeLaParte } from '../motor/partesObra.js';
+import { extraNuevo, trabajosDeLaParte, textoParaCotizar } from '../motor/partesObra.js';
+import BotonCopiar from './BotonCopiar.jsx';
 import { cotizacionNueva, cotizacionesDeLaParte, elegirCotizacion, nombreDeCotizacion } from '../motor/manoDeObraPartes.js';
 import { completarCierre } from '../motor/cierre.js';
 import PreciosProveedores from './PreciosProveedores.jsx';
@@ -153,7 +154,7 @@ function MaterialesDeLaParte({ parte, materiales, proveedores, onActualizar, onA
  * @param partesPresupuesto lo presupuestado de cada rubro (partesDelPresupuesto), para las cuentas de la mano de obra
  */
 export default function PanelPartesObra({ params, partes, cambiar, cambiarVarios, partesPresupuesto = [],
-  materiales = [], proveedores = [], onActualizarMaterial, onAgregarMaterial, onQuitarMaterial, onCambiarPrecio }) {
+  materiales = [], proveedores = [], onActualizarMaterial, onAgregarMaterial, onQuitarMaterial, onCambiarPrecio, nombreProyecto = '' }) {
   const seguimiento = params.seguimiento ?? {};
   const terminadas = seguimiento.terminadas ?? [];
   const extras = seguimiento.extras ?? [];
@@ -193,6 +194,13 @@ export default function PanelPartesObra({ params, partes, cambiar, cambiarVarios
             {onAgregarMaterial && (
               <MaterialesDeLaParte parte={p} materiales={materiales} proveedores={proveedores} onActualizar={onActualizarMaterial}
                 onAgregar={onAgregarMaterial} onQuitar={onQuitarMaterial} onCambiarPrecio={onCambiarPrecio} />
+            )}
+            {/* v1.79.1: la lista de esta parte en texto (sin precios), para pedirle precio a cada corralón por WhatsApp. */}
+            {(p.renglones.length > 0 || p.obraCivil || p.extras.length > 0) && (
+              <div className="pie-acciones no-print">
+                <BotonCopiar etiqueta="📋 Copiar pedido para cotizar" ayuda="Copia lo que lleva esta parte (sin precios) para mandárselo a cada corralón"
+                  texto={() => textoParaCotizar(p, params.obraCivil, nombreProyecto)} />
+              </div>
             )}
             {cambiarVarios && <PresupuestosManoDeObra parte={p} params={params} cambiar={cambiar} cambiarVarios={cambiarVarios} />}
             <TrabajosDeLaParte parte={p} seguimiento={seguimiento} partesPresupuesto={partesPresupuesto} cambiar={cambiar} />

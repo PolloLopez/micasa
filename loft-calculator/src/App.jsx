@@ -1770,7 +1770,7 @@ export default function App() {
             <PanelSub grupo="obra" activa={subObra} clave="compras"><PanelCompras params={params} materiales={listaConPrecioReal} proveedores={proveedores} totalMateriales={totalObra} terminado={terminado} cambiar={cambiar} /></PanelSub>
             <PanelSub grupo="obra" activa={subObra} clave="partes"><PanelPartesObra params={params} partes={partesObra} partesPresupuesto={partesSeguimiento} cambiar={cambiar} cambiarVarios={cambiarVarios}
               materiales={catalogo.filter((i) => i.categoria === 'accesorio')} proveedores={proveedores} onCambiarPrecio={cambiarPrecio}
-              onActualizarMaterial={actualizarInsumo} onAgregarMaterial={agregarMaterialAParte} onQuitarMaterial={quitarAccesorio} /></PanelSub>
+              onActualizarMaterial={actualizarInsumo} onAgregarMaterial={agregarMaterialAParte} onQuitarMaterial={quitarAccesorio} nombreProyecto={nombreProyecto} /></PanelSub>
             <PanelSub grupo="obra" activa={subObra} clave="seguimiento"><PanelSeguimiento params={params} partes={partesSeguimiento} precioObra={cierre.total} cambiar={cambiar} partesObra={partesObra} /></PanelSub>
             <PanelSub grupo="obra" activa={subObra} clave="finanzas"><PanelFinanzas params={params} cambiar={cambiar} cambiarVarios={cambiarVarios} /></PanelSub>
           </section>

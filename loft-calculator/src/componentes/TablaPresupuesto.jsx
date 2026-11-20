@@ -8,7 +8,6 @@
 
 import { RETAZO_UTIL } from '../motor/optimizadorCortes.js';
 import { letraDePieza } from '../motor/hojaDeCorte.js';
-import { useState } from 'react';
 import CampoNumero from './CampoNumero.jsx';
 import CampoSelect from './CampoSelect.jsx';
 import { MAS_BARATO, faltanPrecios, usaPlanDeCompra, textoPedido, cantidadPedida, kilosDeMateriales, textoDeMateriales } from '../motor/proveedores.js';
@@ -20,6 +19,7 @@ import CierrePresupuesto from './CierrePresupuesto.jsx';
 import { BotonResaltar } from './Resaltar.jsx';
 import { useResaltar, criterioDeRenglon as criterioDe } from './contextoResaltado.js';
 import NotaPlegable from './NotaPlegable.jsx';
+import BotonCopiar from './BotonCopiar.jsx';
 
 const pesos = (n) => n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
 
@@ -300,20 +300,6 @@ const SUBPESTANAS = [
   { clave: 'precios', nombre: 'Precios y detalle', ayuda: 'Comparar proveedores y editar precios' },
 ];
 
-/** Botón genérico para copiar un texto, con "✓ Copiado" un rato. */
-function BotonCopiar({ texto, etiqueta, ayuda }) {
-  const [copiado, setCopiado] = useState(false);
-  const copiar = async () => {
-    try {
-      await navigator.clipboard.writeText(texto());
-      setCopiado(true);
-      setTimeout(() => setCopiado(false), 2000);
-    } catch {
-      setCopiado(false); // sin permiso para copiar: no pasa nada
-    }
-  };
-  return <button type="button" className="btn-sec btn-pedido" onClick={copiar} title={ayuda}>{copiado ? '✓ Copiado' : etiqueta}</button>;
-}
 
 /** Barra de sub-pestañas accesible: flechas izquierda/derecha para moverse (como las pestañas de arriba). */
 function BarraSubpestanas({ activa, onElegir }) {

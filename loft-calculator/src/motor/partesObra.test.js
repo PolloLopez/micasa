@@ -1,6 +1,6 @@
 // Tests de las partes de la obra: terminadas y extras (v1.70). Correr con: npm test
 import { describe, it, expect } from 'vitest';
-import { partesDeLaObra, descuentoPorTerminadas, itemsDeExtras, extraNuevo, errorDeExtra, trabajosDeLaParte, trabajosSinTerminar } from './partesObra.js';
+import { partesDeLaObra, descuentoPorTerminadas, itemsDeExtras, extraNuevo, errorDeExtra, trabajosDeLaParte, trabajosSinTerminar, textoParaCotizar } from './partesObra.js';
 import { rubroNuevo, validarSeguimiento } from './seguimiento.js';
 import { generarEstructura } from './estructura.js';
 import { calcularPresupuesto, CATALOGO_INICIAL } from './presupuesto.js';
@@ -63,5 +63,26 @@ describe('mano de obra unida a cada parte (v1.74)', () => {
   it('se valida el campo', () => {
     expect(validarSeguimiento({ rubros: [jose, pintor] })).toEqual({});
     expect(Object.keys(validarSeguimiento({ rubros: [{ ...jose, parteObra: 'x'.repeat(61) }] }))).toEqual(['seguimiento.rubros.0']);
+  });
+});
+
+describe('pedido para cotizar (v1.79.1)', () => {
+  it('junta los materiales de la parte, su obra civil y los extras, sin precios', () => {
+    const parte = {
+      nombre: 'Tapial',
+      renglones: [{ id: 'acc-1', nombre: 'Ladrillo hueco 8', cantidad: 300, unidad: 'u', subtotal: 195000 }, { id: 'x', nombre: 'Nada', cantidad: 0, unidad: 'u' }, { id: 'excavacion', nombre: 'Excavación de zapatas', cantidad: 1.5, unidad: 'm³' }],
+      obraCivil: { hormigon: 1, mortero: 0.5, hierro8: 24, hierro6: 0, hierro42: 0, ladrilloHueco: 0, ladrilloComun: 0, excavacion: 1 },
+      extras: [{ nombre: 'Tanza', cantidad: 1, unidad: 'rollo', precio: 5000 }],
+    };
+    const texto = textoParaCotizar(parte, undefined, 'Loft');
+    expect(texto.split('\n')[0]).toBe('Hola, ¿me pasás precio de estos materiales? Son para: Tapial (Loft)');
+    expect(texto).toContain('• 300 u — Ladrillo hueco 8');
+    expect(texto).toMatch(/• \d+ bolsas de \d+ kg — Cemento/);
+    expect(texto).toMatch(/— Hierro ø8 \(varillas de 12 m\)/);
+    expect(texto).toContain('• 1 rollo — Tanza');
+    expect(texto).not.toContain('Nada');
+    expect(texto).not.toContain('Excavación'); // es trabajo, no material
+    expect(texto).not.toContain('$');
+    expect(texto).not.toContain('ø6'); // lo que no lleva no se pide
   });
 });

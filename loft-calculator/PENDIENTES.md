@@ -1,6 +1,6 @@
 # PENDIENTES — loft-calculator
 
-Última limpieza: **2026-11-19 (v1.78.0)**; actualizado 2026-11-20 (v1.79.0). Acá queda solo lo abierto, por tema y prioridad (🔴 importante ·
+Última limpieza: **2026-11-19 (v1.78.0)**; actualizado 2026-11-20 (v1.79.1). Acá queda solo lo abierto, por tema y prioridad (🔴 importante ·
 🟡 conviene · 🟢 detalle). Lo resuelto y el detalle de cada pedido viejo: `HISTORIAL-PENDIENTES.md`; lo hecho en cada
 versión: `CHANGELOG.md`. Espejo en Trello: tablero "Desarrollo", tarjetas `[CALC]`.
 
@@ -8,9 +8,8 @@ versión: `CHANGELOG.md`. Espejo en Trello: tablero "Desarrollo", tarjetas `[CAL
 Manual: `MANUAL.md` y el doc "Pollo Calculator — Manual de usuario" (Claude Docs).
 
 ## 📌 Lo que sigue (orden sugerido)
-1. 🟢 **"Copiar pedido para cotizar"** por corralón: el texto con los materiales de una parte para mandarle por WhatsApp.
-2. 🟡 **Lint de dependencias de los `useMemo`** (react-hooks en `.oxlintrc.json`): así se coló el error de la comparación.
-3. 🟡 **Partir `App.jsx`** (1.800 líneas) en pocos hooks por tema (`useObra`, `useCompras`…), con su test.
+1. 🟡 **Lint de dependencias de los `useMemo`** (react-hooks en `.oxlintrc.json`): así se coló el error de la comparación.
+2. 🟡 **Partir `App.jsx`** (1.800 líneas) en pocos hooks por tema (`useObra`, `useCompras`…), con su test.
 
 ## 🙋 De tu lado (Leandro)
 - 🔴 [ ] Borrar `C:\Users\LLopez\loft-calculator\.git-token.txt` y revocar el token `claude-micasa` en GitHub

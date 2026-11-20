@@ -17,6 +17,7 @@
 // ==========================================================
 
 import { materialesDeObraCivil, completarObraCivil } from './obraCivil.js';
+import { INSUMO } from './constantes.js';
 
 /** Las partes fijas y los renglones del presupuesto de cada una (por id; los "por pared" van por su base). */
 export const PARTES_FIJAS = [
@@ -139,4 +140,48 @@ export function errorDeExtra(x) {
   if (!(Number.isFinite(x.cantidad) && x.cantidad >= 0 && x.cantidad <= 1e6)) return 'Cantidad inválida';
   if (!(Number.isFinite(x.precio) && x.precio >= 0 && x.precio <= 1e12)) return 'Precio inválido';
   return null;
+}
+
+// ---------- v1.79.1: pedido para cotizar ----------
+
+const numero = (n) => n.toLocaleString('es-AR', { maximumFractionDigits: 2 });
+// La excavación es trabajo (no se le compra al corralón): no va en el pedido.
+const NO_SE_COMPRAN = new Set([INSUMO.EXCAVACION, INSUMO.EXCAVACION_OBRA]);
+
+/**
+ * Lo que se compra de la obra civil de una parte (cemento en bolsas, arena, piedra, varillas, ladrillos), como
+ * renglones { nombre, cantidad, unidad }. Usa las mismas cuentas que la tarjeta de Obra civil.
+ */
+function renglonesDeObraCivil(oc, obraCivilParams) {
+  if (!oc) return [];
+  const dosis = completarObraCivil(obraCivilParams);
+  const m = materialesDeObraCivil(oc, dosis);
+  const varilla = (diametro) => `Hierro ø${diametro} (varillas de ${dosis.largoVarilla} m)`;
+  return [
+    ['Cemento', m.bolsas, `bolsas de ${dosis.bolsaKg} kg`],
+    ['Arena', m.arena, 'm³'],
+    ['Piedra', m.piedra, 'm³'],
+    [varilla(8), m.varillas8, 'u'],
+    [varilla(6), m.varillas6, 'u'],
+    [varilla('4,2'), m.varillas42, 'u'],
+    ['Ladrillo hueco', m.ladrilloHueco, 'u'],
+    ['Ladrillo común', m.ladrilloComun, 'u'],
+  ].filter(([, cantidad]) => cantidad > 0).map(([nombre, cantidad, unidad]) => ({ nombre, cantidad, unidad }));
+}
+
+/**
+ * Texto para pedirle precio a un corralón por WhatsApp (sin precios: el mismo para todos, así se comparan iguales).
+ * Junta lo que lleva la parte (sus renglones, incluidos los materiales agregados), su obra civil y los extras de antes.
+ * @param parte un elemento de partesDeLaObra(…)
+ * @param obraCivilParams params.obraCivil (la dosificación y el largo de las varillas)
+ */
+export function textoParaCotizar(parte, obraCivilParams = undefined, nombreProyecto = '') {
+  const renglones = [
+    ...parte.renglones.filter((r) => r.cantidad > 0 && !NO_SE_COMPRAN.has(r.id)),
+    ...renglonesDeObraCivil(parte.obraCivil, obraCivilParams),
+    ...(parte.extras ?? []).filter((x) => x.cantidad > 0 && x.nombre.trim()),
+  ];
+  const titulo = `Hola, ¿me pasás precio de estos materiales? Son para: ${parte.nombre}${nombreProyecto ? ` (${nombreProyecto})` : ''}`;
+  const lineas = renglones.map((r) => `• ${numero(r.cantidad)} ${r.unidad ?? ''} — ${r.nombre}`.replace(/ {2,}/g, ' '));
+  return [titulo, '', ...lineas, '', '¿Hacen envío? ¿Cuánto sale? Gracias.'].join('\n');
 }

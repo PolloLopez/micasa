@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.79.1] - 2026-11-20
+### Agregado
+- **"📋 Copiar pedido para cotizar"** en cada parte de la obra (Obra → Partes de la obra): copia lo que lleva esa parte
+  en texto, sin precios, para mandárselo por WhatsApp a cada corralón y comparar con la misma lista. Junta sus
+  materiales (incluidos los agregados), lo de obra civil ya pasado a lo que se compra (bolsas de cemento, m³ de arena
+  y piedra, varillas, ladrillos) y los extras de antes. La excavación no va (es trabajo). `textoParaCotizar` en
+  motor/partesObra.js, con su test.
+### Cambiado
+- `BotonCopiar` pasó a su propio archivo (componentes/BotonCopiar.jsx) para usarlo en el Presupuesto y en Obra.
+
 ## [1.79.0] - 2026-11-20
 ### Agregado
 - **Comparar presupuestos por parte de la obra** (Obra → Partes de la obra, en cada parte):
