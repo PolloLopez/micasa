@@ -1068,5 +1068,20 @@ option { background: var(--tarjeta); color: var(--texto); }
 .cortes-tiras { margin: 12px 0; }
 .cortes-tiras h4 { margin: 6px 0; font-size: 0.9rem; }
 .tiras-pared { margin: 6px 0 10px; font-size: 0.82rem; }
-.lista-tiras { margin: 4px 0 0 1.2rem; padding: 0; }
+.lista-tiras { margin: 4px 0 0; padding: 0; list-style: none; }
 .lista-tiras li { margin: 2px 0; }
+.comparativa-tiras { margin: 8px 0; }
+.celda-actual { outline: 2px solid var(--acento); outline-offset: -2px; border-radius: 4px; }
+/* v1.82: cuál queda arriba de cuál (en el plano de la pared). */
+.dibujo-plano .franja-encimado { fill: #f97316; opacity: 0.35; }
+.dibujo-plano .texto-encimado { fill: #c2410c; }
+.dibujo-plano .franja-superpone-pared { fill: #16a34a; opacity: 0.3; }
+.leyenda-encimado { position: absolute; left: 12px; top: 96px; z-index: 2; background: rgba(15, 23, 42, 0.85); color: #e2e8f0;
+  font-size: 0.72rem; padding: 6px 8px; border-radius: 6px; max-width: 300px; line-height: 1.4; pointer-events: none; }
+.leyenda-encimado .naranja { color: #fb923c; } .leyenda-encimado .verde { color: #4ade80; }
+.lista-tiras li { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; padding: 4px 0; border-bottom: 1px solid var(--borde, #334155); }
+.numero-tira-corte { font-weight: 600; min-width: 3.4rem; }
+.pedazo-tira { display: inline-flex; align-items: center; gap: 4px; background: var(--tarjeta, #1e293b); border: 1px solid var(--borde, #334155);
+  border-radius: 6px; padding: 2px 4px 2px 8px; }
+.pedazo-tira.manual { border-color: var(--acento); }
+.pedazo-tira select { font-size: 0.72rem; padding: 2px 4px; max-width: 11rem; }

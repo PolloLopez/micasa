@@ -3,7 +3,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   cortarEnTramos, tirasDePano, placasDePano, cuentaRevestimiento, resumirLargos, REVESTIMIENTO_POR_DEFECTO, juntasDePano, pedazosDeTira, pedazosDePared,
-  tirasEnteras, unidadDePrecio,
+  tirasEnteras, unidadDePrecio, comparativaDeTiras, encimadosDePano, pedazosConLugar,
 } from './revestimientos.js';
 import { generarEstructura } from './estructura.js';
 import { calcularPresupuesto, CATALOGO_INICIAL } from './presupuesto.js';
@@ -201,7 +201,7 @@ describe('v1.81: cobrado por tira entera de largo fijo (ALPANEL)', () => {
     // Pared A: 4 x 5 m en tiras de 11,90: 2 por tira = 2 tiras. Pared B: 2 x 2,60 = 1 tira.
     expect(c.cantidad).toBe(3);
     expect(c.tirasPorPared.map((g) => [g.donde, g.tiras.length])).toEqual([['pared A', 2], ['pared B', 1]]);
-    expect(c.tirasPorPared[0].tiras[0]).toMatchObject({ piezas: [5, 5] });
+    expect(c.tirasPorPared[0].tiras[0].piezas.map((x) => x.largo)).toEqual([5, 5]);
     expect(c.tirasPorPared[0].tiras[0].sobra).toBeCloseTo(1.9, 1); // 11,90 - 10 (menos lo que se lleva el corte)
     expect(c.detalle).toMatch(/^3 tiras enteras de 11\.90 m/);
     expect(unidadDePrecio(tipo)).toBe('tira');
@@ -225,5 +225,61 @@ describe('v1.81: cobrado por tira entera de largo fijo (ALPANEL)', () => {
     const m2 = cuentaRevestimiento({ ...tipo, cobro: undefined }, panos);
     expect(m2.unidad).toBe('m²');
     expect(normalizarCatalogo([{ id: 'p', categoria: 'panel', nombre: 'P', venta: 'medida' }]).find((i) => i.id === 'p')).toMatchObject({ cobro: 'm2', largoTira: 0 });
+  });
+});
+
+describe('v1.81.1: comparar tiras con y sin recortes, con y sin aberturas', () => {
+  it('una tira por pedazo cuesta más que usando los recortes; entre paredes, lo menos', () => {
+    const tipo = { ...REVESTIMIENTO_POR_DEFECTO, anchoUtil: 0.95, largoMaximo: 11.9, cobro: 'tira', largoTira: 7.62, aprovecharRetazos: true };
+    const panos = [
+      { donde: 'pared A', largo: 3.8, h1: 5, h2: 5, neto: 19, huecos: [] },
+      { donde: 'pared B', largo: 1.9, h1: 2.6, h2: 2.6, neto: 4.94, huecos: [{ desde: 0.1, hasta: 1.8, abajo: 0.9, arriba: 2.1 }] },
+    ];
+    const c = comparativaDeTiras(tipo, panos);
+    expect(c.todoEntero).toEqual({ sinRecortes: 6, mismaPared: 5, entreParedes: 4 });
+    expect(c.conAberturas.sinRecortes).toBeGreaterThanOrEqual(c.conAberturas.mismaPared);
+    expect(c.conAberturas.mismaPared).toBeGreaterThanOrEqual(c.conAberturas.entreParedes);
+  });
+});
+
+describe('v1.82: mover los recortes (de qué tira sale cada pedazo) y cuál queda arriba de cuál', () => {
+  const tipo = { ...REVESTIMIENTO_POR_DEFECTO, anchoUtil: 0.95, anchoTotal: 1, largoMaximo: 11.9, cobro: 'tira', largoTira: 11.9, aprovecharRetazos: false, descontarAberturas: false };
+  const panos = [
+    { donde: 'pared A', largo: 3.8, h1: 5, h2: 5, neto: 19, huecos: [] },
+    { donde: 'pared B', largo: 1.9, h1: 2.6, h2: 2.6, neto: 4.94, huecos: [] },
+  ];
+
+  it('cada pedazo tiene su lugar (los mismos que tirasDePano)', () => {
+    const conHueco = { ...panos[0], huecos: [{ desde: 1, hasta: 2.8, abajo: 1, arriba: 2.2 }] };
+    expect(pedazosConLugar(conHueco, tipo).map((p) => p.largo)).toEqual(tirasDePano(conHueco, tipo));
+    expect(pedazosConLugar(panos[0], tipo)[1]).toMatchObject({ x0: 0.95, y0: 0, largo: 5 });
+  });
+
+  it('un pedazo elegido a mano sale de la tira elegida (aunque sea de otra pared); los demás se acomodan solos', () => {
+    const auto = cuentaRevestimiento(tipo, panos);
+    expect(auto.tirasPorPared.map((g) => g.tiras.length)).toEqual([2, 1]);
+    // Los dos pedazos de 2,60 de la pared B, a la tira 2 de la pared A: entran los dos (y un 5 m de A al lado).
+    const manual = cuentaRevestimiento({ ...tipo, tirasManuales: { 'pared B|0': { pared: 'pared A', n: 2 }, 'pared B|1': { pared: 'pared A', n: 2 } } }, panos);
+    const tira2 = manual.tirasPorPared[0].tiras.find((t) => t.n === 2);
+    expect(tira2.piezas.filter((x) => x.manual).map((x) => x.id)).toEqual(['pared B|0', 'pared B|1']);
+    expect(tira2.piezas.map((x) => x.largo)).toEqual([5, 2.6, 2.6]);
+    expect(manual.tirasPorPared.map((g) => g.donde)).toEqual(['pared A']); // la pared B ya no lleva tira propia
+    expect(manual.cantidad).toBe(3);
+    // Tres de 5 m en la misma tira de 11,90: el tercero no entra (aviso) y va a otra.
+    const lleno = cuentaRevestimiento({ ...tipo, tirasManuales: { 'pared A|0': { pared: 'pared A', n: 1 }, 'pared A|1': { pared: 'pared A', n: 1 }, 'pared A|2': { pared: 'pared A', n: 1 } } }, panos);
+    expect(lleno.avisosTiras[0]).toMatch(/no entra en la tira 1 de pared A/);
+    // Pedir una tira nueva (la 5) para un pedazo: se respeta el número.
+    const nueva = cuentaRevestimiento({ ...tipo, tirasManuales: { 'pared A|0': { pared: 'pared A', n: 5 } } }, panos);
+    expect(nueva.tirasPorPared[0].tiras.map((t) => t.n)).toContain(5);
+    expect(nueva.lugares['pared A|0']).toMatchObject({ x0: 0, y0: 0 });
+  });
+
+  it('el empalme vertical: el tramo de arriba monta por fuera; el encastre, del lado que superpone', () => {
+    const alta = { donde: 'pared', largo: 1.9, h1: 5, h2: 5, neto: 9.5, huecos: [] };
+    const e = encimadosDePano(alta, { ...tipo, largoTira: 3, solape: 0.15 });
+    expect(e.verticales).toEqual([{ abajo: 2.85, arriba: 3 }]);
+    expect(e.laterales).toEqual([{ desde: 0.95, hasta: 1 }]); // ancho total 1 − útil 0,95 = 5 cm, a la derecha de la junta
+    expect(encimadosDePano(alta, { ...tipo, ladoSolape: 'derecha' }).laterales[0]).toMatchObject({ hasta: 0.95 });
+    expect(encimadosDePano(alta, { ...tipo, anchoTotal: 0 }).laterales).toEqual([]); // sin ancho total no se sabe
   });
 });

@@ -21,7 +21,7 @@ import { geometriaLados, nombreDePared } from './geometria.js';
 import { listarPiezas, NOMBRE_TIPO_PIEZA } from './estructura.js';
 import { INSUMO_DE_TIPO } from './piezasAgregadas.js';
 import { nombrePerfil } from './perfiles.js';
-import { tirasDePano, placasDePano, resumirLargos, REVESTIMIENTO_POR_DEFECTO } from './revestimientos.js';
+import { tirasDePano, placasDePano, resumirLargos, REVESTIMIENTO_POR_DEFECTO, encimadosDePano, juntasDePano } from './revestimientos.js';
 import { ubicarMueble, tramosDeMesada, TIPOS_MUEBLE } from './interiores.js';
 import { ubicarTabique, inicioDePuerta, MEDIO_ESPESOR_TABIQUE } from './tabiques.js';
 
@@ -113,7 +113,10 @@ function panelesDePared(pared, catalogo, donde) {
   const c = cortesDeTiras(pano, t);
   // v1.67: el plano de cada pedazo a pedir (medidas, recortes, lado que superpone).
   const despiece = c.tiras.flatMap((tira) => pedazosDeLaTira(pano, t, tira).map((p) => ({ ...p, tira: tira.n })));
-  return { nombre: tipo.nombre, anchoUtil: t.anchoUtil, ...c, juntas: c.tiras.slice(1).map((x) => x.x0), pano, tipo: t, despiece };
+  // v1.82: dónde termina cada tramo (horizontales) y las franjas donde un panel monta sobre otro.
+  const { horizontales } = juntasDePano(pano, t);
+  return { nombre: tipo.nombre, anchoUtil: t.anchoUtil, ...c, juntas: c.tiras.slice(1).map((x) => x.x0), pano, tipo: t, despiece,
+    horizontales, encimados: encimadosDePano(pano, t) };
 }
 
 /**

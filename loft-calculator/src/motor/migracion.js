@@ -171,6 +171,14 @@ export function migrarParams(params) {
 }
 
 /** Datos de venta/ubicación de un tipo de revestimiento: los válidos se guardan, el resto de fábrica. */
+/** v1.82: { 'lado A|3': { pared: 'lado A', n: 2 } } (de qué tira sale cada pedazo); lo raro no se guarda. */
+function tirasManualesValidas(m) {
+  if (!m || typeof m !== 'object' || Array.isArray(m)) return {};
+  return Object.fromEntries(Object.entries(m).slice(0, 500)
+    .filter(([id, v]) => id.length <= 80 && v && typeof v.pared === 'string' && v.pared.length <= 60 && Number.isInteger(v.n) && v.n >= 1 && v.n <= 999)
+    .map(([id, v]) => [id, { pared: v.pared, n: v.n }]));
+}
+
 function datosDeRevestimiento(p) {
   const d = REVESTIMIENTO_POR_DEFECTO;
   const numero = (campo) => {
@@ -196,6 +204,7 @@ function datosDeRevestimiento(p) {
     anchoTotal: numero('anchoTotal'), // v1.68 (0 = no se sabe)
     cobro: COBROS.includes(p.cobro) ? p.cobro : d.cobro, // v1.81: por m² (los de antes) o por tira entera
     largoTira: numero('largoTira'), // v1.81
+    tirasManuales: tirasManualesValidas(p.tirasManuales), // v1.82: de qué tira sale cada pedazo (elegido a mano)
   };
 }
 

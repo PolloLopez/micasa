@@ -421,7 +421,7 @@ function calcularRenglones(estructura, catalogo, excedenteBarras, corte = {}) {
     }
     const cuenta = cuentaRevestimiento(tipo, uso);
     items.push({ ...itemSimple(tipo, cuenta.cantidad, cuenta.detalle), unidad: cuenta.unidad, piezasRevestimiento: cuenta.piezas,
-      ...(cuenta.tirasPorPared ? { tirasPorPared: cuenta.tirasPorPared, largoTira: cuenta.largoTira } : {}) }); // v1.81: cómo cortar cada tira entera
+      ...(cuenta.tirasPorPared ? { tirasPorPared: cuenta.tirasPorPared, largoTira: cuenta.largoTira, avisosTiras: cuenta.avisosTiras } : {}) }); // v1.81: cómo cortar cada tira entera
   });
 
   // v1.36: el pilotín dice su forma y medida ("Pilotín de hormigón ø 30 cm").

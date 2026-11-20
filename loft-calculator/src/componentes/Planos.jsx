@@ -129,6 +129,18 @@ function DibujoPared({ vista, soloContorno = false, codigos = null }) {
       {vista.paneles && (
         <g className="juntas-paneles">
           {vista.paneles.juntas.map((x) => <line key={`j${x}`} x1={x} y1={y(0)} x2={x} y2={y(Math.max(h1, h2))} className="junta-panel" />)}
+          {/* v1.82: cuál queda arriba de cuál. Naranja: el tramo de arriba monta por fuera del de abajo. Verde: el
+              costado de la tira que monta sobre la de al lado (el encastre). */}
+          {(vista.paneles.horizontales ?? []).map((h) => <line key={`h${h}`} x1={0} y1={y(h)} x2={vista.largo ?? 0} y2={y(h)} className="junta-panel" />)}
+          {(vista.paneles.encimados?.verticales ?? []).map((f) => (
+            <g key={`ev${f.arriba}`}>
+              <rect className="franja-encimado" x={0} y={y(f.arriba)} width={vista.largo ?? 0} height={f.arriba - f.abajo} />
+              <text x={0.05} y={y(f.arriba) - 0.03} fontSize={TEXTO * 0.6} className="texto-encimado">▲ el de arriba va por fuera ({Math.round((f.arriba - f.abajo) * 100)} cm)</text>
+            </g>
+          ))}
+          {(vista.paneles.encimados?.laterales ?? []).map((f) => (
+            <rect key={`el${f.desde}`} className="franja-superpone-pared" x={f.desde} y={y(Math.max(h1, h2))} width={f.hasta - f.desde} height={Math.max(h1, h2)} />
+          ))}
           {vista.paneles.tiras.map((t) => (
             <text key={`t${t.n}`} x={t.x0 + t.ancho / 2} y={y(Math.max(h1, h2)) - 0.08} fontSize={TEXTO * 0.7} textAnchor="middle" className="numero-tira">{t.n}</text>
           ))}

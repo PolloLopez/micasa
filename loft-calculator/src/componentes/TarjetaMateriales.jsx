@@ -53,6 +53,45 @@ function PrecioCorto({ precio }) {
 }
 
 /** Un tipo de revestimiento con todos sus datos. */
+/**
+ * v1.81.1: cuántas tiras enteras (y cuánta plata) según cómo se usan los recortes, descontando las aberturas o todo
+ * entero. La fila marcada es la que está calculando el presupuesto.
+ */
+function ComparativaDeTiras({ tipo, comparativa, precioUnitario }) {
+  const pesos = (n) => n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
+  const filas = [
+    ['sinRecortes', 'Una tira por pedazo (sin usar recortes)'],
+    ['mismaPared', 'Usando los recortes en la misma pared'],
+    ['entreParedes', 'Usando los recortes entre paredes'],
+  ];
+  const actual = [tipo.descontarAberturas === false ? 'todoEntero' : 'conAberturas', 'mismaPared'];
+  const celda = (columna, fila) => {
+    const n = comparativa[columna][fila];
+    const base = comparativa[actual[0]].mismaPared;
+    const dif = n - base;
+    return (
+      <td className={`num${columna === actual[0] && fila === actual[1] ? ' celda-actual' : ''}`} data-etiqueta={columna === 'conAberturas' ? 'Descontando aberturas' : 'Todo entero'}>
+        <strong>{n} tiras</strong>
+        {precioUnitario && <><br /><small>{pesos(n * precioUnitario.precio)}{dif !== 0 ? ` (${dif > 0 ? '+' : '−'}${pesos(Math.abs(dif) * precioUnitario.precio)})` : ''}</small></>}
+      </td>
+    );
+  };
+  return (
+    <details className="comparativa-tiras" open>
+      <summary>Comparar: con o sin recortes, con o sin aberturas</summary>
+      <table className="tabla-segmentos">
+        <thead><tr><th>Cómo se cortan</th><th className="num">Descontando aberturas</th><th className="num">Todo entero (cortás los huecos)</th></tr></thead>
+        <tbody>
+          {filas.map(([clave, nombre]) => (
+            <tr key={clave}><td>{nombre}</td>{celda('conAberturas', clave)}{celda('todoEntero', clave)}</tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="nota">Marcado: lo que calcula el Presupuesto ahora. {precioUnitario ? `A ${pesos(precioUnitario.precio)} la tira en ${precioUnitario.proveedor.nombre}; entre paréntesis, la diferencia.` : 'Cargá el precio por tira para ver la plata.'}</p>
+    </details>
+  );
+}
+
 function Revestimiento({ tipo, unidad, usos, unicoQueda, proveedores, precio, nuevo, onCambiar, onQuitar, onCambiarPrecio, ahorro = null, precioUnitario = null }) {
   const cambiar = (campo) => (valor) => onCambiar(tipo.id, campo, valor);
   const medida = (campo, etiqueta) => (
@@ -158,6 +197,7 @@ function Revestimiento({ tipo, unidad, usos, unicoQueda, proveedores, precio, nu
           </>) : 'Las aberturas no cambian lo que se pide (ninguna parte una tira entera).'}
         </p>
       )}
+      {ahorro?.comparativa && <ComparativaDeTiras tipo={tipo} comparativa={ahorro.comparativa} precioUnitario={precioUnitario} />}
       {/* v1.25: precio en cada proveedor. A medida se cobra por m²; placa fija, por placa. */}
       <PreciosProveedores material={tipo} proveedores={proveedores} unidad={unidadDePrecio(tipo)}
         onCambiar={(idProveedor, campo, valor) => onCambiarPrecio(tipo.id, idProveedor, campo, valor)} />

@@ -38,7 +38,8 @@ import { coloresPorPerfil, perfilDePieza } from './motor/coloresPerfil.js';
 import { INSUMO } from './motor/constantes.js';
 import EditorPieza from './componentes/EditorPieza.jsx';
 import { FilaAbertura } from './componentes/AberturasDePared.jsx';
-import { juntasDePano, pedazosDePared } from './motor/revestimientos.js';
+import { juntasDePano, pedazosDePared, encimadosDePano, cuentaRevestimiento } from './motor/revestimientos.js';
+import { panosPorRevestimiento } from './motor/presupuesto.js';
 import { tiraEnPunto, cortesDeTiras } from './motor/cortesPaneles.js';
 import { textoDeCodigo } from './motor/hojaDeCorte.js';
 import { medirEntre, puntoMasCercanoEnPieza } from './motor/medicion.js';
@@ -168,6 +169,9 @@ function crearMateriales(colores) {
   materiales.porPerfil = new Map();
   // Juntas de los paneles (v1.24: con opacidad regulable desde la leyenda).
   materiales.juntas = new THREE.LineBasicMaterial({ color: COLOR_JUNTAS, transparent: true, opacity: 1 });
+  // v1.82: las franjas donde un panel monta sobre otro (naranja: el tramo de arriba por fuera; verde: el encastre).
+  materiales.encimado = new THREE.MeshBasicMaterial({ color: '#f97316', transparent: true, opacity: 0.6, side: THREE.DoubleSide, depthWrite: false });
+  materiales.encastre = new THREE.MeshBasicMaterial({ color: '#16a34a', transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false });
   // Pieza seleccionada: amarillo que brilla.
   materiales.seleccion = new THREE.MeshStandardMaterial({ color: COLOR_SELECCION, emissive: COLOR_SELECCION, emissiveIntensity: 0.6 });
   // Piezas resaltadas (v1.27): rosa que brilla y se ve A TRAVÉS de todo (depthTest apagado),
@@ -784,6 +788,18 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
 
   // Juntas de los paneles (v1.16): dónde termina cada tira o placa, para acomodar las aberturas.
   if (capas.paneles && capas.juntas) {
+    // v1.82: de qué tira entera sale cada pedazo (una cuenta por tipo de panel, la misma que el presupuesto).
+    const panosDe = capas.numerosTiras ? panosPorRevestimiento(e) : {};
+    const cacheTiras = new Map();
+    const tirasDelPanel = (tipo) => {
+      if (!cacheTiras.has(tipo.id)) {
+        const c = cuentaRevestimiento(tipo, panosDe[tipo.id] ?? []);
+        const tiraDe = new Map();
+        (c.tirasPorPared ?? []).forEach((g) => g.tiras.forEach((t) => t.piezas.forEach((x) => x.id && tiraDe.set(x.id, { n: t.n, manual: x.manual }))));
+        cacheTiras.set(tipo.id, c.tirasPorPared ? { lugares: c.lugares ?? {}, tiraDe } : null);
+      }
+      return cacheTiras.get(tipo.id);
+    };
     const paresDe = {}; // v1.45: las juntas de cada pared aparte (para ocultarlas con su pared)
     e.paredes.filter((pared) => grupoVisible(pared.lado)).forEach((pared) => {
       const pares = (paresDe[pared.lado] = []);
@@ -798,6 +814,7 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
       const punto = (x, h) => [a[0] + dir[0] * x + ((a[0] + b[0]) / n) * fuera, y0 + h, a[2] + dir[1] * x + ((a[2] + b[2]) / n) * fuera];
       const altoEn = (x) => h1 + ((h2 - h1) * x) / pared.largo;
       const huecos = pared.huecos ?? [];
+      const afuera0 = (pt, mas) => [pt[0] + ((a[0] + b[0]) / n) * mas, pt[1], pt[2] + ((a[2] + b[2]) / n) * mas];
       // v1.68: donde una abertura parte la tira: el relleno del costado (arriba y abajo de él, y su costado de afuera).
       if (tipo && tipo.venta !== 'estandar') {
         cortesDeTiras({ largo: pared.largo, h1, h2, huecos: pared.huecos ?? [] }, tipo).tiras.forEach((t) => (t.rellenos ?? []).forEach((r) => {
@@ -808,6 +825,44 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
       verticales.forEach((x) => {
         const cortes = huecos.filter((hh) => hh.desde < x && hh.hasta > x).map((hh) => [hh.abajo, hh.arriba]);
         restarTramos([0, altoEn(x)], cortes).forEach(([y0, y1]) => pares.push([punto(x, y0), punto(x, y1)]));
+      });
+      // v1.82: con "Solo paneles", cada pedazo de un panel por tira entera dice de qué tira sale ("T3"; borde azul si
+      // se eligió a mano en la hoja de corte).
+      const numeros = capas.numerosTiras && tipo?.cobro === 'tira' ? tirasDelPanel(tipo) : null;
+      if (numeros) {
+        Object.entries(numeros.lugares).filter(([id]) => id.startsWith(`lado ${pared.lado}|`)).forEach(([id, l]) => {
+          const tira = numeros.tiraDe.get(id);
+          if (!tira) return;
+          const cartel = cartelChico(`T${tira.n}`, tira.manual ? 'rgba(14,165,233,0.95)' : 'rgba(30,41,59,0.85)');
+          cartel.position.set(...afuera0(punto((l.x0 + l.x1) / 2, l.y0 + l.largo / 2), 0.02));
+          cartel.scale.multiplyScalar(0.6);
+          grupo.add(cartel);
+        });
+      }
+      // v1.82: cuál queda arriba de cuál: el tramo de arriba por fuera (naranja) y el costado que monta (verde).
+      const encimados = tipo ? encimadosDePano({ largo: pared.largo, h1, h2 }, tipo) : null;
+      const afuera = afuera0;
+      (encimados?.verticales ?? []).forEach((f) => {
+        let desde = 0;
+        let hasta = pared.largo;
+        if (Math.abs(h2 - h1) > 1e-9) {
+          const cruce = ((f.arriba - h1) / (h2 - h1)) * pared.largo;
+          if (h2 > h1) desde = Math.max(0, cruce); else hasta = Math.min(pared.largo, cruce);
+        }
+        if (hasta - desde < 0.05) return;
+        const franja = cuadrilatero([punto(desde, f.abajo), punto(hasta, f.abajo), punto(hasta, f.arriba), punto(desde, f.arriba)].map((pt) => afuera(pt, 0.004)), materiales.encimado);
+        franja.userData.ladosPared = [pared.lado];
+        franja.renderOrder = 999;
+        grupo.add(franja);
+      });
+      (encimados?.laterales ?? []).forEach((f) => {
+        const x0 = Math.max(0, f.desde);
+        const x1 = Math.min(pared.largo, f.hasta);
+        if (x1 - x0 < 0.005) return;
+        const franja = cuadrilatero([punto(x0, 0), punto(x1, 0), punto(x1, altoEn(x1)), punto(x0, altoEn(x0))].map((pt) => afuera(pt, 0.003)), materiales.encastre);
+        franja.userData.ladosPared = [pared.lado];
+        franja.renderOrder = 999;
+        grupo.add(franja);
       });
       horizontales.forEach((h) => {
         // En una pared inclinada la junta llega solo hasta donde la pared es más alta que h.
@@ -1167,6 +1222,7 @@ export default function LoftCanvas({
     cotas: false, // v1.28: largo, ancho y altos (en el PDF se pueden pedir aunque estén apagadas)
     medidasFijas: true, // v1.28: las medidas fijadas con 📌
     ...Object.fromEntries(CAPAS_TERRENO.map((c) => [c, true])), // v1.34.3: cada parte del terreno
+    terrenoTapial: false, // v1.82 (Leandro: "el tapial debe ser más fácil desactivar, o por defecto desactivado"): se prende en Capas → Terreno
   }));
 
   // v1.44: redibujar el modelo con partes ocultas (para las fotos por partes). null = como está en pantalla.
@@ -1208,7 +1264,8 @@ export default function LoftCanvas({
         chapa: false, juntas: false, madera: false, mesadas: false, etiquetasMesadas: false, etiquetasMuebles: false,
         instElectrica: false, instAgua: false, instDesague: false, instGas: false }
       : soloPaneles
-        ? Object.fromEntries(Object.entries(base).map(([k, v]) => [k, CAPAS_SOLO_PANELES.has(k) ? (k === 'juntas' ? true : v) : false]))
+        ? { ...Object.fromEntries(Object.entries(base).map(([k, v]) => [k, CAPAS_SOLO_PANELES.has(k) ? (k === 'juntas' ? true : v) : false])),
+          numerosTiras: true } // v1.82: cada pedazo dice de qué tira entera sale
         : base;
   }, [realista, capas, soloHierro, soloPaneles]);
   // v1.81: con "Solo paneles", los paneles casi opacos (para leer las juntas y los cortes).
@@ -2241,6 +2298,14 @@ export default function LoftCanvas({
   return (
     <div className="canvas-box">
       <div className="lienzo" ref={lienzoRef} />
+      {/* v1.82: con "Solo paneles", qué quiere decir cada color de las franjas encimadas. */}
+      {soloPaneles && capas.juntas && (
+        <div className="leyenda-encimado" role="note">
+          <span className="naranja">■</span> Empalme: el tramo de <strong>arriba va por fuera</strong> del de abajo (como las tejas).<br />
+          <span className="verde">■</span> Encastre: el costado de la tira que <strong>monta sobre la de al lado</strong>.<br />
+          <span style={{ color: COLOR_JUNTAS }}>│</span> Juntas: dónde termina cada tira y cada tramo.
+        </div>
+      )}
       {solPrendido && (
         <PanelSol estado={sol} onCambiar={cambiarSol} info={infoSol} onCerrar={() => cambiarSol({ activo: false, animando: false })}
           sinTerreno={!obraConTerreno} orientacion={params.terreno?.orientacion ?? 0}

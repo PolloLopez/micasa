@@ -1739,7 +1739,7 @@ export default function App() {
             proveedores={proveedores} proveedor={proveedorElegido} pago={formaPago} comparacion={comparacion}
             onElegirProveedor={cambiar('proveedorElegido')} onElegirPago={cambiar('formaPago')}
             onCambiarPrecio={(item, valor) => cambiarPrecio(item.perfilId ?? item.id, proveedorElegido, formaPago, valor)} onIrAPrecio={irAPrecio}
-            plan={planCompra} nombreProyecto={nombreProyecto} materiales={listaMateriales} compras={resumenCompras} onIrALista={irALista} masBaratoDe={(item) => masBaratoEn(item, catalogoResuelto, formaPago)}
+            plan={planCompra} nombreProyecto={nombreProyecto} materiales={listaMateriales} compras={resumenCompras} onIrALista={irALista} onCambiarRevestimiento={cambiarInsumo} masBaratoDe={(item) => masBaratoEn(item, catalogoResuelto, formaPago)}
             cierre={params.cierre} resultadoCierre={cierre} medidasCierre={medidasCierre} cambiar={cambiar} />
           {/* v1.59: la obra con cada panel en las 4 paredes, para elegir el revestimiento. */}
           {esConstruccion && (

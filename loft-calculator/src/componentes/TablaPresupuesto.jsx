@@ -305,27 +305,58 @@ const SUBPESTANAS = [
 /**
  * v1.81: la hoja de corte de un revestimiento que se compra por tira entera (ALPANEL): por pared, cada tira con los
  * pedazos que salen de ella y lo que sobra. Los recortes de una tira se usan en la misma pared.
+ * v1.82 (Leandro: "poder mover los recortes de ubicación"): cada pedazo tiene "sale de…" para elegir de qué tira sale
+ * (de esta pared o de otra, o una tira nueva). "Solo" = lo elige la app. En el 3D ("Solo paneles") cada pedazo dice su tira.
  */
-function CortesDeTiras({ item }) {
+function CortesDeTiras({ item, onCambiar = null }) {
   const m = (n) => n.toFixed(2).replace('.', ',');
-  let numero = 0;
+  const manuales = item.tirasManuales ?? {};
+  // Las tiras a donde se puede mandar un pedazo: las de cada pared y una nueva por pared.
+  const destinos = item.tirasPorPared.flatMap((g) => [
+    ...g.tiras.map((t) => [`${g.donde}|${t.n}`, `${g.donde} · tira ${t.n} (sobra ${m(t.sobra)} m)`]),
+    [`${g.donde}|${Math.max(0, ...g.tiras.map((t) => t.n)) + 1}`, `${g.donde} · tira nueva`],
+  ]);
+  const elegir = (id, valor) => {
+    const nuevo = { ...manuales };
+    if (valor === '') delete nuevo[id];
+    else {
+      const k = valor.lastIndexOf('|');
+      nuevo[id] = { pared: valor.slice(0, k), n: Number(valor.slice(k + 1)) };
+    }
+    onCambiar?.(item.id, 'tirasManuales', nuevo);
+  };
+  const cuantasManuales = Object.keys(manuales).length;
   return (
     <section className="cortes-tiras">
       <h4>{item.nombre}: {item.cantidad} tiras enteras de {m(item.largoTira)} m</h4>
+      {onCambiar && <p className="nota">En cada pedazo, <strong>sale de…</strong> elige de qué tira cortarlo (por ejemplo, del sobrante de
+        otra pared). Los que dejás en "solo" los acomoda la app.{cuantasManuales > 0 && <> {cuantasManuales} elegido{cuantasManuales > 1 ? 's' : ''} a mano ·{' '}
+        <button type="button" className="btn-mini" onClick={() => onCambiar(item.id, 'tirasManuales', {})}>Volver a lo automático</button></>}</p>}
+      {(item.avisosTiras ?? []).map((a) => <p key={a} className="error" role="alert">{a}</p>)}
       {item.tirasPorPared.map((g) => (
         <div key={g.donde} className="tiras-pared">
           <strong>{g.donde}</strong> <small>({g.tiras.length} tira{g.tiras.length === 1 ? '' : 's'})</small>
-          <ol className="lista-tiras">
-            {g.tiras.map((t) => {
-              numero += 1;
-              return (
-                <li key={numero} value={numero}>
-                  Tira {numero}: {t.piezas.map((x) => `${m(x)} m`).join(' + ')}
-                  <small className={t.sobra >= 0.3 ? '' : 'falta'}> · sobra {m(t.sobra)} m{t.sobra >= 0.3 ? ' (sirve)' : ''}</small>
-                </li>
-              );
-            })}
-          </ol>
+          <ul className="lista-tiras">
+            {g.tiras.map((t) => (
+              <li key={t.n}>
+                <span className="numero-tira-corte">Tira {t.n}</span>
+                {t.piezas.map((x, k) => (
+                  <span key={x.id ?? k} className={`pedazo-tira${x.manual ? ' manual' : ''}`}>
+                    {m(x.largo)} m
+                    {onCambiar && x.id && (
+                      <select value={manuales[x.id] ? `${manuales[x.id].pared}|${manuales[x.id].n}` : ''} aria-label={`De qué tira sale el pedazo de ${m(x.largo)} m (${x.id.split('|')[0]})`}
+                        onChange={(e) => elegir(x.id, e.target.value)}>
+                        <option value="">sale de… (solo)</option>
+                        {destinos.map(([v, texto]) => <option key={v} value={v}>{texto}</option>)}
+                      </select>
+                    )}
+                  </span>
+                ))}
+                {/* Sin sobrante = se usa entera; desde 30 cm el sobrante sirve; menos, se tira (en naranja). */}
+                <small className={t.sobra >= 0.01 && t.sobra < 0.3 ? 'falta' : ''}> · {t.sobra < 0.01 ? 'se usa entera' : `sobra ${m(t.sobra)} m${t.sobra >= 0.3 ? ' (sirve)' : ' (se tira)'}`}</small>
+              </li>
+            ))}
+          </ul>
         </div>
       ))}
     </section>
@@ -430,7 +461,7 @@ function ListaMateriales({ materiales, nombreProyecto, conCompras = false }) {
 export default function TablaPresupuesto({
   items, total, gruposCortes = [], proveedores = [], proveedor, pago = 'efectivo', comparacion = [],
   onElegirProveedor, onElegirPago, onCambiarPrecio, onIrAPrecio = null, plan = null, masBaratoDe = () => null, nombreProyecto = '',
-  materiales = [], cierre = null, resultadoCierre = null, medidasCierre = { m2: 0, kg: 0 }, cambiar = null, compras = null, onIrALista = null,
+  materiales = [], cierre = null, resultadoCierre = null, medidasCierre = { m2: 0, kg: 0 }, cambiar = null, compras = null, onIrALista = null, onCambiarRevestimiento = null,
 }) {
   // v1.31.0: la sub-pestaña elegida se recuerda en este navegador.
   // v1.70: hay compras cargadas o partes terminadas: la lista dice qué ya no falta.
@@ -528,7 +559,7 @@ export default function TablaPresupuesto({
           ? <p className="vacio">No hay barras para cortar.</p>
           : gruposConBarras.map((g, i) => <DiagramaCortes key={g.id} grupo={g} numero={i + 1} />)}
         {/* v1.81: los revestimientos que se compran por tira entera: qué pedazos salen de cada tira, pared por pared. */}
-        {items.filter((i) => i.tirasPorPared?.length && i.cantidad > 0).map((i) => <CortesDeTiras key={i.id} item={i} />)}
+        {items.filter((i) => i.tirasPorPared?.length && i.cantidad > 0).map((i) => <CortesDeTiras key={i.id} item={i} onCambiar={onCambiarRevestimiento} />)}
       </div>
 
       <div {...panel('precios')}>

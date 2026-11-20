@@ -63,6 +63,7 @@ export const REVESTIMIENTO_POR_DEFECTO = {
   tiraAngosta: 'derecha', // v1.68: dónde va la tira cortada a lo largo: 'derecha', 'izquierda' o 'repartida' (media en cada punta)
   anchoTotal: 0, // v1.68: ancho total de la tira con su encastre (0 = no se sabe): el solape del costado = total − útil
   cobro: 'm2', // v1.81: 'm2' o 'tira' (tira entera de largo fijo; ver tirasEnteras)
+  tirasManuales: {}, // v1.82: { idDelPedazo: { pared, n } } de qué tira sale un pedazo (elegido a mano)
   largoTira: 0, // v1.81: largo de la tira entera (0 = el largo máximo)
 };
 
@@ -72,18 +73,64 @@ export const largoDeTira = (t) => (t.largoTira > 0 ? Math.min(t.largoTira, t.lar
 /**
  * v1.81: los pedazos de cada pared acomodados en tiras enteras de `largo` (los recortes de una tira se usan en la misma
  * pared). Además, cuántas serían compartiendo los recortes entre todas las paredes (para avisar si conviene).
- * @param grupos [{ donde, piezas: number[] }]
- * @returns {{ tiras, compartiendo, porPared: { donde, tiras: { piezas: number[], sobra }[] }[] }}
+ * v1.82 (Leandro: "poder mover los recortes de ubicación"): `manuales` = { idDelPedazo: { pared, n } } dice de qué tira
+ * sale un pedazo (la n-ésima tira de esa pared, o una nueva). Primero se ponen esos; los demás se acomodan solos: en lo
+ * que sobra de las tiras elegidas de su pared y después en tiras nuevas.
+ * @param grupos [{ donde, piezas: (number | { largo, id })[] }]
+ * @returns {{ tiras, compartiendo, avisos: string[], porPared: { donde, tiras: { n, piezas: { largo, id, manual }[], sobra }[] }[] }}
  */
-export function tirasEnteras(grupos, largo) {
+export function tirasEnteras(grupos, largo, manuales = {}) {
   const opciones = { merma: MERMA_TIRA, retazoUtil: 0.3 };
-  const porPared = grupos.filter((g) => g.piezas.length > 0).map(({ donde, piezas }) => {
-    const { barras } = optimizarCortes(piezas, largo, opciones);
-    return { donde, tiras: barras.map((b) => ({ piezas: [...b.piezas].sort((x, y) => y - x), sobra: Math.max(0, Math.round((largo - b.usado) * 100) / 100) })) };
-  });
+  const comoPieza = (p, i, donde) => (typeof p === 'number' ? { largo: p, id: `${donde}|${i}` } : p);
+  const lista = grupos.map((g) => ({ donde: g.donde, piezas: g.piezas.map((p, i) => comoPieza(p, i, g.donde)) }));
+  const avisos = [];
+  // Las tiras elegidas a mano: { 'lado A|2': { pared, n, piezas, usado } }.
+  const elegidas = new Map();
+  const libre = (t) => largo - t.usado;
+  const poner = (t, pieza, manual) => { t.piezas.push({ ...pieza, manual }); t.usado += pieza.largo + MERMA_TIRA; };
+  const sueltas = new Map(lista.map((g) => [g.donde, []]));
+  lista.forEach((g) => g.piezas.forEach((pieza) => {
+    const m = manuales[pieza.id];
+    const pared = m && sueltas.has(m.pared) ? m.pared : null;
+    if (!pared || !(m.n >= 1)) { sueltas.get(g.donde).push(pieza); return; }
+    const clave = `${pared}|${m.n}`;
+    if (!elegidas.has(clave)) elegidas.set(clave, { pared, n: m.n, piezas: [], usado: 0 });
+    const t = elegidas.get(clave);
+    if (libre(t) + 1e-9 < pieza.largo) {
+      avisos.push(`El pedazo de ${pieza.largo.toFixed(2)} m (${g.donde}) no entra en la tira ${m.n} de ${pared}: va solo.`);
+      sueltas.get(g.donde).push(pieza);
+      return;
+    }
+    poner(t, pieza, true);
+  }));
+  const porPared = lista.map(({ donde }) => {
+    const propias = [...elegidas.values()].filter((t) => t.pared === donde).sort((a, b) => a.n - b.n);
+    // Los pedazos sueltos, primero en lo que sobra de las tiras elegidas de su pared (los más largos primero).
+    const resto = [];
+    [...sueltas.get(donde)].sort((a, b) => b.largo - a.largo).forEach((pieza) => {
+      const t = propias.find((x) => libre(x) + 1e-9 >= pieza.largo);
+      if (t) poner(t, pieza, false); else resto.push(pieza);
+    });
+    // Los demás, en tiras nuevas (como las barras), con los números que quedan libres.
+    const { barras } = optimizarCortes(resto.map((p) => ({ largo: p.largo, id: p.id })), largo, opciones);
+    const usados = new Set(propias.map((t) => t.n));
+    let siguiente = 1;
+    const numero = () => { while (usados.has(siguiente)) siguiente++; usados.add(siguiente); return siguiente; };
+    const nuevas = barras.map((b) => ({
+      n: numero(),
+      piezas: b.piezas.map((l, i) => ({ largo: l, id: b.ids?.[i] ?? null, manual: false })),
+      usado: b.usado,
+    }));
+    const tiras = [...propias, ...nuevas].sort((a, b) => a.n - b.n).map((t) => ({
+      n: t.n,
+      piezas: [...t.piezas].sort((a, b) => b.largo - a.largo),
+      sobra: Math.max(0, Math.round((largo - t.usado) * 100) / 100),
+    }));
+    return { donde, tiras };
+  }).filter((g) => g.tiras.length > 0);
   const tiras = porPared.reduce((a, g) => a + g.tiras.length, 0);
-  const compartiendo = optimizarCortes(grupos.flatMap((g) => g.piezas), largo, opciones).totalBarras;
-  return { tiras, compartiendo, porPared };
+  const compartiendo = optimizarCortes(lista.flatMap((g) => g.piezas.map((p) => p.largo)), largo, opciones).totalBarras;
+  return { tiras, compartiendo, porPared, avisos };
 }
 
 /** Límites de cada dato (los usa la pantalla y la migración). */
@@ -213,6 +260,24 @@ export function rellenosDeTira(x0, x1, alto, huecos = [], costado = COSTADO_MINI
  * Las que caen enteras sobre una abertura se piden en pedazos (v1.24).
  * @returns {number[]} largos a pedir (ya partidos en tramos si hace falta)
  */
+/**
+ * v1.82: los mismos pedazos que tirasDePano, con su lugar en la pared (para marcar en el 3D de qué tira sale cada
+ * uno): x0, x1 (a lo largo, desde la punta 1) y y0 (desde abajo). Mismo orden que tirasDePano.
+ */
+export function pedazosConLugar(pano, tipo) {
+  const lista = [];
+  franjasDeTiras(pano.largo, tipo).forEach(({ x0, x1 }) => {
+    const alto = Math.max(altoEn(pano, x0), altoEn(pano, x1));
+    intervalosDeTira(x0, x1, alto, pano.huecos, costadoEfectivo(tipo)).forEach(({ y0, y1 }) => {
+      const avance = tipo.largoMaximo - (tipo.solape ?? 0);
+      cortarEnTramos(Number((y1 - y0).toFixed(4)), tipo.largoMaximo, tipo.solape).forEach((l, i) => {
+        lista.push({ largo: l, x0, x1, y0: y0 + i * avance });
+      });
+    });
+  });
+  return lista;
+}
+
 export function tirasDePano(pano, tipo) {
   const largos = [];
   franjasDeTiras(pano.largo, tipo).forEach(({ x0, x1 }) => {
@@ -294,8 +359,9 @@ export function cuentaRevestimiento(tipo, panos) {
   // v1.81: cobrando por tira entera, ningún pedazo puede pasar el largo de la tira.
   if (t.cobro === 'tira') t.largoMaximo = largoDeTira(t);
   // Los pedazos de cada pared (v1.81: por pared, para acomodarlos en tiras enteras de la misma pared).
-  const porPano = panos.map((p) => ({ donde: p.donde, piezas: tirasDePano(p, t) }));
-  let piezas = porPano.flatMap((g) => g.piezas);
+  // v1.82: cada pedazo con su id ("lado A|3") y su lugar, para elegir a mano de qué tira sale y marcarlo en el 3D.
+  const porPano = panos.map((p) => ({ donde: p.donde, piezas: pedazosConLugar(p, t).map((x, i) => ({ ...x, id: `${p.donde}|${i}` })) }));
+  let piezas = porPano.flatMap((g) => g.piezas.map((x) => x.largo));
   // v1.63: la tira angosta de una pared sale del retazo (a lo ancho) de la de otra: se compra una menos.
   // Se apaga con aprovecharRetazos: false en el tipo de revestimiento.
   let retazos = '';
@@ -306,8 +372,8 @@ export function cuentaRevestimiento(tipo, panos) {
     ahorroPedidos.forEach((largo) => {
       const i = piezas.findIndex((l) => Math.abs(l - largo) < 1e-6);
       if (i >= 0) piezas = [...piezas.slice(0, i), ...piezas.slice(i + 1)];
-      const g = porPano.find((x) => x.piezas.some((l) => Math.abs(l - largo) < 1e-6)); // v1.81: también de su pared
-      if (g) { const k = g.piezas.findIndex((l) => Math.abs(l - largo) < 1e-6); g.piezas = [...g.piezas.slice(0, k), ...g.piezas.slice(k + 1)]; }
+      const g = porPano.find((x) => x.piezas.some((pz) => Math.abs(pz.largo - largo) < 1e-6)); // v1.81: también de su pared
+      if (g) { const k = g.piezas.findIndex((pz) => Math.abs(pz.largo - largo) < 1e-6); g.piezas = [...g.piezas.slice(0, k), ...g.piezas.slice(k + 1)]; }
     });
     if (reusos.length) retazos = ` · ${reusos.length} tira${reusos.length > 1 ? 's' : ''} angosta${reusos.length > 1 ? 's' : ''} sale${reusos.length > 1 ? 'n' : ''} de retazos`;
   }
@@ -322,8 +388,8 @@ export function cuentaRevestimiento(tipo, panos) {
   // v1.81: por tira entera: cuántas tiras de largo fijo (los recortes, en la misma pared).
   if (t.cobro === 'tira') {
     const largo = largoDeTira(t);
-    const grupos = [...porPano, ...(comprar.length ? [{ donde: 'rellenos al costado de aberturas', piezas: comprar }] : [])];
-    const cuenta = tirasEnteras(grupos, largo);
+    const grupos = [...porPano, ...(comprar.length ? [{ donde: 'rellenos al costado de aberturas', piezas: comprar.map((l, i) => ({ largo: l, id: `rellenos|${i}` })) }] : [])];
+    const cuenta = tirasEnteras(grupos, largo, t.tirasManuales ?? {});
     const ahorro = cuenta.compartiendo < cuenta.tiras
       ? ` · usando los recortes de una pared en otra serían ${cuenta.compartiendo} (${cuenta.tiras - cuenta.compartiendo} menos)` : '';
     return {
@@ -332,7 +398,10 @@ export function cuentaRevestimiento(tipo, panos) {
       piezas,
       neto,
       tirasPorPared: cuenta.porPared,
+      avisosTiras: cuenta.avisos, // v1.82: pedazos elegidos a mano que no entran en su tira
+      lugares: Object.fromEntries(porPano.flatMap((g) => g.piezas.map((x) => [x.id, x]))), // v1.82: dónde va cada pedazo
       largoTira: largo,
+      compartiendo: cuenta.compartiendo, // v1.81.1: usando los recortes entre paredes
       detalle: `${cuenta.tiras} tiras enteras de ${largo.toFixed(2)} m para ${resumirLargos(piezas)} (ancho útil ${t.anchoUtil.toFixed(2)} m)`
         + ` · recortes en la misma pared${ahorro}${retazos}${textoAberturas} · ${donde}`,
     };
@@ -344,6 +413,28 @@ export function cuentaRevestimiento(tipo, panos) {
     piezas,
     neto,
     detalle: `${resumirLargos(piezas)} (ancho útil ${t.anchoUtil.toFixed(2)} m) · ${neto.toFixed(2)} m² netos${retazos}${textoAberturas} · ${donde}`,
+  };
+}
+
+/**
+ * v1.82 (Leandro: "que se note cuál queda arriba de cuál"): las franjas donde un panel monta sobre otro.
+ *   verticales (empalme de tramos): de h − solape a h; el tramo de ARRIBA va por fuera del de abajo (como las tejas: el
+ *     agua que baja no entra por la junta).
+ *   laterales (encastre): en cada junta entre tiras, el costado que superpone (ladoSolape) monta sobre la tira de al lado;
+ *     su ancho es ancho total − ancho útil (si no se cargó el ancho total, no se sabe y no se dibuja).
+ * @returns {{ verticales: { abajo, arriba }[], laterales: { desde, hasta }[], solape, encastre, ladoSolape }}
+ */
+export function encimadosDePano(pano, tipo) {
+  const t = { ...REVESTIMIENTO_POR_DEFECTO, ...tipo };
+  if (t.venta === 'estandar') return { verticales: [], laterales: [], solape: 0, encastre: 0, ladoSolape: t.ladoSolape };
+  const { verticales: juntas, horizontales } = juntasDePano(pano, t);
+  const encastre = t.anchoTotal > t.anchoUtil ? Math.round((t.anchoTotal - t.anchoUtil) * 1000) / 1000 : 0;
+  const derecha = t.ladoSolape === 'derecha';
+  return {
+    verticales: t.solape > 0 ? horizontales.map((h) => ({ abajo: Math.max(0, h - t.solape), arriba: h })) : [],
+    // Se colocan de izquierda a derecha (lado izquierdo): cada tira monta con su costado izquierdo sobre la anterior.
+    laterales: encastre > 0 ? juntas.map((x) => (derecha ? { desde: x - encastre, hasta: x } : { desde: x, hasta: x + encastre })) : [],
+    solape: t.solape, encastre, ladoSolape: derecha ? 'derecha' : 'izquierda',
   };
 }
 
@@ -367,9 +458,10 @@ export function juntasDePano(pano, tipo) {
     const altoPlaca = parada ? t.largoPlaca : t.anchoPlaca;
     return { verticales: cada(ancho, pano.largo), horizontales: cada(altoPlaca, alto) };
   }
-  // A medida: una junta horizontal donde termina cada tramo (si la tira pasa el largo máximo).
+  // A medida: una junta horizontal donde termina cada tramo (si la tira pasa el largo máximo; v1.81: o la tira entera).
+  const largoTramo = t.cobro === 'tira' ? largoDeTira(t) : t.largoMaximo;
   const horizontales = [];
-  for (let h = t.largoMaximo; h < alto - 0.01; h += t.largoMaximo - t.solape) horizontales.push(Number(h.toFixed(4)));
+  for (let h = largoTramo; h < alto - 0.01; h += largoTramo - t.solape) horizontales.push(Number(h.toFixed(4)));
   // v1.68: las juntas siguen el reparto de las tiras (la angosta puede ir a la izquierda o repartida).
   return { verticales: franjasDeTiras(pano.largo, t).slice(1).map((f) => Number(f.x0.toFixed(4))), horizontales };
 }
@@ -416,5 +508,25 @@ export function ahorroPorAberturas(tipo, panos) {
   if (!panos?.length) return { conDescuento: 0, sinDescuento: 0, ahorro: 0, unidad: unidadDeCompra(tipo) };
   const con = cuentaRevestimiento({ ...tipo, descontarAberturas: true }, panos);
   const sin = cuentaRevestimiento({ ...tipo, descontarAberturas: false }, panos);
-  return { conDescuento: con.cantidad, sinDescuento: sin.cantidad, ahorro: Math.round((sin.cantidad - con.cantidad) * 100) / 100, unidad: con.unidad };
+  return { conDescuento: con.cantidad, sinDescuento: sin.cantidad, ahorro: Math.round((sin.cantidad - con.cantidad) * 100) / 100, unidad: con.unidad,
+    ...(tipo.cobro === 'tira' && tipo.venta !== 'estandar' ? { comparativa: comparativaDeTiras(tipo, panos) } : {}) };
+}
+
+/**
+ * v1.81.1 (Leandro: "que compare instalando todas tiras enteras, con desperdicios, y con recortes, en valores"):
+ * cuántas tiras enteras se compran según cómo se aprovechan los recortes, descontando las aberturas o todo entero.
+ *   sinRecortes  = una tira por pedazo (lo que sobra se tira; ni la tira angosta sale de un retazo)
+ *   mismaPared   = los recortes de una tira, en la misma pared (lo que calcula el presupuesto)
+ *   entreParedes = los recortes, en cualquier pared
+ * @returns {{ conAberturas: { sinRecortes, mismaPared, entreParedes }, todoEntero: { … } }}
+ */
+export function comparativaDeTiras(tipo, panos) {
+  const t = { ...REVESTIMIENTO_POR_DEFECTO, ...tipo, cobro: 'tira' };
+  const variante = (descontarAberturas) => {
+    const base = { ...t, descontarAberturas };
+    const c = cuentaRevestimiento(base, panos);
+    const sin = cuentaRevestimiento({ ...base, aprovecharRetazos: false }, panos);
+    return { sinRecortes: sin.piezas.length, mismaPared: c.cantidad, entreParedes: c.compartiendo ?? c.cantidad };
+  };
+  return { conAberturas: variante(true), todoEntero: variante(false) };
 }

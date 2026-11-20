@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.82.0] - 2026-11-20
+### Agregado
+- **Comparar cómo cortar las tiras enteras** (en la ficha del panel): una tira por pedazo (sin usar recortes, con
+  todo el desperdicio), usando los recortes en la misma pared (lo que calcula el presupuesto) o entre paredes; cada
+  una descontando aberturas o todo entero, con las tiras y la plata y la diferencia (`comparativaDeTiras`).
+- **Mover los recortes**: en Presupuesto → Cortes, cada pedazo tiene **"sale de…"** para elegir de qué tira cortarlo
+  (de su pared, de otra o una tira nueva); los que quedan en "solo" los acomoda la app en lo que sobra. Si no entra,
+  avisa. "Volver a lo automático" borra lo elegido (`tirasManuales` en el revestimiento; `pedazosConLugar`).
+- En **"Solo paneles"** cada pedazo dice de qué tira sale (T1, T2…; en celeste, los elegidos a mano).
+- **Cuál queda arriba de cuál** (`encimadosDePano`), en el 3D (con "Juntas") y en el plano de cada pared:
+  - en **naranja**, el empalme vertical: el tramo de arriba va por fuera del de abajo, con los cm que se encima;
+  - en **verde**, el encastre: el costado de la tira que monta sobre la de al lado (ancho total − ancho útil; hace
+    falta cargar el ancho total del panel).
+  - Con "Solo paneles", un cartel explica los colores.
+### Cambiado
+- Las juntas horizontales de un panel por tira entera van donde termina la tira (antes, en el largo máximo).
+- En la hoja de corte de las tiras: "se usa entera" (sin sobrante), "sobra X (sirve)" o "(se tira)".
+- **El tapial arranca apagado en el 3D** (tapaba la casa): se prende en Capas → Terreno → Tapial.
+
 ## [1.81.0] - 2026-11-20
 ### Agregado
 - **Proveedores que cotizan en dólares** (ALPANEL): en su ficha, "Cotiza en: Dólares" y el **dólar** (pesos por US$ 1,

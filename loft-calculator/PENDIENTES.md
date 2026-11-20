@@ -1,6 +1,6 @@
 # PENDIENTES — loft-calculator
 
-Última limpieza: **2026-11-19 (v1.78.0)**; actualizado 2026-11-20 (v1.81.0). Acá queda solo lo abierto, por tema y prioridad (🔴 importante ·
+Última limpieza: **2026-11-19 (v1.78.0)**; actualizado 2026-11-20 (v1.82.0). Acá queda solo lo abierto, por tema y prioridad (🔴 importante ·
 🟡 conviene · 🟢 detalle). Lo resuelto y el detalle de cada pedido viejo: `HISTORIAL-PENDIENTES.md`; lo hecho en cada
 versión: `CHANGELOG.md`. Espejo en Trello: tablero "Desarrollo", tarjetas `[CALC]`.
 
@@ -8,8 +8,6 @@ versión: `CHANGELOG.md`. Espejo en Trello: tablero "Desarrollo", tarjetas `[CAL
 Manual: `MANUAL.md` y el doc "Pollo Calculator — Manual de usuario" (Claude Docs).
 
 ## 📌 Lo que sigue (orden sugerido)
-0. 🟡 **Paneles (pedido 20/11)**: mover los recortes de ubicación (elegir de qué tira sale cada pedazo) y que se note cuál
-   tramo queda arriba de cuál en los empalmes verticales (el encimado ya es editable: "Tiras en tramos encimados").
 1. 🟡 **Lint de dependencias de los `useMemo`** (react-hooks en `.oxlintrc.json`): así se coló el error de la comparación.
 2. 🟡 **Partir `App.jsx`** (1.800 líneas) en pocos hooks por tema (`useObra`, `useCompras`…), con su test.
 
@@ -45,6 +43,8 @@ Manual: `MANUAL.md` y el doc "Pollo Calculator — Manual de usuario" (Claude Do
   puerta, dintel, barras de 2,60 m).
 
 ## 👀 Para mirar en pantalla (probado con tests, no visto)
+- 🟡 [ ] v1.82: cargar el **ancho total** del panel (ALPANEL: 1000 mm con 50 de encastre) para que se vea el encastre en
+  verde; mover un recorte desde la hoja de corte y mirarlo en "Solo paneles".
 - 🟡 [ ] v1.80: cargar el tapial (lados, ladrillo, portón en su lugar) y mirar el 3D y el plano de implantación.
 - 🟡 [ ] v1.79: cargar los 2 albañiles del Tapial y los ladrillos con precio de cada corralón; elegir uno y ver que el
   precio de la obra y el seguimiento cambian (probado con tu archivo en el Pozo absorbente).

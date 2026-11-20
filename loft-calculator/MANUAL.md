@@ -109,7 +109,7 @@ Por perfil) y **herramientas** (Recorrer, Medir, **?** = cómo moverse). Con el 
 | 🏠 Ver adentro | Oculta las paredes (y el techo) que te tapan mientras girás |
 | 👁 Primera persona | Ves a la altura de los ojos (arrastrás para mirar, W A S D para caminar, Esc sale) |
 | 📏 Medir | Tocás dos puntos y te da la medida |
-| ▸ Capas | Prender y apagar partes (por ejemplo **Lo enterrado**, para no ver pilotines bajo tierra). Las **etiquetas del terreno** (línea municipal, calle, pozo, pilar) arrancan apagadas: se prenden acá. En **Terreno → Tapial** se apaga el tapial |
+| ▸ Capas | Prender y apagar partes (por ejemplo **Lo enterrado**, para no ver pilotines bajo tierra). Las **etiquetas del terreno** (línea municipal, calle, pozo, pilar) arrancan apagadas: se prenden acá. El **tapial** arranca apagado: se prende en **Terreno → Tapial** |
 
 **Tocar un panel**: un clic en una pared revestida (donde no hay un hierro) pinta de amarillo esa **tira** y un cartel
 dice cuál es (tira 4 de 8, de izquierda a derecha vista desde afuera, igual que en Planos), su ancho, de qué largo se
@@ -158,6 +158,13 @@ cargan en US$ (con centavos, "300,50") y debajo ves cuánto da en pesos. El flet
 pedazos de cada pared en tiras enteras (los recortes, en la misma pared) y el precio es por tira. En **Presupuesto →
 Cortes** ves de qué tira sale cada pedazo. Si destildás "Descontar las aberturas", pedís todo entero y los huecos los
 cortás vos (la ficha dice cuántas tiras más son).
+
+**Comparar y mover recortes** (panel por tira entera): en la ficha del panel, **Comparar** muestra cuántas tiras (y
+cuánta plata) son sin usar recortes, usándolos en la misma pared o entre paredes, con o sin descontar aberturas. En
+**Presupuesto → Cortes**, cada pedazo tiene **sale de…** para elegir de qué tira cortarlo (de otra pared o una tira
+nueva); en el 3D, con **Solo paneles**, cada pedazo dice su tira (T3). En el 3D y en el plano de cada pared, en
+**naranja** el empalme (el tramo de arriba va por fuera del de abajo) y en **verde** el encastre (el costado que
+monta sobre la tira de al lado; cargá el ancho total del panel para verlo).
 
 **Precios de un material**: se ven solo los proveedores que lo tienen. **+ Precio en otro proveedor…** suma otro, o
 **+ Proveedor nuevo…** lo crea ahí mismo.
