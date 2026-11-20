@@ -1089,3 +1089,7 @@ option { background: var(--tarjeta); color: var(--texto); }
   padding: 4px 6px; cursor: pointer; width: 100%; white-space: normal; overflow-wrap: anywhere; }
 .boton-celda:hover:not(:disabled) { border-color: var(--acento); }
 .boton-celda[aria-pressed="true"] { cursor: default; }
+/* v1.82.2: los pedazos de un panel por tira entera en el plano de la pared (con su T, como en el 3D). */
+.dibujo-plano .pedazo-plano rect { fill: none; stroke: #0ea5e9; stroke-width: 0.015; }
+.dibujo-plano .pedazo-plano.manual rect { stroke: #0284c7; stroke-width: 0.03; }
+.dibujo-plano .pedazo-plano text { fill: #0369a1; font-weight: 700; }

@@ -21,7 +21,8 @@ import { geometriaLados, nombreDePared } from './geometria.js';
 import { listarPiezas, NOMBRE_TIPO_PIEZA } from './estructura.js';
 import { INSUMO_DE_TIPO } from './piezasAgregadas.js';
 import { nombrePerfil } from './perfiles.js';
-import { tirasDePano, placasDePano, resumirLargos, REVESTIMIENTO_POR_DEFECTO, encimadosDePano, juntasDePano } from './revestimientos.js';
+import { tirasDePano, placasDePano, resumirLargos, REVESTIMIENTO_POR_DEFECTO, encimadosDePano, juntasDePano, tiraDeCadaPedazo } from './revestimientos.js';
+import { panosPorRevestimiento } from './presupuesto.js';
 import { ubicarMueble, tramosDeMesada, TIPOS_MUEBLE } from './interiores.js';
 import { ubicarTabique, inicioDePuerta, MEDIO_ESPESOR_TABIQUE } from './tabiques.js';
 
@@ -104,7 +105,7 @@ function revestimientoDePared(pared, idTipo, cara, catalogo) {
  * v1.63: los paneles del exterior de una pared (a medida): cada tira con su ancho, lo que se pide y sus cortes, y
  * dónde caen las juntas (para dibujarlas y acomodar las aberturas). null si el revestimiento es de placas o no hay.
  */
-function panelesDePared(pared, catalogo, donde) {
+function panelesDePared(pared, catalogo, donde, e = null) {
   const tipo = catalogo.find((i) => i.id === pared.panel);
   if (!tipo) return null;
   const t = { ...REVESTIMIENTO_POR_DEFECTO, ...tipo };
@@ -115,8 +116,10 @@ function panelesDePared(pared, catalogo, donde) {
   const despiece = c.tiras.flatMap((tira) => pedazosDeLaTira(pano, t, tira).map((p) => ({ ...p, tira: tira.n })));
   // v1.82: dónde termina cada tramo (horizontales) y las franjas donde un panel monta sobre otro.
   const { horizontales } = juntasDePano(pano, t);
+  // v1.82.2: por tira entera, cada pedazo con la tira de donde sale (lo mismo que el 3D y la hoja de corte).
+  const porTira = e ? tiraDeCadaPedazo(t, panosPorRevestimiento(e)[tipo.id]) : null;
   return { nombre: tipo.nombre, anchoUtil: t.anchoUtil, ...c, juntas: c.tiras.slice(1).map((x) => x.x0), pano, tipo: t, despiece,
-    horizontales, encimados: encimadosDePano(pano, t) };
+    horizontales, encimados: encimadosDePano(pano, t), pedazosTira: porTira ? porTira.pedazosDe(`lado ${pared.lado}`) : null };
 }
 
 /**
@@ -161,7 +164,7 @@ export function vistaDePared(e, params, lado, catalogo, aberturas = []) {
       fajas: unicos([...fajas, ...delEntrepiso].map((p) => Math.min(p.y1, p.y2))), // alturas de las horizontales (y del entrepiso)
     },
     lista: listaDePiezas(listarPiezas(e).filter((p) => esDeLaPared(p, lado, geo)), catalogo),
-    paneles: pared ? panelesDePared(pared, catalogo, nombreDePared(lado, params)) : null, // v1.63: tamaños y cortes
+    paneles: pared ? panelesDePared(pared, catalogo, nombreDePared(lado, params), e) : null, // v1.63: tamaños y cortes
     revestimiento: pared ? [
       revestimientoDePared(pared, pared.panel, 'exterior', catalogo),
       pared.panelInterior ? revestimientoDePared(pared, pared.panelInterior, 'interior', catalogo) : null,

@@ -38,7 +38,7 @@ import { coloresPorPerfil, perfilDePieza } from './motor/coloresPerfil.js';
 import { INSUMO } from './motor/constantes.js';
 import EditorPieza from './componentes/EditorPieza.jsx';
 import { FilaAbertura } from './componentes/AberturasDePared.jsx';
-import { juntasDePano, pedazosDePared, encimadosDePano, cuentaRevestimiento } from './motor/revestimientos.js';
+import { juntasDePano, pedazosDePared, encimadosDePano, tiraDeCadaPedazo } from './motor/revestimientos.js';
 import { panosPorRevestimiento } from './motor/presupuesto.js';
 import { tiraEnPunto, cortesDeTiras } from './motor/cortesPaneles.js';
 import { textoDeCodigo } from './motor/hojaDeCorte.js';
@@ -792,12 +792,7 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
     const panosDe = capas.numerosTiras ? panosPorRevestimiento(e) : {};
     const cacheTiras = new Map();
     const tirasDelPanel = (tipo) => {
-      if (!cacheTiras.has(tipo.id)) {
-        const c = cuentaRevestimiento(tipo, panosDe[tipo.id] ?? []);
-        const tiraDe = new Map();
-        (c.tirasPorPared ?? []).forEach((g) => g.tiras.forEach((t) => t.piezas.forEach((x) => x.id && tiraDe.set(x.id, { n: t.n, manual: x.manual }))));
-        cacheTiras.set(tipo.id, c.tirasPorPared ? { lugares: c.lugares ?? {}, tiraDe } : null);
-      }
+      if (!cacheTiras.has(tipo.id)) cacheTiras.set(tipo.id, tiraDeCadaPedazo(tipo, panosDe[tipo.id] ?? []));
       return cacheTiras.get(tipo.id);
     };
     const paresDe = {}; // v1.45: las juntas de cada pared aparte (para ocultarlas con su pared)
@@ -830,9 +825,8 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
       // se eligió a mano en la hoja de corte).
       const numeros = capas.numerosTiras && tipo?.cobro === 'tira' ? tirasDelPanel(tipo) : null;
       if (numeros) {
-        Object.entries(numeros.lugares).filter(([id]) => id.startsWith(`lado ${pared.lado}|`)).forEach(([id, l]) => {
-          const tira = numeros.tiraDe.get(id);
-          if (!tira) return;
+        numeros.pedazosDe(`lado ${pared.lado}`).forEach((l) => {
+          const tira = l;
           const cartel = cartelChico(`T${tira.n}`, tira.manual ? 'rgba(14,165,233,0.95)' : 'rgba(30,41,59,0.85)');
           cartel.position.set(...afuera0(punto((l.x0 + l.x1) / 2, l.y0 + l.largo / 2), 0.02));
           cartel.scale.multiplyScalar(0.6);

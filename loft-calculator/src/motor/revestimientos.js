@@ -83,6 +83,26 @@ export const largoDeTira = (t) => (t.largoTira > 0 ? Math.min(t.largoTira, t.lar
  * @param grupos [{ donde, piezas: (number | { largo, id })[] }]
  * @returns {{ tiras, compartiendo, avisos: string[], porPared: { donde, tiras: { n, piezas: { largo, id, manual }[], sobra }[] }[] }}
  */
+/**
+ * v1.82.2 (Leandro: "en los planos no está mostrando igual que en el 3D las tiras de los paneles"): para un panel por
+ * tira entera, de qué tira sale cada pedazo y dónde va. La usan el 3D ("Solo paneles") y el plano de cada pared, así
+ * los dos (y la hoja de corte) dicen lo mismo. null si el panel no se cobra por tira entera.
+ * @param panos los de ese panel en toda la obra (panosPorRevestimiento: los ids son "lado A|3")
+ * @returns {{ pedazosDe: (donde) => { id, largo, x0, x1, y0, n, manual }[] } | null}
+ */
+export function tiraDeCadaPedazo(tipo, panos) {
+  if (!tipo || tipo.venta === 'estandar' || tipo.cobro !== 'tira' || !panos?.length) return null;
+  const c = cuentaRevestimiento(tipo, panos);
+  if (!c.tirasPorPared) return null;
+  const tiraDe = new Map();
+  c.tirasPorPared.forEach((g) => g.tiras.forEach((t) => t.piezas.forEach((x) => x.id && tiraDe.set(x.id, { n: t.n, manual: x.manual }))));
+  const lugares = Object.entries(c.lugares ?? {});
+  return {
+    pedazosDe: (donde) => lugares.filter(([id]) => id.startsWith(`${donde}|`) && tiraDe.has(id))
+      .map(([id, l]) => ({ id, largo: l.largo, x0: l.x0, x1: l.x1, y0: l.y0, ...tiraDe.get(id) })),
+  };
+}
+
 /** v1.82.1: una tira entera por pedazo (lo que sobra se tira), como resultado de tirasEnteras. */
 function unaTiraPorPedazo(grupos, largo) {
   const porPared = grupos.filter((g) => g.piezas.length > 0).map(({ donde, piezas }) => ({

@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.82.2] - 2026-11-20
+### Arreglado
+- **El plano de cada pared muestra las tiras igual que el 3D**: con el panel por tira entera, dibuja cada pedazo (también
+  los de arriba y abajo de una ventana) con la tira de donde sale (T1, T2…), los mismos números que el 3D ("Solo
+  paneles") y la hoja de corte. Antes numeraba las columnas de tiras (1 a 8), que no es lo mismo. Las tres pantallas
+  usan la misma cuenta (`tiraDeCadaPedazo` en revestimientos.js).
+- En el plano, las juntas de los paneles ya no cruzan las ventanas (como en el 3D).
+
 ## [1.82.1] - 2026-11-20
 ### Agregado
 - **En "Comparar" se elige**: cada casillero es un botón; tocarlo usa esa forma (sin recortes, recortes en la misma

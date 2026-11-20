@@ -128,7 +128,10 @@ function DibujoPared({ vista, soloContorno = false, codigos = null }) {
       {/* v1.63: las juntas de los paneles (punteadas) y el número de cada tira arriba: para acomodar las aberturas. */}
       {vista.paneles && (
         <g className="juntas-paneles">
-          {vista.paneles.juntas.map((x) => <line key={`j${x}`} x1={x} y1={y(0)} x2={x} y2={y(Math.max(h1, h2))} className="junta-panel" />)}
+          {/* Con los pedazos dibujados (tira entera) no hacen falta las juntas largas: los bordes de cada pedazo ya lo son
+              (y así no cruzan las ventanas, igual que en el 3D). */}
+          {!vista.paneles.pedazosTira && vista.paneles.juntas.flatMap((x) => tramosSinHuecos(x, Math.max(h1, h2), vista.paneles.pano.huecos)
+            .map(([a0, a1]) => <line key={`j${x}-${a0}`} x1={x} y1={y(a0)} x2={x} y2={y(a1)} className="junta-panel" />))}
           {/* v1.82: cuál queda arriba de cuál. Naranja: el tramo de arriba monta por fuera del de abajo. Verde: el
               costado de la tira que monta sobre la de al lado (el encastre). */}
           {(vista.paneles.horizontales ?? []).map((h) => <line key={`h${h}`} x1={0} y1={y(h)} x2={vista.largo ?? 0} y2={y(h)} className="junta-panel" />)}
@@ -141,7 +144,14 @@ function DibujoPared({ vista, soloContorno = false, codigos = null }) {
           {(vista.paneles.encimados?.laterales ?? []).map((f) => (
             <rect key={`el${f.desde}`} className="franja-superpone-pared" x={f.desde} y={y(Math.max(h1, h2))} width={f.hasta - f.desde} height={Math.max(h1, h2)} />
           ))}
-          {vista.paneles.tiras.map((t) => (
+          {/* v1.82.2: por tira entera, cada pedazo con la tira de donde sale (T3), igual que en el 3D y la hoja de corte;
+              si no, el número de cada columna de tiras arriba. */}
+          {vista.paneles.pedazosTira ? vista.paneles.pedazosTira.map((p) => (
+            <g key={p.id} className={`pedazo-plano${p.manual ? ' manual' : ''}`}>
+              <rect x={p.x0} y={y(p.y0 + p.largo)} width={p.x1 - p.x0} height={p.largo} />
+              <text x={(p.x0 + p.x1) / 2} y={y(p.y0 + p.largo / 2)} fontSize={TEXTO * 0.7} textAnchor="middle" dominantBaseline="middle">T{p.n}</text>
+            </g>
+          )) : vista.paneles.tiras.map((t) => (
             <text key={`t${t.n}`} x={t.x0 + t.ancho / 2} y={y(Math.max(h1, h2)) - 0.08} fontSize={TEXTO * 0.7} textAnchor="middle" className="numero-tira">{t.n}</text>
           ))}
         </g>
@@ -421,6 +431,16 @@ function PlanosInstalaciones({ params, estructura }) {
       {conPuntos.filter(([s]) => visibles[s] !== false).map(([s]) => <BloqueInstalacion key={s} params={params} estructura={estructura} sistema={s} />)}
     </section>
   );
+}
+
+/** v1.82.2: una junta vertical en x, de 0 a `alto`, sin los huecos de las aberturas que cruza (como en el 3D). */
+function tramosSinHuecos(x, alto, huecos = []) {
+  const cortes = huecos.filter((h) => h.desde < x && h.hasta > x).map((h) => [h.abajo, h.arriba]).sort((p, q) => p[0] - q[0]);
+  const tramos = [];
+  let desde = 0;
+  cortes.forEach(([c0, c1]) => { if (c0 > desde + 0.01) tramos.push([desde, c0]); desde = Math.max(desde, c1); });
+  if (alto > desde + 0.01) tramos.push([desde, alto]);
+  return tramos;
 }
 
 export default function Planos({ vistas, params, estructura = null, onExportar, implantacion = null, codigosCorte = null }) {

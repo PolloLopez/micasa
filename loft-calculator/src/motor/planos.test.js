@@ -124,3 +124,20 @@ describe('v1.66: el borde del entrepiso apoyado en una pared sale en el plano de
     vistas.forEach((v) => expect(v.piezas.some((p) => p.tipo === 'viga-cierre')).toBe(false));
   });
 });
+
+describe('v1.82.2: el plano de la pared muestra las mismas tiras que el 3D y la hoja de corte', () => {
+  it('con el panel por tira entera, cada pedazo del plano dice la tira de donde sale (la misma que en el presupuesto)', async () => {
+    const { calcularPresupuesto } = await import('./presupuesto.js');
+    const catalogo = CATALOGO_INICIAL.map((i) => (i.categoria === 'panel' ? { ...i, venta: 'medida', cobro: 'tira', largoTira: 6, anchoUtil: 1, largoMaximo: 12 } : i));
+    const e = generarEstructura(P, ABERTURAS_INICIALES);
+    const vista = vistaDePared(e, P, 'A', catalogo, ABERTURAS_INICIALES);
+    const pedazos = vista.paneles.pedazosTira;
+    expect(pedazos.length).toBeGreaterThan(0);
+    const item = calcularPresupuesto(e, catalogo, { proveedor: 'prov-1' }).items.find((i) => i.tirasPorPared && i.cantidad > 0);
+    const deA = item.tirasPorPared.find((g) => g.donde === 'lado A');
+    const tiraEnPresupuesto = new Map(deA.tiras.flatMap((t) => t.piezas.map((x) => [x.id, t.n])));
+    pedazos.forEach((p) => expect(p.n).toBe(tiraEnPresupuesto.get(p.id)));
+    // Por m², el plano sigue con el número de cada columna (no hay tiras enteras).
+    expect(vistaDePared(e, P, 'A', CATALOGO_INICIAL, ABERTURAS_INICIALES).paneles?.pedazosTira ?? null).toBeNull();
+  });
+});
