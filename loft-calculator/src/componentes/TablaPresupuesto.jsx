@@ -326,6 +326,9 @@ function CortesDeTiras({ item, onCambiar = null }) {
     onCambiar?.(item.id, 'tirasManuales', nuevo);
   };
   const cuantasManuales = Object.keys(manuales).length;
+  // v1.82.1 (Leandro: "seleccionar en qué pared van los recortes"): todos los pedazos, para mandar uno al sobrante de una tira.
+  const todos = item.tirasPorPared.flatMap((g) => g.tiras.flatMap((t) => t.piezas.filter((x) => x.id).map((x) => ({ ...x, grupo: g.donde, tira: t.n }))));
+  const paredDe = (x) => x.id.split('|')[0];
   return (
     <section className="cortes-tiras">
       <h4>{item.nombre}: {item.cantidad} tiras enteras de {m(item.largoTira)} m</h4>
@@ -342,7 +345,7 @@ function CortesDeTiras({ item, onCambiar = null }) {
                 <span className="numero-tira-corte">Tira {t.n}</span>
                 {t.piezas.map((x, k) => (
                   <span key={x.id ?? k} className={`pedazo-tira${x.manual ? ' manual' : ''}`}>
-                    {m(x.largo)} m
+                    {m(x.largo)} m{x.id && paredDe(x) !== g.donde && <small> · {paredDe(x)}</small>}
                     {onCambiar && x.id && (
                       <select value={manuales[x.id] ? `${manuales[x.id].pared}|${manuales[x.id].n}` : ''} aria-label={`De qué tira sale el pedazo de ${m(x.largo)} m (${x.id.split('|')[0]})`}
                         onChange={(e) => elegir(x.id, e.target.value)}>
@@ -354,6 +357,17 @@ function CortesDeTiras({ item, onCambiar = null }) {
                 ))}
                 {/* Sin sobrante = se usa entera; desde 30 cm el sobrante sirve; menos, se tira (en naranja). */}
                 <small className={t.sobra >= 0.01 && t.sobra < 0.3 ? 'falta' : ''}> · {t.sobra < 0.01 ? 'se usa entera' : `sobra ${m(t.sobra)} m${t.sobra >= 0.3 ? ' (sirve)' : ' (se tira)'}`}</small>
+                {/* v1.82.1: el sobrante, a un pedazo de cualquier pared que entre (lo pasa a esta tira). */}
+                {onCambiar && t.sobra >= 0.3 && (() => {
+                  const entran = todos.filter((x) => !(x.grupo === g.donde && x.tira === t.n) && x.largo <= t.sobra + 1e-9);
+                  return entran.length > 0 && (
+                    <select value="" className="usar-sobrante" aria-label={`Usar el sobrante de ${m(t.sobra)} m de la tira ${t.n} (${g.donde}) en…`}
+                      onChange={(e) => { const x = entran.find((y) => y.id === e.target.value); if (x) elegir(x.id, `${g.donde}|${t.n}`); }}>
+                      <option value="">usar el sobrante en…</option>
+                      {entran.map((x) => <option key={x.id} value={x.id}>{paredDe(x)} · {m(x.largo)} m (hoy en la tira {x.tira})</option>)}
+                    </select>
+                  );
+                })()}
               </li>
             ))}
           </ul>

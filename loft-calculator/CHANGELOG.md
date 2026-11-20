@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.82.1] - 2026-11-20
+### Agregado
+- **En "Comparar" se elige**: cada casillero es un botón; tocarlo usa esa forma (sin recortes, recortes en la misma
+  pared o en cualquier pared; descontando aberturas o todo entero) en el presupuesto, la hoja de corte y el 3D
+  (`revestimiento.recortes`: 'pared' | 'entreParedes' | 'ninguno'). La diferencia es contra lo elegido.
+- **"Usar el sobrante en…"** en cada tira con sobrante que sirve (Presupuesto → Cortes): lista los pedazos de cualquier
+  pared que entran y los pasa a esa tira. Así se elige en qué pared va cada recorte.
+- Con "recortes en cualquier pared", la hoja de corte junta todas las paredes y cada pedazo dice de qué pared es.
+### Arreglado
+- La comparación no tomaba en cuenta lo elegido a mano (ahora compara las formas automáticas).
+
 ## [1.82.0] - 2026-11-20
 ### Agregado
 - **Comparar cómo cortar las tiras enteras** (en la ficha del panel): una tira por pedazo (sin usar recortes, con

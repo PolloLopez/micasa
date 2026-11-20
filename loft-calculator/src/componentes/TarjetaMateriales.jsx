@@ -57,22 +57,33 @@ function PrecioCorto({ precio }) {
  * v1.81.1: cuántas tiras enteras (y cuánta plata) según cómo se usan los recortes, descontando las aberturas o todo
  * entero. La fila marcada es la que está calculando el presupuesto.
  */
-function ComparativaDeTiras({ tipo, comparativa, precioUnitario }) {
+function ComparativaDeTiras({ tipo, comparativa, precioUnitario, cambiar = null }) {
   const pesos = (n) => n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
   const filas = [
     ['sinRecortes', 'Una tira por pedazo (sin usar recortes)'],
     ['mismaPared', 'Usando los recortes en la misma pared'],
     ['entreParedes', 'Usando los recortes entre paredes'],
   ];
-  const actual = [tipo.descontarAberturas === false ? 'todoEntero' : 'conAberturas', 'mismaPared'];
+  // v1.82.1: la que calcula el presupuesto (y tocando otra, se usa esa).
+  const RECORTE_DE_FILA = { sinRecortes: 'ninguno', mismaPared: 'pared', entreParedes: 'entreParedes' };
+  const filaActual = Object.keys(RECORTE_DE_FILA).find((f) => RECORTE_DE_FILA[f] === (tipo.recortes ?? 'pared')) ?? 'mismaPared';
+  const actual = [tipo.descontarAberturas === false ? 'todoEntero' : 'conAberturas', filaActual];
+  const usar = (columna, fila) => {
+    if (!cambiar) return;
+    cambiar('descontarAberturas')(columna === 'conAberturas');
+    cambiar('recortes')(RECORTE_DE_FILA[fila]);
+  };
   const celda = (columna, fila) => {
     const n = comparativa[columna][fila];
-    const base = comparativa[actual[0]].mismaPared;
+    const base = comparativa[actual[0]][actual[1]]; // la diferencia, contra lo elegido
     const dif = n - base;
     return (
       <td className={`num${columna === actual[0] && fila === actual[1] ? ' celda-actual' : ''}`} data-etiqueta={columna === 'conAberturas' ? 'Descontando aberturas' : 'Todo entero'}>
-        <strong>{n} tiras</strong>
-        {precioUnitario && <><br /><small>{pesos(n * precioUnitario.precio)}{dif !== 0 ? ` (${dif > 0 ? '+' : '−'}${pesos(Math.abs(dif) * precioUnitario.precio)})` : ''}</small></>}
+        <button type="button" className="boton-celda" disabled={!cambiar} aria-pressed={columna === actual[0] && fila === actual[1]}
+          title="Usar esta forma en el presupuesto, la hoja de corte y el 3D" onClick={() => usar(columna, fila)}>
+          <strong>{n} tiras</strong>
+          {precioUnitario && <><br /><small>{pesos(n * precioUnitario.precio)}{dif !== 0 ? ` (${dif > 0 ? '+' : '−'}${pesos(Math.abs(dif) * precioUnitario.precio)})` : ' · elegido'}</small></>}
+        </button>
       </td>
     );
   };
@@ -87,7 +98,7 @@ function ComparativaDeTiras({ tipo, comparativa, precioUnitario }) {
           ))}
         </tbody>
       </table>
-      <p className="nota">Marcado: lo que calcula el Presupuesto ahora. {precioUnitario ? `A ${pesos(precioUnitario.precio)} la tira en ${precioUnitario.proveedor.nombre}; entre paréntesis, la diferencia.` : 'Cargá el precio por tira para ver la plata.'}</p>
+      <p className="nota">Tocá una opción para usarla. Marcado: lo que calcula el Presupuesto ahora. {precioUnitario ? `A ${pesos(precioUnitario.precio)} la tira en ${precioUnitario.proveedor.nombre}; entre paréntesis, cuánto más (+) o menos (−) que lo elegido.` : 'Cargá el precio por tira para ver la plata.'}</p>
     </details>
   );
 }
@@ -197,7 +208,7 @@ function Revestimiento({ tipo, unidad, usos, unicoQueda, proveedores, precio, nu
           </>) : 'Las aberturas no cambian lo que se pide (ninguna parte una tira entera).'}
         </p>
       )}
-      {ahorro?.comparativa && <ComparativaDeTiras tipo={tipo} comparativa={ahorro.comparativa} precioUnitario={precioUnitario} />}
+      {ahorro?.comparativa && <ComparativaDeTiras tipo={tipo} comparativa={ahorro.comparativa} precioUnitario={precioUnitario} cambiar={cambiar} />}
       {/* v1.25: precio en cada proveedor. A medida se cobra por m²; placa fija, por placa. */}
       <PreciosProveedores material={tipo} proveedores={proveedores} unidad={unidadDePrecio(tipo)}
         onCambiar={(idProveedor, campo, valor) => onCambiarPrecio(tipo.id, idProveedor, campo, valor)} />

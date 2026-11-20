@@ -1085,3 +1085,7 @@ option { background: var(--tarjeta); color: var(--texto); }
   border-radius: 6px; padding: 2px 4px 2px 8px; }
 .pedazo-tira.manual { border-color: var(--acento); }
 .pedazo-tira select { font-size: 0.72rem; padding: 2px 4px; max-width: 11rem; }
+.boton-celda { background: none; border: 1px solid transparent; border-radius: 6px; color: inherit; font: inherit; text-align: inherit;
+  padding: 4px 6px; cursor: pointer; width: 100%; white-space: normal; overflow-wrap: anywhere; }
+.boton-celda:hover:not(:disabled) { border-color: var(--acento); }
+.boton-celda[aria-pressed="true"] { cursor: default; }

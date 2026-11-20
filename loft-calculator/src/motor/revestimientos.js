@@ -43,6 +43,9 @@ export const VENTAS = ['medida', 'estandar'];
 // (como siempre) o por TIRA ENTERA de largo fijo: los pedazos de cada pared se acomodan en tiras enteras como las
 // barras de hierro, y los recortes se usan en la misma pared.
 export const COBROS = ['m2', 'tira'];
+// v1.82.1 (Leandro: en "Comparar" no se podía elegir una opción): cómo se usan los recortes de las tiras enteras.
+export const RECORTES = ['pared', 'entreParedes', 'ninguno'];
+export const TODAS_LAS_PAREDES = 'todas las paredes';
 const MERMA_TIRA = 0.005; // m que se lleva cada corte de la tira (disco o sierra)
 export const UBICACIONES = ['cara', 'eje'];
 
@@ -64,6 +67,7 @@ export const REVESTIMIENTO_POR_DEFECTO = {
   anchoTotal: 0, // v1.68: ancho total de la tira con su encastre (0 = no se sabe): el solape del costado = total − útil
   cobro: 'm2', // v1.81: 'm2' o 'tira' (tira entera de largo fijo; ver tirasEnteras)
   tirasManuales: {}, // v1.82: { idDelPedazo: { pared, n } } de qué tira sale un pedazo (elegido a mano)
+  recortes: 'pared', // v1.82.1: cómo se usan los recortes de las tiras enteras: 'pared' (en la misma), 'entreParedes' o 'ninguno'
   largoTira: 0, // v1.81: largo de la tira entera (0 = el largo máximo)
 };
 
@@ -79,6 +83,19 @@ export const largoDeTira = (t) => (t.largoTira > 0 ? Math.min(t.largoTira, t.lar
  * @param grupos [{ donde, piezas: (number | { largo, id })[] }]
  * @returns {{ tiras, compartiendo, avisos: string[], porPared: { donde, tiras: { n, piezas: { largo, id, manual }[], sobra }[] }[] }}
  */
+/** v1.82.1: una tira entera por pedazo (lo que sobra se tira), como resultado de tirasEnteras. */
+function unaTiraPorPedazo(grupos, largo) {
+  const porPared = grupos.filter((g) => g.piezas.length > 0).map(({ donde, piezas }) => ({
+    donde,
+    tiras: piezas.map((p, i) => {
+      const pieza = typeof p === 'number' ? { largo: p, id: `${donde}|${i}` } : p;
+      return { n: i + 1, piezas: [{ ...pieza, manual: false }], sobra: Math.max(0, Math.round((largo - pieza.largo) * 100) / 100) };
+    }),
+  }));
+  const tiras = porPared.reduce((a, g) => a + g.tiras.length, 0);
+  return { tiras, compartiendo: tiras, porPared, avisos: [] };
+}
+
 export function tirasEnteras(grupos, largo, manuales = {}) {
   const opciones = { merma: MERMA_TIRA, retazoUtil: 0.3 };
   const comoPieza = (p, i, donde) => (typeof p === 'number' ? { largo: p, id: `${donde}|${i}` } : p);
@@ -358,6 +375,8 @@ export function cuentaRevestimiento(tipo, panos) {
 
   // v1.81: cobrando por tira entera, ningún pedazo puede pasar el largo de la tira.
   if (t.cobro === 'tira') t.largoMaximo = largoDeTira(t);
+  // v1.82.1: "una tira por pedazo": ni la tira angosta sale de un retazo.
+  if (t.cobro === 'tira' && t.recortes === 'ninguno') t.aprovecharRetazos = false;
   // Los pedazos de cada pared (v1.81: por pared, para acomodarlos en tiras enteras de la misma pared).
   // v1.82: cada pedazo con su id ("lado A|3") y su lugar, para elegir a mano de qué tira sale y marcarlo en el 3D.
   const porPano = panos.map((p) => ({ donde: p.donde, piezas: pedazosConLugar(p, t).map((x, i) => ({ ...x, id: `${p.donde}|${i}` })) }));
@@ -389,9 +408,14 @@ export function cuentaRevestimiento(tipo, panos) {
   if (t.cobro === 'tira') {
     const largo = largoDeTira(t);
     const grupos = [...porPano, ...(comprar.length ? [{ donde: 'rellenos al costado de aberturas', piezas: comprar.map((l, i) => ({ largo: l, id: `rellenos|${i}` })) }] : [])];
-    const cuenta = tirasEnteras(grupos, largo, t.tirasManuales ?? {});
+    // v1.82.1: los recortes en cualquier pared (todas las paredes juntas) o una tira por pedazo.
+    const todos = [{ donde: TODAS_LAS_PAREDES, piezas: grupos.flatMap((g) => g.piezas) }];
+    const cuenta = t.recortes === 'ninguno' ? unaTiraPorPedazo(grupos, largo)
+      : tirasEnteras(t.recortes === 'entreParedes' ? todos : grupos, largo, t.tirasManuales ?? {});
+    if (t.recortes === 'entreParedes') cuenta.compartiendo = cuenta.tiras;
     const ahorro = cuenta.compartiendo < cuenta.tiras
       ? ` · usando los recortes de una pared en otra serían ${cuenta.compartiendo} (${cuenta.tiras - cuenta.compartiendo} menos)` : '';
+    const comoRecortes = { pared: 'recortes en la misma pared', entreParedes: 'recortes en cualquier pared', ninguno: 'una tira por pedazo (sin usar recortes)' }[t.recortes] ?? 'recortes en la misma pared';
     return {
       cantidad: cuenta.tiras,
       unidad: 'tiras',
@@ -403,7 +427,7 @@ export function cuentaRevestimiento(tipo, panos) {
       largoTira: largo,
       compartiendo: cuenta.compartiendo, // v1.81.1: usando los recortes entre paredes
       detalle: `${cuenta.tiras} tiras enteras de ${largo.toFixed(2)} m para ${resumirLargos(piezas)} (ancho útil ${t.anchoUtil.toFixed(2)} m)`
-        + ` · recortes en la misma pared${ahorro}${retazos}${textoAberturas} · ${donde}`,
+        + ` · ${comoRecortes}${t.recortes === 'pared' || !t.recortes ? ahorro : ''}${retazos}${textoAberturas} · ${donde}`,
     };
   }
   const m2 = Math.ceil(piezas.reduce((acc, l) => acc + l, 0) * t.anchoUtil * 100 - 1e-6) / 100;
@@ -521,12 +545,13 @@ export function ahorroPorAberturas(tipo, panos) {
  * @returns {{ conAberturas: { sinRecortes, mismaPared, entreParedes }, todoEntero: { … } }}
  */
 export function comparativaDeTiras(tipo, panos) {
-  const t = { ...REVESTIMIENTO_POR_DEFECTO, ...tipo, cobro: 'tira' };
+  // Sin lo elegido a mano (la comparación es entre las formas automáticas).
+  const t = { ...REVESTIMIENTO_POR_DEFECTO, ...tipo, cobro: 'tira', tirasManuales: {} };
   const variante = (descontarAberturas) => {
     const base = { ...t, descontarAberturas };
-    const c = cuentaRevestimiento(base, panos);
-    const sin = cuentaRevestimiento({ ...base, aprovecharRetazos: false }, panos);
-    return { sinRecortes: sin.piezas.length, mismaPared: c.cantidad, entreParedes: c.compartiendo ?? c.cantidad };
+    const c = cuentaRevestimiento({ ...base, recortes: 'pared' }, panos);
+    const sin = cuentaRevestimiento({ ...base, recortes: 'ninguno' }, panos);
+    return { sinRecortes: sin.cantidad, mismaPared: c.cantidad, entreParedes: c.compartiendo ?? c.cantidad };
   };
   return { conAberturas: variante(true), todoEntero: variante(false) };
 }

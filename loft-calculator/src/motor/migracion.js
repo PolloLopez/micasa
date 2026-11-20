@@ -60,7 +60,7 @@ import { completarTabique } from './tabiques.js';
 import { completarSol } from './sol.js';
 import { GRADA_INICIAL } from './grada.js';
 import { MONTAJE_INICIAL } from './montaje.js';
-import { REVESTIMIENTO_POR_DEFECTO, TIRA_ANGOSTA, LIMITES_REVESTIMIENTO, VENTAS, UBICACIONES, COBROS } from './revestimientos.js';
+import { REVESTIMIENTO_POR_DEFECTO, TIRA_ANGOSTA, LIMITES_REVESTIMIENTO, VENTAS, UBICACIONES, COBROS, RECORTES } from './revestimientos.js';
 import { TIPOS_PERFIL, LIMITES_PERFIL, revisarPerfil, armarListaDePerfiles } from './perfiles.js';
 import { conProveedores, FORMAS_DE_PAGO } from './proveedores.js';
 import { completarConsumible } from './consumibles.js';
@@ -205,6 +205,7 @@ function datosDeRevestimiento(p) {
     cobro: COBROS.includes(p.cobro) ? p.cobro : d.cobro, // v1.81: por m² (los de antes) o por tira entera
     largoTira: numero('largoTira'), // v1.81
     tirasManuales: tirasManualesValidas(p.tirasManuales), // v1.82: de qué tira sale cada pedazo (elegido a mano)
+    recortes: RECORTES.includes(p.recortes) ? p.recortes : d.recortes, // v1.82.1
   };
 }
 

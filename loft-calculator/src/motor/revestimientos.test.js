@@ -283,3 +283,23 @@ describe('v1.82: mover los recortes (de qué tira sale cada pedazo) y cuál qued
     expect(encimadosDePano(alta, { ...tipo, anchoTotal: 0 }).laterales).toEqual([]); // sin ancho total no se sabe
   });
 });
+
+describe('v1.82.1: elegir la forma de usar los recortes (desde Comparar)', () => {
+  const tipo = { ...REVESTIMIENTO_POR_DEFECTO, anchoUtil: 0.95, largoMaximo: 11.9, cobro: 'tira', largoTira: 7.62, aprovecharRetazos: true, descontarAberturas: false };
+  const panos = [
+    { donde: 'pared A', largo: 3.8, h1: 5, h2: 5, neto: 19, huecos: [] },
+    { donde: 'pared B', largo: 1.9, h1: 2.6, h2: 2.6, neto: 4.94, huecos: [] },
+  ];
+  it('misma pared (de fábrica), cualquier pared o una tira por pedazo: lo mismo que dice Comparar', () => {
+    const comp = comparativaDeTiras(tipo, panos).todoEntero;
+    const pared = cuentaRevestimiento(tipo, panos);
+    const entre = cuentaRevestimiento({ ...tipo, recortes: 'entreParedes' }, panos);
+    const ninguno = cuentaRevestimiento({ ...tipo, recortes: 'ninguno' }, panos);
+    expect([pared.cantidad, entre.cantidad, ninguno.cantidad]).toEqual([comp.mismaPared, comp.entreParedes, comp.sinRecortes]);
+    expect(entre.cantidad).toBeLessThan(pared.cantidad);
+    expect(entre.tirasPorPared.map((g) => g.donde)).toEqual(['todas las paredes']);
+    expect(entre.detalle).toMatch(/recortes en cualquier pared/);
+    expect(ninguno.tirasPorPared.every((g) => g.tiras.every((t) => t.piezas.length === 1))).toBe(true);
+    expect(normalizarCatalogo([{ id: 'p', categoria: 'panel', nombre: 'P', recortes: 'cualquiera' }]).find((i) => i.id === 'p').recortes).toBe('pared');
+  });
+});

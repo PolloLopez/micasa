@@ -162,7 +162,8 @@ cortás vos (la ficha dice cuántas tiras más son).
 **Comparar y mover recortes** (panel por tira entera): en la ficha del panel, **Comparar** muestra cuántas tiras (y
 cuánta plata) son sin usar recortes, usándolos en la misma pared o entre paredes, con o sin descontar aberturas. En
 **Presupuesto → Cortes**, cada pedazo tiene **sale de…** para elegir de qué tira cortarlo (de otra pared o una tira
-nueva); en el 3D, con **Solo paneles**, cada pedazo dice su tira (T3). En el 3D y en el plano de cada pared, en
+nueva) y cada tira con sobrante tiene **usar el sobrante en…** (elegís en qué pared va ese recorte). En **Comparar**
+tocá la opción que querés usar. En el 3D, con **Solo paneles**, cada pedazo dice su tira (T3). En el 3D y en el plano de cada pared, en
 **naranja** el empalme (el tramo de arriba va por fuera del de abajo) y en **verde** el encastre (el costado que
 monta sobre la tira de al lado; cargá el ancho total del panel para verlo).
 
