@@ -368,9 +368,12 @@ export default function HojasImpresion({
       {conParedes && (
         <section className="hoja-impresion">
           {primera === 3 && cabecera}
-          <h2>Paredes (vistas desde afuera)</h2>
+          <h2>{opciones.techoPaneles && vistas.techo ? 'Paños a revestir: paredes (vistas desde afuera) y techo' : 'Paredes (vistas desde afuera)'}
+            {opciones.panelesSinCortesAberturas ? ' · tiras enteras: las aberturas se cortan en obra' : ''}</h2>
           <div className="grilla-planos">
             {vistas.paredes.map((v) => <div key={v.lado} className="plano-impresion"><PlanoDePared vista={v} params={params} soloContorno={opciones.paredesSinEstructura === true} /></div>)}
+            {/* v1.91: el techo como un paño más (para el proveedor de paneles). */}
+            {opciones.techoPaneles && vistas.techo && <div className="plano-impresion"><PlanoDePared vista={vistas.techo} params={params} soloContorno /></div>}
           </div>
         </section>
       )}

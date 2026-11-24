@@ -32,6 +32,11 @@ ella), **Donde se corta, va** soldada, con cubrejunta o con chapa (las dos últi
 **dónde** (moverlo a cuántos metros de la punta, **Ya está hecho así**, ↶ automático). En el 3D cada empalme tiene una
 marca (naranja: lo eligió la app; celeste: vos). Todo lo elegido está en Piezas a mano, con Deshacer.
 
+**Para el proveedor de paneles** (v1.91): en **Planos** tildá "Para el proveedor de paneles" y quedan los 5 paños a
+revestir (las 4 paredes y el techo) sin la estructura; elegí **con los cortes de las aberturas** o **tiras enteras** (las
+aberturas se cortan en obra). Para mandarlo: **Imprimir o exportar… → Para quien cotiza paneles → Imprimir / PDF** y
+"Guardar como PDF". El techo sale con la opción "Techo: el panel con sus tiras" (no hace falta "Piso, entrepiso y techo").
+
 **El techo en Solo paneles** (v1.90): apagá **🏠 Adentro** para verlo de arriba. Cada pedazo (pared o techo) dice de
 qué tira entera sale (T1, T2…); tocá la tira y en su panel elegí **sale de la tira…** (qué lleva cada una y cuánto sobra)
 o "que la elija la app": así mandás un pedazo del techo al sobrante de una pared, o al revés.

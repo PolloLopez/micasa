@@ -26,6 +26,8 @@ const GRUPOS = [
     ['comprasSoloFalta', 'En la lista de compras, solo lo que falta comprar (para ir al corralón)']] },
   { titulo: 'Planos', partes: [['paredes', 'Paredes acotadas (las 4 juntas)'],
     ['paredesSinEstructura', 'Paredes solo con el contorno y las aberturas (sin la estructura ni sus medidas: para el proveedor de paneles)'],
+    ['techoPaneles', 'Techo: el panel con sus tiras (para el proveedor de paneles)', true],
+    ['panelesSinCortesAberturas', 'Tiras enteras, sin los cortes de las aberturas (se cortan en obra)', true],
     ['plantas', 'Piso, entrepiso y techo'],
     // v1.42: las listas que acompañan a los planos.
     ['listaCanos', 'Caños y perfiles: tipo, barras y dónde va cada uno'], ['listaAberturas', 'Aberturas: tipo, medidas y ubicación']] },
@@ -47,11 +49,11 @@ export default function DialogoImprimir({ opciones, onCambiar, cantidadMedidas, 
     if (ventana && !ventana.open) ventana.showModal();
   }, []);
 
-  const algoParaPdf = Object.entries(opciones).some(([k, v]) => v && k !== 'cotas' && k !== 'paredesSinEstructura' && k !== 'comprasSoloFalta' && !k.startsWith('parte'));
+  const algoParaPdf = Object.entries(opciones).some(([k, v]) => v && k !== 'cotas' && k !== 'paredesSinEstructura' && k !== 'techoPaneles' && k !== 'panelesSinCortesAberturas' && k !== 'comprasSoloFalta' && !k.startsWith('parte'));
   const algoParaExcel = ['resumen', 'presupuesto', 'cortes', 'paredes', 'plantas', 'medidas', 'listaCanos', 'listaAberturas', 'seguimiento', 'compras', 'instElectrica', 'instAgua', 'instDesague', 'instGas', 'instEquipos'].some((k) => opciones[k]);
   const deshabilitada = (clave) => (clave === 'medidas' && cantidadMedidas === 0)
     || (!esConstruccion && ['paredes', 'plantas', 'cotas', 'vistasFijas', 'vistasPartes', 'listaAberturas'].includes(clave))
-    || (clave === 'paredesSinEstructura' && !opciones.paredes) // v1.60: solo cambia cómo salen las paredes
+    || (['paredesSinEstructura', 'techoPaneles', 'panelesSinCortesAberturas'].includes(clave) && !opciones.paredes) // v1.60: va con las paredes (v1.91: el techo también)
     || (clave === 'comprasSoloFalta' && !opciones.compras); // v1.74: solo cambia cómo sale la lista
 
   return (

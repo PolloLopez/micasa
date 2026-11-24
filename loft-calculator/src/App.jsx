@@ -418,8 +418,10 @@ export default function App() {
   // v1.21: cada uso con el nombre, la barra y el precio de su perfil (para el 3D y el editor de piezas).
   const catalogoResuelto = useMemo(() => resolverCatalogo(catalogoConPrecios), [catalogoConPrecios]);
   // v1.26: cada pared y planta en 2D (pestaña Planos, PDF y Excel).
-  const vistas = useMemo(() => todasLasVistas(estructura, paramsObra, catalogoResuelto, aberturasValidas),
-    [estructura, paramsObra, catalogoResuelto, aberturasValidas]);
+  // v1.91: con "tiras enteras" (Imprimir, o Planos para el proveedor), las tiras sin los cortes de las aberturas.
+  const sinCortesAberturas = opcionesImpresion.panelesSinCortesAberturas === true;
+  const vistas = useMemo(() => todasLasVistas(estructura, paramsObra, catalogoResuelto, aberturasValidas, { sinCortesAberturas }),
+    [estructura, paramsObra, catalogoResuelto, aberturasValidas, sinCortesAberturas]);
 
   // --- Pestañas del panel (v1.18) ---
   // La elegida se recuerda por navegador. En el celular hay una más, "3D" (vistaMovil):
@@ -1877,7 +1879,8 @@ export default function App() {
           {/* v1.26: planos de cada pared y planta (en pantalla y en el PDF) + Excel. */}
           <section id="pestana-planos" role="tabpanel" aria-labelledby="boton-planos"
             className={`pestana${pestanaActiva === 'planos' ? '' : ' oculta'}`}>
-            <Planos vistas={vistas} params={params} estructura={estructura} implantacion={implantacion} codigosCorte={codigosCorte} onExportar={() => setDialogoImprimir(true)} />
+            <Planos vistas={vistas} params={params} estructura={estructura} implantacion={implantacion} codigosCorte={codigosCorte} onExportar={() => setDialogoImprimir(true)}
+              sinCortesAberturas={sinCortesAberturas} onSinCortesAberturas={(v) => setOpcionesImpresion({ ...opcionesImpresion, panelesSinCortesAberturas: v })} />
           </section>
           <section id="pestana-instalaciones" role="tabpanel" aria-labelledby="boton-instalaciones"
             className={`pestana${pestanaActiva === 'instalaciones' ? '' : ' oculta'}`}>

@@ -1141,6 +1141,7 @@ option { background: var(--tarjeta); color: var(--texto); }
   flex-wrap: wrap; gap: 6px 10px; align-items: center; justify-content: center; max-width: calc(100% - 32px);
   padding: 8px 12px; border-radius: 10px; background: rgba(15, 23, 42, 0.94); border: 1px solid #38bdf8; color: #e2e8f0; }
 .varias-elegidas small { opacity: 0.8; }
+.radios-cortes { border: 1px solid var(--borde, #334155); border-radius: 8px; padding: 6px 10px; display: flex; flex-direction: column; gap: 4px; } /* v1.91 */
 .sale-de-tira { display: flex; flex-direction: column; gap: 6px; margin: 6px 0; font-size: 0.85rem; } /* v1.90 */
 .sale-de-tira select { margin-left: 6px; max-width: 100%; }
 .chip-cruce { white-space: nowrap; padding: 1px 7px; border-radius: 999px; font-size: 0.75rem; }

@@ -108,7 +108,7 @@ function DibujoPared({ vista, soloContorno = false, codigos = null }) {
   const posicionesAbajo = soloContorno ? redondo([0, vista.largo, ...reales.flatMap((a) => [a.desde, a.hasta])]) : vista.cotas.columnas;
   return (
     <svg className="dibujo-plano" viewBox={`${-margenIzq} -0.4 ${vista.largo + margenIzq + 0.4} ${alto + 0.4 + margenAbajo}`}
-      role="img" aria-label={`Pared ${vista.lado} vista desde afuera`}>
+      role="img" aria-label={vista.esTecho ? 'Techo visto desde arriba' : `Pared ${vista.lado} vista desde afuera`}>
       <polygon className="contorno" points={`0,${y(0)} ${vista.largo},${y(0)} ${vista.largo},${y(h2)} 0,${y(h1)}`} />
       {/* Aberturas: el hueco con su número y medidas. */}
       {vista.huecos.map((h, i) => {
@@ -261,7 +261,7 @@ function TablaPaneles({ paneles: p }) {
                 // v1.68: a cada relleno, de dónde sale (un recorte de otra tira, o se compra).
                 const r = (t.rellenos ?? []).find((x) => c.startsWith(`relleno al costado ${x.lado}`));
                 return r && r.de !== undefined ? `${c} (${r.de ? `del ${r.de}` : 'se compra'})` : c;
-              }).join(' · ') : 'entera'}</td>
+              }).join(' · ') : 'entera'}{t.aberturasEnObra > 0 ? ` (la abertura se corta en obra)` : ''}</td>
             </tr>
           ))}
         </tbody>
@@ -279,7 +279,7 @@ function TablaPaneles({ paneles: p }) {
  * su ancho y largo, el corte inclinado de arriba, los recortes de las aberturas (rayados) y, en color, el costado
  * que superpone sobre la tira de al lado. Abajo, los rellenos que salen de retazos.
  */
-function DespiecePaneles({ paneles: p }) {
+function DespiecePaneles({ paneles: p, esTecho = false }) {
   const m = (n) => n.toFixed(2).replace('.', ',');
   const deRetazo = new Map(p.tiras.filter((t) => t.deRetazo).map((t) => [t.n, t.deRetazo]));
   const rellenos = p.tiras.flatMap((t) => (t.rellenos ?? []).map((r) => ({ ...r, tira: t.n })));
@@ -297,7 +297,7 @@ function DespiecePaneles({ paneles: p }) {
         </defs>
       </svg>
       <h4 className="subtitulo-pared">Plano de cada panel</h4>
-      <p className="nota">Vistos desde afuera. En verde, el costado que <strong>superpone</strong> (el {superpone}{solapeLateral > 0 ? `, ${Math.round(solapeLateral * 1000)} mm` : ''}): cada tira monta
+      <p className="nota">{esTecho ? 'Vistos desde arriba' : 'Vistos desde afuera'}. En verde, el costado que <strong>superpone</strong> (el {superpone}{solapeLateral > 0 ? `, ${Math.round(solapeLateral * 1000)} mm` : ''}): cada tira monta
         sobre la anterior, se colocan de {superpone === 'izquierdo' ? 'izquierda a derecha' : 'derecha a izquierda'}. Rayado: lo que se recorta.</p>
       <div className="grilla-despiece">
         {p.despiece.map((d) => {
@@ -329,7 +329,7 @@ function DespiecePaneles({ paneles: p }) {
                 <text x={X(0) - 4} y={Y(d.arriba[0] / 2)} textAnchor="end" dominantBaseline="middle" className="cota-panel">{m(d.arriba[0])}</text>
                 {inclinada && <text x={X(d.ancho) - 3} y={Y(d.arriba[1]) + 11} textAnchor="end" className="cota-panel">{m(d.arriba[1])}</text>}
               </svg>
-              <small>{d.cortadaALoLargo ? 'cortada a lo largo · ' : ''}va desde {m(d.desde)} m del piso
+              <small>{d.cortadaALoLargo ? 'cortada a lo largo · ' : ''}va desde {m(d.desde)} m {esTecho ? 'del borde bajo' : 'del piso'}
                 {d.recortes.map((r) => ` · recorte ${m(r.x1 - r.x0)} × ${m(r.y1 - r.y0)} m, a ${m(r.x0)} m del costado izq. y ${m(r.y0)} m de abajo`).join('')}</small>
             </figure>
           );
@@ -369,10 +369,18 @@ export function PlanoDePared({ vista: v, params, soloContorno = false, codigos =
   const aberturas = soloContorno ? v.aberturas.filter((a) => !a.futura) : v.aberturas;
   return (
     <>
+      {v.esTecho ? (
+        // v1.91: el panel del techo (visto desde arriba): a lo largo y a lo largo del faldón, desde el borde bajo.
+        <h3 className="subtitulo">
+          Techo · {f2(v.largo)} m de largo × {f2(v.alturas[0])} m de faldón (desde el borde bajo{v.alero?.bajo > 0 ? `, con ${f2(v.alero.bajo)} m de alero` : ''}{v.alero?.alto > 0 ? `; ${f2(v.alero.alto)} m de alero arriba` : ''})
+        </h3>
+      ) : (
       <h3 className="subtitulo">
         Pared {nombreDePared(v.lado, params)} · {f2(v.largo)} m · alto {f2(v.alturas[0])}
         {Math.abs(v.alturas[0] - v.alturas[1]) > 0.005 ? ` a ${f2(v.alturas[1])}` : ''} m
       </h3>
+      )}
+      {v.esTecho && <p className="nota">Visto desde arriba: abajo en el dibujo, el borde bajo (por donde cae el agua); las tiras van a lo largo del faldón.</p>}
       <DibujoPared vista={v} soloContorno={soloContorno} codigos={codigos} />
       {!soloContorno && <TablaPiezas lista={v.lista} />}
       {aberturas.length > 0 && (
@@ -395,7 +403,7 @@ export function PlanoDePared({ vista: v, params, soloContorno = false, codigos =
         <p key={r.cara} className="revestimiento-plano"><strong>Revestimiento {r.cara} ({r.nombre}):</strong> {r.detalle}</p>
       ))}
       {v.paneles && <TablaPaneles paneles={v.paneles} />}
-      {v.paneles?.despiece?.length > 0 && <DespiecePaneles paneles={v.paneles} />}
+      {v.paneles?.despiece?.length > 0 && <DespiecePaneles paneles={v.paneles} esTecho={Boolean(v.esTecho)} />}
     </>
   );
 }
@@ -443,7 +451,7 @@ function tramosSinHuecos(x, alto, huecos = []) {
   return tramos;
 }
 
-export default function Planos({ vistas, params, estructura = null, onExportar, implantacion = null, codigosCorte = null }) {
+export default function Planos({ vistas, params, estructura = null, onExportar, implantacion = null, codigosCorte = null, sinCortesAberturas = false, onSinCortesAberturas = null }) {
   // v1.60: las paredes como las ve el proveedor de paneles (contorno y aberturas, sin la estructura ni sus medidas).
   const [paraPaneles, setParaPaneles] = useEstadoGuardado('planosParaPaneles', false, (v) => typeof v === 'boolean');
   // v1.68: el código de la hoja de corte en cada pieza (el mismo de Presupuesto → Cortes y del 3D).
@@ -466,8 +474,18 @@ export default function Planos({ vistas, params, estructura = null, onExportar, 
         </p>
         <label className="casilla-opcional no-print">
           <input type="checkbox" checked={paraPaneles} onChange={(e) => setParaPaneles(e.target.checked)} />
-          Paredes para el proveedor de paneles: solo el contorno y las aberturas (sin la estructura ni sus medidas)
+          Para el proveedor de paneles: solo los paños a revestir (las 4 paredes y el techo), con el contorno, las
+          aberturas y las tiras; sin la estructura de hierro
         </label>
+        {paraPaneles && onSinCortesAberturas && (
+          <fieldset className="radios-cortes no-print">
+            <legend>Las aberturas en las tiras (v1.91)</legend>
+            <label><input type="radio" name="cortes-aberturas" checked={!sinCortesAberturas} onChange={() => onSinCortesAberturas(false)} />
+              {' '}Con los cortes de las aberturas (las tiras vienen cortadas)</label>
+            <label><input type="radio" name="cortes-aberturas" checked={sinCortesAberturas} onChange={() => onSinCortesAberturas(true)} />
+              {' '}Tiras enteras (las aberturas se cortan en obra)</label>
+          </fieldset>
+        )}
         {codigosCorte?.size > 0 && (
           <label className="casilla-opcional no-print">
             <input type="checkbox" checked={verCodigos} onChange={(e) => setVerCodigos(e.target.checked)} />
@@ -477,7 +495,7 @@ export default function Planos({ vistas, params, estructura = null, onExportar, 
         <button type="button" className="btn-print no-print" onClick={onExportar}>Imprimir o exportar…</button>
       </Tarjeta>
       {/* v1.32: la casa en su lote (si se cargó el terreno). */}
-      {implantacion && params.terreno?.activo && (
+      {implantacion && params.terreno?.activo && !paraPaneles && (
         <section className="card plano">
           <h3 className="subtitulo">Implantación (vista desde arriba, la calle abajo)</h3>
           <PlanoImplantacion imp={implantacion} terreno={params.terreno} tapial={dibujoDelTapial(params)} />
@@ -486,10 +504,12 @@ export default function Planos({ vistas, params, estructura = null, onExportar, 
       {vistas.paredes.map((v) => (
         <section key={v.lado} className="card plano"><PlanoDePared vista={v} params={params} soloContorno={paraPaneles} codigos={verCodigos ? codigosCorte : null} /></section>
       ))}
-      {vistas.plantas.map((p) => (
+      {/* v1.91: para el proveedor de paneles, el techo como un paño más; sin plantas ni instalaciones (son de hierro). */}
+      {paraPaneles && vistas.techo && <section className="card plano"><PlanoDePared vista={vistas.techo} params={params} soloContorno /></section>}
+      {!paraPaneles && vistas.plantas.map((p) => (
         <section key={p.nivel} className="card plano"><PlanoDePlanta vista={p} codigos={verCodigos ? codigosCorte : null} /></section>
       ))}
-      <PlanosInstalaciones params={params} estructura={estructura} />
+      {!paraPaneles && <PlanosInstalaciones params={params} estructura={estructura} />}
     </>
   );
 }

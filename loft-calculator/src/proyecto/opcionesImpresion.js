@@ -17,6 +17,8 @@ export const OPCIONES_IMPRESION_INICIALES = {
   instEquipos: true, // v1.58: aires, salamandra y solar
   // v1.60: las paredes solo con su contorno y las aberturas (para el proveedor de paneles: sin la estructura ni sus medidas).
   paredesSinEstructura: false,
+  techoPaneles: false, // v1.91: el panel del techo con sus tiras (para el proveedor de paneles)
+  panelesSinCortesAberturas: false, // v1.91: las tiras enteras, sin los cortes de las aberturas (se cortan en obra)
 };
 
 /** v1.42: "Solo planos": las paredes, las plantas y sus listas; nada del 3D ni del presupuesto. */
@@ -25,7 +27,7 @@ export const SOLO_PLANOS = Object.fromEntries(Object.keys(OPCIONES_IMPRESION_INI
 
 /** v1.60: para quien cotiza los paneles: las paredes con su contorno y sus aberturas, sin estructura, sin plantas ni caños. */
 export const PARA_PANELES = Object.fromEntries(Object.keys(OPCIONES_IMPRESION_INICIALES)
-  .map((k) => [k, ['paredes', 'listaAberturas', 'paredesSinEstructura'].includes(k)]));
+  .map((k) => [k, ['paredes', 'listaAberturas', 'paredesSinEstructura', 'techoPaneles'].includes(k)]));
 
 /** Lo guardado sirve si tiene todas las claves con true/false. */
 export const opcionesImpresionValidas = (o) => o !== null && typeof o === 'object'

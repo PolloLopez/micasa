@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.91.0] - 2026-11-24
+### Agregado
+- **Para el proveedor de paneles, los 5 paños a revestir** (Leandro: "no necesito mostrarle la estructura de hierros,
+  solo los 5 paneles para revestir"; "el selector tiene juntos piso, entrepiso y techo, y el techo lo debe
+  presupuestar, piso y entrepiso no"). En Planos, "Para el proveedor de paneles" muestra las 4 paredes y **el techo
+  como un paño más** (largo × faldón, con el alero, sus tiras y el plano de cada una), sin implantación, plantas ni
+  instalaciones. En Imprimir hay una opción aparte, **"Techo: el panel con sus tiras"**, y el botón "Para quien cotiza
+  paneles" la prende (sin "Piso, entrepiso y techo", que es la estructura). `vistaDelTecho` en planos.js.
+- **Con o sin los cortes de las aberturas** (Leandro: "poder seleccionar si agrega los cortes de abertura, o no"): en
+  Planos (para el proveedor) y en Imprimir, "Tiras enteras (las aberturas se cortan en obra)". Las tiras salen sin el
+  recorte de la ventana ("entera (la abertura se corta en obra)"); el dibujo de la pared igual muestra dónde va.
+  Solo cambia lo que se le muestra al proveedor: el presupuesto sigue con lo cargado en el panel.
+
 ## [1.90.0] - 2026-11-24
 ### Agregado
 - **El techo en "Solo paneles"** (Leandro: "la solera superior es el mismo borde del techo que es el alero… debería

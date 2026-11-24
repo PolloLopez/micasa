@@ -141,3 +141,41 @@ describe('v1.82.2: el plano de la pared muestra las mismas tiras que el 3D y la 
     expect(vistaDePared(e, P, 'A', CATALOGO_INICIAL, ABERTURAS_INICIALES).paneles?.pedazosTira ?? null).toBeNull();
   });
 });
+
+describe('v1.91: el techo como un paño más (para el proveedor de paneles)', async () => {
+  const { todasLasVistas } = await import('./planos.js');
+  const { generarEstructura } = await import('./estructura.js');
+  const { PARAMS_INICIALES, ABERTURAS_INICIALES } = await import('./parametrosIniciales.js');
+  const { CATALOGO_INICIAL } = await import('./presupuesto.js');
+  const { resolverCatalogo } = await import('./perfiles.js');
+  const cat = resolverCatalogo(CATALOGO_INICIAL);
+  const e = generarEstructura(PARAMS_INICIALES, ABERTURAS_INICIALES, cat);
+  const { techo } = todasLasVistas(e, PARAMS_INICIALES, cat, ABERTURAS_INICIALES);
+  it('mide lo mismo que el techo, sin piezas de hierro ni aberturas, y con sus tiras', () => {
+    expect(techo).toMatchObject({ lado: 'techo', esTecho: true, piezas: [], aberturas: [] });
+    expect(techo.largo).toBeCloseTo(e.techo.largo, 6);
+    expect(techo.alturas[0]).toBeCloseTo(e.techo.largoFaldon, 6);
+    if (techo.paneles) expect(techo.paneles.tiras.length).toBeGreaterThan(0);
+  });
+});
+
+describe('v1.91: para el proveedor, con o sin los cortes de las aberturas', async () => {
+  const { todasLasVistas } = await import('./planos.js');
+  const { generarEstructura } = await import('./estructura.js');
+  const { PARAMS_INICIALES, ABERTURAS_INICIALES } = await import('./parametrosIniciales.js');
+  const { CATALOGO_INICIAL } = await import('./presupuesto.js');
+  const { resolverCatalogo } = await import('./perfiles.js');
+  const cat = resolverCatalogo(CATALOGO_INICIAL);
+  const e = generarEstructura(PARAMS_INICIALES, ABERTURAS_INICIALES, cat);
+  const recortes = (v) => v.paredes.flatMap((p) => p.paneles?.despiece ?? []).reduce((a, d) => a + (d.recortes?.length ?? 0), 0);
+  const piezas = (v) => v.paredes.flatMap((p) => p.paneles?.despiece ?? []).length;
+  it('tiras enteras: sin recortes de aberturas y no más pedazos que con cortes', () => {
+    const con = todasLasVistas(e, PARAMS_INICIALES, cat, ABERTURAS_INICIALES);
+    const sin = todasLasVistas(e, PARAMS_INICIALES, cat, ABERTURAS_INICIALES, { sinCortesAberturas: true });
+    expect(recortes(con)).toBeGreaterThan(0);
+    expect(piezas(sin)).toBeLessThanOrEqual(piezas(con));
+    expect(recortes(sin)).toBe(0); // la tira viene entera: el hueco se corta en obra
+    // Las aberturas se siguen dibujando (para saber dónde cortar en obra).
+    expect(sin.paredes.flatMap((p) => p.aberturas).length).toBe(con.paredes.flatMap((p) => p.aberturas).length);
+  });
+});
