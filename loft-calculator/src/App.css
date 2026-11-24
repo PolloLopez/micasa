@@ -1136,6 +1136,11 @@ option { background: var(--tarjeta); color: var(--texto); }
 .cruces-de-pieza .fila-cruce + .fila-cruce { justify-content: flex-start; margin-top: 3px; }
 .cruces-de-pieza select { max-width: 100%; font-size: 0.8rem; }
 .cruces-de-pieza .nota-cruces { display: block; opacity: 0.75; }
+/* v1.89: las piezas elegidas con Shift + clic */
+.varias-elegidas { position: absolute; left: 50%; top: 92px; transform: translateX(-50%); z-index: 6; display: flex;
+  flex-wrap: wrap; gap: 6px 10px; align-items: center; justify-content: center; max-width: calc(100% - 32px);
+  padding: 8px 12px; border-radius: 10px; background: rgba(15, 23, 42, 0.94); border: 1px solid #38bdf8; color: #e2e8f0; }
+.varias-elegidas small { opacity: 0.8; }
 .chip-cruce { white-space: nowrap; padding: 1px 7px; border-radius: 999px; font-size: 0.75rem; }
 .chip-cruce.cruce-corta { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
 .chip-cruce.cruce-entera { background: rgba(34, 197, 94, 0.2); color: #86efac; }

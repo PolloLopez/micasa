@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.89.0] - 2026-11-24
+### Agregado
+- **Elegir varias piezas y marcarlas puestas de una vez** (Leandro: "seleccionar varias para registrar como
+  instaladas, más rápido… manteniendo apretado Shift"). En el 3D, **Shift + clic** suma o saca una pieza (se ve
+  blanca y celeste); en el celular, el botón **☑ Varias** hace lo mismo con cada toque. Arriba aparece "N piezas
+  elegidas · metros · cuántas ya puestas" con **✓ Marcar puestas**, Medida ✓, Sacar "puesta" y Soltar (o Esc).
+### Notas
+- Pregunta de Leandro: "¿en los cruces está descontando la barra entera?". No: en cada corte se saca el ancho de la
+  otra pieza (4 cm el C 80×40 de canto) más la luz de Uniones (5 mm de cada lado). Ej.: la transversal de 7,50 m
+  cortada por 12 tirantes y los 2 bordes queda en 13 tramos que suman 6,81 m.
+
 ## [1.88.0] - 2026-11-24
 ### Agregado
 - **Cada cruce, uno por uno** (Leandro: "debería poder ingresar dónde se une y dónde no, en cada cruce, no en general.

@@ -32,6 +32,9 @@ ella), **Donde se corta, va** soldada, con cubrejunta o con chapa (las dos últi
 **dónde** (moverlo a cuántos metros de la punta, **Ya está hecho así**, ↶ automático). En el 3D cada empalme tiene una
 marca (naranja: lo eligió la app; celeste: vos). Todo lo elegido está en Piezas a mano, con Deshacer.
 
+**Varias de una vez** (v1.89): en el 3D, **Shift + clic** en cada pieza (en el celular, prendé **☑ Varias** y tocá) y
+arriba aparece cuántas elegiste, con **✓ Marcar puestas**, Medida ✓, Sacar "puesta" y Soltar (Esc también suelta).
+
 **Sus cruces, uno por uno** (v1.88): abajo de la pieza tocada, **Sus cruces (N)**: una fila por cruce (con qué pieza y a
 cuántos metros de la punta) con lo que pasa hoy (✂ se corta · pasa entera · ⤓ va debajo) y para elegir: **se corta esta /
 pasa entera esta**, o **una va debajo de la otra** (y cuál se mueve: baja la de abajo o sube la de arriba; las dos quedan

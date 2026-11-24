@@ -179,6 +179,8 @@ function crearMateriales(colores) {
   // Pieza seleccionada: amarillo que brilla.
   materiales.seleccion = new THREE.MeshStandardMaterial({ color: COLOR_SELECCION, emissive: COLOR_SELECCION, emissiveIntensity: 0.6 });
   // v1.83: "Avance" del armado: lo puesto en verde, lo que falta gris claro y transparente.
+  // v1.89: las piezas elegidas con Shift + clic (para marcarlas puestas de a muchas).
+  materiales.variasElegidas = new THREE.MeshStandardMaterial({ color: '#ffffff', emissive: '#38bdf8', emissiveIntensity: 0.8 });
   materiales.instalada = new THREE.MeshStandardMaterial({ color: '#22c55e', emissive: '#14532d', emissiveIntensity: 0.4 });
   materiales.pendiente = new THREE.MeshStandardMaterial({ color: '#94a3b8', transparent: true, opacity: 0.35, depthWrite: false });
   // v1.86: la marca de cada empalme (un anillo naranja sobre la pieza; azul si se eligió a mano).
@@ -402,7 +404,7 @@ function cartel(texto, esFrente) {
 /** Arma todas las mallas del modelo dentro de `grupo`. */
 function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
   const { params, estructura: e, aberturas, capas, gruposVisibles, seleccionada, catalogo, aberturaSeleccionada, medida, resaltado, medidasFijas = [],
-    perfiles = null, opacidadHierros = 1, tiraElegida = null, avance = null, empalmes = null, cruces = null, cruceActivo = null } = opciones;
+    perfiles = null, opacidadHierros = 1, tiraElegida = null, avance = null, empalmes = null, cruces = null, cruceActivo = null, varias = null } = opciones;
   // v1.55: con "Color por perfil", cada pieza del color de su caño (el mismo perfil, el mismo color).
   const colorDePerfil = perfiles ? new Map(perfiles.map((x) => [x.perfil, x.color])) : null;
   const materialDePerfil = (p) => {
@@ -431,15 +433,16 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
     if (!estilo || !capas[capa] || !p.grupos.every(grupoVisible)) return;
     if (p.nivel === 'piso2' && !grupoVisible('piso2')) return; // v1.44: mesadas y tabiques del piso 2 van con él
     const elegida = p.id === seleccionada;
-    const resaltada = !elegida && piezaResaltada(p, resaltado, catalogo); // v1.27
+    const enVarias = !elegida && Boolean(varias?.has(p.id)); // v1.89: elegida con Shift + clic
+    const resaltada = !elegida && !enVarias && piezaResaltada(p, resaltado, catalogo); // v1.27
     // v1.42.1: los tirantes de madera, de madera (y un poco más gruesos).
     if (p.madera && capas.madera === false) return; // v1.59: "Ver estructura de hierro" saca los tirantes de madera
     // v1.83: con "Avance", el color dice si la pieza ya está puesta (verde) o falta (gris).
-    const material = elegida ? materiales.seleccion : resaltada ? materiales.resaltado
+    const material = elegida ? materiales.seleccion : enVarias ? materiales.variasElegidas : resaltada ? materiales.resaltado
       : avance ? (avance[p.id]?.instalada ? materiales.instalada : materiales.pendiente)
         : p.madera ? materiales.madera : (colorDePerfil && materialDePerfil(p)) || materiales[capa];
     const seccion = p.madera ? 0.1 : seccionDe(p, catalogo, estilo);
-    const malla = barra(p, elegida ? seccion * 1.6 : resaltada ? seccion * 1.3 : seccion, material);
+    const malla = barra(p, elegida ? seccion * 1.6 : resaltada || enVarias ? seccion * 1.3 : seccion, material);
     if (resaltada) malla.renderOrder = 997; // después de los paneles transparentes
     malla.userData.idPieza = p.id;
     malla.userData.pieza = p; // para medir de eje a eje (ver medicion.js)
@@ -1194,7 +1197,31 @@ export default function LoftCanvas({
   const [autoRotar, setAutoRotar] = useState(false);
   const [seleccionada, setSeleccionada] = useState(null); // id de la pieza seleccionada
   const [cruceActivo, setCruceActivo] = useState(null); // v1.88: clave del cruce tocado en el 3D
-  const conCruces = Boolean(onCruces); // v1.88: (booleano, así el 3D no se redibuja cada vez que App se vuelve a dibujar)
+  const conCruces = Boolean(onCruces);
+  // v1.89 (Leandro: "seleccionar varias para registrar como instaladas, más rápido… manteniendo apretado Shift"):
+  // Shift + clic suma o saca una pieza de las elegidas; en el celular, el botón "☑ Varias" hace lo mismo con cada toque.
+  const [varias, setVarias] = useState([]);
+  const [modoVarias, setModoVarias] = useState(false);
+  const modoVariasRef = useRef(false);
+  modoVariasRef.current = modoVarias && Boolean(onMarcarAvance);
+  const variasSet = useMemo(() => new Set(varias), [varias]);
+  const onMarcarAvanceRef = useRef(onMarcarAvance);
+  onMarcarAvanceRef.current = onMarcarAvance;
+  const piezasPorId = useMemo(() => new Map(listarPiezas(estructura).map((p) => [p.id, p])), [estructura]);
+  // Esc suelta las elegidas (y apaga "☑ Varias").
+  useEffect(() => {
+    if (!varias.length && !modoVarias) return undefined;
+    const alTeclear = (ev) => {
+      if (ev.key !== 'Escape' || ev.target.closest?.('input, select, textarea')) return;
+      setVarias([]); setModoVarias(false);
+    };
+    window.addEventListener('keydown', alTeclear);
+    return () => window.removeEventListener('keydown', alTeclear);
+  }, [varias.length, modoVarias]);
+  // Si una elegida deja de existir (ej. pasó a ser entera o se cortó en tramos), se suelta.
+  useEffect(() => {
+    if (varias.some((id) => !piezasPorId.has(id))) setVarias((v) => v.filter((id) => piezasPorId.has(id)));
+  }, [piezasPorId, varias]); // v1.88: (booleano, así el 3D no se redibuja cada vez que App se vuelve a dibujar)
   const [editandoId, setEditandoId] = useState(null); // pieza con el formulario de edición abierto
   const [aberturaSeleccionada, setAberturaSeleccionada] = useState(null); // id de la abertura tocada (v1.16)
   const [tiraElegida, setTiraElegida] = useState(null); // v1.65: { lado, cara, x, h } la tira de panel tocada
@@ -1702,6 +1729,12 @@ export default function LoftCanvas({
       const visible = (o) => { for (let x = o; x; x = x.parent) if (x.visible === false) return false; return true; };
       const enPanel = !tocado ? tocados.find((i) => i.object.userData.panelPared && visible(i.object)) : null;
       setTiraElegida(enPanel ? tiraTocadaEn(estructuraRef.current, enPanel) : null);
+      // v1.89: con Shift (o "☑ Varias" prendido), tocar una pieza la suma o la saca de las elegidas.
+      if ((ev.shiftKey || modoVariasRef.current) && onMarcarAvanceRef.current) {
+        const id = tocado?.object.userData.idPieza;
+        if (id && !tocado.object.userData.cruce) setVarias((v) => (v.includes(id) ? v.filter((x) => x !== id) : [...v, id]));
+        return;
+      }
       setSeleccionada(tocado?.object.userData.idPieza ?? null);
       setCruceActivo(tocado?.object.userData.cruce ?? null); // v1.88
       setAberturaSeleccionada(tocado?.object.userData.idAbertura ?? null);
@@ -1852,7 +1885,7 @@ export default function LoftCanvas({
     dibujarModelo(visor.grupo, visor.materiales, visor.materialesPanel,
       { params, estructura, aberturas, capas: capasVista, gruposVisibles, seleccionada, catalogo, aberturaSeleccionada, medida, resaltado, medidasFijas,
         perfiles: perfilesVista, opacidadHierros: opacidadesVista.hierros, tiraElegida, avance: verAvance ? avancePiezas : null, empalmes,
-        cruces: conCruces ? estructura.crucesDePiezas : null, cruceActivo });
+        cruces: conCruces ? estructura.crucesDePiezas : null, cruceActivo, varias: variasSet });
     visor.corte.version += 1; // v1.45: hay que volver a ver qué paredes tapan
     juntarPuertas(visor);
     // Se reacomoda la cámara si cambia el frente o el tipo de proyecto (construcción / grada).
@@ -1861,7 +1894,7 @@ export default function LoftCanvas({
       mirarAlFrente(visor.camara, visor.controles, medidasVista(params, estructura));
       visor.frente = encuadre;
     }
-  }, [params, estructura, aberturas, capasVista, paneles, gruposVisibles, seleccionada, opacidadesVista.paneles, catalogo, aberturaSeleccionada, medida, resaltado, medidasFijas, perfilesVista, opacidadesVista.hierros, tiraElegida, verAvance, avancePiezas, empalmes, cruceActivo, conCruces]);
+  }, [params, estructura, aberturas, capasVista, paneles, gruposVisibles, seleccionada, opacidadesVista.paneles, catalogo, aberturaSeleccionada, medida, resaltado, medidasFijas, perfilesVista, opacidadesVista.hierros, tiraElegida, verAvance, avancePiezas, empalmes, cruceActivo, conCruces, variasSet]);
 
   // 2a) v1.45.1: "Lo enterrado" apagado = se corta todo lo que está debajo del suelo (un plano de corte en y = 0,
   // un poquito más abajo para no cortar el piso que recibe las sombras, que está a −1 cm).
@@ -2432,6 +2465,12 @@ export default function LoftCanvas({
             title="Avance del armado: en verde los fierros que ya pusiste, en gris lo que falta (se marcan tocando cada pieza)">
             <span aria-hidden="true">🏗</span><span className="etiqueta-ctrl">Avance</span>
           </button>
+          {onMarcarAvance && (
+            <button className={`btn-ctrl${modoVarias ? ' activo' : ''}`} aria-pressed={modoVarias} onClick={() => setModoVarias((v) => !v)}
+              title="Elegir varias piezas tocándolas (en la compu también con Shift + clic) para marcarlas puestas de una vez">
+              <span aria-hidden="true">☑</span><span className="etiqueta-ctrl">Varias</span>
+            </button>
+          )}
           <button className={`btn-ctrl${soloPaneles ? ' activo' : ''}`} aria-pressed={soloPaneles} onClick={() => { setSoloPaneles((v) => !v); setSoloHierro(false); }}
             title="Ver solo los paneles: las tiras con sus juntas (dónde termina cada tira y cada tramo) y las aberturas, sin hierros ni muebles">
             <span aria-hidden="true">🧱</span><span className="etiqueta-ctrl">Solo paneles</span>
@@ -2599,6 +2638,21 @@ export default function LoftCanvas({
             <button type="button" className={`btn-ctrl${modoPersona === 'primera' ? ' activo' : ''}`} aria-pressed={modoPersona === 'primera'}
               onClick={() => setModoPersona((m) => (m === 'primera' ? null : 'primera'))}>👁 Ver con sus ojos</button>
           </div>
+        </div>
+      )}
+
+      {/* v1.89: las elegidas con Shift + clic: marcarlas puestas (o verificadas) todas juntas. */}
+      {onMarcarAvance && (varias.length > 0 || modoVarias) && (
+        <div className="varias-elegidas no-print" role="region" aria-label="Piezas elegidas">
+          <strong>{varias.length} pieza{varias.length === 1 ? '' : 's'} elegida{varias.length === 1 ? '' : 's'}</strong>
+          <small>{varias.length ? `${varias.reduce((a, id) => a + (piezasPorId.get(id)?.largo ?? 0), 0).toFixed(2).replace('.', ',')} m · ${varias.filter((id) => avancePiezas[id]?.instalada).length} ya puestas`
+            : 'Tocá las piezas (o Shift + clic) para sumarlas'}</small>
+          {varias.length > 0 && (<>
+            <button type="button" className="btn-ctrl" onClick={() => { onMarcarAvance(varias, 'instalada', true); setVarias([]); }}>✓ Marcar puestas</button>
+            <button type="button" className="btn-mini" onClick={() => onMarcarAvance(varias, 'verificada', true)}>Medida ✓</button>
+            <button type="button" className="btn-mini" onClick={() => onMarcarAvance(varias, 'instalada', false)}>Sacar "puesta"</button>
+            <button type="button" className="btn-mini" onClick={() => setVarias([])}>Soltar</button>
+          </>)}
         </div>
       )}
 
