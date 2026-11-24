@@ -34,6 +34,18 @@ export function normalizarNombrePerfil(texto) {
     .replace(/^Caño (cuadrado|rectangular)\b/i, 'Caño estructural');
 }
 
+/**
+ * v1.88: el nombre corto de un perfil, para que entre en una fila: "Caño estructural 80x80x2.0" → "80×80",
+ * "Perfil C 80x40x15x1.6" → "C 80×40". Si no tiene medidas, queda como está.
+ */
+export function abreviarPerfil(nombre) {
+  const texto = String(nombre ?? '');
+  const medida = texto.match(/(\d+(?:[.,]\d+)?)\s*[x×]\s*(\d+(?:[.,]\d+)?)/);
+  if (!medida) return texto || 'Sin nombre';
+  const prefijo = /perfil c\b/i.test(texto) ? 'C ' : /ángulo|angulo/i.test(texto) ? 'Áng. ' : /pgc|pgu/i.test(texto) ? `${texto.match(/pg[cu]/i)[0].toUpperCase()} ` : '';
+  return `${prefijo}${medida[1]}×${medida[2]}`;
+}
+
 /** El nombre del perfil con el que se compra una pieza (ej. "Caño estructural 80x80x2.0") o SIN_PERFIL. */
 export function perfilDePieza(p, catalogo = []) {
   const lista = catalogo ?? [];

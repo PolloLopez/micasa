@@ -136,11 +136,12 @@ export function esVertical(p) {
  */
 export function piezaEditadaEnLaEstructura(piezas, id) {
   const entera = piezas.find((p) => p.id === id);
-  if (entera) return { largo: entera.largo, tramos: 1, insumo: entera.insumo, recorteIgnorado: entera.recorteIgnorado };
+  if (entera) return { largo: entera.largo, tramos: 1, insumo: entera.insumo, recorteIgnorado: entera.recorteIgnorado, pieza: entera };
   const tramos = piezas.filter((p) => p.id.startsWith(`${id}~`));
   if (tramos.length === 0) return null;
   return {
     largo: tramos.reduce((a, p) => a + p.largo, 0), tramos: tramos.length,
     insumo: tramos[0].insumo, recorteIgnorado: tramos.some((p) => p.recorteIgnorado),
+    pieza: tramos[0], // v1.88: para saber con qué perfil quedó
   };
 }

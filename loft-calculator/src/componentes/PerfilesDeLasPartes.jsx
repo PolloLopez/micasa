@@ -11,15 +11,12 @@
 // ==========================================================
 
 import { nombrePerfil } from '../motor/perfiles.js';
+import { abreviarPerfil } from '../motor/coloresPerfil.js';
 import { INSUMO_DE_TIPO } from '../motor/piezasAgregadas.js';
 
-/** "Caño estructural 80×80×2.0" → "80×80"; "Perfil C 80×40×15×1.6" → "C 80×40". */
+/** "Caño estructural 80×80×2.0" → "80×80"; "Perfil C 80×40×15×1.6" → "C 80×40" (v1.88: el texto lo abrevia el motor). */
 export function nombreCorto(perfil) {
-  const nombre = nombrePerfil(perfil) || '';
-  const medida = nombre.match(/(\d+(?:[.,]\d+)?)\s*[x×]\s*(\d+(?:[.,]\d+)?)/);
-  if (!medida) return nombre || 'Sin nombre';
-  const prefijo = /perfil c\b/i.test(nombre) ? 'C ' : /ángulo|angulo/i.test(nombre) ? 'Áng. ' : /pgc|pgu/i.test(nombre) ? `${nombre.match(/pg[cu]/i)[0].toUpperCase()} ` : '';
-  return `${prefijo}${medida[1]}×${medida[2]}`;
+  return abreviarPerfil(nombrePerfil(perfil));
 }
 
 /**

@@ -71,3 +71,15 @@ describe('v1.62: el mismo caño, un solo nombre (y un solo color)', async () => 
     expect(lista).toEqual([{ perfil: 'Caño estructural 80x80x2.0', piezas: 3, metros: 6, color: PALETA_PERFILES[0] }]);
   });
 });
+
+describe('v1.88: nombre corto de un perfil (para la fila de "Editadas": "C 80×40 → 80×80")', async () => {
+  const { abreviarPerfil } = await import('./coloresPerfil.js');
+  it('caño, perfil C, ángulo, PGC y sin medidas', () => {
+    expect(abreviarPerfil('Caño estructural 80x80x2.0')).toBe('80×80');
+    expect(abreviarPerfil('Perfil C 80x40x15x1.6')).toBe('C 80×40');
+    expect(abreviarPerfil('Ángulo 1 1/2"x3/16"')).toBe('Ángulo 1 1/2"x3/16"'); // en pulgadas: queda entero
+    expect(abreviarPerfil('Montante PGC 70x0.9')).toBe('PGC 70×0.9');
+    expect(abreviarPerfil('Sin perfil en el catálogo')).toBe('Sin perfil en el catálogo');
+    expect(abreviarPerfil('')).toBe('Sin nombre');
+  });
+});

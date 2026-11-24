@@ -101,7 +101,7 @@ import ArmadoPiso from './componentes/ArmadoPiso.jsx';
 import { codigosDeCorte } from './motor/hojaDeCorte.js';
 import { ahorroPorAberturas } from './motor/revestimientos.js';
 import FilaPiezaCambiada from './componentes/FilaPiezaCambiada.jsx';
-import { perfilDePieza } from './motor/coloresPerfil.js';
+import { abreviarPerfil, perfilDePieza } from './motor/coloresPerfil.js';
 import './App.css';
 
 // v1.62: ancho del panel de datos (px): de fábrica, el mínimo para que se lea y el máximo (dejando lugar al 3D).
@@ -809,9 +809,14 @@ export default function App() {
       // v1.60: si las uniones la cortaron en tramos (ej. al cambiar tirantes y transversales) se suman;
       // antes se buscaba solo el id entero y, al no estar, la app se caía.
       const actual = original ? piezaEditadaEnLaEstructura(piezasDeLaEstructura, id) : null;
+      // v1.88 (Leandro: "edité perfiles que ahora son de 80x80"): si le cambió el perfil, la fila dice de cuál a cuál
+      // ("C 80×40 → 80×80") y los detalles muestran el perfil con el que queda, no el de antes.
+      const perfilAntes = original ? perfilDePieza(original, catalogoResuelto) : '';
+      const perfilAhora = actual ? perfilDePieza(actual.pieza, catalogoResuelto) : '';
+      const cambioPerfil = actual && perfilAntes !== perfilAhora ? ` · ${abreviarPerfil(perfilAntes)} → ${abreviarPerfil(perfilAhora)}` : '';
       return { id, actual, renglon: actual?.insumo ? catalogo.find((p) => p.id === actual.insumo)?.nombre : '',
-        titulo: original && actual ? `${describirPieza(original, params)} · ${original.largo.toFixed(2)} → ${actual.largo.toFixed(2)} m` : 'Ya no existe en el modelo (cambió una medida)',
-        detalles: original && actual ? detallesDePieza(original, perfilDePieza(original, catalogoResuelto)) : [] };
+        titulo: original && actual ? `${describirPieza(original, params)} · ${original.largo.toFixed(2)} → ${actual.largo.toFixed(2)} m${cambioPerfil}` : 'Ya no existe en el modelo (cambió una medida)',
+        detalles: original && actual ? detallesDePieza(original, perfilAhora) : [] };
     });
     const eliminadas = params.piezasEliminadas.map((id) => {
       const pieza = estructura.eliminadasEncontradas.find((p) => p.id === id);

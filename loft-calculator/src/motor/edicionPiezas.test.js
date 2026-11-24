@@ -134,3 +134,12 @@ describe('v1.60: pieza editada que las uniones cortaron en tramos', async () => 
     expect(piezaEditadaEnLaEstructura(piezas, 'piso:24')).toBeNull(); // "piso:24" no es "piso:240"
   });
 });
+
+describe('v1.88: la pieza editada trae la pieza del modelo (para mostrar con qué perfil quedó)', async () => {
+  const { piezaEditadaEnLaEstructura } = await import('./edicionPiezas.js');
+  it('entera: la misma; en tramos: el primero', () => {
+    const piezas = [{ id: 'marco-piso:A~1', largo: 3, perfilPared: 'perfil-1' }, { id: 'marco-piso:A~2', largo: 4.5 }, { id: 'marco-piso:B', largo: 4.41, perfilPared: 'perfil-1' }];
+    expect(piezaEditadaEnLaEstructura(piezas, 'marco-piso:B').pieza).toBe(piezas[2]);
+    expect(piezaEditadaEnLaEstructura(piezas, 'marco-piso:A').pieza).toBe(piezas[0]);
+  });
+});

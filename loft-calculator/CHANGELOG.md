@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.87.1] - 2026-11-24
+### Cambiado
+- **Piezas a mano → Editadas: si le cambiaste el perfil, la fila lo dice** ("C 80×40 → 80×80") y los detalles muestran
+  el perfil con el que queda (antes, el de antes de editarla, y parecía que no se había aplicado). Leandro: "edité
+  perfiles que ahora son de 80×80 y no se actualizaron los colores". Con su archivo, en la v1.87.0 los bordes de piso
+  A, B y D ya salen en 80×80 (color, precio y lista); en la v1.86.0 seguían como C 80×40: si los ve del color viejo,
+  el navegador tiene la versión anterior (mirar la versión arriba, al lado del nombre, y recargar).
+- `abreviarPerfil(nombre)` en coloresPerfil.js (antes, dentro de `nombreCorto` de PerfilesDeLasPartes).
+
 ## [1.87.0] - 2026-11-24
 ### Arreglado
 - **El perfil elegido a mano en una pieza no se aplicaba si su pared tenía un perfil propio** (Leandro: "tampoco
