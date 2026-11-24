@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.84.0] - 2026-11-24
+### Agregado
+- **Buscador** (pedido de Leandro: "en piezas eliminadas y editadas necesito un buscador, y fijate dónde más sirve"):
+  palabras sueltas, en cualquier orden, sin importar mayúsculas ni tildes, y medidas con coma o punto ("columna frente
+  4,33"); dice cuántas quedan ("17 de 166"). Está en:
+  - **Estructura → Piezas a mano** (agregadas, editadas y eliminadas juntas);
+  - **Obra → Armado** (pared, tipo, medida, código de corte y estado: "falta techo", "puesta", "verificada");
+  - **Obra → Lista de compras** (material, parte de la obra o proveedor);
+  - **Presupuesto → Precios y detalle** (nombre, perfil o para qué es);
+  - la **ficha de cada proveedor** (sus materiales).
+  (`motor/buscar.js`: coincide, filtrarPor; `componentes/Buscador.jsx`.)
+### Cambiado
+- Con una búsqueda escrita, "Deshacer todas las ediciones" y "Restaurar todas" no se muestran (para no deshacer lo que
+  no se ve).
+
 ## [1.83.0] - 2026-11-23
 ### Agregado
 - **Armado en obra** (Leandro ya empezó a construir: "marcar qué fierros fueron ya instalados y confirmar medidas"):

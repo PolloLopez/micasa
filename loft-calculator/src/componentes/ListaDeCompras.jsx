@@ -19,6 +19,8 @@ import { agruparLista, compraDesdeLista, pagarRetirado, ultimaDesdeLista, deshac
 import { NINGUNO, cantidadPedida } from '../motor/proveedores.js';
 import { useEstadoGuardado } from '../hooks/useEstadoGuardado.js';
 import NotaPlegable from './NotaPlegable.jsx';
+import Buscador from './Buscador.jsx'; // v1.84
+import { filtrarPor } from '../motor/buscar.js';
 
 const pesos = (n) => n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
 const num = (n) => n.toLocaleString('es-AR', { maximumFractionDigits: 2 });
@@ -78,7 +80,10 @@ function Fila({ f, proveedores, opcionesDe, onAsignar, onMarcar, onPagarRetirado
  */
 export default function ListaDeCompras({ filas, proveedores, compras, asignaciones = {}, precioEnProveedor, cambiar }) {
   const [ver, setVer] = useEstadoGuardado('listaComprasVer', 'todo', (v) => ['todo', 'falta', 'debe'].includes(v));
-  const visibles = filas.filter((f) => (ver === 'falta' ? f.falta > 0 : ver === 'debe' ? f.sinPagar > 0 : true));
+  // v1.84: buscador (material, parte de la obra o proveedor).
+  const [buscar, setBuscar] = useState('');
+  const visibles = filtrarPor(filas.filter((f) => (ver === 'falta' ? f.falta > 0 : ver === 'debe' ? f.sinPagar > 0 : true)), buscar,
+    (f) => `${f.nombre} ${f.perfil ?? ''} ${f.parteNombre ?? f.parte ?? ''} ${proveedores.find((p) => p.id === f.proveedor)?.nombre ?? ''}`);
   const grupos = agruparLista(visibles, proveedores);
   const totales = agruparLista(filas, proveedores).reduce((a, g) => ({ total: a.total + g.total, falta: a.falta + g.falta, sinPagar: a.sinPagar + g.sinPagar }),
     { total: 0, falta: 0, sinPagar: 0 });
@@ -114,7 +119,9 @@ export default function ListaDeCompras({ filas, proveedores, compras, asignacion
           <button key={v} type="button" className={`btn-ctrl${ver === v ? ' activo' : ''}`} aria-pressed={ver === v} onClick={() => setVer(v)}>{t}</button>
         ))}
       </div>
-      {grupos.length === 0 && <p className="vacio">No hay nada {ver === 'debe' ? 'retirado sin pagar' : 'que falte'}.</p>}
+      <Buscador valor={buscar} onCambio={setBuscar} ayuda="cemento, caño 80x80, tapial, ALPANEL…" etiqueta="Buscar en la lista de compras"
+        quedan={visibles.length} total={filas.length} />
+      {grupos.length === 0 && <p className="vacio">{buscar ? `Nada con "${buscar}".` : `No hay nada ${ver === 'debe' ? 'retirado sin pagar' : 'que falte'}.`}</p>}
       {grupos.map((g) => (
         <details key={g.proveedor ?? 'sin'} className="grupo-proveedor" open>
           <summary>

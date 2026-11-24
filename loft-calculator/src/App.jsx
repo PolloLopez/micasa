@@ -130,6 +130,8 @@ const PERFILES_PARED_UI = [
   ['perfilMontantes', 'Montantes', INSUMO.MONTANTE],
   ['perfilMarcos', 'Solera y borde de piso', INSUMO.MARCO],
 ];
+import Buscador from './componentes/Buscador.jsx'; // v1.84
+import { filtrarPor } from './motor/buscar.js';
 
 const catalogoGuardadoValido = (c) => Array.isArray(c) && c.some((p) => p.categoria === 'panel');
 const aberturasGuardadasValidas = (a) => Array.isArray(a) && a.every((op) => LADOS.includes(op.lado));
@@ -790,6 +792,31 @@ export default function App() {
     return cambiar('piezasEditadas')(esEdicionVacia(edicion) ? resto : { ...resto, [id]: edicion });
   };
   const deshacerEdiciones = () => cambiar('piezasEditadas')({});
+  // v1.84: las filas de "Piezas agregadas, eliminadas y editadas" (con su texto) y el buscador de esa lista.
+  const [buscarPiezas, setBuscarPiezas] = useState('');
+  const filasPiezasAMano = useMemo(() => {
+    const texto = (f) => `${f.titulo} ${f.detalles.join(' ')} ${f.renglon ?? ''} ${f.id}`;
+    const agregadas = params.piezasAgregadas.map((agregada) => {
+      const actual = piezasDeLaEstructura.find((p) => p.id === agregada.id) ?? agregada;
+      return { id: agregada.id, titulo: `${describirPieza(actual, params)} · ${catalogo.find((p) => p.id === agregada.insumo)?.nombre ?? ''}`,
+        detalles: detallesDePieza(actual, perfilDePieza(actual, catalogoResuelto)) };
+    });
+    const editadas = Object.keys(params.piezasEditadas).map((id) => {
+      const original = estructura.editadasEncontradas.find((p) => p.id === id);
+      // v1.60: si las uniones la cortaron en tramos (ej. al cambiar tirantes y transversales) se suman;
+      // antes se buscaba solo el id entero y, al no estar, la app se caía.
+      const actual = original ? piezaEditadaEnLaEstructura(piezasDeLaEstructura, id) : null;
+      return { id, actual, renglon: actual?.insumo ? catalogo.find((p) => p.id === actual.insumo)?.nombre : '',
+        titulo: original && actual ? `${describirPieza(original, params)} · ${original.largo.toFixed(2)} → ${actual.largo.toFixed(2)} m` : 'Ya no existe en el modelo (cambió una medida)',
+        detalles: original && actual ? detallesDePieza(original, perfilDePieza(original, catalogoResuelto)) : [] };
+    });
+    const eliminadas = params.piezasEliminadas.map((id) => {
+      const pieza = estructura.eliminadasEncontradas.find((p) => p.id === id);
+      return { id, titulo: pieza ? describirPieza(pieza, params) : 'Ya no existe en el modelo (cambió una medida)',
+        detalles: pieza ? detallesDePieza(pieza, perfilDePieza(pieza, catalogoResuelto)) : [] };
+    });
+    return { agregadas: filtrarPor(agregadas, buscarPiezas, texto), editadas: filtrarPor(editadas, buscarPiezas, texto), eliminadas: filtrarPor(eliminadas, buscarPiezas, texto) };
+  }, [params, piezasDeLaEstructura, estructura, catalogo, catalogoResuelto, buscarPiezas]);
   // v1.83: las piezas con perfil elegido a mano vuelven al de su parte (se borra solo el perfil de su edición).
   const quitarPerfilAMano = (ids) => {
     const nuevo = { ...params.piezasEditadas };
@@ -1604,63 +1631,54 @@ export default function App() {
               y se cotiza con el cambio. Cada pieza se reconoce por su posición: si cambiás una medida y la pieza se
               mueve, el cambio deja de aplicarse.
             </NotaPlegable>
-            {params.piezasAgregadas.length > 0 && (
+            {/* v1.84 (Leandro: "en piezas eliminadas y editadas necesito un buscador"): busca en las tres listas. */}
+            {cantidadPiezasAMano > 0 && (
+              <Buscador valor={buscarPiezas} onCambio={setBuscarPiezas} ayuda="columna, frente, 4,33, tirante…"
+                etiqueta="Buscar en las piezas agregadas, editadas y eliminadas" total={cantidadPiezasAMano}
+                quedan={filasPiezasAMano.agregadas.length + filasPiezasAMano.editadas.length + filasPiezasAMano.eliminadas.length} />
+            )}
+            {filasPiezasAMano.agregadas.length > 0 && (
               <>
                 <h3 className="subtitulo">Agregadas (duplicadas)</h3>
                 <ul className="opening-list">
-                  {params.piezasAgregadas.map((agregada) => {
-                    const actual = listarPiezas(estructura).find((p) => p.id === agregada.id) ?? agregada;
-                    return (
-                      <FilaPiezaCambiada key={agregada.id} id={agregada.id}
-                        titulo={`${describirPieza(actual, params)} · ${catalogo.find((p) => p.id === agregada.insumo)?.nombre ?? ''}`}
-                        detalles={detallesDePieza(actual, perfilDePieza(actual, catalogoResuelto))}
-                        accion={{ texto: 'Quitar', alHacer: () => eliminarPieza(agregada.id) }} />
-                    );
-                  })}
+                  {filasPiezasAMano.agregadas.map((f) => (
+                    <FilaPiezaCambiada key={f.id} id={f.id} titulo={f.titulo} detalles={f.detalles}
+                      accion={{ texto: 'Quitar', alHacer: () => eliminarPieza(f.id) }} />
+                  ))}
                 </ul>
               </>
             )}
-            {Object.keys(params.piezasEditadas).length > 0 && (
+            {filasPiezasAMano.editadas.length > 0 && (
               <>
                 <h3 className="subtitulo">Editadas</h3>
                 <ul className="opening-list">
-                  {Object.keys(params.piezasEditadas).map((id) => {
-                    const original = estructura.editadasEncontradas.find((p) => p.id === id);
-                    // v1.60: si las uniones la cortaron en tramos (ej. al cambiar tirantes y transversales) se suman;
-                    // antes se buscaba solo el id entero y, al no estar, la app se caía.
-                    const actual = original ? piezaEditadaEnLaEstructura(piezasDeLaEstructura, id) : null;
-                    return (
-                      <FilaPiezaCambiada key={id} id={id}
-                        titulo={original && actual ? `${describirPieza(original, params)} · ${original.largo.toFixed(2)} → ${actual.largo.toFixed(2)} m` : 'Ya no existe en el modelo (cambió una medida)'}
-                        detalles={original && actual ? detallesDePieza(original, perfilDePieza(original, catalogoResuelto)) : []}
-                        accion={{ texto: 'Deshacer', alHacer: () => editarPieza(id, {}) }}>
-                        {actual?.tramos > 1 && <> (en {actual.tramos} tramos)</>}
-                        {actual?.insumo && <> · {catalogo.find((p) => p.id === actual.insumo)?.nombre}</>}
-                        {actual?.recorteIgnorado && <strong className="error"> · el recorte ya no entra</strong>}
-                      </FilaPiezaCambiada>
-                    );
-                  })}
+                  {filasPiezasAMano.editadas.map((f) => (
+                    <FilaPiezaCambiada key={f.id} id={f.id} titulo={f.titulo} detalles={f.detalles}
+                      accion={{ texto: 'Deshacer', alHacer: () => editarPieza(f.id, {}) }}>
+                      {f.actual?.tramos > 1 && <> (en {f.actual.tramos} tramos)</>}
+                      {f.actual?.insumo && <> · {f.renglon}</>}
+                      {f.actual?.recorteIgnorado && <strong className="error"> · el recorte ya no entra</strong>}
+                    </FilaPiezaCambiada>
+                  ))}
                 </ul>
-                <button className="btn-sec no-print" onClick={deshacerEdiciones}>Deshacer todas las ediciones</button>
+                {!buscarPiezas && <button className="btn-sec no-print" onClick={deshacerEdiciones}>Deshacer todas las ediciones</button>}
               </>
             )}
-            {params.piezasEliminadas.length > 0 && <h3 className="subtitulo">Eliminadas</h3>}
-            {params.piezasEliminadas.length > 0 && (
+            {filasPiezasAMano.eliminadas.length > 0 && <h3 className="subtitulo">Eliminadas</h3>}
+            {filasPiezasAMano.eliminadas.length > 0 && (
               <>
                 <ul className="opening-list">
-                  {params.piezasEliminadas.map((id) => {
-                    const pieza = estructura.eliminadasEncontradas.find((p) => p.id === id);
-                    // v1.64: con el mouse encima se ve en el 3D como fantasma, con sus características, antes de restaurarla.
-                    return (
-                      <FilaPiezaCambiada key={id} id={id}
-                        titulo={pieza ? describirPieza(pieza, params) : 'Ya no existe en el modelo (cambió una medida)'}
-                        detalles={pieza ? detallesDePieza(pieza, perfilDePieza(pieza, catalogoResuelto)) : []}
-                        accion={{ texto: 'Restaurar', alHacer: () => restaurarPieza(id) }} />
-                    );
-                  })}
+                  {/* v1.64: con el mouse encima se ve en el 3D como fantasma, con sus características, antes de restaurarla. */}
+                  {filasPiezasAMano.eliminadas.map((f) => (
+                    <FilaPiezaCambiada key={f.id} id={f.id} titulo={f.titulo} detalles={f.detalles}
+                      accion={{ texto: 'Restaurar', alHacer: () => restaurarPieza(f.id) }} />
+                  ))}
                 </ul>
-                <button className="btn-sec no-print" onClick={restaurarTodas}>Restaurar todas</button>
+                {!buscarPiezas && <button className="btn-sec no-print" onClick={restaurarTodas}>Restaurar todas</button>}
               </>
+            )}
+            {buscarPiezas && cantidadPiezasAMano > 0 && filasPiezasAMano.agregadas.length + filasPiezasAMano.editadas.length + filasPiezasAMano.eliminadas.length === 0 && (
+              <p className="vacio">Ninguna pieza con "{buscarPiezas}".</p>
             )}
           </Tarjeta>
           </PanelSub>

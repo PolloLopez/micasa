@@ -1110,3 +1110,8 @@ option { background: var(--tarjeta); color: var(--texto); }
 .otro-perfil { max-width: 7.5rem; font-size: 0.78rem; }
 .otro-perfil.activo { border-color: var(--acento); }
 .aviso-a-mano { flex-basis: 100%; margin: 2px 0 0; font-size: 0.75rem; color: #fbbf24; }
+/* v1.84: el buscador de las listas largas */
+.buscador { display: flex; align-items: center; gap: 6px; margin: 6px 0 8px; }
+.buscador input[type="search"] { flex: 1; min-width: 0; }
+.buscador small { white-space: nowrap; color: var(--texto-suave, #94a3b8); }
+.buscador input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; display: none; } /* ya tiene su ✕ */

@@ -16,7 +16,10 @@ import Tarjeta from './Tarjeta.jsx';
 import FichaPlegable from './FichaPlegable.jsx';
 import CampoNumero from './CampoNumero.jsx';
 import NotaPlegable from './NotaPlegable.jsx';
-import { gruposDeArmado, resumenDeArmado } from '../motor/armado.js';
+import { gruposDeArmado, resumenDeArmado, zonaDePieza } from '../motor/armado.js';
+import { NOMBRE_TIPO_PIEZA } from '../motor/estructura.js';
+import Buscador from './Buscador.jsx';
+import { filtrarPor } from '../motor/buscar.js';
 import { textoDeCodigo } from '../motor/hojaDeCorte.js';
 
 const m = (n) => n.toFixed(2).replace('.', ',');
@@ -43,7 +46,16 @@ function BotonesDeGrupo({ piezas, instaladas, nombre, onMarcar }) {
  */
 export default function PanelArmado({ piezas, avance = {}, nombreZona, codigosCorte = null, unidad, onMarcar, onMedidaReal }) {
   const [soloFaltan, setSoloFaltan] = useState(false);
-  const grupos = gruposDeArmado(piezas, avance, nombreZona);
+  // v1.84: buscador (por pared, tipo, medida, código de corte o estado: "frente columna 4,33", "1.15", "falta").
+  const [buscar, setBuscar] = useState('');
+  const textoDe = (p) => {
+    const estado = avance[p.id] ?? {};
+    const codigo = codigosCorte?.get(p.id);
+    return `${nombreZona(zonaDePieza(p))} ${NOMBRE_TIPO_PIEZA[p.tipo] ?? p.tipo} ${m(p.largo)} m ${codigo ? `corte ${textoDeCodigo(codigo)}` : ''} `
+      + `${estado.instalada ? 'puesta instalada' : 'falta'} ${estado.verificada ? 'verificada medida' : ''} ${p.medidaReal ? 'medida en obra' : ''}`;
+  };
+  const encontradas = filtrarPor(piezas, buscar, textoDe);
+  const grupos = gruposDeArmado(encontradas, avance, nombreZona);
   const r = resumenDeArmado(piezas, avance);
   return (
     <Tarjeta id="armado" titulo={`Armado: ${r.instaladas} de ${r.total} piezas puestas (${r.porcentaje} %)`}>
@@ -56,10 +68,13 @@ export default function PanelArmado({ piezas, avance = {}, nombreZona, codigosCo
         coincide, cargá la <strong>medida real</strong>: la pieza se acorta o se alarga sola (en el 3D, los planos y los cortes).
         También se marca tocando la pieza en el 3D; con <strong>🏗 Avance</strong> ves en verde lo puesto.
       </NotaPlegable>
+      <Buscador valor={buscar} onCambio={setBuscar} ayuda="frente, columna, 4,33, corte 1.15, falta…" etiqueta="Buscar fierros"
+        quedan={encontradas.length} total={piezas.length} />
       <label className="casilla-opcional">
         <input type="checkbox" checked={soloFaltan} onChange={(e) => setSoloFaltan(e.target.checked)} />
         Ver solo lo que falta poner
       </label>
+      {buscar && encontradas.length === 0 && <p className="vacio">Ningún fierro con "{buscar}".</p>}
       {grupos.map((g) => (
         <FichaPlegable key={g.zona} clave={`armado:${g.zona}`} className="rubro"
           encabezado={<>

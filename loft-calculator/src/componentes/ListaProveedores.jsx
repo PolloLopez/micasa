@@ -19,6 +19,9 @@ import CampoSelect from './CampoSelect.jsx';
 import { preciosCargados, PRECIO_SOSPECHOSO, antiguedadDePrecios, DIAS_PRECIO_VIEJO, esPrecioDeEjemplo, preciosDeEjemplo } from '../motor/resumenPrecios.js';
 import { hoy } from '../motor/seguimiento.js';
 import NotaPlegable from './NotaPlegable.jsx';
+import Buscador from './Buscador.jsx'; // v1.84
+import { filtrarPor } from '../motor/buscar.js';
+import { nombrePerfil } from '../motor/perfiles.js';
 
 const pesos = (n) => n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
 
@@ -28,7 +31,9 @@ function PreciosDelProveedor({ proveedor, materiales, onCambiarPrecio }) {
   // tildando, también los demás (para cargarle un precio nuevo).
   const [verTodos, setVerTodos] = useState(false);
   const conPrecio = materiales.filter((m) => precioEn(m, proveedor, 'efectivo') !== null);
-  const visibles = verTodos ? materiales : conPrecio;
+  // v1.84: buscador de materiales en la ficha del proveedor.
+  const [buscar, setBuscar] = useState('');
+  const visibles = filtrarPor(verTodos ? materiales : conPrecio, buscar, (m) => `${m.nombre} ${m.perfil ?? ''} ${nombrePerfil(m) ?? ''}`);
   // v1.77: un $/kg para todos los hierros que le comprás (los que ya tienen precio acá, o todos si tildaste "Ver también").
   const [kgParaTodos, setKgParaTodos] = useState(null);
   const hierros = visibles.filter((m) => m.categoria === 'hierro' && precioBarraPorKg(m, 1) !== null);
@@ -57,6 +62,8 @@ function PreciosDelProveedor({ proveedor, materiales, onCambiarPrecio }) {
             title="Pone ese $/kg a cada hierro de la lista de abajo (borra su precio por barra)">Poner a los {hierros.length} hierros</button>
         </div>
       )}
+      <Buscador valor={buscar} onCambio={setBuscar} ayuda="caño, panel, cemento…" etiqueta={`Buscar materiales de ${proveedor.nombre}`}
+        quedan={visibles.length} total={(verTodos ? materiales : conPrecio).length} />
       <label className="casilla-opcional">
         <input type="checkbox" checked={verTodos} onChange={(e) => setVerTodos(e.target.checked)} />
         Ver también lo que no tiene precio acá (para cargarle uno)

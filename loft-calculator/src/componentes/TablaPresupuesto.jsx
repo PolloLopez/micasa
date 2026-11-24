@@ -20,6 +20,9 @@ import { BotonResaltar } from './Resaltar.jsx';
 import { useResaltar, criterioDeRenglon as criterioDe } from './contextoResaltado.js';
 import NotaPlegable from './NotaPlegable.jsx';
 import BotonCopiar from './BotonCopiar.jsx';
+import Buscador from './Buscador.jsx'; // v1.84
+import { useState } from 'react';
+import { filtrarPor } from '../motor/buscar.js';
 
 const pesos = (n) => n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
 
@@ -176,9 +179,14 @@ function BotonCopiarPedido({ compra, nombreProyecto }) {
  * Detalle por uso (v1.31.0, antes era la tabla principal): cada renglón dice para qué es, con el precio
  * del proveedor elegido (editable) y el subtotal. Pasar el mouse resalta esas piezas en el 3D.
  */
-function TablaPorUso({ items, proveedor, onCambiarPrecio, masBaratoDe, enDolares = false }) {
+function TablaPorUso({ items: todos, proveedor, onCambiarPrecio, masBaratoDe, enDolares = false }) {
   const pasar = useResaltar(); // v1.27: resaltar en el 3D las piezas de cada renglón
-  return (
+  // v1.84: buscador (nombre, perfil o para qué es: "tirantes", "80x40", "tapial").
+  const [buscar, setBuscar] = useState('');
+  const items = filtrarPor(todos, buscar, (i) => `${i.nombre} ${i.perfil ?? ''} ${i.detalle ?? ''}`);
+  return (<>
+    <Buscador valor={buscar} onCambio={setBuscar} ayuda="tirantes, 80x40, panel, tapial…" etiqueta="Buscar en el detalle del presupuesto"
+      quedan={items.length} total={todos.length} />
     <div className="table-wrap">
       <table>
         <thead>
@@ -228,7 +236,7 @@ function TablaPorUso({ items, proveedor, onCambiarPrecio, masBaratoDe, enDolares
         </tbody>
       </table>
     </div>
-  );
+  </>);
 }
 
 /**
