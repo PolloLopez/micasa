@@ -98,9 +98,38 @@ export function tiraDeCadaPedazo(tipo, panos) {
   c.tirasPorPared.forEach((g) => g.tiras.forEach((t) => t.piezas.forEach((x) => x.id && tiraDe.set(x.id, { n: t.n, manual: x.manual }))));
   const lugares = Object.entries(c.lugares ?? {});
   return {
+    tirasPorPared: c.tirasPorPared, // v1.90: para elegir de qué tira sale un pedazo tocándolo en el 3D
     pedazosDe: (donde) => lugares.filter(([id]) => id.startsWith(`${donde}|`) && tiraDe.has(id))
       .map(([id, l]) => ({ id, largo: l.largo, x0: l.x0, x1: l.x1, y0: l.y0, ...tiraDe.get(id) })),
   };
+}
+
+/**
+ * v1.90: a qué tiras se puede mandar un pedazo (las de cada pared, el techo… y una nueva en cada una), para un <select>.
+ * La usan la hoja de corte (Presupuesto) y el panel de la tira tocada en el 3D.
+ * @returns {[valor: "donde|n", texto][]}
+ */
+export function destinosDeTiras(tirasPorPared = []) {
+  const m = (n) => n.toFixed(2).replace('.', ',');
+  // Con los recortes en cualquier pared hay un solo grupo: no hace falta decir "todas las paredes" en cada una.
+  const prefijo = (g) => (g.donde === TODAS_LAS_PAREDES ? '' : `${g.donde} · `);
+  // Qué lleva cada tira ("techo 5,03 + lado B 4,40"), así se sabe de dónde sale el sobrante.
+  const lleva = (t) => t.piezas.map((x) => `${x.id ? x.id.split('|')[0] : ''} ${m(x.largo)}`.trim()).join(' + ');
+  return tirasPorPared.flatMap((g) => [
+    ...g.tiras.map((t) => [`${g.donde}|${t.n}`, `${prefijo(g)}tira ${t.n}: ${lleva(t)} · sobra ${m(t.sobra)} m`]),
+    [`${g.donde}|${Math.max(0, ...g.tiras.map((t) => t.n)) + 1}`, `${prefijo(g)}tira nueva`],
+  ]);
+}
+
+/** v1.90: lo elegido a mano con un pedazo ('' = que lo acomode la app; "donde|n" = de esa tira). Devuelve el objeto nuevo. */
+export function cambiarTiraManual(manuales = {}, idPedazo, valor) {
+  const nuevo = { ...manuales };
+  if (!valor) delete nuevo[idPedazo];
+  else {
+    const k = valor.lastIndexOf('|');
+    nuevo[idPedazo] = { pared: valor.slice(0, k), n: Number(valor.slice(k + 1)) };
+  }
+  return nuevo;
 }
 
 /** v1.82.1: una tira entera por pedazo (lo que sobra se tira), como resultado de tirasEnteras. */

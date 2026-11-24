@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.90.0] - 2026-11-24
+### Agregado
+- **El techo en "Solo paneles"** (Leandro: "la solera superior es el mismo borde del techo que es el alero… debería
+  poder seleccionar esos cambios y reutilizaciones de tiras"): cada pedazo del techo dice de qué tira sale (T1, T2…), y
+  tocándolo se ve su tira, como en las paredes. Con "🏠 Adentro" prendido, el techo se oculta al mirarlo de arriba.
+- **Elegir de qué tira sale un pedazo, tocándolo en el 3D**: en el panel de la tira tocada (pared o techo), "Pedazo de
+  5,03 m: sale de la tira T5" con la lista de tiras (qué lleva cada una y cuánto sobra) o "que la elija la app". Sirve
+  para mandar un pedazo del techo al sobrante de una pared y al revés. `destinosDeTiras` y `cambiarTiraManual` pasan al
+  motor (los usan la hoja de corte y el 3D); `tiraDeCadaPedazo` devuelve también `tirasPorPared`.
+### Notas
+- La solera de arriba ya es el borde del techo: en su proyecto "techo con borde" está apagado, así que no hay un
+  borde de techo aparte (no se cuenta dos veces el hierro) y los paneles de pared llegan hasta la solera.
+- "Reusar el corte en diagonal" (B y D en pendiente) quedó en PENDIENTES: para que un corte en diagonal sirva a dos
+  tiras, una va dada vuelta 180°, y eso pone el encastre del lado equivocado. Ahorra ≈ 10 cm de tira por par.
+
 ## [1.89.0] - 2026-11-24
 ### Agregado
 - **Elegir varias piezas y marcarlas puestas de una vez** (Leandro: "seleccionar varias para registrar como

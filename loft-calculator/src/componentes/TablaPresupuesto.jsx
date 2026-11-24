@@ -23,6 +23,7 @@ import BotonCopiar from './BotonCopiar.jsx';
 import Buscador from './Buscador.jsx'; // v1.84
 import { useState } from 'react';
 import { filtrarPor } from '../motor/buscar.js';
+import { destinosDeTiras, cambiarTiraManual } from '../motor/revestimientos.js'; // v1.90
 
 const pesos = (n) => n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
 
@@ -319,20 +320,9 @@ const SUBPESTANAS = [
 function CortesDeTiras({ item, onCambiar = null }) {
   const m = (n) => n.toFixed(2).replace('.', ',');
   const manuales = item.tirasManuales ?? {};
-  // Las tiras a donde se puede mandar un pedazo: las de cada pared y una nueva por pared.
-  const destinos = item.tirasPorPared.flatMap((g) => [
-    ...g.tiras.map((t) => [`${g.donde}|${t.n}`, `${g.donde} · tira ${t.n} (sobra ${m(t.sobra)} m)`]),
-    [`${g.donde}|${Math.max(0, ...g.tiras.map((t) => t.n)) + 1}`, `${g.donde} · tira nueva`],
-  ]);
-  const elegir = (id, valor) => {
-    const nuevo = { ...manuales };
-    if (valor === '') delete nuevo[id];
-    else {
-      const k = valor.lastIndexOf('|');
-      nuevo[id] = { pared: valor.slice(0, k), n: Number(valor.slice(k + 1)) };
-    }
-    onCambiar?.(item.id, 'tirasManuales', nuevo);
-  };
+  // Las tiras a donde se puede mandar un pedazo: las de cada pared y una nueva por pared (v1.90: en el motor, la usa también el 3D).
+  const destinos = destinosDeTiras(item.tirasPorPared);
+  const elegir = (id, valor) => onCambiar?.(item.id, 'tirasManuales', cambiarTiraManual(manuales, id, valor));
   const cuantasManuales = Object.keys(manuales).length;
   // v1.82.1 (Leandro: "seleccionar en qué pared van los recortes"): todos los pedazos, para mandar uno al sobrante de una tira.
   const todos = item.tirasPorPared.flatMap((g) => g.tiras.flatMap((t) => t.piezas.filter((x) => x.id).map((x) => ({ ...x, grupo: g.donde, tira: t.n }))));

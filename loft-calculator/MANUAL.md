@@ -32,6 +32,10 @@ ella), **Donde se corta, va** soldada, con cubrejunta o con chapa (las dos últi
 **dónde** (moverlo a cuántos metros de la punta, **Ya está hecho así**, ↶ automático). En el 3D cada empalme tiene una
 marca (naranja: lo eligió la app; celeste: vos). Todo lo elegido está en Piezas a mano, con Deshacer.
 
+**El techo en Solo paneles** (v1.90): apagá **🏠 Adentro** para verlo de arriba. Cada pedazo (pared o techo) dice de
+qué tira entera sale (T1, T2…); tocá la tira y en su panel elegí **sale de la tira…** (qué lleva cada una y cuánto sobra)
+o "que la elija la app": así mandás un pedazo del techo al sobrante de una pared, o al revés.
+
 **Varias de una vez** (v1.89): en el 3D, **Shift + clic** en cada pieza (en el celular, prendé **☑ Varias** y tocá) y
 arriba aparece cuántas elegiste, con **✓ Marcar puestas**, Medida ✓, Sacar "puesta" y Soltar (Esc también suelta).
 

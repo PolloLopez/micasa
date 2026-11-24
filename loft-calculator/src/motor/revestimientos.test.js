@@ -303,3 +303,35 @@ describe('v1.82.1: elegir la forma de usar los recortes (desde Comparar)', () =>
     expect(normalizarCatalogo([{ id: 'p', categoria: 'panel', nombre: 'P', recortes: 'cualquiera' }]).find((i) => i.id === 'p').recortes).toBe('pared');
   });
 });
+
+describe('v1.90: elegir de qué tira sale un pedazo (también tocándolo en el 3D, y del techo a una pared)', async () => {
+  const { destinosDeTiras, cambiarTiraManual, tiraDeCadaPedazo, TODAS_LAS_PAREDES } = await import('./revestimientos.js');
+  const porPared = [
+    { donde: 'techo', tiras: [{ n: 1, piezas: [{ id: 'techo|0', largo: 5.03 }, { id: 'techo|1', largo: 5.03 }], sobra: 1.83 }] },
+    { donde: 'lado B', tiras: [{ n: 1, piezas: [{ id: 'lado B|0', largo: 4.7 }], sobra: 7.2 }] },
+  ];
+  it('los destinos dicen qué lleva cada tira y cuánto sobra, más una nueva por grupo', () => {
+    const d = destinosDeTiras(porPared);
+    expect(d).toContainEqual(['techo|1', 'techo · tira 1: techo 5,03 + techo 5,03 · sobra 1,83 m']);
+    expect(d).toContainEqual(['lado B|2', 'lado B · tira nueva']);
+    // Con los recortes en cualquier pared, sin "todas las paredes ·" adelante.
+    expect(destinosDeTiras([{ donde: TODAS_LAS_PAREDES, tiras: [{ n: 3, piezas: [{ id: 'lado B|0', largo: 4.7 }], sobra: 7.2 }] }])[0][1])
+      .toBe('tira 3: lado B 4,70 · sobra 7,20 m');
+  });
+  it('elegir y volver a lo automático', () => {
+    const m = cambiarTiraManual({}, 'techo|0', 'lado B|1');
+    expect(m).toEqual({ 'techo|0': { pared: 'lado B', n: 1 } });
+    expect(cambiarTiraManual(m, 'techo|0', '')).toEqual({});
+  });
+  it('un pedazo del techo mandado a la tira de una pared sale de ahí', () => {
+    const tipo = { venta: 'medida', cobro: 'tira', largoTira: 11.9, largoMaximo: 12, anchoUtil: 0.95, recortes: 'pared',
+      tirasManuales: { 'techo|0': { pared: 'lado B', n: 1 } } };
+    const panos = [
+      { donde: 'lado B', largo: 0.95, h1: 4.7, h2: 4.7, neto: 4.4, huecos: [] },
+      { donde: 'techo', largo: 1.9, h1: 5.03, h2: 5.03, neto: 9.5, huecos: [] },
+    ];
+    const r = tiraDeCadaPedazo(tipo, panos);
+    expect(r.pedazosDe('techo').find((l) => l.id === 'techo|0')).toMatchObject({ n: 1, manual: true });
+    expect(r.tirasPorPared.find((g) => g.donde === 'lado B').tiras[0].piezas.map((x) => x.id)).toContain('techo|0');
+  });
+});

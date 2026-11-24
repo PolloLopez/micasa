@@ -1392,7 +1392,7 @@ export default function App() {
             empalmes={empalmesDePiezas} onCruces={cambiarCruces} perfilesDeTrabajo={perfilesDeTrabajo}
             resaltado={resaltado} cartelResaltado={cartelResaltado}
             onSoltarResaltado={resaltadoFijo ? () => { setResaltadoFijo(null); setResaltadoMouse(null); } : null}
-            pedidoVerTerreno={pedidoVerTerreno} onCambiarParam={(ruta, valor) => cambiar(ruta)(valor)} />
+            pedidoVerTerreno={pedidoVerTerreno} onCambiarParam={(ruta, valor) => cambiar(ruta)(valor)} onCambiarInsumo={cambiarInsumo} />
         </div>
 
         {/* v1.62: arrastrando este borde se cambia el ancho del 3D y del panel (en la compu). */}

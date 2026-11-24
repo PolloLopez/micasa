@@ -122,6 +122,8 @@ Manual: `MANUAL.md` y el doc "Pollo Calculator — Manual de usuario" (Claude Do
   estirar; la **medida real** sí se respeta (va al final). Ver si "Acortar/alargar" también debería ir después de las uniones.
 - 🟢 [ ] Armado: fecha en que se puso cada pieza; marcar desde la hoja de corte ("cortada"); fotos.
 - 🟢 [ ] Cruces: el tipo de unión en el plano de la pared; empalmes con más de una unión (cruce por cruce: hecho en la v1.88)
+- 🟢 [ ] Paneles en B y D (pendiente): reusar el corte en diagonal (una tira dada vuelta 180° usa la diagonal de la
+  otra). Choca con el encastre (queda del lado equivocado); ahorra ≈ 10 cm de tira por par. Decidir con ALPANEL si se puede.
 - 🟡 [ ] Cruces "debajo": la pieza que se corre de altura se mueve entera; si en otros cruces seguía al ras, ahí deja de tocar (mirar en el 3D y avisar en la fila)
   (hoy se mueve la primera).
 - 🟢 [ ] Crédito con interés y sistema francés (hoy cuotas fijas); revoque e hidrófugo de la cámara; mano de obra del

@@ -41,7 +41,7 @@ import { FORMAS_DE_UNION } from './motor/armado.js';
 import CampoNumero from './componentes/CampoNumero.jsx';
 import { resumenDeArmado } from './motor/armado.js';
 import { FilaAbertura } from './componentes/AberturasDePared.jsx';
-import { juntasDePano, pedazosDePared, encimadosDePano, tiraDeCadaPedazo } from './motor/revestimientos.js';
+import { juntasDePano, pedazosDePared, encimadosDePano, tiraDeCadaPedazo, destinosDeTiras, cambiarTiraManual } from './motor/revestimientos.js';
 import { panosPorRevestimiento } from './motor/presupuesto.js';
 import { tiraEnPunto, cortesDeTiras } from './motor/cortesPaneles.js';
 import { textoDeCodigo } from './motor/hojaDeCorte.js';
@@ -212,6 +212,20 @@ function crearMateriales(colores) {
  * @param elegida { lado, cara: 'exterior' | 'interior', x, h }
  */
 function datosDeTira(e, materialesPanel, elegida) {
+  // v1.90 (Leandro: "ver el techo en Solo paneles"): también una tira del techo (x a lo largo, h desde el borde bajo).
+  if (elegida.lado === 'techo') {
+    const t = e?.techo;
+    const tipo = t?.esquinas?.length === 4 ? materialesPanel.get(t.panel)?.tipo : null;
+    if (!tipo) return null;
+    const pano = { largo: t.largo, h1: t.largoFaldon, h2: t.largoFaldon, huecos: [] };
+    const tira = tiraEnPunto(pano, tipo, elegida.x, elegida.h);
+    if (!tira) return null;
+    const [t0, t1, , t3] = t.esquinas;
+    const arriba = (tipo.ubicacion === 'eje' ? -0.13 : (tipo.espesor ?? 50) / 2000) + 0.015;
+    const punto = (x, h) => [0, 1, 2].map((i) => t0[i] + (t1[i] - t0[i]) * (x / t.largo) + (t3[i] - t0[i]) * (h / t.largoFaldon) + (i === 1 ? arriba : 0));
+    return { pared: { lado: 'techo', largo: t.largo, alturas: [t.largoFaldon, t.largoFaldon] }, tipo, tira, signo: 1, fuera: 0, punto,
+      donde: 'techo', pano };
+  }
   const pared = e?.paredes?.find((p) => p.lado === elegida.lado);
   if (!pared) return null;
   const idPanel = elegida.cara === 'interior' ? pared.panelInterior : pared.panel;
@@ -221,7 +235,13 @@ function datosDeTira(e, materialesPanel, elegida) {
   const tira = tiraEnPunto(pano, tipo, elegida.x, elegida.h);
   if (!tira) return null;
   const fuera = tipo.ubicacion === 'eje' ? 0 : MEDIA_SECCION_PARED + (tipo.espesor ?? 50) / 2000;
-  return { pared, tipo, tira, signo: elegida.cara === 'interior' ? -1 : 1, fuera: elegida.cara === 'interior' ? Math.max(fuera, 0.01) : fuera };
+  const signo = elegida.cara === 'interior' ? -1 : 1;
+  const d = (elegida.cara === 'interior' ? Math.max(fuera, 0.01) : fuera) + 0.015; // un poco por delante del paño
+  const [a, b] = pared.esquinas;
+  const dir = [(b[0] - a[0]) / pared.largo, (b[2] - a[2]) / pared.largo];
+  const n = Math.hypot(a[0] + b[0], a[2] + b[2]) || 1;
+  const punto = (x, h) => [a[0] + dir[0] * x + ((a[0] + b[0]) / n) * d * signo, a[1] + h, a[2] + dir[1] * x + ((a[2] + b[2]) / n) * d * signo];
+  return { pared, tipo, tira, signo, fuera, punto, pano, donde: `lado ${pared.lado}${elegida.cara === 'interior' ? ' (interior)' : ''}` };
 }
 
 /**
@@ -230,6 +250,18 @@ function datosDeTira(e, materialesPanel, elegida) {
  */
 function tiraTocadaEn(estructura, toque) {
   const { lado, cara } = toque.object.userData.panelPared;
+  if (lado === 'techo') { // v1.90: x a lo largo del techo, h desde el borde bajo (a lo largo del faldón)
+    const t = estructura?.techo;
+    if (!t || t.esquinas?.length !== 4) return null;
+    const [t0, t1, , t3] = t.esquinas;
+    const p = toque.point.toArray().map((v, i) => v - t0[i]);
+    const eje = (q, largo) => q.map((v, i) => (v - t0[i]) / largo);
+    const u = eje(t1, t.largo);
+    const w = eje(t3, t.largoFaldon);
+    const x = p.reduce((acc, v, i) => acc + v * u[i], 0);
+    const h = p.reduce((acc, v, i) => acc + v * w[i], 0);
+    return { lado, cara, x: Math.min(t.largo, Math.max(0, x)), h: Math.min(t.largoFaldon, Math.max(0, h)) };
+  }
   const pared = estructura?.paredes?.find((p) => p.lado === lado);
   if (!pared) return null;
   const [a, b] = pared.esquinas;
@@ -622,6 +654,8 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
       const tipoTecho = materialesPanel.get(e.techo.panel)?.tipo;
       // Las esquinas del techo ya están arriba de las correas; embutido baja entre las vigas.
       dibujar(e.techo.esquinas, e.techo.panel, [0, 1, 0], tipoTecho?.ubicacion === 'eje' ? -0.13 : (tipoTecho?.espesor ?? 50) / 2000);
+      // v1.90: tocar el techo elige su tira (como en las paredes).
+      for (let i = antes; i < grupo.children.length; i++) grupo.children[i].traverse((o) => { o.userData.panelPared = { lado: 'techo', cara: 'exterior' }; });
       marcar(antes, ['techo']);
     }
   }
@@ -819,12 +853,7 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
   // v1.65: la tira (o placa) tocada en el 3D, pintada encima del paño.
   const elegidaEnPared = tiraElegida && capas.paneles ? datosDeTira(e, materialesPanel, tiraElegida) : null;
   if (elegidaEnPared) {
-    const { pared, tira, signo, fuera } = elegidaEnPared;
-    const [a, b] = pared.esquinas;
-    const dir = [(b[0] - a[0]) / pared.largo, (b[2] - a[2]) / pared.largo];
-    const n = Math.hypot(a[0] + b[0], a[2] + b[2]) || 1;
-    const d = fuera + 0.015; // un poco por delante del paño
-    const punto = (x, h) => [a[0] + dir[0] * x + ((a[0] + b[0]) / n) * d * signo, a[1] + h, a[2] + dir[1] * x + ((a[2] + b[2]) / n) * d * signo];
+    const { pared, tira, punto } = elegidaEnPared; // v1.90: punto() sirve para la pared y para el techo
     const [h1, h2] = pared.alturas;
     const altoEn = (x) => h1 + ((h2 - h1) * x) / pared.largo;
     const x1 = tira.x0 + tira.ancho;
@@ -932,6 +961,16 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
         + (t3[i] - t0[i]) * (h / e.techo.largoFaldon) + (i === 1 ? arriba : 0));
       verticales.forEach((x) => pares.push([punto(x, 0), punto(x, e.techo.largoFaldon)]));
       horizontales.forEach((h) => pares.push([punto(0, h), punto(e.techo.largo, h)]));
+      // v1.90 (Leandro: "ver el techo en Solo paneles"): cada pedazo del techo dice de qué tira entera sale.
+      const numeros = capas.numerosTiras && tipo?.cobro === 'tira' ? tirasDelPanel(tipo) : null;
+      (numeros?.pedazosDe('techo') ?? []).forEach((l) => {
+        const cartel = cartelChico(`T${l.n}`, l.manual ? 'rgba(14,165,233,0.95)' : 'rgba(30,41,59,0.85)');
+        const centro = punto((l.x0 + l.x1) / 2, l.y0 + l.largo / 2);
+        cartel.position.set(centro[0], centro[1] + 0.03, centro[2]);
+        cartel.scale.multiplyScalar(0.6);
+        cartel.userData.ladosPared = ['techo'];
+        grupo.add(cartel);
+      });
     }
     Object.entries(paresDe).filter(([, pares]) => pares.length > 0).forEach(([lado, pares]) => {
       const l = lineas(pares, materiales.juntas);
@@ -1190,6 +1229,7 @@ export default function LoftCanvas({
   resaltado = null, cartelResaltado = null, onSoltarResaltado, onElegir, onMoverMueble, onGirarMueble,
   pedidoVerTerreno = 0, // v1.32: cada vez que cambia, la cámara muestra todo el lote
   onCambiarParam = null, // v1.37: (ruta, valor) para el norte desde el panel del sol
+  onCambiarInsumo = null, // v1.90: (id, campo, valor) para elegir de qué tira sale un pedazo tocándolo
 }) {
   const lienzoRef = useRef(null);
   const visorRef = useRef(null); // { grupo, controles, camara, materiales, ... }
@@ -1254,6 +1294,12 @@ export default function LoftCanvas({
   estructuraRef.current = estructura;
   // v1.65: los datos de la tira elegida (con los tipos de panel de la obra; null si ya no existe).
   const datosTira = tiraElegida ? datosDeTira(estructura, new Map((paneles ?? []).map((p) => [p.id, { tipo: p }])), tiraElegida) : null;
+  // v1.90 (Leandro: elegir los reusos de tiras "tocando en Solo paneles"): de qué tira entera sale cada pedazo de la tocada.
+  const tipoTocado = datosTira?.tipo?.cobro === 'tira' && datosTira.tipo.venta !== 'estandar' ? datosTira.tipo : null;
+  const tirasDelTipoTocado = useMemo(() => (tipoTocado ? tiraDeCadaPedazo(tipoTocado, panosPorRevestimiento(estructura)[tipoTocado.id] ?? []) : null),
+    [tipoTocado, estructura]);
+  const pedazosTocados = tirasDelTipoTocado && datosTira && !datosTira.tira.placa
+    ? tirasDelTipoTocado.pedazosDe(datosTira.donde).filter((l) => Math.abs(l.x0 - datosTira.tira.x0) < 0.005).sort((a, b) => a.y0 - b.y0) : [];
   const metros = (n) => `${n.toFixed(2).replace('.', ',')} m`;
   const midiendoRef = useRef(false);
   const portapapelesRef = useRef(null); // lo copiado con Ctrl+C: { clase: 'abertura' | 'pieza', dato }
@@ -2575,7 +2621,7 @@ export default function LoftCanvas({
       {datosTira && (
         <div className={`seleccion no-print${seleccionPlegada ? ' plegada' : ''}`} role="dialog" aria-label="Panel seleccionado">
           <div className="seleccion-cabecera">
-            <strong>{datosTira.tipo.nombre} · {nombreDePared(datosTira.pared.lado, params)}{datosTira.signo < 0 ? ' (por dentro)' : ''}</strong>
+            <strong>{datosTira.tipo.nombre} · {datosTira.pared.lado === 'techo' ? 'Techo' : nombreDePared(datosTira.pared.lado, params)}{datosTira.signo < 0 ? ' (por dentro)' : ''}</strong>
             {botonPlegar}<button type="button" className="btn-cerrar" onClick={() => setTiraElegida(null)} aria-label="Cerrar" title="Cerrar (Esc)">✕</button>
           </div>
           {datosTira.tira.placa ? (
@@ -2591,6 +2637,26 @@ export default function LoftCanvas({
               ? <ul className="cortes-tira">{datosTira.tira.cortes.map((c) => <li key={c}>{c}</li>)}</ul>
               : <p className="nota">Va entera: sin cortes.</p>}
             {datosTira.tira.desperdicio > 0.005 && <p className="nota">Se tiran ≈ {datosTira.tira.desperdicio.toFixed(2).replace('.', ',')} m² de esta tira.</p>}
+            {/* v1.90: de qué tira entera sale cada pedazo, y cambiarlo (por ejemplo, del sobrante del techo o de otra pared). */}
+            {pedazosTocados.length > 0 && (
+              <div className="sale-de-tira">
+                {pedazosTocados.map((l) => {
+                  const elegido = datosTira.tipo.tirasManuales?.[l.id];
+                  return (
+                    <label key={l.id}>Pedazo de {metros(l.largo)}{pedazosTocados.length > 1 ? ` (desde ${metros(l.y0)})` : ''}: sale de la tira <strong>T{l.n}</strong>{l.manual ? ' (elegida)' : ''}
+                      {onCambiarInsumo && (
+                        <select value={elegido ? `${elegido.pared}|${elegido.n}` : ''} aria-label={`De qué tira sale el pedazo de ${metros(l.largo)}`}
+                          onChange={(ev) => onCambiarInsumo(datosTira.tipo.id, 'tirasManuales', cambiarTiraManual(datosTira.tipo.tirasManuales ?? {}, l.id, ev.target.value))}>
+                          <option value="">que la elija la app</option>
+                          {destinosDeTiras(tirasDelTipoTocado.tirasPorPared).map(([v, t]) => <option key={v} value={v}>{t}</option>)}
+                        </select>
+                      )}
+                    </label>
+                  );
+                })}
+                <small className="nota">Podés mandarlo a cualquier tira: de otra pared o del techo (y al revés). Con "recortes en la misma pared" la app sola no los mezcla; con "en cualquier pared" sí.</small>
+              </div>
+            )}
           </>)}
           <p className="nota">El plano de cada panel está en Planos, debajo de cada pared.</p>
         </div>
