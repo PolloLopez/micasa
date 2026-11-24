@@ -929,7 +929,25 @@ export function generarEstructura(params, aberturas, catalogo = null) {
   const conCambios = aplicarCambiosManuales(conUniones, ...soloDe(esTramo));
   conCambios.eliminadasEncontradas = [...antes.eliminadasEncontradas, ...conCambios.eliminadasEncontradas];
   conCambios.editadasEncontradas = [...antes.editadasEncontradas, ...conCambios.editadasEncontradas];
-  return marcarPerfilesDePared(conCambios, params);
+  // v1.83: la medida real (medida en obra) va al final de todo, sobre la pieza ya unida: si se hiciera antes, las
+  // uniones la volverían a estirar hasta la solera o el piso.
+  return marcarPerfilesDePared(aplicarMedidasReales(conCambios, params.avancePiezas), params);
+}
+
+/**
+ * v1.83: las piezas que se midieron en obra quedan de esa medida (la punta `desde` queda donde está; la otra se corre
+ * a lo largo de la pieza). Guardan `largoPlano` (la del cálculo) para mostrar la diferencia.
+ */
+function aplicarMedidasReales(e, avance = {}) {
+  const conMedida = Object.entries(avance ?? {}).filter(([, v]) => v?.medidaReal > 0);
+  if (conMedida.length === 0) return e;
+  const medidas = new Map(conMedida.map(([id, v]) => [id, v.medidaReal]));
+  return transformarPiezas(e, (p) => {
+    const medida = medidas.get(p.id);
+    if (!medida || !(p.largo > 0) || Math.abs(medida - p.largo) < 1e-6) return p;
+    const hasta = p.desde.map((v, i) => v + ((p.hasta[i] - v) / p.largo) * medida);
+    return { ...p, ...pieza(p.id, p.tipo, p.grupos, p.desde, hasta), largoPlano: p.largo, medidaReal: true };
+  });
 }
 
 /**

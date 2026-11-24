@@ -103,6 +103,7 @@ export const PARAMS_INICIALES = {
   piezasEliminadas: [],
   piezasAgregadas: [], // v1.16: [{ id: 'agr:1', tipo, grupos, desde, hasta, insumo }] (duplicadas a mano)
   piezasEditadas: {}, // { idPieza: { recorteInicio, recorteFin, moverX, moverY, moverZ, perfil } }
+  avancePiezas: {}, // v1.83: { idPieza: { instalada, verificada, medidaReal } } (ver motor/armado.js)
 
   // Escalera al borde del entrepiso (ver motor/escalera.js)
   escalera: { ...ESCALERA_INICIAL },

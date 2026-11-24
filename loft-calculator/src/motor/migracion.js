@@ -64,6 +64,7 @@ import { REVESTIMIENTO_POR_DEFECTO, TIRA_ANGOSTA, LIMITES_REVESTIMIENTO, VENTAS,
 import { TIPOS_PERFIL, LIMITES_PERFIL, revisarPerfil, armarListaDePerfiles } from './perfiles.js';
 import { conProveedores, FORMAS_DE_PAGO } from './proveedores.js';
 import { completarConsumible } from './consumibles.js';
+import { normalizarAvance } from './armado.js';
 
 const esObjeto = (x) => x !== null && typeof x === 'object' && !Array.isArray(x);
 const esColor = (c) => typeof c === 'string' && /^#[0-9a-fA-F]{6}$/.test(c);
@@ -137,6 +138,7 @@ export function migrarParams(params) {
   nuevos.cierre = completarCierre(nuevos.cierre); // v1.46: mano de obra, imprevistos, ganancia e IVA (de fábrica en 0)
   nuevos.sol = completarSol(nuevos.sol); // v1.37: Mercedes // v1.33: con descuentos en los cruces (lo correcto)
   nuevos.piezasEditadas ??= {}; // v1.8
+  nuevos.avancePiezas = normalizarAvance(nuevos.avancePiezas); // v1.83: qué fierros ya están puestos (armado en obra)
   nuevos.piezasAgregadas ??= []; // v1.16: piezas duplicadas a mano
   nuevos.escalera.riostras ??= false; // v1.9
   nuevos.tipoProyecto ??= 'construccion'; // v1.9: todo lo anterior es una construcción

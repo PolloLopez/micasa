@@ -48,7 +48,8 @@ describe('aplicarEdicion (pieza suelta)', () => {
     expect(revisarEdicionDePieza(original, { recorteInicio: 1.5, recorteFin: 1.5 })).toMatch(/queda en 0\.00 m/);
     expect(revisarEdicionDePieza(original, { recorteFin: 1 })).toBeNull();
     expect(revisarEdicion({ moverX: 9 })).toMatch(/hasta 5 m/);
-    expect(revisarEdicion({ recorteInicio: -1 })).toMatch(/recorte/);
+    expect(revisarEdicion({ recorteInicio: -1 })).toBeNull(); // v1.83: negativo = alargar
+    expect(revisarEdicion({ recorteInicio: -4 })).toMatch(/se alarga hasta 3 m/);
     expect(revisarEdicion({ perfil: 'cualquiera' })).toMatch(/Perfil/);
     expect(revisarEdicion({ color: 'rojo' })).toMatch(/desconocidos/);
   });

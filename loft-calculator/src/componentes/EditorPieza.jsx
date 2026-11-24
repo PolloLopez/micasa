@@ -14,7 +14,7 @@ import { useId } from 'react';
 import CampoNumero from './CampoNumero.jsx';
 import { nombreDePared } from '../motor/geometria.js';
 import {
-  EDICION_VACIA, esEdicionVacia, esVertical, revisarEdicionDePieza,
+  EDICION_VACIA, esEdicionVacia, esVertical, revisarEdicionDePieza, ALARGAR_MAXIMO,
 } from '../motor/edicionPiezas.js';
 import NotaPlegable from './NotaPlegable.jsx';
 
@@ -85,25 +85,21 @@ export default function EditorPieza({ pieza, edicion, catalogo, unidad, ladoFren
         <h3 className="subtitulo">Altura</h3>
         <NotaPlegable>
           Medida desde el piso del loft. La pieza original va de {(yAbajo - elevacion).toFixed(2)} a {(yArriba - elevacion).toFixed(2)} m:
-          se puede acortar, no alargar (para alargarla, duplicala o movela).
+          se puede acortar o alargar (hasta {ALARGAR_MAXIMO} m por punta).
         </NotaPlegable>
         <div className="grid-params">
           <CampoNumero etiqueta="Arranca a" unidad={unidad} valor={yAbajo - elevacion + actual[campoAbajo]}
-            onCambio={(v) => (v < yAbajo - elevacion - 1e-9
-              ? `No puede arrancar más abajo que la original (${(yAbajo - elevacion).toFixed(2)} m)`
-              : cambiarCampo(campoAbajo)(Number((v - (yAbajo - elevacion)).toFixed(4))))} />
+            onCambio={(v) => cambiarCampo(campoAbajo)(Number((v - (yAbajo - elevacion)).toFixed(4)))} />
           <CampoNumero etiqueta="Termina a" unidad={unidad} valor={yArriba - elevacion - actual[campoArriba]}
-            onCambio={(v) => (v > yArriba - elevacion + 1e-9
-              ? `No puede terminar más arriba que la original (${(yArriba - elevacion).toFixed(2)} m)`
-              : cambiarCampo(campoArriba)(Number((yArriba - elevacion - v).toFixed(4))))} />
+            onCambio={(v) => cambiarCampo(campoArriba)(Number((yArriba - elevacion - v).toFixed(4)))} />
         </div>
       </>) : (<>
-      <h3 className="subtitulo">Acortar</h3>
-      <NotaPlegable>Cuánto se le saca a cada punta de la pieza.</NotaPlegable>
+      <h3 className="subtitulo">Acortar o alargar</h3>
+      <NotaPlegable>Cuánto se le saca a cada punta de la pieza. Con un número negativo se alarga (ej. −0,10 = 10 cm más; hasta {ALARGAR_MAXIMO} m).</NotaPlegable>
       <div className="grid-params">
-        <CampoNumero etiqueta={`Acortar la punta ${extremos.inicio === 'abajo' || extremos.inicio === 'arriba' ? `de ${extremos.inicio}` : extremos.inicio}`}
+        <CampoNumero etiqueta={`Acortar (− alarga) la punta ${extremos.inicio === 'abajo' || extremos.inicio === 'arriba' ? `de ${extremos.inicio}` : extremos.inicio}`}
           unidad={unidad} valor={actual.recorteInicio} onCambio={cambiarCampo('recorteInicio')} />
-        <CampoNumero etiqueta={`Acortar la punta ${extremos.fin === 'abajo' || extremos.fin === 'arriba' ? `de ${extremos.fin}` : extremos.fin}`}
+        <CampoNumero etiqueta={`Acortar (− alarga) la punta ${extremos.fin === 'abajo' || extremos.fin === 'arriba' ? `de ${extremos.fin}` : extremos.fin}`}
           unidad={unidad} valor={actual.recorteFin} onCambio={cambiarCampo('recorteFin')} />
       </div>
       </>)}

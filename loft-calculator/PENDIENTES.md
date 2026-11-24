@@ -43,6 +43,8 @@ Manual: `MANUAL.md` y el doc "Pollo Calculator — Manual de usuario" (Claude Do
   puerta, dintel, barras de 2,60 m).
 
 ## 👀 Para mirar en pantalla (probado con tests, no visto)
+- 🟡 [ ] v1.83: tocar una pieza en el 3D y marcar "Instalada" (la prueba automática no logró tocar una pieza; la lista de
+  Obra → Armado sí se probó). Revisar con el 🏗 Avance que se vea en verde.
 - 🟡 [ ] v1.82: cargar el **ancho total** del panel (ALPANEL: 1000 mm con 50 de encastre) para que se vea el encastre en
   verde; mover un recorte desde la hoja de corte y mirarlo en "Solo paneles".
 - 🟡 [ ] v1.80: cargar el tapial (lados, ladrillo, portón en su lugar) y mirar el 3D y el plano de implantación.
@@ -110,6 +112,9 @@ Manual: `MANUAL.md` y el doc "Pollo Calculator — Manual de usuario" (Claude Do
   guardar las medidas fijadas en el proyecto; "perfiles de exportación" con nombre (Panelero, Herrero, Cliente).
 
 ## Obra, seguimiento y finanzas
+- 🟡 [ ] Armado: al editar a mano la punta de una pieza que toca otra (columna con la solera), las uniones la vuelven a
+  estirar; la **medida real** sí se respeta (va al final). Ver si "Acortar/alargar" también debería ir después de las uniones.
+- 🟢 [ ] Armado: fecha en que se puso cada pieza; marcar desde la hoja de corte ("cortada"); fotos.
 - 🟢 [ ] Crédito con interés y sistema francés (hoy cuotas fijas); revoque e hidrófugo de la cámara; mano de obra del
   tapial por m²; medidas propias del tapial y el pozo; precios de mano de obra por contratista.
 - 🟢 [ ] Comprobantes (foto o PDF del recibo): necesita dónde guardarlos (Firebase Storage o Django).

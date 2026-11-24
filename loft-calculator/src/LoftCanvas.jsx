@@ -37,6 +37,8 @@ import { seccionDesdePerfil } from './motor/canos.js';
 import { coloresPorPerfil, perfilDePieza } from './motor/coloresPerfil.js';
 import { INSUMO } from './motor/constantes.js';
 import EditorPieza from './componentes/EditorPieza.jsx';
+import CampoNumero from './componentes/CampoNumero.jsx';
+import { resumenDeArmado } from './motor/armado.js';
 import { FilaAbertura } from './componentes/AberturasDePared.jsx';
 import { juntasDePano, pedazosDePared, encimadosDePano, tiraDeCadaPedazo } from './motor/revestimientos.js';
 import { panosPorRevestimiento } from './motor/presupuesto.js';
@@ -174,6 +176,9 @@ function crearMateriales(colores) {
   materiales.encastre = new THREE.MeshBasicMaterial({ color: '#16a34a', transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false });
   // Pieza seleccionada: amarillo que brilla.
   materiales.seleccion = new THREE.MeshStandardMaterial({ color: COLOR_SELECCION, emissive: COLOR_SELECCION, emissiveIntensity: 0.6 });
+  // v1.83: "Avance" del armado: lo puesto en verde, lo que falta gris claro y transparente.
+  materiales.instalada = new THREE.MeshStandardMaterial({ color: '#22c55e', emissive: '#14532d', emissiveIntensity: 0.4 });
+  materiales.pendiente = new THREE.MeshStandardMaterial({ color: '#94a3b8', transparent: true, opacity: 0.35, depthWrite: false });
   // Piezas resaltadas (v1.27): rosa que brilla y se ve A TRAVÉS de todo (depthTest apagado),
   // así una columna tapada por los paneles o por otra pared igual se ve.
   materiales.resaltado = new THREE.MeshStandardMaterial({
@@ -385,7 +390,7 @@ function cartel(texto, esFrente) {
 /** Arma todas las mallas del modelo dentro de `grupo`. */
 function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
   const { params, estructura: e, aberturas, capas, gruposVisibles, seleccionada, catalogo, aberturaSeleccionada, medida, resaltado, medidasFijas = [],
-    perfiles = null, opacidadHierros = 1, tiraElegida = null } = opciones;
+    perfiles = null, opacidadHierros = 1, tiraElegida = null, avance = null } = opciones;
   // v1.55: con "Color por perfil", cada pieza del color de su caño (el mismo perfil, el mismo color).
   const colorDePerfil = perfiles ? new Map(perfiles.map((x) => [x.perfil, x.color])) : null;
   const materialDePerfil = (p) => {
@@ -417,8 +422,10 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
     const resaltada = !elegida && piezaResaltada(p, resaltado, catalogo); // v1.27
     // v1.42.1: los tirantes de madera, de madera (y un poco más gruesos).
     if (p.madera && capas.madera === false) return; // v1.59: "Ver estructura de hierro" saca los tirantes de madera
-    const material = elegida ? materiales.seleccion : resaltada ? materiales.resaltado : p.madera ? materiales.madera
-      : (colorDePerfil && materialDePerfil(p)) || materiales[capa];
+    // v1.83: con "Avance", el color dice si la pieza ya está puesta (verde) o falta (gris).
+    const material = elegida ? materiales.seleccion : resaltada ? materiales.resaltado
+      : avance ? (avance[p.id]?.instalada ? materiales.instalada : materiales.pendiente)
+        : p.madera ? materiales.madera : (colorDePerfil && materialDePerfil(p)) || materiales[capa];
     const seccion = p.madera ? 0.1 : seccionDe(p, catalogo, estilo);
     const malla = barra(p, elegida ? seccion * 1.6 : resaltada ? seccion * 1.3 : seccion, material);
     if (resaltada) malla.renderOrder = 997; // después de los paneles transparentes
@@ -1134,6 +1141,7 @@ export default function LoftCanvas({
   params, estructura, aberturas, paneles, colores, catalogo, unidad, onCambiarColor, onEliminarPieza, onEditarPieza, codigosCorte = null,
   opacidades, onCambiarOpacidad, capturaRef, onMedidasFijas,
   onActualizarAbertura, onQuitarAbertura, onPegarAbertura, onDuplicarPieza, onMoverAbertura = null,
+  onMarcarAvance = null, onMedidaReal = null, // v1.83: armado en obra (fierros puestos y medidas)
   resaltado = null, cartelResaltado = null, onSoltarResaltado, onElegir, onMoverMueble, onGirarMueble,
   pedidoVerTerreno = 0, // v1.32: cada vez que cambia, la cámara muestra todo el lote
   onCambiarParam = null, // v1.37: (ruta, valor) para el norte desde el panel del sol
@@ -1244,6 +1252,11 @@ export default function LoftCanvas({
   // termina cada tira y cada tramo) y las aberturas; sin hierros, OSB, muebles, terreno ni personas. Es lo contrario de
   // "Solo hierro" (prender uno apaga el otro).
   const [soloPaneles, setSoloPaneles] = useState(false);
+  // v1.83 (Leandro: "marcar qué fierros fueron ya instalados"): el color de cada pieza dice si ya está puesta.
+  const [verAvance, setVerAvance] = useState(false);
+  const avancePiezas = params.avancePiezas ?? {};
+  const resumenAvance = useMemo(() => (verAvance && estructura ? resumenDeArmado(listarPiezas(estructura), avancePiezas) : null),
+    [verAvance, estructura, avancePiezas]);
   const [verAyudaVisor, setVerAyudaVisor] = useState(false); // v1.63: la ayuda de cómo moverse, con "?"
   const capasVista = useMemo(() => {
     const base = realista
@@ -1789,7 +1802,7 @@ export default function LoftCanvas({
     }));
     dibujarModelo(visor.grupo, visor.materiales, visor.materialesPanel,
       { params, estructura, aberturas, capas: capasVista, gruposVisibles, seleccionada, catalogo, aberturaSeleccionada, medida, resaltado, medidasFijas,
-        perfiles: perfilesVista, opacidadHierros: opacidadesVista.hierros, tiraElegida });
+        perfiles: perfilesVista, opacidadHierros: opacidadesVista.hierros, tiraElegida, avance: verAvance ? avancePiezas : null });
     visor.corte.version += 1; // v1.45: hay que volver a ver qué paredes tapan
     juntarPuertas(visor);
     // Se reacomoda la cámara si cambia el frente o el tipo de proyecto (construcción / grada).
@@ -1798,7 +1811,7 @@ export default function LoftCanvas({
       mirarAlFrente(visor.camara, visor.controles, medidasVista(params, estructura));
       visor.frente = encuadre;
     }
-  }, [params, estructura, aberturas, capasVista, paneles, gruposVisibles, seleccionada, opacidadesVista.paneles, catalogo, aberturaSeleccionada, medida, resaltado, medidasFijas, perfilesVista, opacidadesVista.hierros, tiraElegida]);
+  }, [params, estructura, aberturas, capasVista, paneles, gruposVisibles, seleccionada, opacidadesVista.paneles, catalogo, aberturaSeleccionada, medida, resaltado, medidasFijas, perfilesVista, opacidadesVista.hierros, tiraElegida, verAvance, avancePiezas]);
 
   // 2a) v1.45.1: "Lo enterrado" apagado = se corta todo lo que está debajo del suelo (un plano de corte en y = 0,
   // un poquito más abajo para no cortar el piso que recibe las sombras, que está a −1 cm).
@@ -2292,6 +2305,15 @@ export default function LoftCanvas({
   return (
     <div className="canvas-box">
       <div className="lienzo" ref={lienzoRef} />
+      {/* v1.83: con "Avance", cuánto está puesto. */}
+      {resumenAvance && (
+        <div className="leyenda-encimado leyenda-avance" role="status">
+          <span style={{ color: '#4ade80' }}>■</span> Puestas <strong>{resumenAvance.instaladas} de {resumenAvance.total}</strong> piezas
+          ({resumenAvance.porcentaje} %) · {resumenAvance.metrosInstalados.toFixed(0)} de {resumenAvance.metros.toFixed(0)} m<br />
+          <span style={{ color: '#94a3b8' }}>■</span> Falta · {resumenAvance.verificadas} con la medida verificada<br />
+          <small>Tocá una pieza para marcarla.</small>
+        </div>
+      )}
       {/* v1.82: con "Solo paneles", qué quiere decir cada color de las franjas encimadas. */}
       {soloPaneles && capas.juntas && (
         <div className="leyenda-encimado" role="note">
@@ -2341,6 +2363,10 @@ export default function LoftCanvas({
               <span aria-hidden="true">🏠</span><span className="etiqueta-ctrl">Adentro</span>
             </button>
           )}
+          <button className={`btn-ctrl${verAvance ? ' activo' : ''}`} aria-pressed={verAvance} onClick={() => setVerAvance((v) => !v)}
+            title="Avance del armado: en verde los fierros que ya pusiste, en gris lo que falta (se marcan tocando cada pieza)">
+            <span aria-hidden="true">🏗</span><span className="etiqueta-ctrl">Avance</span>
+          </button>
           <button className={`btn-ctrl${soloPaneles ? ' activo' : ''}`} aria-pressed={soloPaneles} onClick={() => { setSoloPaneles((v) => !v); setSoloHierro(false); }}
             title="Ver solo los paneles: las tiras con sus juntas (dónde termina cada tira y cada tramo) y las aberturas, sin hierros ni muebles">
             <span aria-hidden="true">🧱</span><span className="etiqueta-ctrl">Solo paneles</span>
@@ -2526,6 +2552,30 @@ export default function LoftCanvas({
             {botonPlegar}<button type="button" className="btn-cerrar" onClick={() => { setSeleccionada(null); setEditandoId(null); }}
               aria-label="Cerrar" title="Cerrar (Esc)">✕</button>
           </div>
+          {/* v1.83: armado en obra: puesta, medida verificada y, si no coincide, la medida real (la pieza se ajusta). */}
+          {onMarcarAvance && (
+            <div className="avance-pieza">
+              <label className="casilla-opcional">
+                <input type="checkbox" checked={Boolean(avancePiezas[piezaSeleccionada.id]?.instalada)}
+                  onChange={(e) => onMarcarAvance([piezaSeleccionada.id], 'instalada', e.target.checked)} />
+                Instalada
+              </label>
+              <label className="casilla-opcional">
+                <input type="checkbox" checked={Boolean(avancePiezas[piezaSeleccionada.id]?.verificada)}
+                  onChange={(e) => onMarcarAvance([piezaSeleccionada.id], 'verificada', e.target.checked)} />
+                Medida verificada
+              </label>
+              {onMedidaReal && (
+                <CampoNumero key={piezaSeleccionada.id} etiqueta="Medida real (si no coincide)" unidad={unidad}
+                  valor={avancePiezas[piezaSeleccionada.id]?.medidaReal ?? piezaSeleccionada.largo}
+                  onCambio={(v) => (Math.abs(v - piezaSeleccionada.largo) < 0.0005 ? null : onMedidaReal(piezaSeleccionada, v))} />
+              )}
+              {onMedidaReal && piezaSeleccionada.medidaReal && (
+                <button type="button" className="btn-mini" onClick={() => onMedidaReal(piezaSeleccionada, null)}>
+                  ↶ la del plano ({piezaSeleccionada.largoPlano.toFixed(2).replace('.', ',')} m)</button>
+              )}
+            </div>
+          )}
           {editandoId === piezaSeleccionada.id && (
             <EditorPieza pieza={piezaSeleccionada} edicion={params.piezasEditadas[piezaSeleccionada.id]}
               catalogo={catalogo} unidad={unidad} ladoFrente={params.ladoFrente} paredes={params.paredes}

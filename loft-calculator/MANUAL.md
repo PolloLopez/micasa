@@ -23,6 +23,11 @@ Página: https://pollolopez.github.io/micasa/
 
 Medidas de la planta, alturas, pisos (perfil C o tirantes de madera), entrepiso, escalera, techo, pilotines y zapatas.
 En **Pisos**, **Recortes de placas** es el % que se suma al OSB y al machimbre (de fábrica 10 %).
+En **Pisos**, **Qué perfil lleva cada parte**: una fila por parte con un botón por tus dos perfiles (80×80 y C 80×40)
+y "otro…". Si alguna pieza tiene otro perfil elegido a mano, la fila lo avisa y la podés pasar al de la fila.
+
+**Editar una pieza** (tocala en el 3D → Editar): cada punta se **acorta o alarga** (negativo = alarga, hasta 3 m).
+Para agregar una pieza, **Duplicá** una parecida y ajustala.
 
 Las notas grises largas muestran una línea: tocá **más ▾** para leerlas enteras.
 
@@ -95,7 +100,7 @@ como fantasma en su lugar, así ves cuál es antes de tocar **Restaurar**.
 
 ## 4. El 3D
 
-La barra está en tres grupos: **cámara** (Girar, Frente, Terreno), **qué se ve** (Realista, Sol, Adentro, **Solo paneles** (las tiras con sus juntas, para ver los cortes), Solo hierro,
+La barra está en tres grupos: **cámara** (Girar, Frente, Terreno), **qué se ve** (Realista, Sol, Adentro, **🏗 Avance** (lo puesto en verde), **Solo paneles** (las tiras con sus juntas, para ver los cortes), Solo hierro,
 Por perfil) y **herramientas** (Recorrer, Medir, **?** = cómo moverse). Con el 3D angosto quedan los íconos.
 
 | Botón | Qué hace |
@@ -248,6 +253,11 @@ que los materiales y la pestaña "Presupuesto" muestra ese precio.
 ---
 
 ## 7. Obra (seguimiento)
+
+- **Armado** (ya construyendo): la lista de fierros por pared o zona y por tipo. Tildá **Puesta** cuando la pieza está
+  soldada y **Medida ✓** cuando la mediste. Si no coincide, cargá la **medida real**: la pieza queda de esa medida en el
+  3D, los planos y los cortes (**↶ la del plano** la vuelve atrás). **✓ Todo puesto** marca un tipo o una pared entera.
+  En el 3D, tocando una pieza también se marca, y con **🏗 Avance** se ve en verde lo puesto.
 
 - **Partes de la obra**: cada parte (Pilotines y zapatas, Paredes, Techo, el pozo…) con su casilla **Terminada**: lo
   que lleva ya no falta comprar.

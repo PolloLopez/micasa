@@ -1093,3 +1093,20 @@ option { background: var(--tarjeta); color: var(--texto); }
 .dibujo-plano .pedazo-plano rect { fill: none; stroke: #0ea5e9; stroke-width: 0.015; }
 .dibujo-plano .pedazo-plano.manual rect { stroke: #0284c7; stroke-width: 0.03; }
 .dibujo-plano .pedazo-plano text { fill: #0369a1; font-weight: 700; }
+/* v1.83: armado en obra */
+.leyenda-avance { top: auto; bottom: 64px; }
+.avance-pieza { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: flex-end; padding: 6px 0; border-top: 1px solid var(--borde, #334155); }
+.avance-pieza .group { margin: 0; max-width: 11rem; }
+/* v1.83: qué perfil lleva cada parte (botones 80×80 / 80×40). */
+.perfiles-partes { margin: 8px 0 12px; }
+.fila-perfil-parte { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; padding: 6px 0;
+  border-bottom: 1px solid var(--borde, #334155); }
+.nombre-parte { display: flex; flex-direction: column; min-width: 9rem; flex: 1 1 9rem; }
+.nombre-parte small { color: var(--texto-suave, #94a3b8); }
+.botones-perfil { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.btn-perfil { min-width: 4.6rem; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--borde-input, #475569); background: var(--fondo);
+  color: var(--texto); font: inherit; font-weight: 600; cursor: pointer; }
+.btn-perfil.activo { background: var(--acento); border-color: var(--acento); color: #fff; }
+.otro-perfil { max-width: 7.5rem; font-size: 0.78rem; }
+.otro-perfil.activo { border-color: var(--acento); }
+.aviso-a-mano { flex-basis: 100%; margin: 2px 0 0; font-size: 0.75rem; color: #fbbf24; }

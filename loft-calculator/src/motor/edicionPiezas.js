@@ -2,7 +2,7 @@
 // EDICIÓN DE PIEZAS SUELTAS
 // ----------------------------------------------------------
 // Además de eliminar una pieza, el herrero puede:
-//   - RECORTARLA: sacarle metros desde un extremo o el otro
+//   - RECORTARLA: sacarle metros desde un extremo o el otro (v1.83: o ALARGARLA: recorte negativo)
 //     (ej. la columna del altillo termina en el piso 2 y no sigue al techo);
 //   - MOVERLA: correrla en X (hacia la pared B), en Z (hacia la pared A)
 //     o subirla (Y). Valores negativos = para el otro lado;
@@ -20,6 +20,8 @@ import { pieza } from './segmentos.js';
 
 /** Una pieza no puede quedar más corta que esto (no se fabrica). */
 export const LARGO_MINIMO_EDITADA = 0.05;
+/** v1.83 (Leandro: "no puedo estirar las piezas, solo acortar"): cuánto se puede alargar cada punta (recorte negativo). */
+export const ALARGAR_MAXIMO = 3;
 /** Movimiento máximo por eje (más que eso, conviene cambiar los parámetros). */
 export const MOVER_MAXIMO = 5;
 
@@ -65,7 +67,7 @@ export function revisarEdicion(edicion) {
   const campos = { ...EDICION_VACIA, ...edicion };
   if (Object.keys(edicion).some((c) => !(c in EDICION_VACIA))) return 'Edición con datos desconocidos';
   for (const c of ['recorteInicio', 'recorteFin']) {
-    if (!esNumero(campos[c]) || campos[c] < 0 || campos[c] > 30) return 'El recorte va de 0 a 30 m';
+    if (!esNumero(campos[c]) || campos[c] < -ALARGAR_MAXIMO || campos[c] > 30) return `Se acorta hasta 30 m o se alarga hasta ${ALARGAR_MAXIMO} m por punta`;
   }
   for (const c of ['moverX', 'moverY', 'moverZ']) {
     if (!esNumero(campos[c]) || Math.abs(campos[c]) > MOVER_MAXIMO) return `Se puede mover hasta ${MOVER_MAXIMO} m por eje`;

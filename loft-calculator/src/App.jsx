@@ -115,10 +115,13 @@ const limitarAnchoPanel = (px) => Math.round(Math.max(ANCHO_PANEL_MINIMO, Math.m
 const VERSION_APP = typeof __VERSION_APP__ === 'string' ? __VERSION_APP__ : '';
 import Tarjeta from './componentes/Tarjeta.jsx';
 import NotaPlegable from './componentes/NotaPlegable.jsx';
+import PanelArmado from './componentes/PanelArmado.jsx';
+import { marcarPiezas, errorDeMedidaReal } from './motor/armado.js'; // v1.83: armado en obra
 
 // --- Validadores para descartar datos viejos de localStorage ---
 const paramsGuardadosValidos = (p) =>
   p && typeof p === 'object' && Object.keys(validarParametros(p)).length === 0;
+import PerfilesDeLasPartes from './componentes/PerfilesDeLasPartes.jsx'; // v1.83
 // El catálogo se normaliza al leerlo (normalizarCatalogo), así que siempre queda completo.
 /** v1.22: perfiles que se pueden cambiar en cada pared: [campo, etiqueta, renglón general]. */
 const PERFILES_PARED_UI = [
@@ -539,6 +542,7 @@ export default function App() {
     { clave: 'lista', icono: '🛒', nombre: 'Lista de compras', ayuda: 'Tildar lo retirado y lo pagado' },
     { clave: 'compras', icono: '🧾', nombre: 'Compras hechas', marca: params.seguimiento?.compras?.length || null },
     { clave: 'partes', icono: '✅', nombre: 'Partes y extras', ayuda: 'Partes terminadas y lo que agregaste a cada una' },
+    { clave: 'armado', icono: '🔩', nombre: 'Armado', ayuda: 'Qué fierros ya están puestos y con qué medida' }, // v1.83
     { clave: 'seguimiento', icono: '👷', nombre: 'Avance y contratistas' },
     { clave: 'finanzas', icono: '💰', nombre: 'Finanzas' },
   ];
@@ -786,6 +790,31 @@ export default function App() {
     return cambiar('piezasEditadas')(esEdicionVacia(edicion) ? resto : { ...resto, [id]: edicion });
   };
   const deshacerEdiciones = () => cambiar('piezasEditadas')({});
+  // v1.83: las piezas con perfil elegido a mano vuelven al de su parte (se borra solo el perfil de su edición).
+  const quitarPerfilAMano = (ids) => {
+    const nuevo = { ...params.piezasEditadas };
+    ids.forEach((id) => {
+      const clave = nuevo[id] ? id : id.split('~')[0]; // un tramo ("piso:3~1") se editó entero
+      if (!nuevo[clave]) return;
+      const sinPerfil = { ...nuevo[clave], perfil: null, perfilLista: null };
+      if (esEdicionVacia(sinPerfil)) delete nuevo[clave]; else nuevo[clave] = sinPerfil;
+    });
+    cambiar('piezasEditadas')(nuevo);
+  };
+  // v1.83: armado en obra. Marcar fierros puestos o medidas verificadas (de a una o de a grupos)…
+  const marcarAvance = (ids, campo, valor) => cambiar('avancePiezas')(marcarPiezas(params.avancePiezas ?? {}, ids, campo, valor));
+  // …y la medida real: la pieza queda de esa medida (el motor la aplica al final, ver aplicarMedidasReales) y queda
+  // verificada. null = volver a la del cálculo.
+  const ponerMedidaReal = (pieza, medida) => {
+    const avance = params.avancePiezas ?? {};
+    const { medidaReal: _antes, ...resto } = avance[pieza.id] ?? {}; // eslint-disable-line no-unused-vars
+    if (medida === null || Math.abs(medida - (pieza.largoPlano ?? -1)) < 0.0005) {
+      return cambiar('avancePiezas')(Object.keys(resto).length ? { ...avance, [pieza.id]: resto } : marcarPiezas(avance, [pieza.id], 'verificada', false));
+    }
+    const error = errorDeMedidaReal(medida);
+    if (error) return error;
+    return cambiar('avancePiezas')({ ...avance, [pieza.id]: { ...resto, medidaReal: medida, verificada: true } });
+  };
 
   const cambiarColor = (capa, color) => setColores((prev) => ({ ...prev, [capa]: color }));
   const cambiarOpacidad = (clave, valor) => setOpacidades((prev) => ({ ...prev, [clave]: valor }));
@@ -1169,6 +1198,23 @@ export default function App() {
    * v1.28: perfil de un renglón elegido ahí mismo (pisos y techo: borde e interior). Es el mismo dato que
    * "Qué perfil va en cada parte" de Materiales: cambiarlo acá lo cambia allá.
    */
+  // v1.83 (Leandro: "solo trabajo con dos materiales, 80 x 80 y 80 x 40"): los perfiles con botón propio en "Qué perfil
+  // lleva cada parte": los que ya usa la estructura principal (columnas, pisos, techo), del más usado al menos.
+  const perfilesDeTrabajo = useMemo(() => {
+    const usos = [INSUMO.COLUMNA, INSUMO.BORDE_PISO, INSUMO.PISO, INSUMO.TRANSVERSAL_PISO, INSUMO.BORDE_PISO_2, INSUMO.PISO_2,
+      INSUMO.TRANSVERSAL_PISO_2, INSUMO.VIGA_CIERRE, INSUMO.COLUMNA_ENTREPISO, INSUMO.VIGA_TECHO, INSUMO.CORREA_TECHO, INSUMO.BORDE_TECHO];
+    const cuantas = new Map();
+    usos.forEach((id) => {
+      const perfilId = catalogoResuelto.find((i) => i.id === id)?.perfilId;
+      if (perfilId) cuantas.set(perfilId, (cuantas.get(perfilId) ?? 0) + 1);
+    });
+    return [...cuantas.entries()].sort((a, b) => b[1] - a[1]).slice(0, 2).map(([id]) => id); // los dos más usados
+  }, [catalogoResuelto]);
+  const perfilesDeLasPartes = (filas, titulo) => (
+    <PerfilesDeLasPartes titulo={titulo} filas={filas} catalogo={catalogoResuelto} perfiles={perfilesDeLista(catalogoConPrecios)}
+      deTrabajo={perfilesDeTrabajo} items={itemsEstructura} piezas={piezasDeLaEstructura} onVolverAlDeLaParte={quitarPerfilAMano}
+      onElegir={(idUso, idPerfil) => cambiarInsumo(idUso, 'perfilId', idPerfil)} />
+  );
   const selectorPerfilDe = (idUso, etiqueta) => (
     <SelectorPerfil key={idUso} etiqueta={etiqueta} valor={catalogoResuelto.find((i) => i.id === idUso)?.perfilId ?? ''}
       perfiles={perfilesDeLista(catalogoConPrecios)} onElegir={(id) => id && cambiarInsumo(idUso, 'perfilId', id)} />
@@ -1264,7 +1310,7 @@ export default function App() {
             onCambiarColor={cambiarColor} onEliminarPieza={eliminarPieza} onEditarPieza={editarPieza} onElegir={elegirDesde3D}
             onMoverMueble={moverMuebleDesde3D} onGirarMueble={girarMuebleDesde3D}
             onActualizarAbertura={actualizarAbertura} onQuitarAbertura={quitarAbertura} onMoverAbertura={moverAberturaDesde3D}
-            onPegarAbertura={pegarAbertura} onDuplicarPieza={duplicarPiezaElegida}
+            onPegarAbertura={pegarAbertura} onDuplicarPieza={duplicarPiezaElegida} onMarcarAvance={marcarAvance} onMedidaReal={ponerMedidaReal}
             resaltado={resaltado} cartelResaltado={cartelResaltado}
             onSoltarResaltado={resaltadoFijo ? () => { setResaltadoFijo(null); setResaltadoMouse(null); } : null}
             pedidoVerTerreno={pedidoVerTerreno} onCambiarParam={(ruta, valor) => cambiar(ruta)(valor)} />
@@ -1342,12 +1388,13 @@ export default function App() {
                 onCambio={(v) => { if (v < 0 || v > 50) return 'Entre 0 y 50 %'; cambiar('desperdicioPlacas')(v); return null; }} />
             </div>
             {/* v1.28: borde e interior con perfiles propios (y cada sentido el suyo). */}
-            <div className="grid-params grid-perfiles-pared">
-              {selectorPerfilDe(INSUMO.BORDE_PISO, 'Borde')}
-              {params.tirantesPiso !== 'madera' && selectorPerfilDe(INSUMO.PISO, 'Tirantes (interior)')}
-              {params.separacionTransversalesPiso > 0 || cantidadDe(params, 'separacionTransversalesPiso') > 0
-                ? selectorPerfilDe(INSUMO.TRANSVERSAL_PISO, 'Transversales') : null}
-            </div>
+            {/* v1.83: una fila por parte con un botón por perfil de trabajo (80×80, 80×40). */}
+            {perfilesDeLasPartes([
+              { id: INSUMO.BORDE_PISO, nombre: 'Borde', ayuda: 'el contorno del piso' },
+              ...(params.tirantesPiso !== 'madera' ? [{ id: INSUMO.PISO, nombre: 'Tirantes', ayuda: 'los del interior' }] : []),
+              ...(params.separacionTransversalesPiso > 0 || cantidadDe(params, 'separacionTransversalesPiso') > 0
+                ? [{ id: INSUMO.TRANSVERSAL_PISO, nombre: 'Transversales', ayuda: 'cruzan los tirantes' }] : []),
+            ], 'Qué perfil lleva cada parte del piso')}
             <h3 className="subtitulo">Piso 2 (entrepiso)</h3>
             <div className="grid-params">
               {opcional('anchoEntrepiso', 'Lleva entrepiso', 'Profundidad', 3)}
@@ -1402,14 +1449,14 @@ export default function App() {
                 (Materiales → Tirantes de madera).</NotaPlegable>
             )}
             {params.anchoEntrepiso > 0 && (
-              <div className="grid-params grid-perfiles-pared">
-                {selectorPerfilDe(INSUMO.COLUMNA_ENTREPISO, 'Columnas del entrepiso')}
-                {selectorPerfilDe(INSUMO.BORDE_PISO_2, 'Borde del piso 2')}
-                {params.tirantesPiso2 !== 'madera' && selectorPerfilDe(INSUMO.PISO_2, 'Tirantes piso 2 (interior)')}
-                {params.separacionTransversalesPiso2 > 0 || cantidadDe(params, 'separacionTransversalesPiso2') > 0
-                  ? selectorPerfilDe(INSUMO.TRANSVERSAL_PISO_2, 'Transversales piso 2') : null}
-                {selectorPerfilDe(INSUMO.VIGA_CIERRE, 'Vigas de cierre y de apoyo')}
-              </div>
+              perfilesDeLasPartes([
+                { id: INSUMO.COLUMNA_ENTREPISO, nombre: 'Columnas del entrepiso' },
+                { id: INSUMO.BORDE_PISO_2, nombre: 'Borde del piso 2' },
+                ...(params.tirantesPiso2 !== 'madera' ? [{ id: INSUMO.PISO_2, nombre: 'Tirantes del piso 2', ayuda: 'los del interior' }] : []),
+                ...(params.separacionTransversalesPiso2 > 0 || cantidadDe(params, 'separacionTransversalesPiso2') > 0
+                  ? [{ id: INSUMO.TRANSVERSAL_PISO_2, nombre: 'Transversales del piso 2' }] : []),
+                { id: INSUMO.VIGA_CIERRE, nombre: 'Vigas de cierre y de apoyo', ayuda: 'el borde libre del entrepiso' },
+              ], 'Qué perfil lleva cada parte del piso 2')
             )}
             <NotaPlegable>
               Entrepiso parcial: poné el largo y desde qué esquina arranca (vista desde afuera, como las
@@ -1771,6 +1818,9 @@ export default function App() {
             <PanelSub grupo="obra" activa={subObra} clave="partes"><PanelPartesObra params={params} partes={partesObra} partesPresupuesto={partesSeguimiento} cambiar={cambiar} cambiarVarios={cambiarVarios}
               materiales={catalogo.filter((i) => i.categoria === 'accesorio')} proveedores={proveedores} onCambiarPrecio={cambiarPrecio}
               onActualizarMaterial={actualizarInsumo} onAgregarMaterial={agregarMaterialAParte} onQuitarMaterial={quitarAccesorio} nombreProyecto={nombreProyecto} /></PanelSub>
+            <PanelSub grupo="obra" activa={subObra} clave="armado"><PanelArmado piezas={piezasDeLaEstructura} avance={params.avancePiezas ?? {}}
+              nombreZona={(z) => (LADOS.includes(z) ? nombreDePared(z, params) : { piso: 'Piso (planta baja)', entrepiso: 'Entrepiso', piso2: 'Piso 2', techo: 'Techo', escalera: 'Escalera', mesada: 'Mesadas', tabique: 'Tabiques' }[z] ?? z)}
+              codigosCorte={codigosCorte} unidad={unidad} onMarcar={marcarAvance} onMedidaReal={ponerMedidaReal} /></PanelSub>
             <PanelSub grupo="obra" activa={subObra} clave="seguimiento"><PanelSeguimiento params={params} partes={partesSeguimiento} precioObra={cierre.total} cambiar={cambiar} partesObra={partesObra} /></PanelSub>
             <PanelSub grupo="obra" activa={subObra} clave="finanzas"><PanelFinanzas params={params} cambiar={cambiar} cambiarVarios={cambiarVarios} /></PanelSub>
           </section>

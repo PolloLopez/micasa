@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.83.0] - 2026-11-23
+### Agregado
+- **Armado en obra** (Leandro ya empezó a construir: "marcar qué fierros fueron ya instalados y confirmar medidas"):
+  - **Obra → Armado**: los fierros por zona (cada pared, piso, entrepiso, techo, escalera…) y por tipo, con
+    **Puesta** y **Medida ✓** en cada pieza, **✓ Todo puesto** por tipo o por zona entera, el avance (piezas, metros y %)
+    y "Ver solo lo que falta poner".
+  - **Medida real**: si lo medido en obra no coincide, se carga y la pieza queda de esa medida en el 3D, los planos y
+    los cortes (el motor la aplica al final, después de las uniones; la punta del inicio queda fija). "↶ la del plano"
+    vuelve a la calculada.
+  - En el 3D, al tocar una pieza: **Instalada**, **Medida verificada** y **Medida real**. Botón **🏗 Avance**: lo
+    puesto en verde y lo que falta en gris, con un cartel de cuánto va.
+  - Se guarda con el proyecto (`params.avancePiezas`; motor/armado.js).
+- **Alargar piezas**: en "Editar", cada punta se acorta o se alarga (número negativo, hasta 3 m); las verticales se
+  pueden subir o bajar más allá de la original. Para agregar una pieza: Duplicar una parecida y ajustarla.
+- **Qué perfil lleva cada parte del piso** (Estructura → Pisos y entrepiso): una fila por parte (borde, tirantes,
+  transversales, columnas del entrepiso, vigas de cierre…) con sus piezas y metros, un botón por cada uno de los dos
+  perfiles de trabajo (los más usados por la estructura: 80×80 y C 80×40) y "otro…". Avisa las piezas de esa parte con
+  otro perfil elegido a mano (ej. los 7 bordes que iban como Columnas) y las pasa al de la fila con un botón.
+
 ## [1.82.2] - 2026-11-20
 ### Arreglado
 - **El plano de cada pared muestra las tiras igual que el 3D**: con el panel por tira entera, dibuja cada pedazo (también
