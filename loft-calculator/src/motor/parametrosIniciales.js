@@ -106,6 +106,7 @@ export const PARAMS_INICIALES = {
   avancePiezas: {}, // v1.83: { idPieza: { instalada, verificada, medidaReal } } (ver motor/armado.js)
   piezasEnteras: [], // v1.86: las que pasan de largo en sus cruces (elegidas a mano)
   unionesPieza: {}, // v1.86: { idPieza: 'cubrejunta' | 'chapa' } cómo se une donde se corta
+  crucesElegidos: {}, // v1.88: { 'idA|idB': { forma, entera | abajo + mueve, union } } lo elegido en cada cruce
   empalmesPieza: {}, // v1.86: { idPieza: { en: [m], hecho } } dónde va (o fue) el empalme
 
   // Escalera al borde del entrepiso (ver motor/escalera.js)

@@ -320,8 +320,11 @@ function calcularRenglones(estructura, catalogo, excedenteBarras, corte = {}) {
   const perfilDeLista = (id) => catalogo.find((i) => i.categoria === 'hierro' && i.id === id);
   const perfil = (id, piezas) => {
     const producto = insumo(id);
-    const deEsteRenglon = propias(piezas);
-    const otroPerfil = (p) => p.perfilPared && p.perfilPared !== producto.perfilId && perfilDeLista(p.perfilPared);
+    // v1.88: las que vienen de otro renglón (agregadas, o con el renglón elegido a mano) también van con el perfil elegido
+    // a mano en la pieza (antes, una agregada con "80×80" elegido se cotizaba con el perfil de su renglón).
+    const deEsteRenglon = [...propias(piezas), ...reasignadas.filter((p) => p.insumo === id)];
+    const otroPerfil = (p) => (!p.insumo || p.ladoPared === 'editada a mano')
+      && p.perfilPared && p.perfilPared !== producto.perfilId && perfilDeLista(p.perfilPared);
     const porPerfil = new Map();
     deEsteRenglon.filter(otroPerfil).forEach((p) => {
       if (!porPerfil.has(p.perfilPared)) porPerfil.set(p.perfilPared, []);
@@ -330,7 +333,7 @@ function calcularRenglones(estructura, catalogo, excedenteBarras, corte = {}) {
     derivados.set(id, [...porPerfil.entries()].map(([perfilId, ps]) => itemPerfil(
       renglonDePared(producto, perfilDeLista(perfilId), ps), ps, excedenteBarras, corte, todas)));
     const resto = deEsteRenglon.filter((p) => !otroPerfil(p));
-    return itemPerfil(producto, [...resto, ...reasignadas.filter((p) => p.insumo === id)], excedenteBarras, corte, todas);
+    return itemPerfil(producto, resto, excedenteBarras, corte, todas);
   };
   // Cada renglón seguido de sus renglones por pared (si hay).
   const conDerivados = (lista) => lista.flatMap((i) => [i, ...(derivados.get(i.id) ?? [])]);
@@ -483,7 +486,7 @@ function calcularRenglones(estructura, catalogo, excedenteBarras, corte = {}) {
     if (pilares > 0) items.push(itemSimple(insumo(INSUMO.KIT_PILAR), pilares, 'caja de medidor, caño, jabalina y tablero (según la distribuidora)'));
   }
   // v1.86: las uniones de los cruces con cubrejunta o chapa (las soldadas a tope no llevan material aparte).
-  const uniones = unionesConMaterial(listarPiezas(e), e.unionesPieza ?? {});
+  const uniones = unionesConMaterial(listarPiezas(e), e.unionesPieza ?? {}, e.crucesElegidos ?? {});
   if (uniones.cubrejunta > 0) items.push(itemSimple(insumo(INSUMO.CUBREJUNTA), uniones.cubrejunta, 'una por cada cruce donde se corta una pieza unida con cubrejunta'));
   if (uniones.chapa > 0) items.push(itemSimple(insumo(INSUMO.CHAPA_UNION), uniones.chapa, 'una por cada cruce donde se corta una pieza unida con chapa'));
   // v1.80: el portón corredizo del tapial (lo hace Leandro de hierro): bastidor en barras (con hoja de corte), la hoja,

@@ -98,6 +98,9 @@ export function esEdicionVacia(edicion) {
   return e.recorteInicio === 0 && e.recorteFin === 0 && e.moverX === 0 && e.moverY === 0 && e.moverZ === 0 && e.perfil === null && e.perfilLista === null;
 }
 
+/** v1.88: lo que dice QUÉ es una pieza (no dónde está): se conserva al editarla. */
+const CAMPOS_QUE_SE_CONSERVAN = ['insumo', 'agregada', 'esquina', 'madera', 'nivel', 'mesada', 'tabique', 'apoyado', 'largoEje'];
+
 /**
  * Pieza con la edición aplicada. Si la edición la dejaría demasiado corta
  * (por ej. porque cambió una medida), se aplica solo el movimiento y el
@@ -113,11 +116,20 @@ export function aplicarEdicion(original, edicion) {
   const mover = [e.moverX, e.moverY, e.moverZ];
   const nuevoDesde = desde.map((v, i) => v + direccion[i] * inicio + mover[i]);
   const nuevoHasta = hasta.map((v, i) => v - direccion[i] * fin + mover[i]);
+  // v1.88 (Leandro: "Borde de piso 7,58 m… no está unida"): antes la pieza editada se armaba de cero y perdía lo que
+  // dice qué es: el renglón de una pieza AGREGADA (`insumo`), si es de madera, de esquina, de qué piso… Así, 12 de
+  // sus 13 piezas agregadas (las había movido) no entraban en el presupuesto ni en la hoja de corte. Ahora se conservan.
+  const deLaOriginal = Object.fromEntries(CAMPOS_QUE_SE_CONSERVAN.filter((c) => original[c] !== undefined).map((c) => [c, original[c]]));
+  // El renglón: el elegido en la edición o el que tenía (el de una agregada). Si además se eligió un perfil de la
+  // lista (perfilPared, 'editada a mano'), ese perfil manda dentro de su renglón (ver compraDePieza y presupuesto).
+  const insumo = e.perfil || original.insumo;
+  delete deLaOriginal.insumo;
   return {
+    ...deLaOriginal,
     ...pieza(original.id, original.tipo, original.grupos, nuevoDesde, nuevoHasta),
     editada: true,
     original: { desde, hasta, largo }, // para el formulario: los recortes se miden sobre la pieza original
-    ...(e.perfil ? { insumo: e.perfil } : {}),
+    ...(insumo ? { insumo } : {}),
     ...(e.perfilLista ? { perfilPared: e.perfilLista, ladoPared: 'editada a mano' } : {}), // v1.72
     ...(recortesValidos ? {} : { recorteIgnorado: true }),
   };

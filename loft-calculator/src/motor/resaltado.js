@@ -33,7 +33,8 @@ export function compraDePieza(p, catalogo) {
   const uso = base ? catalogo.find((i) => i.id === base) : null;
   const perfilDelUso = uso?.categoria === 'hierro' ? uso.id : uso?.perfilId ?? null;
   // Pared con perfil propio (v1.22): la pieza va al renglón "Columnas (lado B)" con ese perfil.
-  const deLaPared = !p.insumo && p.perfilPared && p.perfilPared !== perfilDelUso
+  // v1.88: el perfil elegido a mano en la pieza ('editada a mano') manda también en las que tienen renglón propio (agregadas).
+  const deLaPared = (!p.insumo || p.ladoPared === 'editada a mano') && p.perfilPared && p.perfilPared !== perfilDelUso
     && catalogo.some((i) => i.categoria === 'hierro' && i.id === p.perfilPared);
   if (deLaPared) return { renglon: `${base}@${p.perfilPared}`, perfil: p.perfilPared };
   return { renglon: base, perfil: perfilDelUso };

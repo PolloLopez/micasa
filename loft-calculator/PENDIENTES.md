@@ -12,6 +12,10 @@ Manual: `MANUAL.md` y el doc "Pollo Calculator — Manual de usuario" (Claude Do
 2. 🟡 **Partir `App.jsx`** (1.800 líneas) en pocos hooks por tema (`useObra`, `useCompras`…), con su test.
 
 ## 🙋 De tu lado (Leandro)
+- 🔴 [ ] **Recargar la página** (Ctrl+F5) si arriba no dice la última versión: el 24/11 la app todavía mostraba la v1.86
+  (los bordes de piso que pasaste a 80×80 seguían en C 80×40).
+- 🔴 [ ] Perfil C 80x40x15x1.6: en Materiales tiene **barra de 12 m**; si viene de 6 m, cambiarlo (las piezas de más de
+  6 m, como el borde de 7,58 m y las transversales de 7,41 m, pasan a ir empalmadas).
 - 🔴 [ ] ALPANEL: cargar el dólar del día en su ficha y el precio **por tira** en US$ del panel (el de antes, $ 68.000,
   era por m² en pesos: hay que reemplazarlo); confirmar el largo de la tira entera (hoy 11,90 m).
 - 🔴 [ ] Borrar `C:\Users\LLopez\loft-calculator\.git-token.txt` y revocar el token `claude-micasa` en GitHub
@@ -117,7 +121,8 @@ Manual: `MANUAL.md` y el doc "Pollo Calculator — Manual de usuario" (Claude Do
 - 🟡 [ ] Armado: al editar a mano la punta de una pieza que toca otra (columna con la solera), las uniones la vuelven a
   estirar; la **medida real** sí se respeta (va al final). Ver si "Acortar/alargar" también debería ir después de las uniones.
 - 🟢 [ ] Armado: fecha en que se puso cada pieza; marcar desde la hoja de corte ("cortada"); fotos.
-- 🟢 [ ] Cruces: elegir cruce por cruce (hoy por pieza); el tipo de unión en el plano de la pared; empalmes con más de una unión
+- 🟢 [ ] Cruces: el tipo de unión en el plano de la pared; empalmes con más de una unión (cruce por cruce: hecho en la v1.88)
+- 🟡 [ ] Cruces "debajo": la pieza que se corre de altura se mueve entera; si en otros cruces seguía al ras, ahí deja de tocar (mirar en el 3D y avisar en la fila)
   (hoy se mueve la primera).
 - 🟢 [ ] Crédito con interés y sistema francés (hoy cuotas fijas); revoque e hidrófugo de la cámara; mano de obra del
   tapial por m²; medidas propias del tapial y el pozo; precios de mano de obra por contratista.

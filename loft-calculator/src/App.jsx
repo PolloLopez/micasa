@@ -45,7 +45,7 @@ import { useEstadoGuardado } from './hooks/useEstadoGuardado.js';
 import { validarParametros, validarAbertura, copiarAbertura, moverAbertura, LARGO_MAXIMO_ETIQUETA } from './motor/validacion.js';
 import { esEdicionVacia, piezaEditadaEnLaEstructura } from './motor/edicionPiezas.js';
 import { duplicarPieza, PREFIJO_AGREGADA } from './motor/piezasAgregadas.js';
-import { generarEstructura, listarPiezas, infoSeparacion } from './motor/estructura.js';
+import { generarEstructura, listarPiezas, infoSeparacion, NOMBRE_TIPO_PIEZA } from './motor/estructura.js';
 import { CAMPOS_CON_CANTIDAD, MAXIMO_CANTIDAD, cantidadDe } from './motor/cantidades.js';
 import { calcularPresupuesto, CATALOGO_INICIAL, tiposDePanel, panosPorRevestimiento, conPanelesExistentes } from './motor/presupuesto.js';
 import { resolverCatalogo, PERFIL_NUEVO, perfilesDeLista } from './motor/perfiles.js';
@@ -101,6 +101,7 @@ import ArmadoPiso from './componentes/ArmadoPiso.jsx';
 import { codigosDeCorte } from './motor/hojaDeCorte.js';
 import { ahorroPorAberturas } from './motor/revestimientos.js';
 import FilaPiezaCambiada from './componentes/FilaPiezaCambiada.jsx';
+import { cambiarCrucesElegidos } from './motor/crucesElegidos.js'; // v1.88
 import { abreviarPerfil, perfilDePieza } from './motor/coloresPerfil.js';
 import './App.css';
 
@@ -514,7 +515,8 @@ export default function App() {
   // --- Sub-pestañas (v1.73): cada pestaña larga partida en pocas partes (una a la vez) ---
   // tarjetas = ids de las tarjetas de cada parte: lo elegido en el 3D abre la suya (contextoFoco.js).
   const cantidadPiezasAMano = params.piezasAgregadas.length + params.piezasEliminadas.length + Object.keys(params.piezasEditadas).length
-    + (params.piezasEnteras?.length ?? 0) + Object.keys(params.unionesPieza ?? {}).length + Object.keys(params.empalmesPieza ?? {}).length; // v1.86
+    + (params.piezasEnteras?.length ?? 0) + Object.keys(params.unionesPieza ?? {}).length + Object.keys(params.empalmesPieza ?? {}).length
+    + Object.keys(params.crucesElegidos ?? {}).length; // v1.86; v1.88: + los cruces elegidos uno por uno
   const opcionesEstructura = [
     { clave: 'planta', icono: '📐', nombre: 'Planta', tarjetas: ['planta'] },
     { clave: 'pisos', icono: '🟫', nombre: 'Pisos y entrepiso', tarjetas: ['pisos'] },
@@ -836,6 +838,16 @@ export default function App() {
       ...Object.entries(params.unionesPieza ?? {}).map(([id, v]) => deCruce(id, NOMBRE_UNION[v] ?? v, () => cambiarCruces('union', id, 'soldada'))),
       ...Object.entries(params.empalmesPieza ?? {}).map(([id, v]) => deCruce(id, `empalme a ${v.en.map((x) => x.toFixed(2)).join(' y ')} m${v.hecho ? ' (ya hecho)' : ''}`,
         () => cambiarCruces('empalme', id, null))),
+      // v1.88: cada cruce elegido uno por uno ("Transversal de piso · con Tirante de piso: la transversal va debajo").
+      ...Object.entries(params.crucesElegidos ?? {}).map(([clave, v]) => {
+        const [a, b] = clave.split('|');
+        const nombre = (id) => { const p = piezaDe(id); return p ? `${(NOMBRE_TIPO_PIEZA[p.tipo] ?? p.tipo).toLowerCase()} (${id})` : id; };
+        const que = v.forma === 'corta' ? `pasa entera ${nombre(v.entera)}`
+          : v.forma === 'debajo' ? `${nombre(v.abajo)} va debajo (se mueve ${v.mueve === v.abajo ? 'esa' : 'la otra'})` : '';
+        const union = v.union ? NOMBRE_UNION[v.union] : '';
+        return { id: clave, deshacer: () => { const { [clave]: _x, ...resto } = params.crucesElegidos; cambiar('crucesElegidos')(resto); }, // eslint-disable-line no-unused-vars
+          titulo: `Cruce de ${nombre(a)} con ${nombre(b)}: ${[que, union].filter(Boolean).join(' · ')}`, detalles: [] };
+      }),
     ];
     return { agregadas: filtrarPor(agregadas, buscarPiezas, texto), editadas: filtrarPor(editadas, buscarPiezas, texto), eliminadas: filtrarPor(eliminadas, buscarPiezas, texto),
       cruces: filtrarPor(cruces, buscarPiezas, texto) };
@@ -843,6 +855,8 @@ export default function App() {
   // v1.86 (Leandro: "seleccionar cuáles son enteras y cuáles quedan unidas en los cruces, y dónde están empalmados"):
   //   'entera' (id base, sí/no) · 'union' (id base, 'soldada' | 'cubrejunta' | 'chapa') · 'empalme' (id, { en, hecho } o null)
   const cambiarCruces = (que, id, valor) => {
+    // v1.88: 'cruce' (valor = { clave: cambio }, ver cambiarCrucesElegidos): lo elegido en cada cruce.
+    if (que === 'cruce') return cambiar('crucesElegidos')(cambiarCrucesElegidos(params.crucesElegidos ?? {}, valor));
     if (que === 'entera') {
       const lista = params.piezasEnteras ?? [];
       return cambiar('piezasEnteras')(valor ? [...new Set([...lista, id])] : lista.filter((x) => x !== id));

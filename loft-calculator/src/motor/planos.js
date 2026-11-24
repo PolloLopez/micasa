@@ -35,7 +35,7 @@ const unicos = (lista) => [...new Set(lista.map(cm))].sort((a, b) => a - b);
  * @param catalogo  catálogo RESUELTO (los usos ya tienen el nombre de su perfil)
  */
 export function perfilDePieza(p, catalogo) {
-  if (!p.insumo && p.perfilPared) {
+  if ((!p.insumo || p.ladoPared === 'editada a mano') && p.perfilPared) { // v1.88: lo elegido a mano manda
     const deLaPared = catalogo.find((i) => i.categoria === 'hierro' && i.id === p.perfilPared);
     if (deLaPared) return nombrePerfil(deLaPared);
   }

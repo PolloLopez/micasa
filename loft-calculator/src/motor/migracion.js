@@ -41,6 +41,7 @@
 //     donde se apoya el entrepiso, que era la regla de antes => mismas columnas.
 // ==========================================================
 
+import { normalizarCrucesElegidos } from './crucesElegidos.js';
 import { LADOS, INSUMO, CAMPOS_PERFIL_PARED, ALTURA_PISO_2 } from './constantes.js';
 import { PARAMS_INICIALES } from './parametrosIniciales.js';
 import { CATALOGO_FIJO, TIPOS_PANEL_INICIALES, ACCESORIOS_INICIALES, LIMITES_ACCESORIO } from './presupuesto.js';
@@ -142,6 +143,7 @@ export function migrarParams(params) {
   // v1.86: piezas enteras en sus cruces, cómo se une cada una y los empalmes elegidos a mano.
   nuevos.piezasEnteras = normalizarEnteras(nuevos.piezasEnteras);
   nuevos.unionesPieza = normalizarUnionesPieza(nuevos.unionesPieza);
+  nuevos.crucesElegidos = normalizarCrucesElegidos(nuevos.crucesElegidos); // v1.88
   nuevos.empalmesPieza = normalizarEmpalmes(nuevos.empalmesPieza);
   nuevos.piezasAgregadas ??= []; // v1.16: piezas duplicadas a mano
   nuevos.escalera.riostras ??= false; // v1.9

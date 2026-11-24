@@ -136,12 +136,20 @@ export function normalizarEmpalmes(e) {
     .filter(([id, v]) => id.length <= 80 && v.en.length > 0));
 }
 
-/** Cuántas uniones con cubrejunta y con chapa hay (una por cada cruce donde se corta una pieza que se une así). */
-export function unionesConMaterial(piezas, unionesPieza = {}) {
+/**
+ * Cuántas uniones con cubrejunta y con chapa hay (una por cada cruce donde se corta una pieza que se une así).
+ * v1.88: la unión elegida en un cruce (crucesElegidos[clave].union) manda sobre la de la pieza.
+ */
+export function unionesConMaterial(piezas, unionesPieza = {}, crucesElegidos = {}) {
   const cuenta = { cubrejunta: 0, chapa: 0 };
   piezas.forEach((p) => {
-    const forma = unionesPieza[String(p.id).split('~')[0]];
-    if (forma && p.cortesEnCruces > 0) cuenta[forma] += p.cortesEnCruces;
+    const dePieza = unionesPieza[String(p.id).split('~')[0]];
+    if (Array.isArray(p.cortesCon) && p.cortesCon.length) {
+      p.cortesCon.forEach((clave) => {
+        const forma = crucesElegidos[clave]?.union ?? dePieza;
+        if (forma) cuenta[forma] += 1;
+      });
+    } else if (dePieza && p.cortesEnCruces > 0) cuenta[dePieza] += p.cortesEnCruces;
   });
   return cuenta;
 }

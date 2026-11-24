@@ -933,6 +933,7 @@ export function generarEstructura(params, aberturas, catalogo = null) {
   // uniones la volverían a estirar hasta la solera o el piso.
   const final = marcarPerfilesDePared(aplicarEmpalmesElegidos(aplicarMedidasReales(conCambios, params.avancePiezas), params.empalmesPieza), params);
   final.unionesPieza = params.unionesPieza ?? {}; // v1.86: cómo se une cada pieza donde se corta (para el presupuesto)
+  final.crucesElegidos = params.crucesElegidos ?? {}; // v1.88: y lo elegido en cada cruce (la unión de ese cruce manda)
   return final;
 }
 

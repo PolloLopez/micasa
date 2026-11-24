@@ -32,6 +32,14 @@ ella), **Donde se corta, va** soldada, con cubrejunta o con chapa (las dos últi
 **dónde** (moverlo a cuántos metros de la punta, **Ya está hecho así**, ↶ automático). En el 3D cada empalme tiene una
 marca (naranja: lo eligió la app; celeste: vos). Todo lo elegido está en Piezas a mano, con Deshacer.
 
+**Sus cruces, uno por uno** (v1.88): abajo de la pieza tocada, **Sus cruces (N)**: una fila por cruce (con qué pieza y a
+cuántos metros de la punta) con lo que pasa hoy (✂ se corta · pasa entera · ⤓ va debajo) y para elegir: **se corta esta /
+pasa entera esta**, o **una va debajo de la otra** (y cuál se mueve: baja la de abajo o sube la de arriba; las dos quedan
+enteras en ese cruce), y **cómo se une** ese cruce (soldada, cubrejunta o chapa). **a todas** copia lo elegido a todos sus
+cruces con ese tipo de pieza (ej. la transversal debajo de todos los tirantes). En el 3D, cada cruce de la pieza tocada es
+un punto (rojo: se corta · verde: entera · violeta: debajo); tocarlo marca su fila. Lo elegido manda sobre la regla
+general y sobre "Entera en sus cruces". Hace falta Uniones "en red" (con "eje a eje" no hay cruces).
+
 **Editar una pieza** (tocala en el 3D → Editar): cada punta se **acorta o alarga** (negativo = alarga, hasta 3 m). El **perfil** se elige con botones (80×80, C 80×40, el de su tipo o pared, u otro…) y manda sobre el de su pared.
 Para agregar una pieza, **Duplicá** una parecida y ajustala.
 

@@ -56,6 +56,7 @@ import { moduloActivo } from './modulos.js';
 import { dibujarTerreno, vaciarTerreno, encuadreTerreno, PARTES_TERRENO } from './terreno3d.js';
 import { posicionDelSol, salidaYPuesta, diaDelAnio, direccionDelSol, aberturasConSol, completarSol } from './motor/sol.js';
 import PanelSol from './componentes/PanelSol.jsx';
+import CrucesDePieza from './componentes/CrucesDePieza.jsx'; // v1.88
 
 // Capa y sección (grosor en el 3D) de cada tipo de pieza.
 const ESTILO_PIEZA = {
@@ -183,6 +184,13 @@ function crearMateriales(colores) {
   // v1.86: la marca de cada empalme (un anillo naranja sobre la pieza; azul si se eligió a mano).
   materiales.empalme = new THREE.MeshStandardMaterial({ color: '#f97316', emissive: '#7c2d12', emissiveIntensity: 0.5 });
   materiales.empalmeElegido = new THREE.MeshStandardMaterial({ color: '#0ea5e9', emissive: '#0c4a6e', emissiveIntensity: 0.5 });
+  // v1.88: los puntos de los cruces de la pieza elegida (rojo: se corta; verde: pasa entera; violeta: una va debajo).
+  materiales.cruce = {
+    'se corta': new THREE.MeshStandardMaterial({ color: '#ef4444', emissive: '#7f1d1d', emissiveIntensity: 0.6 }),
+    entera: new THREE.MeshStandardMaterial({ color: '#22c55e', emissive: '#14532d', emissiveIntensity: 0.6 }),
+    debajo: new THREE.MeshStandardMaterial({ color: '#a855f7', emissive: '#4c1d95', emissiveIntensity: 0.6 }),
+  };
+  materiales.cruceActivo = new THREE.MeshStandardMaterial({ color: '#ffffff', emissive: '#facc15', emissiveIntensity: 0.9 });
   // Piezas resaltadas (v1.27): rosa que brilla y se ve A TRAVÉS de todo (depthTest apagado),
   // así una columna tapada por los paneles o por otra pared igual se ve.
   materiales.resaltado = new THREE.MeshStandardMaterial({
@@ -394,7 +402,7 @@ function cartel(texto, esFrente) {
 /** Arma todas las mallas del modelo dentro de `grupo`. */
 function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
   const { params, estructura: e, aberturas, capas, gruposVisibles, seleccionada, catalogo, aberturaSeleccionada, medida, resaltado, medidasFijas = [],
-    perfiles = null, opacidadHierros = 1, tiraElegida = null, avance = null, empalmes = null } = opciones;
+    perfiles = null, opacidadHierros = 1, tiraElegida = null, avance = null, empalmes = null, cruces = null, cruceActivo = null } = opciones;
   // v1.55: con "Color por perfil", cada pieza del color de su caño (el mismo perfil, el mismo color).
   const colorDePerfil = perfiles ? new Map(perfiles.map((x) => [x.perfil, x.color])) : null;
   const materialDePerfil = (p) => {
@@ -453,6 +461,19 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
       });
     }
   });
+  // v1.88: un punto en cada cruce de la pieza elegida; tocarlo marca ese cruce en la lista del panel.
+  if (seleccionada && cruces) {
+    const base = String(seleccionada).split('~')[0];
+    (cruces[base] ?? []).forEach((c) => {
+      const material = c.clave === cruceActivo ? materiales.cruceActivo : materiales.cruce[c.resultado] ?? materiales.cruce.debajo;
+      const marca = new THREE.Mesh(new THREE.SphereGeometry(c.clave === cruceActivo ? 0.15 : 0.11, 16, 12), material);
+      marca.position.set(...c.punto);
+      marca.renderOrder = 998;
+      marca.userData.idPieza = seleccionada; // tocarlo no cambia la pieza elegida…
+      marca.userData.cruce = c.clave; // …y marca el cruce
+      grupo.add(marca);
+    });
+  }
   // v1.64: las eliminadas que se miran desde la lista se dibujan como fantasma en su lugar (no se pueden elegir).
   if (resaltado?.tipo === 'pieza') {
     (e.eliminadasEncontradas ?? []).filter((p) => piezaResaltada(p, resaltado, catalogo)).forEach((p) => {
@@ -1172,6 +1193,8 @@ export default function LoftCanvas({
   const coloresRef = useRef(colores); // colores iniciales para el montaje
   const [autoRotar, setAutoRotar] = useState(false);
   const [seleccionada, setSeleccionada] = useState(null); // id de la pieza seleccionada
+  const [cruceActivo, setCruceActivo] = useState(null); // v1.88: clave del cruce tocado en el 3D
+  const conCruces = Boolean(onCruces); // v1.88: (booleano, así el 3D no se redibuja cada vez que App se vuelve a dibujar)
   const [editandoId, setEditandoId] = useState(null); // pieza con el formulario de edición abierto
   const [aberturaSeleccionada, setAberturaSeleccionada] = useState(null); // id de la abertura tocada (v1.16)
   const [tiraElegida, setTiraElegida] = useState(null); // v1.65: { lado, cara, x, h } la tira de panel tocada
@@ -1680,6 +1703,7 @@ export default function LoftCanvas({
       const enPanel = !tocado ? tocados.find((i) => i.object.userData.panelPared && visible(i.object)) : null;
       setTiraElegida(enPanel ? tiraTocadaEn(estructuraRef.current, enPanel) : null);
       setSeleccionada(tocado?.object.userData.idPieza ?? null);
+      setCruceActivo(tocado?.object.userData.cruce ?? null); // v1.88
       setAberturaSeleccionada(tocado?.object.userData.idAbertura ?? null);
       setMuebleElegido(tocado && !tocado.object.userData.idPieza && !tocado.object.userData.idAbertura ? idMuebleDe(tocado.object) : null);
     };
@@ -1827,7 +1851,8 @@ export default function LoftCanvas({
     }));
     dibujarModelo(visor.grupo, visor.materiales, visor.materialesPanel,
       { params, estructura, aberturas, capas: capasVista, gruposVisibles, seleccionada, catalogo, aberturaSeleccionada, medida, resaltado, medidasFijas,
-        perfiles: perfilesVista, opacidadHierros: opacidadesVista.hierros, tiraElegida, avance: verAvance ? avancePiezas : null, empalmes });
+        perfiles: perfilesVista, opacidadHierros: opacidadesVista.hierros, tiraElegida, avance: verAvance ? avancePiezas : null, empalmes,
+        cruces: conCruces ? estructura.crucesDePiezas : null, cruceActivo });
     visor.corte.version += 1; // v1.45: hay que volver a ver qué paredes tapan
     juntarPuertas(visor);
     // Se reacomoda la cámara si cambia el frente o el tipo de proyecto (construcción / grada).
@@ -1836,7 +1861,7 @@ export default function LoftCanvas({
       mirarAlFrente(visor.camara, visor.controles, medidasVista(params, estructura));
       visor.frente = encuadre;
     }
-  }, [params, estructura, aberturas, capasVista, paneles, gruposVisibles, seleccionada, opacidadesVista.paneles, catalogo, aberturaSeleccionada, medida, resaltado, medidasFijas, perfilesVista, opacidadesVista.hierros, tiraElegida, verAvance, avancePiezas, empalmes]);
+  }, [params, estructura, aberturas, capasVista, paneles, gruposVisibles, seleccionada, opacidadesVista.paneles, catalogo, aberturaSeleccionada, medida, resaltado, medidasFijas, perfilesVista, opacidadesVista.hierros, tiraElegida, verAvance, avancePiezas, empalmes, cruceActivo, conCruces]);
 
   // 2a) v1.45.1: "Lo enterrado" apagado = se corta todo lo que está debajo del suelo (un plano de corte en y = 0,
   // un poquito más abajo para no cortar el piso que recibe las sombras, que está a −1 cm).
@@ -2635,6 +2660,9 @@ export default function LoftCanvas({
                   </select>
                 </label>
                 {piezaSeleccionada.cortesEnCruces > 0 && <small> · se corta en {piezaSeleccionada.cortesEnCruces} cruce{piezaSeleccionada.cortesEnCruces > 1 ? 's' : ''}</small>}
+                {piezaSeleccionada.corridaDebajo && <small> · {piezaSeleccionada.corridaDebajo < 0 ? 'bajada' : 'subida'} {Math.abs(piezaSeleccionada.corridaDebajo * 100).toFixed(0)} cm por un cruce elegido</small>}
+                <CrucesDePieza pieza={piezaSeleccionada} cruces={estructura.crucesDePiezas} elegidos={params.crucesElegidos}
+                  activo={cruceActivo} punta={punta} onCambiar={(cambios) => onCruces('cruce', null, cambios)} />
                 {empalme && (
                   <div className="empalme-pieza">
                     <small>⛓ Empalmada {empalme.elegido ? '(elegido a mano)' : '(la app eligió)'}: tramos de {empalme.tramos.map(m).join(' + ')} m

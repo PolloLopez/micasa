@@ -31,6 +31,7 @@
 // rectangular (el alto "a" va hacia el espesor de la pared o parado en el piso).
 // ==========================================================
 
+import { claveCruce } from './crucesElegidos.js';
 import { INSUMO } from './constantes.js';
 import { INSUMO_DE_TIPO } from './piezasAgregadas.js';
 import { seccionDesdePerfil } from './canos.js';
@@ -268,33 +269,43 @@ function ajustarPieza(p, otras, catalogo, ctx) {
   let alargarInicio = 0;
   let alargarFin = 0;
   const sacar = [];
+  const cortesCon = []; // v1.88: contra cuál se cortó (para la unión elegida en cada cruce)
   otras.forEach((q) => {
-    const rel = relacion(p, q, ctx);
-    if (!rel) return;
+    const regla = relacion(p, q, ctx);
+    if (!regla) return;
     const x = cruce(p, q);
     if (!x) return;
     const hq = medidaVista(q, catalogo) / 2;
     if (x.s < -hp - TOLERANCIA || x.s > x.lq + hp + TOLERANCIA) return; // el cruce cae fuera de q
     if (x.t < -hq - TOLERANCIA || x.t > lp + hq + TOLERANCIA) return; // el cruce cae fuera de p
+    // v1.88 (Leandro: "dónde se une y dónde no, en cada cruce"): lo elegido en ESTE cruce manda sobre la regla.
+    const clave = claveCruce(p.id, q.id);
+    const elegido = ctx.cruces?.[clave];
+    const forzado = elegido?.forma === 'corta';
+    const rel = forzado ? (elegido.entera === baseDe(p.id) ? 'gana' : 'pierde') : regla;
+    const invierte = forzado || parInvertible(p, q) || marcadaEntera(p, q, ctx);
+    const anotar = (resultado) => ctx.registro?.(p, q, x.t, resultado, clave);
+    if (elegido?.forma === 'debajo') { anotar(elegido.abajo === baseDe(p.id) ? 'debajo' : 'arriba'); return; } // no se tocan
     const pEnInicio = x.t <= hq + TOLERANCIA;
     const pEnFin = x.t >= lp - hq - TOLERANCIA;
     const pTermina = pEnInicio || pEnFin;
     const qTermina = x.s <= hp + TOLERANCIA || x.s >= x.lq - hp - TOLERANCIA;
-    const quitar = () => sacar.push([x.t - hq - ctx.luz, x.t + hq + ctx.luz]);
+    const quitar = () => { sacar.push([x.t - hq - ctx.luz, x.t + hq + ctx.luz]); cortesCon.push(clave); anotar('se corta'); };
     const alargar = () => {
       // Hasta la cara de afuera de q: desde donde está el cruce, la mitad de q.
       if (pEnInicio) alargarInicio = Math.max(alargarInicio, hq - x.t);
       else alargarFin = Math.max(alargarFin, x.t + hq - lp);
+      anotar('entera');
     };
     if (pTermina && qTermina) { // L: esquina
       if (rel === 'gana') alargar(); else quitar();
     } else if (pTermina) { // T: p termina contra q
-      if (rel === 'gana' && (parInvertible(p, q) || marcadaEntera(p, q, ctx))) alargar(); else quitar();
+      if (rel === 'gana' && invierte) alargar(); else quitar();
     } else if (qTermina) { // T: q termina contra p (p pasa de largo)
-      if (rel === 'pierde' && (parInvertible(p, q) || marcadaEntera(p, q, ctx))) quitar();
+      if (rel === 'pierde' && invierte) quitar(); else anotar('entera');
     } else if (rel === 'pierde') { // X: las dos pasan
       quitar();
-    }
+    } else anotar('entera');
   });
   if (sacar.length === 0 && alargarInicio <= 1e-9 && alargarFin <= 1e-9) return [p];
   // Lo que queda de [-alargarInicio, lp + alargarFin] sacando cada intervalo.
@@ -311,7 +322,8 @@ function ajustarPieza(p, otras, catalogo, ctx) {
   const utiles = tramos.filter(([a, b]) => b - a >= LARGO_MINIMO);
   return utiles.map(([a, b], i) => ({
     ...p,
-    ...(i === 0 ? { cortesEnCruces: sacar.length } : {}), // v1.86: cuántas veces se cortó contra otra (las uniones)
+    // v1.86: cuántas veces se cortó contra otra (las uniones); v1.88: y en qué cruces (la unión elegida en cada uno).
+    ...(i === 0 ? { cortesEnCruces: sacar.length, cortesCon } : {}),
     id: utiles.length === 1 ? p.id : `${p.id}~${i + 1}`,
     desde: suma(p.desde, por(u, a)),
     hasta: suma(p.desde, por(u, b)),
@@ -356,6 +368,47 @@ function enrasar(e, catalogo, config) {
 }
 
 /**
+ * v1.88 (Leandro: "poder ponerlo debajo del otro fierro"): en los cruces elegidos "debajo", la pieza que se mueve
+ * (`mueve`) se corre de altura entera (todos sus tramos) hasta tocar a la otra: la de abajo baja, o la de arriba sube,
+ * lo que miden de alto las dos dividido 2 (eje a eje). Si una pieza va debajo de varias, se corre lo que pida la que
+ * más la mueve. Solo cambia la altura: el largo (y el presupuesto) quedan igual.
+ */
+function ponerDebajo(e, cruces = {}, catalogo) {
+  const elegidos = Object.entries(cruces ?? {}).filter(([, v]) => v?.forma === 'debajo');
+  if (elegidos.length === 0) return e;
+  const todas = LISTAS.flatMap((ruta) => ruta.reduce((o, k) => o?.[k], e) ?? []);
+  const deBase = (id) => todas.filter((p) => baseDe(p.id) === id);
+  const altura = (lista) => (lista[0].desde[1] + lista[0].hasta[1]) / 2;
+  const correr = new Map(); // id base -> cuánto sube (+) o baja (-)
+  elegidos.forEach(([clave, v]) => {
+    const arriba = clave.split('|').find((id) => id !== v.abajo);
+    const piezasAbajo = deBase(v.abajo);
+    const piezasArriba = deBase(arriba);
+    if (!arriba || piezasAbajo.length === 0 || piezasArriba.length === 0) return;
+    const separacion = (medidaAlto(piezasAbajo[0], catalogo) + medidaAlto(piezasArriba[0], catalogo)) / 2;
+    const falta = altura(piezasArriba) - altura(piezasAbajo) - separacion; // < 0: hay que separarlas
+    if (falta >= -1e-6) return; // ya está debajo
+    const baja = v.mueve === v.abajo;
+    const dy = baja ? falta : -falta;
+    const antes = correr.get(v.mueve) ?? 0;
+    correr.set(v.mueve, baja ? Math.min(antes, dy) : Math.max(antes, dy));
+  });
+  if (correr.size === 0) return e;
+  const mover = (p) => {
+    const dy = correr.get(baseDe(p.id));
+    return dy ? { ...p, desde: [p.desde[0], p.desde[1] + dy, p.desde[2]], hasta: [p.hasta[0], p.hasta[1] + dy, p.hasta[2]], corridaDebajo: Number(dy.toFixed(4)) } : p;
+  };
+  const nueva = { ...e };
+  LISTAS.forEach((ruta) => {
+    const lista = ruta.reduce((o, k) => o?.[k], e);
+    if (!Array.isArray(lista)) return;
+    if (ruta.length === 1) nueva[ruta[0]] = lista.map(mover);
+    else nueva[ruta[0]] = { ...nueva[ruta[0]], [ruta[1]]: lista.map(mover) };
+  });
+  return nueva;
+}
+
+/**
  * Aplica las uniones a una estructura de construcción (después de marcar los perfiles de pared,
  * antes de las ediciones a mano).
  * @param params    usa params.uniones ({ modo, luz, enteras }) y el largo/ancho (qué lados del marco son los largos)
@@ -366,6 +419,16 @@ function enrasar(e, catalogo, config) {
  */
 export function aplicarUniones(e, params, catalogo, aberturas = []) {
   const config = completarUniones(params.uniones);
+  // v1.88: { idPieza: [{ otra, tipoOtra, en, punto, resultado, clave }] } cada cruce de cada pieza, con lo que pasó.
+  const crucesDePiezas = {};
+  const anotarCruce = (p, q, t, resultado, clave) => {
+    const base = baseDe(p.id);
+    const lista = crucesDePiezas[base] ?? (crucesDePiezas[base] = []);
+    if (lista.some((c) => c.clave === clave)) return;
+    const lp = largoDe(resta(p.hasta, p.desde));
+    const u = lp > 1e-9 ? por(resta(p.hasta, p.desde), 1 / lp) : [0, 0, 0];
+    lista.push({ otra: baseDe(q.id), tipoOtra: q.tipo, en: Number(t.toFixed(4)), punto: suma(p.desde, por(u, t)), resultado, clave });
+  };
   // v1.43.1: qué pisos llevan los tirantes apoyados (cada uno con su forma).
   const niveles = [['piso', config.enteras.tirantesTransversales], ['piso2', config.enteras.tirantesTransversales2]]
     .filter(([, f]) => f === 'apoyados').map(([n]) => n);
@@ -381,6 +444,8 @@ export function aplicarUniones(e, params, catalogo, aberturas = []) {
     luz: config.luz,
     marcos: new Map(aberturas.map((op) => [op.id, op.marcoEntero === 'dintel' ? 'dintel' : 'jambas'])),
     piezasEnteras: new Set(params.piezasEnteras ?? []), // v1.86: las marcadas "Entera" a mano
+    cruces: params.crucesElegidos ?? {}, // v1.88: lo elegido en cada cruce
+    registro: anotarCruce, // v1.88: los cruces de cada pieza (para elegirlos en el 3D)
   };
   const leer = (ruta) => ruta.reduce((o, k) => o?.[k], e) ?? [];
   const participa = (p) => Object.keys(REDES).some((red) => rangoEn(red, p, ctx) !== null);
@@ -407,8 +472,10 @@ export function aplicarUniones(e, params, catalogo, aberturas = []) {
   if (apoyados) {
     [...final.piso.tirantes, ...final.piso2.tirantes].filter((p) => p.apoyado).forEach((p) => { metrosDescontados -= p.largo - p.largoEje; });
   }
-  const enrasada = enrasar(final, catalogo, config); // v1.60
+  const enrasada = ponerDebajo(enrasar(final, catalogo, config), params.crucesElegidos, catalogo); // v1.60; v1.88
+  Object.values(crucesDePiezas).forEach((lista) => lista.sort((a, b) => a.en - b.en));
   enrasada.uniones = { modo: 'red', metrosDescontados: Math.round(metrosDescontados * 100) / 100, cortes };
+  enrasada.crucesDePiezas = crucesDePiezas;
   return enrasada;
 }
 

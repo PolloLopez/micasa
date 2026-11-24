@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.88.0] - 2026-11-24
+### Agregado
+- **Cada cruce, uno por uno** (Leandro: "debería poder ingresar dónde se une y dónde no, en cada cruce, no en general.
+  También para poder ponerlo debajo del otro fierro. Me pasa en Transversal de piso"). Tocando un hierro en el 3D,
+  **Sus cruces (N)**: con qué pieza y a cuántos metros, qué pasa hoy y para elegir: se corta esta o la otra, **una va
+  debajo de la otra** (las dos enteras; la que se mueve baja o sube lo que miden las dos / 2) y cómo se une ese cruce
+  (soldada, cubrejunta, chapa). "a todas" lo copia a sus cruces con ese tipo de pieza. En el 3D, un punto por cruce
+  (rojo, verde, violeta): tocarlo marca su fila. `params.crucesElegidos` (`crucesElegidos.js`), lo aplica
+  `aplicarUniones` (y `ponerDebajo`); cada pieza trae `cortesCon` y la estructura `crucesDePiezas`.
+### Arreglado
+- **Las piezas agregadas que se movían o editaban desaparecían del presupuesto y de la hoja de corte** (Leandro: "Borde
+  de piso 7,58 m… no está unida"): al editarla, la pieza se armaba de cero y perdía su renglón (`insumo`). En su proyecto,
+  12 de las 13 agregadas (soleras de 7,58 m, horizontales, tirantes 80×80, la zanca…) no se compraban: ahora suman
+  6 barras de 80×80 y 1 de C 80×40. También se conservan madera, esquina, nivel, etc. (`aplicarEdicion`).
+- Una agregada con un perfil de la lista elegido a mano va con ese perfil (antes, con el de su renglón): `compraDePieza`,
+  `perfilDePieza` (planos) y el presupuesto.
+### Notas
+- "No está unida": en la versión que tenía abierta (v1.86) el borde era C 80×40 y el C tiene barra de 12 m en
+  Materiales, así que entraba entero. En la v1.87 es 80×80 (barra de 6 m) y sale empalmado (1.1a + 1.27c).
+
 ## [1.87.1] - 2026-11-24
 ### Cambiado
 - **Piezas a mano → Editadas: si le cambiaste el perfil, la fila lo dice** ("C 80×40 → 80×80") y los detalles muestran
