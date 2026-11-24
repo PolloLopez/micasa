@@ -46,11 +46,14 @@ export function perfilDePieza(p, catalogo = []) {
 }
 
 /**
- * Un color por perfil, ordenados por nombre (así un perfil conserva su color aunque cambien las cantidades).
- * Las piezas de madera no cuentan (se ven de madera).
+ * Un color por perfil, ordenados por nombre. Las piezas de madera no cuentan (se ven de madera).
+ * v1.85 (Leandro: "no actualiza los colores de las piezas"): antes el color salía del lugar del perfil entre los que
+ * se USAN, así que al dejar de usar uno (ej. pasar los tirantes a 80x80) los demás cambiaban de color. Ahora sale de su
+ * lugar en la LISTA de perfiles (Materiales), que no cambia; y `propios` = { nombre: color } los elegidos por Leandro
+ * en la leyenda del 3D mandan sobre todo.
  * @returns {{ perfil, color, piezas, metros }[]}
  */
-export function coloresPorPerfil(piezas, catalogo = []) {
+export function coloresPorPerfil(piezas, catalogo = [], propios = {}) {
   const grupos = new Map();
   piezas.filter((p) => !p.madera).forEach((p) => {
     const perfil = perfilDePieza(p, catalogo);
@@ -61,7 +64,22 @@ export function coloresPorPerfil(piezas, catalogo = []) {
   });
   const nombres = [...grupos.keys()].filter((n) => n !== SIN_PERFIL)
     .sort((a, b) => a.localeCompare(b, 'es', { numeric: true }));
-  const lista = nombres.map((n, i) => ({ ...grupos.get(n), color: PALETA_PERFILES[i % PALETA_PERFILES.length] }));
+  // El lugar de cada perfil en la lista de perfiles (los que no están en la lista van después, por nombre).
+  const deLaLista = [...new Set((catalogo ?? []).filter((i) => i.categoria === 'hierro').map((h) => normalizarNombrePerfil(nombrePerfil(h))))];
+  const lugar = (n) => { const i = deLaLista.indexOf(n); return i >= 0 ? i : deLaLista.length + nombres.indexOf(n); };
+  // Cada uno toma el color de su lugar; si ya lo tiene otro en uso (la lista es más larga que la paleta), el siguiente
+  // libre: dos perfiles en uso nunca comparten color. Los elegidos a mano primero.
+  const usados = new Set(nombres.map((n) => propios?.[n]).filter(Boolean));
+  const colorDe = new Map();
+  [...nombres].sort((x, y) => lugar(x) - lugar(y)).forEach((n) => {
+    if (propios?.[n]) { colorDe.set(n, propios[n]); return; }
+    let i = lugar(n);
+    for (let k = 0; k < PALETA_PERFILES.length && usados.has(PALETA_PERFILES[i % PALETA_PERFILES.length]); k++) i++;
+    const color = PALETA_PERFILES[i % PALETA_PERFILES.length];
+    usados.add(color);
+    colorDe.set(n, color);
+  });
+  const lista = nombres.map((n) => ({ ...grupos.get(n), color: colorDe.get(n) }));
   if (grupos.has(SIN_PERFIL)) lista.push({ ...grupos.get(SIN_PERFIL), color: COLOR_SIN_PERFIL });
   return lista;
 }

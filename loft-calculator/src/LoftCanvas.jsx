@@ -1282,8 +1282,12 @@ export default function LoftCanvas({
   // v1.62 (pedido de Leandro: "el mismo 80x80x2 de dos colores es confuso"): de fábrica prendido. Clave nueva para
   // que también se prenda en los navegadores que lo tenían guardado apagado (antes venía apagado).
   const [colorPorPerfil, setColorPorPerfil] = useEstadoGuardado('colorPorPerfil.v162', true, (v) => typeof v === 'boolean');
-  const perfilesVista = useMemo(() => (colorPorPerfil && estructura ? coloresPorPerfil(listarPiezas(estructura), catalogo) : null),
-    [colorPorPerfil, estructura, catalogo]);
+  // v1.85 (Leandro: "no actualiza los colores de las piezas"): el color de cada perfil se elige tocando su cuadradito en
+  // la leyenda (se recuerda en este navegador, como los de Capas).
+  const [coloresPerfil, setColoresPerfil] = useEstadoGuardado('coloresPerfil', {}, (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
+    && Object.values(v).every((c) => /^#[0-9a-f]{6}$/i.test(c)));
+  const perfilesVista = useMemo(() => (colorPorPerfil && estructura ? coloresPorPerfil(listarPiezas(estructura), catalogo, coloresPerfil) : null),
+    [colorPorPerfil, estructura, catalogo, coloresPerfil]);
 
   // 1) MONTAJE: una sola vez.
   useEffect(() => {
@@ -2143,7 +2147,11 @@ export default function LoftCanvas({
         && (!CAPAS_TABIQUES.includes(clave) || hayTabiques)
         && (!CAPAS_INSTALACIONES.includes(clave) || hayInstalaciones)); // v1.57
       return visibles.length === 0 ? null
-        : { titulo, contenido: visibles.map((clave) => casillaCapa(clave)), todoNada: (valor) => ponerCapas(visibles, valor) };
+        : { titulo, contenido: [
+          // v1.85: con "Por perfil" prendido el color de los hierros lo da su perfil (la leyenda), no estas casillas.
+          ...(titulo === 'Estructura' && colorPorPerfil ? [<p key="aviso-perfil" className="aviso-color-perfil">🎨 Con <strong>Por perfil</strong> prendido,
+            el color de cada hierro es el de su perfil: se cambia tocando su color en la leyenda (abajo a la derecha). Apagalo para usar estos.</p>] : []),
+          ...visibles.map((clave) => casillaCapa(clave))], todoNada: (valor) => ponerCapas(visibles, valor) };
     }).filter(Boolean),
     {
       titulo: 'Opacidad',
@@ -2601,7 +2609,10 @@ export default function LoftCanvas({
       {perfilesVista && perfilesVista.length > 0 && (
         <ul className="leyenda-perfiles no-print" aria-label="Colores por perfil">
           {perfilesVista.map((x) => (
-            <li key={x.perfil}><span className="muestra-color" style={{ background: x.color }} />
+            <li key={x.perfil}>
+              {/* v1.85: tocando el cuadradito se elige otro color para ese perfil. */}
+              <input type="color" className="muestra-color elegir-color" value={x.color} title="Cambiar el color de este perfil"
+                aria-label={`Color de ${x.perfil}`} onChange={(e) => setColoresPerfil((prev) => ({ ...prev, [x.perfil]: e.target.value }))} />
               {x.perfil} <small>· {x.piezas} {x.piezas === 1 ? 'pieza' : 'piezas'} · {x.metros.toFixed(1).replace('.', ',')} m</small></li>
           ))}
         </ul>

@@ -37,6 +37,21 @@ describe('un color por perfil', () => {
     const b = coloresPorPerfil([{ insumo: INSUMO.COLUMNA, largo: 1 }, ...Array(9).fill({ insumo: INSUMO.PISO, largo: 1 })], catalogo);
     expect(a.map((x) => [x.perfil, x.color])).toEqual(b.map((x) => [x.perfil, x.color]));
   });
+
+  it('v1.85: un perfil conserva su color aunque otro deje de usarse, y el color elegido a mano manda', () => {
+    const conLosDos = coloresPorPerfil([{ insumo: INSUMO.COLUMNA, largo: 1 }, { insumo: INSUMO.PISO, largo: 1 }], catalogo);
+    const soloC = coloresPorPerfil([{ insumo: INSUMO.PISO, largo: 1 }], catalogo); // el 80x80 ya no se usa
+    expect(soloC[0].color).toBe(conLosDos.find((x) => x.perfil === soloC[0].perfil).color);
+    const propio = coloresPorPerfil([{ insumo: INSUMO.PISO, largo: 1 }], catalogo, { [soloC[0].perfil]: '#123456' });
+    expect(propio[0].color).toBe('#123456');
+  });
+
+  it('v1.85: con una lista más larga que la paleta, dos perfiles en uso no comparten color', () => {
+    const lista = Array.from({ length: 14 }, (_, i) => ({ id: `h${i}`, categoria: 'hierro', tipo: 'cuadrado', a: 20 + i * 10, espesor: 2 }));
+    const usos = [{ id: INSUMO.COLUMNA, perfilId: 'h0' }, { id: INSUMO.PISO, perfilId: 'h12' }]; // el 13.º caería en el color del 1.º
+    const r = coloresPorPerfil([{ insumo: INSUMO.COLUMNA, largo: 1 }, { insumo: INSUMO.PISO, largo: 1 }], [...lista, ...usos]);
+    expect(new Set(r.map((x) => x.color)).size).toBe(2);
+  });
 });
 
 describe('v1.62: el mismo caño, un solo nombre (y un solo color)', async () => {

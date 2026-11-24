@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.85.0] - 2026-11-24
+### Arreglado
+- **Los colores "Por perfil" cambiaban solos** (Leandro: "no actualiza los colores de las piezas"): el color de cada
+  perfil salía de su lugar entre los perfiles EN USO, así que al dejar de usar uno (ej. pasar los tirantes a 80x80) los
+  demás se corrían de color. Ahora sale de su lugar en la lista de perfiles (Materiales), que no cambia.
+- Dos perfiles en uso ya no comparten color (la lista de Leandro tiene 17 perfiles y la paleta 12: el 80x80 y el
+  Montante PGC salían los dos rojos).
+### Agregado
+- **Elegir el color de cada perfil**: tocando su cuadradito en la leyenda del 3D (se recuerda en este navegador).
+- En **Capas → Estructura**, con "Por perfil" prendido, un aviso: el color de los hierros lo da su perfil (por eso
+  cambiar el color de Columnas o Vigas no se ve), se cambia en la leyenda o apagando "Por perfil".
+
 ## [1.84.0] - 2026-11-24
 ### Agregado
 - **Buscador** (pedido de Leandro: "en piezas eliminadas y editadas necesito un buscador, y fijate dónde más sirve"):

@@ -1115,3 +1115,9 @@ option { background: var(--tarjeta); color: var(--texto); }
 .buscador input[type="search"] { flex: 1; min-width: 0; }
 .buscador small { white-space: nowrap; color: var(--texto-suave, #94a3b8); }
 .buscador input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; display: none; } /* ya tiene su ✕ */
+/* v1.85: el color de cada perfil se elige en la leyenda; aviso en Capas con "Por perfil". */
+.leyenda-perfiles .elegir-color { width: 14px; height: 14px; padding: 0; border: 1px solid rgba(255,255,255,0.4); border-radius: 3px;
+  background: none; cursor: pointer; vertical-align: middle; pointer-events: auto; }
+.leyenda-perfiles .elegir-color::-webkit-color-swatch-wrapper { padding: 0; }
+.leyenda-perfiles .elegir-color::-webkit-color-swatch { border: none; border-radius: 2px; }
+.aviso-color-perfil { flex-basis: 100%; margin: 2px 0 6px; font-size: 0.72rem; color: #fbbf24; }

@@ -115,6 +115,7 @@ Por perfil) y **herramientas** (Recorrer, Medir, **?** = cómo moverse). Con el 
 | 🏠 Ver adentro | Oculta las paredes (y el techo) que te tapan mientras girás |
 | 👁 Primera persona | Ves a la altura de los ojos (arrastrás para mirar, W A S D para caminar, Esc sale) |
 | 📏 Medir | Tocás dos puntos y te da la medida |
+| Por perfil | Cada hierro del color de su caño o perfil (la leyenda abajo a la derecha dice cuántas piezas y metros). **Tocá el color de un perfil en la leyenda para cambiarlo.** Con Por perfil prendido, los colores de Capas no se usan para los hierros |
 | ▸ Capas | Prender y apagar partes (por ejemplo **Lo enterrado**, para no ver pilotines bajo tierra). Las **etiquetas del terreno** (línea municipal, calle, pozo, pilar) arrancan apagadas: se prenden acá. El **tapial** arranca apagado: se prende en **Terreno → Tapial** |
 
 **Tocar un panel**: un clic en una pared revestida (donde no hay un hierro) pinta de amarillo esa **tira** y un cartel
