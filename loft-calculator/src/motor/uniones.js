@@ -151,14 +151,26 @@ function rangoEn(red, p, ctx) {
 
 /** 'gana' si `p` queda entera frente a `q`, 'pierde' si al revés, null si no se tocan en ninguna red. */
 function relacion(p, q, ctx) {
+  // v1.86 (Leandro: "debo poder seleccionar cuáles son enteras"): una pieza marcada "Entera" gana sus cruces (dentro de
+  // su red); si las dos están marcadas, decide la regla de su tipo.
+  const enteraP = ctx.piezasEnteras?.has(baseDe(p.id));
+  const enteraQ = ctx.piezasEnteras?.has(baseDe(q.id));
   for (const red of Object.keys(REDES)) {
     const rp = rangoEn(red, p, ctx);
     const rq = rangoEn(red, q, ctx);
-    if (rp === null || rq === null || rp === rq) continue;
+    if (rp === null || rq === null) continue;
+    if (enteraP !== enteraQ) return enteraP ? 'gana' : 'pierde';
+    if (rp === rq) continue;
     return rp < rq ? 'gana' : 'pierde';
   }
   return null;
 }
+
+/** El id de la pieza entera ("piso:3~2" es el tramo 2 de "piso:3"). */
+const baseDe = (id) => String(id).split('~')[0];
+
+/** v1.86: ¿la pieza o la otra se marcaron "Entera" a mano? (así un par que no se invierte solo, se invierte). */
+const marcadaEntera = (p, q, ctx) => Boolean(ctx.piezasEnteras?.has(baseDe(p.id)) !== ctx.piezasEnteras?.has(baseDe(q.id)));
 
 /** ¿Es un par que se puede invertir en una T? (la que termina puede quedar entera y cortar a la otra) */
 function parInvertible(p, q) {
@@ -277,9 +289,9 @@ function ajustarPieza(p, otras, catalogo, ctx) {
     if (pTermina && qTermina) { // L: esquina
       if (rel === 'gana') alargar(); else quitar();
     } else if (pTermina) { // T: p termina contra q
-      if (rel === 'gana' && parInvertible(p, q)) alargar(); else quitar();
+      if (rel === 'gana' && (parInvertible(p, q) || marcadaEntera(p, q, ctx))) alargar(); else quitar();
     } else if (qTermina) { // T: q termina contra p (p pasa de largo)
-      if (rel === 'pierde' && parInvertible(p, q)) quitar();
+      if (rel === 'pierde' && (parInvertible(p, q) || marcadaEntera(p, q, ctx))) quitar();
     } else if (rel === 'pierde') { // X: las dos pasan
       quitar();
     }
@@ -299,6 +311,7 @@ function ajustarPieza(p, otras, catalogo, ctx) {
   const utiles = tramos.filter(([a, b]) => b - a >= LARGO_MINIMO);
   return utiles.map(([a, b], i) => ({
     ...p,
+    ...(i === 0 ? { cortesEnCruces: sacar.length } : {}), // v1.86: cuántas veces se cortó contra otra (las uniones)
     id: utiles.length === 1 ? p.id : `${p.id}~${i + 1}`,
     desde: suma(p.desde, por(u, a)),
     hasta: suma(p.desde, por(u, b)),
@@ -367,6 +380,7 @@ export function aplicarUniones(e, params, catalogo, aberturas = []) {
     enteras: config.enteras,
     luz: config.luz,
     marcos: new Map(aberturas.map((op) => [op.id, op.marcoEntero === 'dintel' ? 'dintel' : 'jambas'])),
+    piezasEnteras: new Set(params.piezasEnteras ?? []), // v1.86: las marcadas "Entera" a mano
   };
   const leer = (ruta) => ruta.reduce((o, k) => o?.[k], e) ?? [];
   const participa = (p) => Object.keys(REDES).some((red) => rangoEn(red, p, ctx) !== null);

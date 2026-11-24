@@ -22,6 +22,7 @@ import { INSUMO, PLACA_OSB, DESPERDICIO_PLACAS, LADOS } from './constantes.js';
 import { cuentaRevestimiento, REVESTIMIENTO_POR_DEFECTO, unidadDeCompra } from './revestimientos.js';
 import { medidasParaConsumibles, cantidadDeConsumible } from './consumibles.js';
 import { tablasDeMadera } from './maderaComercial.js';
+import { unionesConMaterial } from './armado.js'; // v1.86
 
 /** Insumos fijos. El perfil y el precio se editan desde la pantalla. */
 export const CATALOGO_FIJO = [
@@ -126,6 +127,9 @@ export const CATALOGO_FIJO = [
   { id: INSUMO.PORTON_MALLA, categoria: 'unidad', nombre: 'Metal desplegado del portón', perfil: 'Metal desplegado o malla (hoja del portón)', unidad: 'm²', largoBarra: null, precio: 14000 },
   { id: INSUMO.PORTON_RIEL, categoria: 'unidad', nombre: 'Riel del portón', perfil: 'Riel de portón corredizo (ángulo invertido)', unidad: 'm', largoBarra: null, precio: 8000 },
   { id: INSUMO.PORTON_KIT, categoria: 'unidad', nombre: 'Herrajes del portón corredizo', perfil: '2 ruedas, guía superior con rodillos, topes y cerradura', unidad: 'u', largoBarra: null, precio: 90000 },
+  // v1.86: las uniones de los cruces que Leandro elige con cubrejunta o chapa (una por cruce).
+  { id: INSUMO.CUBREJUNTA, categoria: 'unidad', nombre: 'Cubrejuntas', perfil: 'Planchuela para unir en un cruce', unidad: 'u', largoBarra: null, precio: 3000 },
+  { id: INSUMO.CHAPA_UNION, categoria: 'unidad', nombre: 'Chapas de unión', perfil: 'Chapa (cartela) para unir en un cruce', unidad: 'u', largoBarra: null, precio: 6000 },
 ];
 
 /** Renglones que solo se usan en un proyecto de grada. */
@@ -215,6 +219,7 @@ function itemPerfil(producto, piezasObra, excedente, corte = {}, todas = []) {
   const piezasCorte = piezasObra.map((p) => ({
     largo: p.largo, id: p.id ?? null,
     apoyos: corte.sobreApoyo !== false && p.largo > largoReal && p.desde && p.hasta ? apoyosDePieza(p, todas) : null,
+    ...(p.empalmeFijo?.length && p.largo > largoReal ? { empalmeFijo: p.empalmeFijo } : {}), // v1.86: dónde lo empalma Leandro
   }));
   const piezas = piezasCorte.map((p) => p.largo);
   const cortes = optimizarCortes(piezasCorte, largoReal, corte);
@@ -477,6 +482,10 @@ function calcularRenglones(estructura, catalogo, excedenteBarras, corte = {}) {
     const pilares = oc.partes.filter((x) => x.clave.startsWith('pilar:')).length;
     if (pilares > 0) items.push(itemSimple(insumo(INSUMO.KIT_PILAR), pilares, 'caja de medidor, caño, jabalina y tablero (según la distribuidora)'));
   }
+  // v1.86: las uniones de los cruces con cubrejunta o chapa (las soldadas a tope no llevan material aparte).
+  const uniones = unionesConMaterial(listarPiezas(e), e.unionesPieza ?? {});
+  if (uniones.cubrejunta > 0) items.push(itemSimple(insumo(INSUMO.CUBREJUNTA), uniones.cubrejunta, 'una por cada cruce donde se corta una pieza unida con cubrejunta'));
+  if (uniones.chapa > 0) items.push(itemSimple(insumo(INSUMO.CHAPA_UNION), uniones.chapa, 'una por cada cruce donde se corta una pieza unida con chapa'));
   // v1.80: el portón corredizo del tapial (lo hace Leandro de hierro): bastidor en barras (con hoja de corte), la hoja,
   // el riel y los herrajes.
   const porton = e.obraCivil?.porton;

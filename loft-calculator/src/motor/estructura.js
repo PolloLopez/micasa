@@ -931,7 +931,20 @@ export function generarEstructura(params, aberturas, catalogo = null) {
   conCambios.editadasEncontradas = [...antes.editadasEncontradas, ...conCambios.editadasEncontradas];
   // v1.83: la medida real (medida en obra) va al final de todo, sobre la pieza ya unida: si se hiciera antes, las
   // uniones la volverían a estirar hasta la solera o el piso.
-  return marcarPerfilesDePared(aplicarMedidasReales(conCambios, params.avancePiezas), params);
+  const final = marcarPerfilesDePared(aplicarEmpalmesElegidos(aplicarMedidasReales(conCambios, params.avancePiezas), params.empalmesPieza), params);
+  final.unionesPieza = params.unionesPieza ?? {}; // v1.86: cómo se une cada pieza donde se corta (para el presupuesto)
+  return final;
+}
+
+/**
+ * v1.86 (Leandro: "dónde están empalmados los hierros"): a cada pieza larga con el empalme elegido a mano (o ya hecho
+ * en obra) se le anota dónde (`empalmeFijo`: m desde su punta `desde`); el optimizador de cortes lo respeta.
+ */
+function aplicarEmpalmesElegidos(e, empalmes = {}) {
+  const lista = Object.entries(empalmes ?? {}).filter(([, v]) => v?.en?.length);
+  if (lista.length === 0) return e;
+  const porId = new Map(lista);
+  return transformarPiezas(e, (p) => (porId.has(p.id) ? { ...p, empalmeFijo: porId.get(p.id).en, empalmeHecho: Boolean(porId.get(p.id).hecho) } : p));
 }
 
 /**

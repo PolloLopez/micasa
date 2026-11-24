@@ -43,6 +43,8 @@ Manual: `MANUAL.md` y el doc "Pollo Calculator — Manual de usuario" (Claude Do
   puerta, dintel, barras de 2,60 m).
 
 ## 👀 Para mirar en pantalla (probado con tests, no visto)
+- 🟡 [ ] v1.86: marcas de empalme en el 3D (naranja/celeste) y una pieza con cubrejunta que sí se corta (sale en el
+  presupuesto). Precio de cubrejunta y chapa de unión: de ejemplo.
 - 🟡 [ ] v1.83: tocar una pieza en el 3D y marcar "Instalada" (la prueba automática no logró tocar una pieza; la lista de
   Obra → Armado sí se probó). Revisar con el 🏗 Avance que se vea en verde.
 - 🟡 [ ] v1.82: cargar el **ancho total** del panel (ALPANEL: 1000 mm con 50 de encastre) para que se vea el encastre en
@@ -115,6 +117,8 @@ Manual: `MANUAL.md` y el doc "Pollo Calculator — Manual de usuario" (Claude Do
 - 🟡 [ ] Armado: al editar a mano la punta de una pieza que toca otra (columna con la solera), las uniones la vuelven a
   estirar; la **medida real** sí se respeta (va al final). Ver si "Acortar/alargar" también debería ir después de las uniones.
 - 🟢 [ ] Armado: fecha en que se puso cada pieza; marcar desde la hoja de corte ("cortada"); fotos.
+- 🟢 [ ] Cruces: elegir cruce por cruce (hoy por pieza); el tipo de unión en el plano de la pared; empalmes con más de una unión
+  (hoy se mueve la primera).
 - 🟢 [ ] Crédito con interés y sistema francés (hoy cuotas fijas); revoque e hidrófugo de la cámara; mano de obra del
   tapial por m²; medidas propias del tapial y el pozo; precios de mano de obra por contratista.
 - 🟢 [ ] Comprobantes (foto o PDF del recibo): necesita dónde guardarlos (Firebase Storage o Django).

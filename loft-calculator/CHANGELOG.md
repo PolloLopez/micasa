@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.86.0] - 2026-11-24
+### Agregado
+- **Cruces y empalmes pieza por pieza** (Leandro: "seleccionar cuáles son enteras y cuáles quedan unidas en los cruces,
+  como así también dónde están empalmados los hierros"). Tocando un hierro en el 3D:
+  - **Entera en sus cruces**: pasa de largo y las que cruza se cortan contra ella (manda sobre la regla de su tipo,
+    dentro de su red; si las dos están marcadas, decide la regla). `params.piezasEnteras`; `relacion` en uniones.js.
+  - **Donde se corta, va**: soldada a tope (la de siempre), con **cubrejunta** o con **chapa**: las dos últimas suman
+    al presupuesto una por cada cruce donde se corta (`params.unionesPieza`; renglones Cubrejuntas y Chapas de unión).
+  - **Empalme**: dónde está (tramos y si cae sobre un apoyo), **moverlo** (a cuántos metros de una punta) y **"Ya
+    está hecho así"**; "↶ automático" vuelve a la cuenta de la app. Si un tramo no entra en la barra, avisa y sigue la
+    automática. `params.empalmesPieza`; `empalmeElegido` en el optimizador de cortes.
+  - En el 3D, cada empalme con una marca (naranja: lo eligió la app; celeste: elegido a mano).
+- En **Estructura → Piezas a mano**, "Cruces y empalmes elegidos" con "Deshacer" (y entra en el buscador).
+### Arreglado
+- Si la pieza elegida en el 3D cambia de id (un tramo que, al quedar entero, pasa a ser la pieza entera), la ficha
+  sigue mostrándola (antes se cerraba).
+
 ## [1.85.0] - 2026-11-24
 ### Arreglado
 - **Los colores "Por perfil" cambiaban solos** (Leandro: "no actualiza los colores de las piezas"): el color de cada

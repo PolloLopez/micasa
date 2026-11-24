@@ -108,3 +108,40 @@ export function errorDeMedidaReal(medida) {
   if (medida > 30) return 'Máximo 30 m';
   return null;
 }
+
+// ---------- v1.86: cruces y empalmes elegidos a mano ----------
+
+/** Cómo se une una pieza donde se corta contra otra. */
+export const FORMAS_DE_UNION = [['soldada', 'Soldada a tope'], ['cubrejunta', 'Con cubrejunta'], ['chapa', 'Con chapa (cartela)']];
+
+/** Ids de las piezas que van "Enteras" (pasan de largo en sus cruces). */
+export const normalizarEnteras = (lista) => (Array.isArray(lista)
+  ? [...new Set(lista.filter((id) => typeof id === 'string' && id.length <= 80))].slice(0, 2000) : []);
+
+/** { idPieza: 'cubrejunta' | 'chapa' } (soldada = la de siempre, no se guarda). */
+export function normalizarUnionesPieza(u) {
+  if (!u || typeof u !== 'object' || Array.isArray(u)) return {};
+  return Object.fromEntries(Object.entries(u).slice(0, 2000)
+    .filter(([id, v]) => id.length <= 80 && ['cubrejunta', 'chapa'].includes(v)));
+}
+
+/** { idPieza: { en: [m desde la punta], hecho } } los empalmes elegidos (o ya hechos en obra). */
+export function normalizarEmpalmes(e) {
+  if (!e || typeof e !== 'object' || Array.isArray(e)) return {};
+  return Object.fromEntries(Object.entries(e).slice(0, 2000)
+    .map(([id, v]) => [id, {
+      en: (Array.isArray(v?.en) ? v.en : []).filter((x) => Number.isFinite(x) && x > 0 && x < 30).slice(0, 10),
+      ...(v?.hecho === true ? { hecho: true } : {}),
+    }])
+    .filter(([id, v]) => id.length <= 80 && v.en.length > 0));
+}
+
+/** Cuántas uniones con cubrejunta y con chapa hay (una por cada cruce donde se corta una pieza que se une así). */
+export function unionesConMaterial(piezas, unionesPieza = {}) {
+  const cuenta = { cubrejunta: 0, chapa: 0 };
+  piezas.forEach((p) => {
+    const forma = unionesPieza[String(p.id).split('~')[0]];
+    if (forma && p.cortesEnCruces > 0) cuenta[forma] += p.cortesEnCruces;
+  });
+  return cuenta;
+}

@@ -291,6 +291,8 @@ export default function App() {
   );
   // v1.68: el código de corte de cada pieza (grupo.barra + letra: "2.3b"), para la hoja de corte, el 3D y los planos.
   const codigosCorte = useMemo(() => codigosDeCorte(gruposCortes), [gruposCortes]);
+  // v1.86: dónde está empalmada cada pieza larga (id → { largo, tramos, sobreApoyo, elegido, noEntra }), para el 3D.
+  const empalmesDePiezas = useMemo(() => new Map(gruposCortes.flatMap((g) => g.cortes?.empalmes ?? []).filter((x) => x.id).map((x) => [x.id, x])), [gruposCortes]);
   // v1.57: instalaciones (eléctrica, agua, desagües, gas): un renglón por sistema en el presupuesto, con el total de su
   // lista de materiales (los precios se cargan en la pestaña Instalaciones, no por proveedor).
   // v1.58: + los equipos (aires, salamandra, solar) como un "sistema" más (su renglón y su lista).
@@ -511,7 +513,8 @@ export default function App() {
 
   // --- Sub-pestañas (v1.73): cada pestaña larga partida en pocas partes (una a la vez) ---
   // tarjetas = ids de las tarjetas de cada parte: lo elegido en el 3D abre la suya (contextoFoco.js).
-  const cantidadPiezasAMano = params.piezasAgregadas.length + params.piezasEliminadas.length + Object.keys(params.piezasEditadas).length;
+  const cantidadPiezasAMano = params.piezasAgregadas.length + params.piezasEliminadas.length + Object.keys(params.piezasEditadas).length
+    + (params.piezasEnteras?.length ?? 0) + Object.keys(params.unionesPieza ?? {}).length + Object.keys(params.empalmesPieza ?? {}).length; // v1.86
   const opcionesEstructura = [
     { clave: 'planta', icono: '📐', nombre: 'Planta', tarjetas: ['planta'] },
     { clave: 'pisos', icono: '🟫', nombre: 'Pisos y entrepiso', tarjetas: ['pisos'] },
@@ -815,8 +818,37 @@ export default function App() {
       return { id, titulo: pieza ? describirPieza(pieza, params) : 'Ya no existe en el modelo (cambió una medida)',
         detalles: pieza ? detallesDePieza(pieza, perfilDePieza(pieza, catalogoResuelto)) : [] };
     });
-    return { agregadas: filtrarPor(agregadas, buscarPiezas, texto), editadas: filtrarPor(editadas, buscarPiezas, texto), eliminadas: filtrarPor(eliminadas, buscarPiezas, texto) };
-  }, [params, piezasDeLaEstructura, estructura, catalogo, catalogoResuelto, buscarPiezas]);
+    // v1.86: lo elegido en los cruces y los empalmes (enteras, cómo se une, dónde se empalma).
+    const piezaDe = (id) => piezasDeLaEstructura.find((p) => p.id === id || p.id.startsWith(`${id}~`));
+    const deCruce = (id, que, deshacer) => {
+      const pieza = piezaDe(id);
+      return { id, deshacer, titulo: `${pieza ? describirPieza(pieza, params) : 'Ya no existe en el modelo'} · ${que}`,
+        detalles: pieza ? detallesDePieza(pieza, perfilDePieza(pieza, catalogoResuelto)) : [] };
+    };
+    const NOMBRE_UNION = { cubrejunta: 'unida con cubrejunta', chapa: 'unida con chapa' };
+    const cruces = [
+      ...(params.piezasEnteras ?? []).map((id) => deCruce(id, 'entera en sus cruces', () => cambiarCruces('entera', id, false))),
+      ...Object.entries(params.unionesPieza ?? {}).map(([id, v]) => deCruce(id, NOMBRE_UNION[v] ?? v, () => cambiarCruces('union', id, 'soldada'))),
+      ...Object.entries(params.empalmesPieza ?? {}).map(([id, v]) => deCruce(id, `empalme a ${v.en.map((x) => x.toFixed(2)).join(' y ')} m${v.hecho ? ' (ya hecho)' : ''}`,
+        () => cambiarCruces('empalme', id, null))),
+    ];
+    return { agregadas: filtrarPor(agregadas, buscarPiezas, texto), editadas: filtrarPor(editadas, buscarPiezas, texto), eliminadas: filtrarPor(eliminadas, buscarPiezas, texto),
+      cruces: filtrarPor(cruces, buscarPiezas, texto) };
+  }, [params, piezasDeLaEstructura, estructura, catalogo, catalogoResuelto, buscarPiezas]); // eslint-disable-line react-hooks/exhaustive-deps
+  // v1.86 (Leandro: "seleccionar cuáles son enteras y cuáles quedan unidas en los cruces, y dónde están empalmados"):
+  //   'entera' (id base, sí/no) · 'union' (id base, 'soldada' | 'cubrejunta' | 'chapa') · 'empalme' (id, { en, hecho } o null)
+  const cambiarCruces = (que, id, valor) => {
+    if (que === 'entera') {
+      const lista = params.piezasEnteras ?? [];
+      return cambiar('piezasEnteras')(valor ? [...new Set([...lista, id])] : lista.filter((x) => x !== id));
+    }
+    if (que === 'union') {
+      const { [id]: _antes, ...resto } = params.unionesPieza ?? {}; // eslint-disable-line no-unused-vars
+      return cambiar('unionesPieza')(valor && valor !== 'soldada' ? { ...resto, [id]: valor } : resto);
+    }
+    const { [id]: _antes, ...resto } = params.empalmesPieza ?? {}; // eslint-disable-line no-unused-vars
+    return cambiar('empalmesPieza')(valor?.en?.length ? { ...resto, [id]: valor } : resto);
+  };
   // v1.83: las piezas con perfil elegido a mano vuelven al de su parte (se borra solo el perfil de su edición).
   const quitarPerfilAMano = (ids) => {
     const nuevo = { ...params.piezasEditadas };
@@ -1338,6 +1370,7 @@ export default function App() {
             onMoverMueble={moverMuebleDesde3D} onGirarMueble={girarMuebleDesde3D}
             onActualizarAbertura={actualizarAbertura} onQuitarAbertura={quitarAbertura} onMoverAbertura={moverAberturaDesde3D}
             onPegarAbertura={pegarAbertura} onDuplicarPieza={duplicarPiezaElegida} onMarcarAvance={marcarAvance} onMedidaReal={ponerMedidaReal}
+            empalmes={empalmesDePiezas} onCruces={cambiarCruces}
             resaltado={resaltado} cartelResaltado={cartelResaltado}
             onSoltarResaltado={resaltadoFijo ? () => { setResaltadoFijo(null); setResaltadoMouse(null); } : null}
             pedidoVerTerreno={pedidoVerTerreno} onCambiarParam={(ruta, valor) => cambiar(ruta)(valor)} />
@@ -1624,7 +1657,7 @@ export default function App() {
 
           {/* PIEZAS ELIMINADAS Y EDITADAS */}
           <PanelSub grupo="estructura" activa={subEstructuraVista} clave="piezas">
-          <Tarjeta id="eliminadas" titulo={`Piezas agregadas, eliminadas y editadas (${params.piezasAgregadas.length + params.piezasEliminadas.length + Object.keys(params.piezasEditadas).length})`}>
+          <Tarjeta id="eliminadas" titulo={`Piezas agregadas, eliminadas y editadas (${cantidadPiezasAMano})`}>
             <NotaPlegable>
               Hacé clic en un hierro del 3D: podés <strong>eliminarlo</strong> o <strong>editarlo</strong> (recortar,
               mover o cotizarlo con otro perfil). Lo eliminado sale del dibujo y del presupuesto; lo editado se dibuja
@@ -1635,7 +1668,7 @@ export default function App() {
             {cantidadPiezasAMano > 0 && (
               <Buscador valor={buscarPiezas} onCambio={setBuscarPiezas} ayuda="columna, frente, 4,33, tirante…"
                 etiqueta="Buscar en las piezas agregadas, editadas y eliminadas" total={cantidadPiezasAMano}
-                quedan={filasPiezasAMano.agregadas.length + filasPiezasAMano.editadas.length + filasPiezasAMano.eliminadas.length} />
+                quedan={filasPiezasAMano.agregadas.length + filasPiezasAMano.editadas.length + filasPiezasAMano.eliminadas.length + filasPiezasAMano.cruces.length} />
             )}
             {filasPiezasAMano.agregadas.length > 0 && (
               <>
@@ -1677,7 +1710,17 @@ export default function App() {
                 {!buscarPiezas && <button className="btn-sec no-print" onClick={restaurarTodas}>Restaurar todas</button>}
               </>
             )}
-            {buscarPiezas && cantidadPiezasAMano > 0 && filasPiezasAMano.agregadas.length + filasPiezasAMano.editadas.length + filasPiezasAMano.eliminadas.length === 0 && (
+            {filasPiezasAMano.cruces.length > 0 && (
+              <>
+                <h3 className="subtitulo">Cruces y empalmes elegidos</h3>
+                <ul className="opening-list">
+                  {filasPiezasAMano.cruces.map((f, i) => (
+                    <FilaPiezaCambiada key={`${f.id}-${i}`} id={f.id} titulo={f.titulo} detalles={f.detalles} accion={{ texto: 'Deshacer', alHacer: f.deshacer }} />
+                  ))}
+                </ul>
+              </>
+            )}
+            {buscarPiezas && cantidadPiezasAMano > 0 && filasPiezasAMano.agregadas.length + filasPiezasAMano.editadas.length + filasPiezasAMano.eliminadas.length + filasPiezasAMano.cruces.length === 0 && (
               <p className="vacio">Ninguna pieza con "{buscarPiezas}".</p>
             )}
           </Tarjeta>

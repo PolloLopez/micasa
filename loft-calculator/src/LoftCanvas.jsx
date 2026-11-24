@@ -36,7 +36,8 @@ import { NOMBRE_TIPO_PIEZA } from './motor/estructura.js';
 import { seccionDesdePerfil } from './motor/canos.js';
 import { coloresPorPerfil, perfilDePieza } from './motor/coloresPerfil.js';
 import { INSUMO } from './motor/constantes.js';
-import EditorPieza from './componentes/EditorPieza.jsx';
+import EditorPieza, { nombresExtremos } from './componentes/EditorPieza.jsx';
+import { FORMAS_DE_UNION } from './motor/armado.js';
 import CampoNumero from './componentes/CampoNumero.jsx';
 import { resumenDeArmado } from './motor/armado.js';
 import { FilaAbertura } from './componentes/AberturasDePared.jsx';
@@ -179,6 +180,9 @@ function crearMateriales(colores) {
   // v1.83: "Avance" del armado: lo puesto en verde, lo que falta gris claro y transparente.
   materiales.instalada = new THREE.MeshStandardMaterial({ color: '#22c55e', emissive: '#14532d', emissiveIntensity: 0.4 });
   materiales.pendiente = new THREE.MeshStandardMaterial({ color: '#94a3b8', transparent: true, opacity: 0.35, depthWrite: false });
+  // v1.86: la marca de cada empalme (un anillo naranja sobre la pieza; azul si se eligió a mano).
+  materiales.empalme = new THREE.MeshStandardMaterial({ color: '#f97316', emissive: '#7c2d12', emissiveIntensity: 0.5 });
+  materiales.empalmeElegido = new THREE.MeshStandardMaterial({ color: '#0ea5e9', emissive: '#0c4a6e', emissiveIntensity: 0.5 });
   // Piezas resaltadas (v1.27): rosa que brilla y se ve A TRAVÉS de todo (depthTest apagado),
   // así una columna tapada por los paneles o por otra pared igual se ve.
   materiales.resaltado = new THREE.MeshStandardMaterial({
@@ -390,7 +394,7 @@ function cartel(texto, esFrente) {
 /** Arma todas las mallas del modelo dentro de `grupo`. */
 function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
   const { params, estructura: e, aberturas, capas, gruposVisibles, seleccionada, catalogo, aberturaSeleccionada, medida, resaltado, medidasFijas = [],
-    perfiles = null, opacidadHierros = 1, tiraElegida = null, avance = null } = opciones;
+    perfiles = null, opacidadHierros = 1, tiraElegida = null, avance = null, empalmes = null } = opciones;
   // v1.55: con "Color por perfil", cada pieza del color de su caño (el mismo perfil, el mismo color).
   const colorDePerfil = perfiles ? new Map(perfiles.map((x) => [x.perfil, x.color])) : null;
   const materialDePerfil = (p) => {
@@ -433,6 +437,21 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
     malla.userData.pieza = p; // para medir de eje a eje (ver medicion.js)
     if (!p.nivel && p.grupos.length > 0 && p.grupos.every((g) => DE_PARED.has(g))) malla.userData.ladosPared = p.grupos;
     grupo.add(malla);
+    // v1.86: dónde está empalmada (una cajita apenas más gruesa que la pieza en cada unión).
+    const empalme = empalmes?.get(p.id);
+    if (empalme && p.largo > 0) {
+      let a = 0;
+      empalme.tramos.slice(0, -1).forEach((t) => {
+        a += t;
+        const x = a / p.largo;
+        const centro = p.desde.map((v, i) => v + (p.hasta[i] - v) * x);
+        const marca = new THREE.Mesh(new THREE.BoxGeometry(seccion * 1.7, seccion * 1.7, seccion * 1.7), empalme.elegido ? materiales.empalmeElegido : materiales.empalme);
+        marca.position.set(...centro);
+        marca.userData.idPieza = p.id;
+        marca.userData.ladosPared = malla.userData.ladosPared;
+        grupo.add(marca);
+      });
+    }
   });
   // v1.64: las eliminadas que se miran desde la lista se dibujan como fantasma en su lugar (no se pueden elegir).
   if (resaltado?.tipo === 'pieza') {
@@ -1142,6 +1161,7 @@ export default function LoftCanvas({
   opacidades, onCambiarOpacidad, capturaRef, onMedidasFijas,
   onActualizarAbertura, onQuitarAbertura, onPegarAbertura, onDuplicarPieza, onMoverAbertura = null,
   onMarcarAvance = null, onMedidaReal = null, // v1.83: armado en obra (fierros puestos y medidas)
+  empalmes = null, onCruces = null, // v1.86: dónde está empalmada cada pieza; enteras, uniones y empalmes elegidos a mano
   resaltado = null, cartelResaltado = null, onSoltarResaltado, onElegir, onMoverMueble, onGirarMueble,
   pedidoVerTerreno = 0, // v1.32: cada vez que cambia, la cámara muestra todo el lote
   onCambiarParam = null, // v1.37: (ruta, valor) para el norte desde el panel del sol
@@ -1806,7 +1826,7 @@ export default function LoftCanvas({
     }));
     dibujarModelo(visor.grupo, visor.materiales, visor.materialesPanel,
       { params, estructura, aberturas, capas: capasVista, gruposVisibles, seleccionada, catalogo, aberturaSeleccionada, medida, resaltado, medidasFijas,
-        perfiles: perfilesVista, opacidadHierros: opacidadesVista.hierros, tiraElegida, avance: verAvance ? avancePiezas : null });
+        perfiles: perfilesVista, opacidadHierros: opacidadesVista.hierros, tiraElegida, avance: verAvance ? avancePiezas : null, empalmes });
     visor.corte.version += 1; // v1.45: hay que volver a ver qué paredes tapan
     juntarPuertas(visor);
     // Se reacomoda la cámara si cambia el frente o el tipo de proyecto (construcción / grada).
@@ -1815,7 +1835,7 @@ export default function LoftCanvas({
       mirarAlFrente(visor.camara, visor.controles, medidasVista(params, estructura));
       visor.frente = encuadre;
     }
-  }, [params, estructura, aberturas, capasVista, paneles, gruposVisibles, seleccionada, opacidadesVista.paneles, catalogo, aberturaSeleccionada, medida, resaltado, medidasFijas, perfilesVista, opacidadesVista.hierros, tiraElegida, verAvance, avancePiezas]);
+  }, [params, estructura, aberturas, capasVista, paneles, gruposVisibles, seleccionada, opacidadesVista.paneles, catalogo, aberturaSeleccionada, medida, resaltado, medidasFijas, perfilesVista, opacidadesVista.hierros, tiraElegida, verAvance, avancePiezas, empalmes]);
 
   // 2a) v1.45.1: "Lo enterrado" apagado = se corta todo lo que está debajo del suelo (un plano de corte en y = 0,
   // un poquito más abajo para no cortar el piso que recibe las sombras, que está a −1 cm).
@@ -2298,7 +2318,18 @@ export default function LoftCanvas({
     return () => window.removeEventListener('keydown', alTeclear);
   }, [muebleElegido, moviendoMueble, params, onMoverMueble, onGirarMueble]);
 
-  const piezaSeleccionada = seleccionada ? listarPiezas(estructura).find((p) => p.id === seleccionada) : null;
+  // v1.86: si la pieza elegida cambió de id (un tramo "solera:A~2" que al quedar "Entera" pasa a ser "solera:A", o al
+  // revés), se sigue mostrando la misma pieza: la entera o su primer tramo.
+  const piezaSeleccionada = useMemo(() => {
+    if (!seleccionada) return null;
+    const todas = listarPiezas(estructura);
+    const base = String(seleccionada).split('~')[0];
+    return todas.find((p) => p.id === seleccionada) ?? todas.find((p) => p.id === base) ?? todas.find((p) => p.id.startsWith(`${base}~`)) ?? null;
+  }, [seleccionada, estructura]);
+  // …y la elegida pasa a ser esa (así se sigue pintando de amarillo en el 3D).
+  useEffect(() => {
+    if (piezaSeleccionada && piezaSeleccionada.id !== seleccionada) setSeleccionada(piezaSeleccionada.id);
+  }, [piezaSeleccionada, seleccionada]);
   const muebleDelPanel = muebleElegido !== null ? (params.muebles ?? []).find((m) => m.id === muebleElegido) ?? null : null;
   const aberturaElegida = aberturaSeleccionada ? aberturas.find((op) => op.id === aberturaSeleccionada) : null;
   // v1.42.1: le avisa a App qué se eligió, para abrir su tarjeta (y cerrarla al soltarlo).
@@ -2584,6 +2615,44 @@ export default function LoftCanvas({
               )}
             </div>
           )}
+          {/* v1.86: cruces y empalmes de esta pieza. */}
+          {onCruces && (() => {
+            const base = piezaSeleccionada.id.split('~')[0];
+            const empalme = empalmes?.get(piezaSeleccionada.id);
+            const elegido = params.empalmesPieza?.[piezaSeleccionada.id];
+            const punta = nombresExtremos(piezaSeleccionada, { ladoFrente: params.ladoFrente, paredes: params.paredes }).inicio;
+            const m = (n) => n.toFixed(2).replace('.', ',');
+            return (
+              <div className="cruces-pieza">
+                <label className="casilla-opcional" title="En sus cruces pasa de largo y las otras se cortan contra ella (manda sobre la regla de su tipo)">
+                  <input type="checkbox" checked={(params.piezasEnteras ?? []).includes(base)} onChange={(e) => onCruces('entera', base, e.target.checked)} />
+                  Entera en sus cruces
+                </label>
+                <label className="union-pieza">Donde se corta, va
+                  <select value={params.unionesPieza?.[base] ?? 'soldada'} onChange={(e) => onCruces('union', base, e.target.value)}>
+                    {FORMAS_DE_UNION.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
+                  </select>
+                </label>
+                {piezaSeleccionada.cortesEnCruces > 0 && <small> · se corta en {piezaSeleccionada.cortesEnCruces} cruce{piezaSeleccionada.cortesEnCruces > 1 ? 's' : ''}</small>}
+                {empalme && (
+                  <div className="empalme-pieza">
+                    <small>⛓ Empalmada {empalme.elegido ? '(elegido a mano)' : '(la app eligió)'}: tramos de {empalme.tramos.map(m).join(' + ')} m
+                      {empalme.sobreApoyo ? ' · la unión cae sobre un apoyo' : ' · ⚠ la unión no cae sobre un apoyo'}</small>
+                    {empalme.noEntra && <small className="error"> · el empalme elegido deja un tramo más largo que la barra: va el automático</small>}
+                    <CampoNumero key={`emp-${piezaSeleccionada.id}`} etiqueta={`Empalme a (desde la punta ${punta})`} unidad={unidad}
+                      valor={elegido?.en?.[0] ?? empalme.tramos[0]}
+                      onCambio={(v) => (v <= 0.05 || v >= piezaSeleccionada.largo - 0.05 ? 'Tiene que caer dentro de la pieza'
+                        : onCruces('empalme', piezaSeleccionada.id, { en: [v], ...(elegido?.hecho ? { hecho: true } : {}) }))} />
+                    {elegido && (<>
+                      <label className="casilla-opcional"><input type="checkbox" checked={Boolean(elegido.hecho)}
+                        onChange={(e) => onCruces('empalme', piezaSeleccionada.id, { en: elegido.en, ...(e.target.checked ? { hecho: true } : {}) })} /> Ya está hecho así</label>
+                      <button type="button" className="btn-mini" onClick={() => onCruces('empalme', piezaSeleccionada.id, null)}>↶ automático</button>
+                    </>)}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
           {editandoId === piezaSeleccionada.id && (
             <EditorPieza pieza={piezaSeleccionada} edicion={params.piezasEditadas[piezaSeleccionada.id]}
               catalogo={catalogo} unidad={unidad} ladoFrente={params.ladoFrente} paredes={params.paredes}

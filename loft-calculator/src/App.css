@@ -1121,3 +1121,9 @@ option { background: var(--tarjeta); color: var(--texto); }
 .leyenda-perfiles .elegir-color::-webkit-color-swatch-wrapper { padding: 0; }
 .leyenda-perfiles .elegir-color::-webkit-color-swatch { border: none; border-radius: 2px; }
 .aviso-color-perfil { flex-basis: 100%; margin: 2px 0 6px; font-size: 0.72rem; color: #fbbf24; }
+/* v1.86: cruces y empalmes en la ficha de la pieza */
+.cruces-pieza { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; padding: 6px 0; border-top: 1px solid var(--borde, #334155); }
+.union-pieza { display: inline-flex; gap: 6px; align-items: center; font-size: 0.82rem; }
+.empalme-pieza { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: flex-end; }
+.empalme-pieza > small { flex-basis: 100%; }
+.empalme-pieza .group { margin: 0; max-width: 14rem; }

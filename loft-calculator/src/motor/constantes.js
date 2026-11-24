@@ -103,6 +103,9 @@ export const INSUMO = {
   PORTON_MALLA: 'portonMalla',
   PORTON_RIEL: 'portonRiel',
   PORTON_KIT: 'portonKit',
+  // v1.86: uniones de los cruces que no van soldadas a tope
+  CUBREJUNTA: 'cubrejunta',
+  CHAPA_UNION: 'chapaUnion',
   // v1.76: Durlock de los tabiques (ver durlock.js): soleras PGU aparte de los montantes, tornillos, cinta y masilla.
   SOLERA_TABIQUE: 'soleraTabique',
   TORNILLO_T1: 'tornilloT1',

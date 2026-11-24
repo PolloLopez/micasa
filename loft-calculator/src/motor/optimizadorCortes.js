@@ -69,7 +69,7 @@ export function optimizarCortes(piezas, largoBarra, opciones = MERMA_POR_CORTE) 
   // 0) Todo a la forma { largo, origen } (se aceptan números sueltos, como antes).
   const conOrigen = piezas.map((p) => (typeof p === 'number' ? { largo: p, origen: null } : { origen: null, ...p }));
   // v1.68: probar empalmes cuesta: el mismo pedido (ej. el presupuesto con cada proveedor) sale de la memoria.
-  const clave = `${largoBarra}|${merma}|${retazoUtil}|${conOrigen.map((p) => `${p.largo}:${p.id ?? ''}:${p.origen ?? ''}:${(p.apoyos ?? []).join(',')}`).join(';')}`;
+  const clave = `${largoBarra}|${merma}|${retazoUtil}|${conOrigen.map((p) => `${p.largo}:${p.id ?? ''}:${p.origen ?? ''}:${(p.apoyos ?? []).join(',')}:${(p.empalmeFijo ?? []).join(',')}`).join(';')}`;
   if (MEMORIA.has(clave)) return MEMORIA.get(clave);
   const resultado = optimizarSinMemoria(conOrigen, largoBarra, merma, retazoUtil);
   MEMORIA.set(clave, resultado);
@@ -79,10 +79,25 @@ export function optimizarCortes(piezas, largoBarra, opciones = MERMA_POR_CORTE) 
 
 const MEMORIA = new Map();
 
+/**
+ * v1.86: los tramos de una pieza con los empalmes donde los eligió Leandro (`empalmeFijo`: metros desde la punta
+ * `desde`), o null si no eligió o algún tramo no entra en la barra (ahí sigue la cuenta automática y se avisa).
+ */
+export function empalmeElegido(p, largoBarra) {
+  const en = (p.empalmeFijo ?? []).filter((x) => x > 0.01 && x < p.largo - 0.01).sort((a, b) => a - b);
+  if (en.length === 0) return null;
+  const cortes = [0, ...en, p.largo];
+  const tramos = cortes.slice(1).map((x, i) => Number((x - cortes[i]).toFixed(4)));
+  if (tramos.some((t) => t > largoBarra + TOLERANCIA)) return null;
+  const sobreApoyo = en.every((x) => (p.apoyos ?? []).some((a) => Math.abs(a - x) < 0.06));
+  return [{ tramos, sobreApoyo, elegido: true }];
+}
+
 function optimizarSinMemoria(conOrigen, largoBarra, merma, retazoUtil) {
   // v1.68: cada pieza más larga que la barra con sus formas posibles de empalmar (uniones sobre apoyos, o como antes).
+  // v1.86: si Leandro eligió dónde va el empalme (o ya lo hizo en obra), esa es la única forma (si los tramos entran).
   const formas = conOrigen.map((p) => (p.largo > largoBarra + TOLERANCIA
-    ? (p.apoyos?.length ? opcionesDeEmpalme(p.largo, largoBarra, p.apoyos) : [])
+    ? (empalmeElegido(p, largoBarra) ?? (p.apoyos?.length ? opcionesDeEmpalme(p.largo, largoBarra, p.apoyos) : []))
     : null));
   const conFormas = formas.map((f, i) => (f && f.length > 1 ? i : -1)).filter((i) => i >= 0);
   const eleccion = formas.map((f) => (f && f.length ? f[0] : null)); // de arranque: tramo largo primero
@@ -112,8 +127,9 @@ function resolver(conOrigen, largoBarra, merma, retazoUtil, eleccion) {
       if (!(p.largo > 0)) return;
       if (p.largo > largoBarra + TOLERANCIA) {
         piezasEmpalmadas++;
-        const { tramos, sobreApoyo } = eleccion[indice] ?? { tramos: dividirPiezaLarga(p.largo, largoBarra), sobreApoyo: false };
-        empalmes.push({ id: p.id ?? null, origen: p.origen, largo: p.largo, tramos, sobreApoyo });
+        const { tramos, sobreApoyo, elegido = false } = eleccion[indice] ?? { tramos: dividirPiezaLarga(p.largo, largoBarra), sobreApoyo: false };
+        empalmes.push({ id: p.id ?? null, origen: p.origen, largo: p.largo, tramos, sobreApoyo, elegido, // v1.86: elegido a mano
+          ...(p.empalmeFijo?.length && !elegido ? { noEntra: true } : {}) });
         tramos.forEach((tramo, k) => piezasCortables.push({ largo: tramo, origen: p.origen, id: p.id ?? null, tramo: { n: k + 1, de: tramos.length } }));
       } else {
         piezasCortables.push({ ...p, id: p.id ?? null, tramo: null });

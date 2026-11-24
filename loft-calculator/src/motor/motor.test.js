@@ -352,7 +352,8 @@ describe('calcularPresupuesto', () => {
       INSUMO.LADRILLO_HUECO, INSUMO.LADRILLO_COMUN, INSUMO.EXCAVACION_OBRA, INSUMO.KIT_PILAR,
       // v1.80: tapial y portón
       INSUMO.LADRILLO_HUECO_8, INSUMO.LADRILLO_HUECO_18, INSUMO.BLOQUE_HORMIGON, INSUMO.FENOLICO, INSUMO.TIRANTE_ENCOFRADO,
-      INSUMO.PORTON_BASTIDOR, INSUMO.PORTON_CHAPA, INSUMO.PORTON_MALLA, INSUMO.PORTON_RIEL, INSUMO.PORTON_KIT];
+      INSUMO.PORTON_BASTIDOR, INSUMO.PORTON_CHAPA, INSUMO.PORTON_MALLA, INSUMO.PORTON_RIEL, INSUMO.PORTON_KIT,
+      INSUMO.CUBREJUNTA, INSUMO.CHAPA_UNION]; // v1.86: solo con uniones con cubrejunta o chapa
     // Opcionales: riostras y montantes (v1.17) aparecen solo si la obra los lleva.
     // Los perfiles de la lista (v1.21, categoria 'hierro') no son renglones del presupuesto.
     // (v1.25: los proveedores tampoco.)

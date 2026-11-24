@@ -27,6 +27,11 @@ En **Pisos**, **Recortes de placas** es el % que se suma al OSB y al machimbre (
 En **Pisos**, **Qué perfil lleva cada parte**: una fila por parte con un botón por tus dos perfiles (80×80 y C 80×40)
 y "otro…". Si alguna pieza tiene otro perfil elegido a mano, la fila lo avisa y la podés pasar al de la fila.
 
+**Cruces y empalmes** (tocá un hierro en el 3D): **Entera en sus cruces** (pasa de largo y las otras se cortan contra
+ella), **Donde se corta, va** soldada, con cubrejunta o con chapa (las dos últimas suman material), y si está empalmado,
+**dónde** (moverlo a cuántos metros de la punta, **Ya está hecho así**, ↶ automático). En el 3D cada empalme tiene una
+marca (naranja: lo eligió la app; celeste: vos). Todo lo elegido está en Piezas a mano, con Deshacer.
+
 **Editar una pieza** (tocala en el 3D → Editar): cada punta se **acorta o alarga** (negativo = alarga, hasta 3 m).
 Para agregar una pieza, **Duplicá** una parecida y ajustala.
 

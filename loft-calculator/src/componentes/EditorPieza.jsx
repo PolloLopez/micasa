@@ -22,7 +22,7 @@ import NotaPlegable from './NotaPlegable.jsx';
  * Nombre de cada extremo de la pieza según hacia dónde apunta:
  * vertical => abajo / arriba; si no, la pared hacia la que mira cada punta.
  */
-function nombresExtremos(original, obra) {
+export function nombresExtremos(original, obra) {
   const d = original.hasta.map((v, i) => v - original.desde[i]);
   const eje = [0, 1, 2].reduce((mayor, i) => (Math.abs(d[i]) > Math.abs(d[mayor]) ? i : mayor), 0);
   const positivo = { 0: `hacia ${nombreDePared('B', obra)} (B)`, 1: 'arriba', 2: `hacia ${nombreDePared('A', obra)} (A)` }[eje];
