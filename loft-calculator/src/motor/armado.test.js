@@ -107,3 +107,18 @@ describe('v1.86: cruces y empalmes elegidos a mano', async () => {
     expect(migrarParams({ ...P, unionesPieza: { a: 'chapa', b: 'pegamento' } }).unionesPieza).toEqual({ a: 'chapa' });
   });
 });
+
+describe('v1.87: el perfil elegido a mano en una pieza manda sobre el de su pared', async () => {
+  const { CATALOGO_INICIAL } = await import('./presupuesto.js');
+  const { perfilDePieza } = await import('./coloresPerfil.js');
+  it('una solera con perfil de pared y otro elegido a mano se compra (y se pinta) con el elegido', () => {
+    const hierros = CATALOGO_INICIAL.filter((i) => i.categoria === 'hierro');
+    const [deLaPared, aMano] = [hierros[0].id, hierros[1].id];
+    const params = { ...P, paredes: { ...P.paredes, A: { ...P.paredes.A, perfilMarcos: deLaPared } } };
+    const solera = (p) => listarPiezas(generarEstructura(p, ABERTURAS_INICIALES, CATALOGO_INICIAL)).find((x) => x.tipo === 'solera' && x.id.startsWith('solera:A'));
+    expect(solera(params).perfilPared).toBe(deLaPared);
+    const editada = solera({ ...params, piezasEditadas: { [solera(params).id]: { perfilLista: aMano } } });
+    expect(editada.perfilPared).toBe(aMano);
+    expect(perfilDePieza(editada, CATALOGO_INICIAL)).not.toBe(perfilDePieza(solera(params), CATALOGO_INICIAL));
+  });
+});

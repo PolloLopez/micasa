@@ -994,6 +994,9 @@ function marcarPerfilesDePared(e, params) {
     }
     const campo = CAMPO_DE_TIPO[p.tipo];
     if (!campo) return p;
+    // v1.87 (Leandro: "tampoco actualiza el color de mi pieza editada"): el perfil elegido a mano en la pieza manda;
+    // antes el de su pared lo pisaba (y la pieza seguía con el perfil y el color de antes).
+    if (p.ladoPared === 'editada a mano') return p;
     // El marco de piso está en el grupo 'piso'; su pared sale del id (marco-piso:A).
     const ladosDeLaPieza = p.tipo === 'marco-piso' ? [p.id.split(':')[1]] : p.grupos.filter((g) => LADOS.includes(g));
     if (p.tipo === 'columna' && ladosDeLaPieza.length >= 2) return { ...p, esquina: true };

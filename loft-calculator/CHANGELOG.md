@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.87.0] - 2026-11-24
+### Arreglado
+- **El perfil elegido a mano en una pieza no se aplicaba si su pared tenía un perfil propio** (Leandro: "tampoco
+  actualiza el color de mi pieza editada"): el perfil de la pared (Paredes → soleras, columnas, fajas, montantes) lo
+  pisaba después, y la pieza seguía con el perfil, el precio y el color de antes. En su proyecto, dos soleras agregadas
+  elegidas en 80×80 seguían como C 80×40. Ahora lo elegido en la pieza manda (`marcarPerfilesDePared`).
+### Cambiado
+- **Editar una pieza → Perfil**: botones con los perfiles de trabajo (80×80, C 80×40), "El de su tipo o pared" (con
+  cuál es) y "otro…" para el resto de la lista (antes, un desplegable con los 17 perfiles). Leandro: "quiero elegir
+  entre los materiales".
+
 ## [1.86.0] - 2026-11-24
 ### Agregado
 - **Cruces y empalmes pieza por pieza** (Leandro: "seleccionar cuáles son enteras y cuáles quedan unidas en los cruces,

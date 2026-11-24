@@ -1370,7 +1370,7 @@ export default function App() {
             onMoverMueble={moverMuebleDesde3D} onGirarMueble={girarMuebleDesde3D}
             onActualizarAbertura={actualizarAbertura} onQuitarAbertura={quitarAbertura} onMoverAbertura={moverAberturaDesde3D}
             onPegarAbertura={pegarAbertura} onDuplicarPieza={duplicarPiezaElegida} onMarcarAvance={marcarAvance} onMedidaReal={ponerMedidaReal}
-            empalmes={empalmesDePiezas} onCruces={cambiarCruces}
+            empalmes={empalmesDePiezas} onCruces={cambiarCruces} perfilesDeTrabajo={perfilesDeTrabajo}
             resaltado={resaltado} cartelResaltado={cartelResaltado}
             onSoltarResaltado={resaltadoFijo ? () => { setResaltadoFijo(null); setResaltadoMouse(null); } : null}
             pedidoVerTerreno={pedidoVerTerreno} onCambiarParam={(ruta, valor) => cambiar(ruta)(valor)} />

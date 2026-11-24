@@ -1162,6 +1162,7 @@ export default function LoftCanvas({
   onActualizarAbertura, onQuitarAbertura, onPegarAbertura, onDuplicarPieza, onMoverAbertura = null,
   onMarcarAvance = null, onMedidaReal = null, // v1.83: armado en obra (fierros puestos y medidas)
   empalmes = null, onCruces = null, // v1.86: dónde está empalmada cada pieza; enteras, uniones y empalmes elegidos a mano
+  perfilesDeTrabajo = [], // v1.87: los perfiles con botón propio al editar una pieza (80×80, C 80×40)
   resaltado = null, cartelResaltado = null, onSoltarResaltado, onElegir, onMoverMueble, onGirarMueble,
   pedidoVerTerreno = 0, // v1.32: cada vez que cambia, la cámara muestra todo el lote
   onCambiarParam = null, // v1.37: (ruta, valor) para el norte desde el panel del sol
@@ -2656,7 +2657,8 @@ export default function LoftCanvas({
           {editandoId === piezaSeleccionada.id && (
             <EditorPieza pieza={piezaSeleccionada} edicion={params.piezasEditadas[piezaSeleccionada.id]}
               catalogo={catalogo} unidad={unidad} ladoFrente={params.ladoFrente} paredes={params.paredes}
-              alturaPiso2={estructura.entrepiso ? estructura.entrepiso.y : null} elevacion={params.elevacion ?? 0} onEditar={onEditarPieza} />
+              alturaPiso2={estructura.entrepiso ? estructura.entrepiso.y : null} elevacion={params.elevacion ?? 0} onEditar={onEditarPieza}
+              perfilesDeTrabajo={perfilesDeTrabajo} />
           )}
           <div className="seleccion-acciones">
             {editandoId !== piezaSeleccionada.id && (

@@ -32,7 +32,7 @@ ella), **Donde se corta, va** soldada, con cubrejunta o con chapa (las dos últi
 **dónde** (moverlo a cuántos metros de la punta, **Ya está hecho así**, ↶ automático). En el 3D cada empalme tiene una
 marca (naranja: lo eligió la app; celeste: vos). Todo lo elegido está en Piezas a mano, con Deshacer.
 
-**Editar una pieza** (tocala en el 3D → Editar): cada punta se **acorta o alarga** (negativo = alarga, hasta 3 m).
+**Editar una pieza** (tocala en el 3D → Editar): cada punta se **acorta o alarga** (negativo = alarga, hasta 3 m). El **perfil** se elige con botones (80×80, C 80×40, el de su tipo o pared, u otro…) y manda sobre el de su pared.
 Para agregar una pieza, **Duplicá** una parecida y ajustala.
 
 Las notas grises largas muestran una línea: tocá **más ▾** para leerlas enteras.
