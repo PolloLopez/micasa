@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.95.0] - 2026-11-25
+### Agregado
+- **Los dos altos medidos en obra** (Leandro: "necesito poner el alto de las paredes manualmente, al igual que la
+  inclinación del techo"). En Estructura → Planta: "Altura (lado bajo)" y **"Altura (lado alto)"**; la pendiente del
+  techo sale sola. Cambiar un alto deja el otro como estaba. Abajo dice la pendiente en % y en grados (y en Techo, el
+  campo de la pendiente también los grados). `pendienteParaAltos` y `gradosDePendiente` en geometria.js.
+
 ## [1.94.0] - 2026-11-25
 ### Arreglado
 - **La leyenda "Por perfil" contaba tramos, no piezas** (Leandro: "ni en pedo tengo 34 piezas de 80x80 ni 92 de

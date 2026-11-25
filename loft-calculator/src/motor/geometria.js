@@ -121,6 +121,21 @@ export function alturaEn(x, z, params) {
   return params.altura + distanciaDesdeLadoBajo(x, z, params) * pendiente;
 }
 
+/**
+ * v1.95 (Leandro: "necesito poner el alto de las paredes manualmente, al igual que la inclinación del techo"): la
+ * pendiente (en %) que da un alto del lado alto medido en obra, con el alto del lado bajo. null si no tiene sentido
+ * (el lado alto más bajo que el bajo, o más de 60 %).
+ */
+export function pendienteParaAltos(altoBajo, altoAlto, params) {
+  const luz = luzTecho(params);
+  if (!(luz > 0) || !(altoAlto >= altoBajo)) return null;
+  const pendiente = Math.round(((altoAlto - altoBajo) / luz) * 100 * 100) / 100; // al 0,01 %
+  return pendiente <= 60 ? pendiente : null;
+}
+
+/** La pendiente en grados (para mostrarla junto al %). */
+export const gradosDePendiente = (porcentaje) => (Math.atan(porcentaje / 100) * 180) / Math.PI;
+
 /** Altura más alta de la estructura (lado alto del techo). */
 export function alturaMaxima(params) {
   return params.altura + luzTecho(params) * (params.pendienteTecho / 100);

@@ -80,7 +80,7 @@ import { flushSync } from 'react-dom';
 import { migrarParams, normalizarCatalogo } from './motor/migracion.js';
 import { PARAMS_INICIALES, ABERTURAS_INICIALES } from './motor/parametrosIniciales.js';
 import { LADOS, INSUMO } from './motor/constantes.js';
-import { nombreLado, alturasPared, geometriaLados, alturaMaxima, nombreDePared } from './motor/geometria.js';
+import { nombreLado, alturasPared, geometriaLados, alturaMaxima, nombreDePared, pendienteParaAltos, gradosDePendiente } from './motor/geometria.js';
 import { COLORES_INICIALES, coloresValidos, completarColores } from './capas.js';
 import { crearArchivoProyecto, leerArchivoProyecto, nombreDeArchivo } from './proyecto/archivoProyecto.js';
 import { crearLinkProyecto, leerLinkProyecto, tieneProyectoEnLink } from './proyecto/linkProyecto.js';
@@ -1437,13 +1437,28 @@ export default function App() {
             <div className="grid-params">
               {medida('largo', 'Largo (lados A y C)')}
               {medida('ancho', 'Ancho (lados B y D)')}
-              {medida('altura', 'Altura (lado bajo)')}
+              {/* v1.95 (Leandro: "poner el alto de las paredes manualmente, al igual que la inclinación del techo"): los dos
+                  altos medidos en obra; la pendiente sale sola. Cambiar uno deja el otro como estaba. */}
+              <CampoNumero etiqueta="Altura (lado bajo)" unidad={unidad} valor={params.altura}
+                onCambio={(v) => {
+                  const p = pendienteParaAltos(v, alturaMaxima(params), params);
+                  if (p === null) return 'No puede ser más alta que el lado alto';
+                  return cambiarVarios([['altura', v], ['pendienteTecho', p]]);
+                }} />
+              <CampoNumero etiqueta="Altura (lado alto)" unidad={unidad} valor={Math.round(alturaMaxima(params) * 1000) / 1000}
+                onCambio={(v) => {
+                  const p = pendienteParaAltos(params.altura, v, params);
+                  if (p === null) return 'Igual o más alta que el lado bajo (hasta 60 % de pendiente)';
+                  return cambiar('pendienteTecho')(p);
+                }} />
               {medida('elevacion', 'Elevación s/ terreno')}
               <SelectorLado etiqueta="¿Qué lado es el frente?" valor={params.ladoFrente} params={params}
                 onCambio={cambiar('ladoFrente')} ocultarFrente />
               {/* v1.36: una medida que ordena columnas, vigas de techo, tirantes y pilotines. */}
               {opcional('ejes.modulo', 'Modulación única', 'Cada', 1.25)}
             </div>
+            <p className="nota">Techo: pendiente {String(params.pendienteTecho).replace('.', ',')} % ({gradosDePendiente(params.pendienteTecho).toFixed(1).replace('.', ',')}°),
+              cae hacia {nombreDePared(params.caidaTecho, params).toLowerCase()}. Para cambiar hacia dónde cae, en Techo.</p>
             {params.ejes?.modulo > 0 && (
               <NotaPlegable>
                 Grilla cada {params.ejes.modulo.toFixed(2)} m desde la esquina: las columnas van en sus líneas (manda sobre la
@@ -1569,8 +1584,8 @@ export default function App() {
             <div className="grid-params">
               <SelectorLado etiqueta="Cae hacia" valor={params.caidaTecho} params={params}
                 onCambio={cambiar('caidaTecho')} />
-              <CampoNumero etiqueta="Pendiente" sufijo="%" valor={params.pendienteTecho}
-                onCambio={cambiar('pendienteTecho')} decimales={1} />
+              <CampoNumero etiqueta={`Pendiente (${gradosDePendiente(params.pendienteTecho).toFixed(1).replace('.', ',')}°)`} sufijo="%" valor={params.pendienteTecho}
+                onCambio={cambiar('pendienteTecho')} decimales={2} />
               {separacion('separacionVigasTecho', 'Sep. vigas de techo', 'Vigas de techo', ['viga', 'vigas'])}
               {separacion('separacionCorreasTecho', 'Sep. correas (s/ pendiente)', 'Correas (con las puntas)', ['correa', 'correas'])}
               {selectorPanel('panelTecho', 'Revestimiento del techo', params.panelTecho)}
