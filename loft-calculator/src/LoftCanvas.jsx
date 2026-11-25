@@ -2832,7 +2832,7 @@ export default function LoftCanvas({
               {/* v1.85: tocando el cuadradito se elige otro color para ese perfil. */}
               <input type="color" className="muestra-color elegir-color" value={x.color} title="Cambiar el color de este perfil"
                 aria-label={`Color de ${x.perfil}`} onChange={(e) => setColoresPerfil((prev) => ({ ...prev, [x.perfil]: e.target.value }))} />
-              {x.perfil} <small>· {x.piezas} {x.piezas === 1 ? 'pieza' : 'piezas'} · {x.metros.toFixed(1).replace('.', ',')} m</small></li>
+              {x.perfil} <small>· {x.piezas} {x.piezas === 1 ? 'pieza' : 'piezas'}{x.tramos > x.piezas ? ` (${x.tramos} cortadas en los cruces)` : ''} · {x.metros.toFixed(1).replace('.', ',')} m</small></li>
           ))}
         </ul>
       )}

@@ -21,9 +21,9 @@ describe('un color por perfil', () => {
     ];
     const lista = coloresPorPerfil(piezas, catalogo);
     expect(lista).toEqual([
-      { perfil: 'Caño estructural 80x80x2.0', piezas: 2, metros: 6.5, color: PALETA_PERFILES[0] },
-      { perfil: 'Perfil C 100x50x15x2.0', piezas: 1, metros: 3, color: PALETA_PERFILES[1] },
-      { perfil: SIN_PERFIL, piezas: 1, metros: 1, color: COLOR_SIN_PERFIL },
+      { perfil: 'Caño estructural 80x80x2.0', piezas: 2, tramos: 2, metros: 6.5, color: PALETA_PERFILES[0] },
+      { perfil: 'Perfil C 100x50x15x2.0', piezas: 1, tramos: 1, metros: 3, color: PALETA_PERFILES[1] },
+      { perfil: SIN_PERFIL, piezas: 1, tramos: 1, metros: 1, color: COLOR_SIN_PERFIL },
     ]);
     expect(perfilDePieza({ insumo: INSUMO.COLUMNA }, catalogo)).toBe(perfilDePieza({ insumo: INSUMO.VIGA_TECHO }, catalogo));
   });
@@ -68,7 +68,7 @@ describe('v1.62: el mismo caño, un solo nombre (y un solo color)', async () => 
       { id: INSUMO.CORREA, categoria: 'perfil', perfilId: null, perfil: 'Caño estructural 80 x 80 x 2' },
     ];
     const lista = coloresPorPerfil([{ insumo: INSUMO.COLUMNA, largo: 1 }, { insumo: INSUMO.VIGA_TECHO, largo: 2 }, { insumo: INSUMO.CORREA, largo: 3 }], catalogo2);
-    expect(lista).toEqual([{ perfil: 'Caño estructural 80x80x2.0', piezas: 3, metros: 6, color: PALETA_PERFILES[0] }]);
+    expect(lista).toEqual([{ perfil: 'Caño estructural 80x80x2.0', piezas: 3, tramos: 3, metros: 6, color: PALETA_PERFILES[0] }]);
   });
 });
 
@@ -81,5 +81,14 @@ describe('v1.88: nombre corto de un perfil (para la fila de "Editadas": "C 80×4
     expect(abreviarPerfil('Montante PGC 70x0.9')).toBe('PGC 70×0.9');
     expect(abreviarPerfil('Sin perfil en el catálogo')).toBe('Sin perfil en el catálogo');
     expect(abreviarPerfil('')).toBe('Sin nombre');
+  });
+});
+
+describe('v1.94: las piezas enteras, no los tramos (Leandro: "ni en pedo tengo 92 piezas de 80x40")', () => {
+  it('una transversal cortada en 3 tramos es 1 pieza (3 cortadas en los cruces)', () => {
+    const cat = [{ id: 'columna', perfil: 'Caño estructural 80x80x2.0' }];
+    const piezas = [{ id: 't~1', insumo: 'columna', largo: 1 }, { id: 't~2', insumo: 'columna', largo: 1 }, { id: 't~3', insumo: 'columna', largo: 1 },
+      { id: 'u', insumo: 'columna', largo: 2 }];
+    expect(coloresPorPerfil(piezas, cat)[0]).toMatchObject({ piezas: 2, tramos: 4, metros: 5 });
   });
 });

@@ -12,6 +12,9 @@ Manual: `MANUAL.md` y el doc "Pollo Calculator — Manual de usuario" (Claude Do
 2. 🟡 **Partir `App.jsx`** (1.800 líneas) en pocos hooks por tema (`useObra`, `useCompras`…), con su test.
 
 ## 🙋 De tu lado (Leandro)
+- 🔴 [ ] Con el ancho en 4,80 m: corregir las piezas agregadas que quedaron en las medidas viejas (agr:7 y agr:8, a 15 cm
+  adentro del Vecino; agr:10 y agr:11, tirantes de 4,41 m) y borrar el antepecho de la ventana nueva del Frente o la faja
+  que lo pisa (1,78 m de C repetidos).
 - 🔴 [ ] **Recargar la página** (Ctrl+F5) si arriba no dice la última versión: el 24/11 la app todavía mostraba la v1.86
   (los bordes de piso que pasaste a 80×80 seguían en C 80×40).
 - 🔴 [ ] Perfil C 80x40x15x1.6: en Materiales tiene **barra de 12 m**; si viene de 6 m, cambiarlo (las piezas de más de
@@ -122,6 +125,8 @@ Manual: `MANUAL.md` y el doc "Pollo Calculator — Manual de usuario" (Claude Do
   estirar; la **medida real** sí se respeta (va al final). Ver si "Acortar/alargar" también debería ir después de las uniones.
 - 🟢 [ ] Armado: fecha en que se puso cada pieza; marcar desde la hoja de corte ("cortada"); fotos.
 - 🟢 [ ] Cruces: el tipo de unión en el plano de la pared; empalmes con más de una unión (cruce por cruce: hecho en la v1.88)
+- 🟡 [ ] Piezas agregadas: que sigan a su pared cuando cambia el largo, el ancho o el alto (hoy tienen coordenadas
+  fijas y quedan corridas); y avisar cuando una pieza pisa a otra (mismo eje, mismo lugar).
 - 🟢 [ ] Paneles en B y D (pendiente): reusar el corte en diagonal (una tira dada vuelta 180° usa la diagonal de la
   otra). Choca con el encastre (queda del lado equivocado); ahorra ≈ 10 cm de tira por par. Decidir con ALPANEL si se puede.
 - 🟡 [ ] Cruces "debajo": la pieza que se corre de altura se mueve entera; si en otros cruces seguía al ras, ahí deja de tocar (mirar en el 3D y avisar en la fila)

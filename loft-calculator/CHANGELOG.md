@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.94.0] - 2026-11-25
+### Arreglado
+- **La leyenda "Por perfil" contaba tramos, no piezas** (Leandro: "ni en pedo tengo 34 piezas de 80x80 ni 92 de
+  80x40"). Una transversal de piso cortada por 12 tirantes eran 13 "piezas". Ahora dice las piezas enteras y, aparte,
+  en cuántos pedazos quedan al cortarlas en los cruces: con su archivo del 25/11, 80×80 "27 piezas (34 cortadas en
+  los cruces) · 140,4 m" y C 80×40 "41 piezas (92 cortadas en los cruces) · 165,9 m" (las 4 transversales de piso
+  van en 13 pedazos cada una). Las barras a comprar no cambian: 30 de 80×80 (6 m) y 19 de C (12 m).
+### Notas (revisión de su archivo, para decidir)
+- Las piezas agregadas tienen coordenadas fijas: al pasar el ancho de 4,50 a 4,80 m, agr:7 y agr:8 (soleras de 7,58 m
+  en el Vecino) quedaron 15 cm adentro de la pared, y agr:10 y agr:11 (tirantes 80×80) siguen de 4,41 m. Ver PENDIENTES.
+- La ventana nueva del Frente (ref:1795630235522) tiene el travesaño de antepecho a 1,65 m, en el mismo lugar que la
+  faja: 1,78 m de C contados dos veces.
+
 ## [1.93.0] - 2026-11-25
 ### Agregado
 - **El avance de un trabajo puede salir del Armado** (Leandro: "Zopapa me dice 0 % hecho, cuando ya registré caños

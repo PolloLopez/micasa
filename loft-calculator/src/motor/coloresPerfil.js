@@ -67,10 +67,18 @@ export function perfilDePieza(p, catalogo = []) {
  */
 export function coloresPorPerfil(piezas, catalogo = [], propios = {}) {
   const grupos = new Map();
+  // v1.94 (Leandro: "ni en pedo tengo 34 piezas de 80x80 ni 92 de 80x40"): se contaban los TRAMOS (una transversal
+  // cortada por 12 tirantes eran 13 "piezas"). Ahora `piezas` = las piezas enteras y `tramos` = los pedazos que quedan
+  // al cortarlas en los cruces (lo que sale de la sierra).
+  const vistas = new Map(); // perfil -> Set de ids enteros
   piezas.filter((p) => !p.madera).forEach((p) => {
     const perfil = perfilDePieza(p, catalogo);
-    const g = grupos.get(perfil) ?? { perfil, piezas: 0, metros: 0 };
-    g.piezas += 1;
+    const g = grupos.get(perfil) ?? { perfil, piezas: 0, tramos: 0, metros: 0 };
+    const ids = vistas.get(perfil) ?? new Set();
+    const base = p.id == null ? p : String(p.id).split('~')[0]; // (sin id: cada una es su propia pieza)
+    if (!ids.has(base)) { ids.add(base); g.piezas += 1; }
+    vistas.set(perfil, ids);
+    g.tramos += 1;
     g.metros += p.largo ?? 0;
     grupos.set(perfil, g);
   });
