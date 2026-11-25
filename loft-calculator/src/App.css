@@ -1141,6 +1141,11 @@ option { background: var(--tarjeta); color: var(--texto); }
   flex-wrap: wrap; gap: 6px 10px; align-items: center; justify-content: center; max-width: calc(100% - 32px);
   padding: 8px 12px; border-radius: 10px; background: rgba(15, 23, 42, 0.94); border: 1px solid #38bdf8; color: #e2e8f0; }
 .varias-elegidas small { opacity: 0.8; }
+.tramos-panel { margin: 8px 0; } /* v1.96 */
+.fila-tramo-panel { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: flex-end; }
+.fila-tramo-panel .group { margin: 0; }
+.limite-tramo-panel { stroke: #0ea5e9; stroke-width: 0.03; stroke-dasharray: 0.12 0.06; } /* v1.96 */
+.nombre-tramo-panel { fill: #0369a1; font-weight: 600; }
 .radios-cortes { border: 1px solid var(--borde, #334155); border-radius: 8px; padding: 6px 10px; display: flex; flex-direction: column; gap: 4px; } /* v1.91 */
 .sale-de-tira { display: flex; flex-direction: column; gap: 6px; margin: 6px 0; font-size: 0.85rem; } /* v1.90 */
 .sale-de-tira select { margin-left: 6px; max-width: 100%; }

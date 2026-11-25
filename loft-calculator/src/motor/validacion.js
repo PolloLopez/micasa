@@ -56,6 +56,10 @@ export function validarPanelesUsados(params, catalogo) {
   const ladoSinInterior = LADOS.find((lado) => params.paredes[lado].panelInterior && !existe(params.paredes[lado].panelInterior));
   if (ladoSinInterior) return `El revestimiento interior del lado ${ladoSinInterior} no existe`;
   if (!existe(params.panelTecho)) return 'El techo usa un tipo de panel que no existe';
+  // v1.96: los tramos con otro panel.
+  const ladoConTramoMalo = LADOS.find((lado) => (params.paredes[lado].tramosPanel ?? []).some((t) => !existe(t.panel)));
+  if (ladoConTramoMalo) return `Un tramo de la pared del lado ${ladoConTramoMalo} usa un tipo de panel que no existe`;
+  if ((params.tramosPanelTecho ?? []).some((t) => !existe(t.panel))) return 'Un tramo del techo usa un tipo de panel que no existe';
   return null;
 }
 

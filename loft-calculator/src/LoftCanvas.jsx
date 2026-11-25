@@ -42,6 +42,7 @@ import CampoNumero from './componentes/CampoNumero.jsx';
 import { resumenDeArmado } from './motor/armado.js';
 import { FilaAbertura } from './componentes/AberturasDePared.jsx';
 import { juntasDePano, pedazosDePared, encimadosDePano, tiraDeCadaPedazo, destinosDeTiras, cambiarTiraManual } from './motor/revestimientos.js';
+import { panosDeLaPared, panosDelTecho, panoEn } from './motor/tramosPanel.js'; // v1.96
 import { panosPorRevestimiento } from './motor/presupuesto.js';
 import { tiraEnPunto, cortesDeTiras } from './motor/cortesPaneles.js';
 import { textoDeCodigo } from './motor/hojaDeCorte.js';
@@ -213,35 +214,43 @@ function crearMateriales(colores) {
  */
 function datosDeTira(e, materialesPanel, elegida) {
   // v1.90 (Leandro: "ver el techo en Solo paneles"): también una tira del techo (x a lo largo, h desde el borde bajo).
+  // v1.96: la del tramo de panel donde se tocó (x y la tira, en coordenadas de ese tramo).
   if (elegida.lado === 'techo') {
     const t = e?.techo;
-    const tipo = t?.esquinas?.length === 4 ? materialesPanel.get(t.panel)?.tipo : null;
+    if (t?.esquinas?.length !== 4) return null;
+    const seg = panoEn(panosDelTecho(t), elegida.x);
+    const tipo = seg ? materialesPanel.get(seg.panel)?.tipo : null;
     if (!tipo) return null;
-    const pano = { largo: t.largo, h1: t.largoFaldon, h2: t.largoFaldon, huecos: [] };
-    const tira = tiraEnPunto(pano, tipo, elegida.x, elegida.h);
+    const pano = { largo: seg.largo, h1: t.largoFaldon, h2: t.largoFaldon, huecos: [] };
+    const tira = tiraEnPunto(pano, tipo, elegida.x - seg.x0, elegida.h);
     if (!tira) return null;
     const [t0, t1, , t3] = t.esquinas;
     const arriba = (tipo.ubicacion === 'eje' ? -0.13 : (tipo.espesor ?? 50) / 2000) + 0.015;
-    const punto = (x, h) => [0, 1, 2].map((i) => t0[i] + (t1[i] - t0[i]) * (x / t.largo) + (t3[i] - t0[i]) * (h / t.largoFaldon) + (i === 1 ? arriba : 0));
-    return { pared: { lado: 'techo', largo: t.largo, alturas: [t.largoFaldon, t.largoFaldon] }, tipo, tira, signo: 1, fuera: 0, punto,
-      donde: 'techo', pano };
+    const punto = (x, h) => [0, 1, 2].map((i) => t0[i] + (t1[i] - t0[i]) * ((seg.x0 + x) / t.largo) + (t3[i] - t0[i]) * (h / t.largoFaldon) + (i === 1 ? arriba : 0));
+    return { pared: { lado: 'techo', largo: seg.largo, alturas: [t.largoFaldon, t.largoFaldon] }, tipo, tira, signo: 1, fuera: 0, punto,
+      donde: seg.donde, pano, tramo: panosDelTecho(t).length > 1 ? seg : null };
   }
   const pared = e?.paredes?.find((p) => p.lado === elegida.lado);
   if (!pared) return null;
-  const idPanel = elegida.cara === 'interior' ? pared.panelInterior : pared.panel;
-  const tipo = materialesPanel.get(idPanel)?.tipo;
+  const interior = elegida.cara === 'interior';
+  // El exterior puede tener tramos con otro panel; el interior es uno solo.
+  const seg = interior
+    ? { x0: 0, x1: pared.largo, largo: pared.largo, h1: pared.alturas[0], h2: pared.alturas[1], huecos: pared.huecos ?? [], panel: pared.panelInterior, donde: `lado ${pared.lado} (interior)` }
+    : panoEn(panosDeLaPared(pared), elegida.x);
+  const tipo = seg ? materialesPanel.get(seg.panel)?.tipo : null;
   if (!tipo) return null;
-  const pano = { largo: pared.largo, h1: pared.alturas[0], h2: pared.alturas[1], huecos: pared.huecos ?? [] };
-  const tira = tiraEnPunto(pano, tipo, elegida.x, elegida.h);
+  const pano = { largo: seg.largo, h1: seg.h1, h2: seg.h2, huecos: seg.huecos };
+  const tira = tiraEnPunto(pano, tipo, elegida.x - seg.x0, elegida.h);
   if (!tira) return null;
   const fuera = tipo.ubicacion === 'eje' ? 0 : MEDIA_SECCION_PARED + (tipo.espesor ?? 50) / 2000;
-  const signo = elegida.cara === 'interior' ? -1 : 1;
-  const d = (elegida.cara === 'interior' ? Math.max(fuera, 0.01) : fuera) + 0.015; // un poco por delante del paño
+  const signo = interior ? -1 : 1;
+  const d = (interior ? Math.max(fuera, 0.01) : fuera) + 0.015; // un poco por delante del paño
   const [a, b] = pared.esquinas;
   const dir = [(b[0] - a[0]) / pared.largo, (b[2] - a[2]) / pared.largo];
   const n = Math.hypot(a[0] + b[0], a[2] + b[2]) || 1;
-  const punto = (x, h) => [a[0] + dir[0] * x + ((a[0] + b[0]) / n) * d * signo, a[1] + h, a[2] + dir[1] * x + ((a[2] + b[2]) / n) * d * signo];
-  return { pared, tipo, tira, signo, fuera, punto, pano, donde: `lado ${pared.lado}${elegida.cara === 'interior' ? ' (interior)' : ''}` };
+  const punto = (x, h) => [a[0] + dir[0] * (seg.x0 + x) + ((a[0] + b[0]) / n) * d * signo, a[1] + h, a[2] + dir[1] * (seg.x0 + x) + ((a[2] + b[2]) / n) * d * signo];
+  return { pared: { ...pared, largo: seg.largo, alturas: [seg.h1, seg.h2] }, tipo, tira, signo, fuera, punto, pano, donde: seg.donde,
+    tramo: !interior && panosDeLaPared(pared).length > 1 ? seg : null };
 }
 
 /**
@@ -323,6 +332,16 @@ function panelDosCaras(esquinas, materiales, haciaAfuera) {
  * `esquinas` = [abajo p1, abajo p2, arriba p2, arriba p1] ya corridas y estiradas;
  * `corrimientoP1` = cuánto se estiró la punta 1 (los huecos se miden desde la punta 1 original).
  */
+/**
+ * v1.96: las esquinas de un pedazo de pared (de x0 a x1 a lo largo, desde la punta 1), en el mismo orden que las de la
+ * pared [abajo p1, abajo p2, arriba p2, arriba p1]. Arriba sigue la pendiente de la pared.
+ */
+function esquinasDeTramo(esquinas, largo, x0, x1) {
+  const [a, b, c, d] = esquinas;
+  const en = (p, q, x) => p.map((v, i) => v + ((q[i] - v) * x) / largo);
+  return [en(a, b, x0), en(a, b, x1), en(d, c, x1), en(d, c, x0)];
+}
+
 function panelConHuecos(esquinas, huecos, corrimientoP1, materiales, haciaAfuera) {
   const [o, p2, a2, a1] = esquinas;
   const largo = Math.hypot(p2[0] - o[0], p2[2] - o[2]) || 1;
@@ -638,7 +657,17 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
         for (let i = desde; i < grupo.children.length; i++) grupo.children[i].traverse((o) => { o.userData.panelPared = { lado: pared.lado, cara }; });
       };
       let desde = grupo.children.length;
-      dibujar(estirar(pared.esquinas, afuera), pared.panel, centro, afuera, pared.huecos, afuera);
+      // v1.96: un paño por tramo de panel; solo las puntas de la pared se estiran (para cerrar las esquinas).
+      const tramos = panosDeLaPared(pared);
+      if (tramos.length <= 1) dibujar(estirar(pared.esquinas, afuera), pared.panel, centro, afuera, pared.huecos, afuera);
+      else {
+        tramos.forEach((seg) => {
+          const corrimiento = corrimientoDe(seg.panel);
+          const ini = seg.x0 <= 1e-6 ? corrimiento : 0;
+          const fin = seg.x1 >= pared.largo - 1e-6 ? corrimiento : 0;
+          dibujar(esquinasDeTramo(pared.esquinas, pared.largo, seg.x0 - ini, seg.x1 + fin), seg.panel, centro, corrimiento, seg.huecos, ini);
+        });
+      }
       marcarPanel(desde, 'exterior');
       // Revestimiento interior: su cara "exterior" (color principal) mira hacia adentro del ambiente.
       if (pared.panelInterior) {
@@ -651,9 +680,15 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
     });
     if (grupoVisible('techo')) {
       const antes = grupo.children.length;
-      const tipoTecho = materialesPanel.get(e.techo.panel)?.tipo;
       // Las esquinas del techo ya están arriba de las correas; embutido baja entre las vigas.
-      dibujar(e.techo.esquinas, e.techo.panel, [0, 1, 0], tipoTecho?.ubicacion === 'eje' ? -0.13 : (tipoTecho?.espesor ?? 50) / 2000);
+      // v1.96: un paño por tramo de panel, a lo largo del techo.
+      panosDelTecho(e.techo).forEach((seg) => {
+        const tipoTecho = materialesPanel.get(seg.panel)?.tipo;
+        const [t0, t1, t2, t3] = e.techo.esquinas;
+        const en = (p, q, x) => p.map((v, i) => v + ((q[i] - v) * x) / e.techo.largo);
+        dibujar([en(t0, t1, seg.x0), en(t0, t1, seg.x1), en(t3, t2, seg.x1), en(t3, t2, seg.x0)], seg.panel, [0, 1, 0],
+          tipoTecho?.ubicacion === 'eje' ? -0.13 : (tipoTecho?.espesor ?? 50) / 2000);
+      });
       // v1.90: tocar el techo elige su tira (como en las paredes).
       for (let i = antes; i < grupo.children.length; i++) grupo.children[i].traverse((o) => { o.userData.panelPared = { lado: 'techo', cara: 'exterior' }; });
       marcar(antes, ['techo']);
@@ -877,24 +912,28 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
     const paresDe = {}; // v1.45: las juntas de cada pared aparte (para ocultarlas con su pared)
     e.paredes.filter((pared) => grupoVisible(pared.lado)).forEach((pared) => {
       const pares = (paresDe[pared.lado] = []);
-      const tipo = materialesPanel.get(pared.panel)?.tipo;
-      const [h1, h2] = pared.alturas;
-      const { verticales, horizontales } = juntasDePano({ largo: pared.largo, h1, h2 }, tipo);
+      // v1.96: cada tramo de panel de la pared, con su tipo, sus juntas, sus T y sus encimados (x0 = donde arranca).
+      panosDeLaPared(pared).forEach((seg) => {
+      const tipo = materialesPanel.get(seg.panel)?.tipo;
+      const { h1, h2, largo: L } = seg;
+      const { verticales, horizontales } = juntasDePano({ largo: L, h1, h2 }, tipo);
       const [a, b] = pared.esquinas; // abajo p1, abajo p2
       const y0 = a[1];
       const dir = [(b[0] - a[0]) / pared.largo, (b[2] - a[2]) / pared.largo];
       const n = Math.hypot(a[0] + b[0], a[2] + b[2]) || 1; // afuera = del centro a la pared
       const fuera = (tipo?.ubicacion === 'eje' ? 0 : MEDIA_SECCION_PARED + (tipo?.espesor ?? 50) / 2000) + 0.01;
-      const punto = (x, h) => [a[0] + dir[0] * x + ((a[0] + b[0]) / n) * fuera, y0 + h, a[2] + dir[1] * x + ((a[2] + b[2]) / n) * fuera];
-      const altoEn = (x) => h1 + ((h2 - h1) * x) / pared.largo;
-      const huecos = pared.huecos ?? [];
+      const punto = (x, h) => [a[0] + dir[0] * (seg.x0 + x) + ((a[0] + b[0]) / n) * fuera, y0 + h, a[2] + dir[1] * (seg.x0 + x) + ((a[2] + b[2]) / n) * fuera];
+      const altoEn = (x) => h1 + ((h2 - h1) * x) / L;
+      const huecos = seg.huecos;
       const afuera0 = (pt, mas) => [pt[0] + ((a[0] + b[0]) / n) * mas, pt[1], pt[2] + ((a[2] + b[2]) / n) * mas];
       // v1.68: donde una abertura parte la tira: el relleno del costado (arriba y abajo de él, y su costado de afuera).
       if (tipo && tipo.venta !== 'estandar') {
-        cortesDeTiras({ largo: pared.largo, h1, h2, huecos: pared.huecos ?? [] }, tipo).tiras.forEach((t) => (t.rellenos ?? []).forEach((r) => {
+        cortesDeTiras({ largo: L, h1, h2, huecos }, tipo).tiras.forEach((t) => (t.rellenos ?? []).forEach((r) => {
           pares.push([punto(r.x0, r.abajo), punto(r.x1, r.abajo)], [punto(r.x0, r.arriba), punto(r.x1, r.arriba)]);
         }));
       }
+      // v1.96: el límite entre dos tramos de panel, de arriba abajo.
+      if (seg.x0 > 0) pares.push([punto(0, 0), punto(0, h1)]);
       // v1.24: las juntas no cruzan los huecos de las aberturas.
       verticales.forEach((x) => {
         const cortes = huecos.filter((hh) => hh.desde < x && hh.hasta > x).map((hh) => [hh.abajo, hh.arriba]);
@@ -904,7 +943,7 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
       // se eligió a mano en la hoja de corte).
       const numeros = capas.numerosTiras && tipo?.cobro === 'tira' ? tirasDelPanel(tipo) : null;
       if (numeros) {
-        numeros.pedazosDe(`lado ${pared.lado}`).forEach((l) => {
+        numeros.pedazosDe(seg.donde).forEach((l) => {
           const tira = l;
           const cartel = cartelChico(`T${tira.n}`, tira.manual ? 'rgba(14,165,233,0.95)' : 'rgba(30,41,59,0.85)');
           cartel.position.set(...afuera0(punto((l.x0 + l.x1) / 2, l.y0 + l.largo / 2), 0.02));
@@ -913,14 +952,14 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
         });
       }
       // v1.82: cuál queda arriba de cuál: el tramo de arriba por fuera (naranja) y el costado que monta (verde).
-      const encimados = tipo ? encimadosDePano({ largo: pared.largo, h1, h2 }, tipo) : null;
+      const encimados = tipo ? encimadosDePano({ largo: L, h1, h2 }, tipo) : null;
       const afuera = afuera0;
       (encimados?.verticales ?? []).forEach((f) => {
         let desde = 0;
-        let hasta = pared.largo;
+        let hasta = L;
         if (Math.abs(h2 - h1) > 1e-9) {
-          const cruce = ((f.arriba - h1) / (h2 - h1)) * pared.largo;
-          if (h2 > h1) desde = Math.max(0, cruce); else hasta = Math.min(pared.largo, cruce);
+          const cruce = ((f.arriba - h1) / (h2 - h1)) * L;
+          if (h2 > h1) desde = Math.max(0, cruce); else hasta = Math.min(L, cruce);
         }
         if (hasta - desde < 0.05) return;
         const franja = cuadrilatero([punto(desde, f.abajo), punto(hasta, f.abajo), punto(hasta, f.arriba), punto(desde, f.arriba)].map((pt) => afuera(pt, 0.004)), materiales.encimado);
@@ -930,7 +969,7 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
       });
       (encimados?.laterales ?? []).forEach((f) => {
         const x0 = Math.max(0, f.desde);
-        const x1 = Math.min(pared.largo, f.hasta);
+        const x1 = Math.min(L, f.hasta);
         if (x1 - x0 < 0.005) return;
         const franja = cuadrilatero([punto(x0, 0), punto(x1, 0), punto(x1, altoEn(x1)), punto(x0, altoEn(x0))].map((pt) => afuera(pt, 0.003)), materiales.encastre);
         franja.userData.ladosPared = [pared.lado];
@@ -940,36 +979,41 @@ function dibujarModelo(grupo, materiales, materialesPanel, opciones) {
       horizontales.forEach((h) => {
         // En una pared inclinada la junta llega solo hasta donde la pared es más alta que h.
         let desde = 0;
-        let hasta = pared.largo;
+        let hasta = L;
         if (Math.abs(h2 - h1) > 1e-9) {
-          const cruce = ((h - h1) / (h2 - h1)) * pared.largo;
-          if (h2 > h1) desde = Math.max(0, cruce); else hasta = Math.min(pared.largo, cruce);
+          const cruce = ((h - h1) / (h2 - h1)) * L;
+          if (h2 > h1) desde = Math.max(0, cruce); else hasta = Math.min(L, cruce);
         }
         const cortes = huecos.filter((hh) => hh.abajo < h && hh.arriba > h).map((hh) => [hh.desde, hh.hasta]);
         restarTramos([desde, hasta], cortes)
           .filter(([x0, x1]) => x1 - x0 > 0.05)
           .forEach(([x0, x1]) => pares.push([punto(x0, h), punto(x1, h)]));
       });
+      });
     });
     if (grupoVisible('techo') && e.techo.esquinas.length === 4) {
       const pares = (paresDe.techo = []);
-      const tipo = materialesPanel.get(e.techo.panel)?.tipo;
-      const { verticales, horizontales } = juntasDePano({ largo: e.techo.largo, h1: e.techo.largoFaldon, h2: e.techo.largoFaldon }, tipo);
       const [t0, t1, , t3] = e.techo.esquinas;
-      const arriba = (tipo?.ubicacion === 'eje' ? -0.13 : (tipo?.espesor ?? 50) / 2000) + 0.01;
-      const punto = (x, h) => [0, 1, 2].map((i) => t0[i] + (t1[i] - t0[i]) * (x / e.techo.largo)
-        + (t3[i] - t0[i]) * (h / e.techo.largoFaldon) + (i === 1 ? arriba : 0));
-      verticales.forEach((x) => pares.push([punto(x, 0), punto(x, e.techo.largoFaldon)]));
-      horizontales.forEach((h) => pares.push([punto(0, h), punto(e.techo.largo, h)]));
-      // v1.90 (Leandro: "ver el techo en Solo paneles"): cada pedazo del techo dice de qué tira entera sale.
-      const numeros = capas.numerosTiras && tipo?.cobro === 'tira' ? tirasDelPanel(tipo) : null;
-      (numeros?.pedazosDe('techo') ?? []).forEach((l) => {
-        const cartel = cartelChico(`T${l.n}`, l.manual ? 'rgba(14,165,233,0.95)' : 'rgba(30,41,59,0.85)');
-        const centro = punto((l.x0 + l.x1) / 2, l.y0 + l.largo / 2);
-        cartel.position.set(centro[0], centro[1] + 0.03, centro[2]);
-        cartel.scale.multiplyScalar(0.6);
-        cartel.userData.ladosPared = ['techo'];
-        grupo.add(cartel);
+      // v1.96: cada tramo de panel del techo, con su tipo (x0 = donde arranca, a lo largo del techo).
+      panosDelTecho(e.techo).forEach((seg) => {
+        const tipo = materialesPanel.get(seg.panel)?.tipo;
+        const { verticales, horizontales } = juntasDePano({ largo: seg.largo, h1: e.techo.largoFaldon, h2: e.techo.largoFaldon }, tipo);
+        const arriba = (tipo?.ubicacion === 'eje' ? -0.13 : (tipo?.espesor ?? 50) / 2000) + 0.01;
+        const punto = (x, h) => [0, 1, 2].map((i) => t0[i] + (t1[i] - t0[i]) * ((seg.x0 + x) / e.techo.largo)
+          + (t3[i] - t0[i]) * (h / e.techo.largoFaldon) + (i === 1 ? arriba : 0));
+        if (seg.x0 > 0) pares.push([punto(0, 0), punto(0, e.techo.largoFaldon)]); // el límite entre tramos
+        verticales.forEach((x) => pares.push([punto(x, 0), punto(x, e.techo.largoFaldon)]));
+        horizontales.forEach((h) => pares.push([punto(0, h), punto(seg.largo, h)]));
+        // v1.90 (Leandro: "ver el techo en Solo paneles"): cada pedazo del techo dice de qué tira entera sale.
+        const numeros = capas.numerosTiras && tipo?.cobro === 'tira' ? tirasDelPanel(tipo) : null;
+        (numeros?.pedazosDe(seg.donde) ?? []).forEach((l) => {
+          const cartel = cartelChico(`T${l.n}`, l.manual ? 'rgba(14,165,233,0.95)' : 'rgba(30,41,59,0.85)');
+          const centro = punto((l.x0 + l.x1) / 2, l.y0 + l.largo / 2);
+          cartel.position.set(centro[0], centro[1] + 0.03, centro[2]);
+          cartel.scale.multiplyScalar(0.6);
+          cartel.userData.ladosPared = ['techo'];
+          grupo.add(cartel);
+        });
       });
     }
     Object.entries(paresDe).filter(([, pares]) => pares.length > 0).forEach(([lado, pares]) => {
@@ -2629,7 +2673,8 @@ export default function LoftCanvas({
               {' '}(desde abajo a la izquierda, vista desde afuera): {metros(datosTira.tira.ancho)} × {metros(datosTira.tira.alto)}
               {datosTira.tira.ancho < datosTira.tipo.anchoPlaca - 0.005 || datosTira.tira.alto < datosTira.tipo.largoPlaca - 0.005 ? ' (cortada)' : ' (entera)'}</p>
           ) : (<>
-            <p>Tira <strong>{datosTira.tira.n} de {datosTira.tira.total}</strong> (de izquierda a derecha, vista desde afuera) ·
+            {datosTira.tramo && <p className="nota">Tramo de {metros(datosTira.tramo.x0)} a {metros(datosTira.tramo.x1)} (otro panel en una parte de {datosTira.pared.lado === 'techo' ? 'el techo' : 'la pared'})</p>}
+            <p>Tira <strong>{datosTira.tira.n} de {datosTira.tira.total}</strong> (de izquierda a derecha{datosTira.tramo ? ', en este tramo' : ''}, vista desde afuera) ·
               {' '}{metros(datosTira.tira.ancho)} de ancho · {datosTira.tira.pedidos.length === 1
                 ? <>se pide de <strong>{metros(datosTira.tira.pedidos[0])}</strong></>
                 : <>se pide en {datosTira.tira.pedidos.length} pedazos: <strong>{datosTira.tira.pedidos.map(metros).join(' + ')}</strong></>}</p>

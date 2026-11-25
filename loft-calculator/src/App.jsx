@@ -10,6 +10,7 @@
 // ==========================================================
 
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import TramosPanel from './componentes/TramosPanel.jsx'; // v1.96
 import LoftCanvas from './LoftCanvas.jsx';
 import { ContextoFoco, focoDe } from './componentes/contextoFoco.js';
 import { moverMueble, encerrarEnLaPlanta, alturaDeApoyo, seApoya, girarMueble } from './motor/interiores.js';
@@ -80,7 +81,7 @@ import { flushSync } from 'react-dom';
 import { migrarParams, normalizarCatalogo } from './motor/migracion.js';
 import { PARAMS_INICIALES, ABERTURAS_INICIALES } from './motor/parametrosIniciales.js';
 import { LADOS, INSUMO } from './motor/constantes.js';
-import { nombreLado, alturasPared, geometriaLados, alturaMaxima, nombreDePared, pendienteParaAltos, gradosDePendiente } from './motor/geometria.js';
+import { nombreLado, alturasPared, geometriaLados, alturaMaxima, nombreDePared, pendienteParaAltos, gradosDePendiente, puntaInicialDelTecho } from './motor/geometria.js';
 import { COLORES_INICIALES, coloresValidos, completarColores } from './capas.js';
 import { crearArchivoProyecto, leerArchivoProyecto, nombreDeArchivo } from './proyecto/archivoProyecto.js';
 import { crearLinkProyecto, leerLinkProyecto, tieneProyectoEnLink } from './proyecto/linkProyecto.js';
@@ -736,11 +737,22 @@ export default function App() {
     const nuevo = { ...base, id: `panel-${Date.now()}`, nombre: `Revestimiento ${paneles.length + 1}`, perfil: '', color: '#a3a3a3' };
     setCatalogo((prev) => [...prev, nuevo]);
   };
+  // v1.96 (Leandro: "chapa-foil en cocina y baño y chapa-chapa en el resto"): duplicar un panel (con sus medidas y
+  // precios) para hacer el otro modelo; sin los pedazos elegidos a mano (son de las tiras del original).
+  const duplicarTipoPanel = (id) => {
+    const base = paneles.find((p) => p.id === id);
+    if (!base) return;
+    const { tirasManuales: _t, ...resto } = base; // eslint-disable-line no-unused-vars
+    setCatalogo((prev) => [...prev, { ...resto, id: `panel-${Date.now()}`, nombre: `${base.nombre} (copia)` }]);
+  };
   /** Dónde se usa un tipo de panel (para no borrar uno en uso). */
   const usosDePanel = (id) => [
     ...LADOS.filter((l) => params.paredes[l].panel === id).map((l) => nombreDePared(l, params)),
     ...LADOS.filter((l) => params.paredes[l].panelInterior === id).map((l) => `${nombreDePared(l, params)} (interior)`),
     ...(params.panelTecho === id ? ['Techo'] : []),
+    // v1.96: los tramos con otro panel.
+    ...LADOS.filter((l) => (params.paredes[l].tramosPanel ?? []).some((t) => t.panel === id)).map((l) => `${nombreDePared(l, params)} (un tramo)`),
+    ...((params.tramosPanelTecho ?? []).some((t) => t.panel === id) ? ['Techo (un tramo)'] : []),
   ];
   const quitarTipoPanel = (id) => setCatalogo((prev) => prev.filter((p) => p.id !== id));
   // --- Accesorios (v1.29): tornillería, electrodos, selladores… y los que agregue el herrero ---
@@ -1590,6 +1602,11 @@ export default function App() {
               {separacion('separacionCorreasTecho', 'Sep. correas (s/ pendiente)', 'Correas (con las puntas)', ['correa', 'correas'])}
               {selectorPanel('panelTecho', 'Revestimiento del techo', params.panelTecho)}
             </div>
+            {/* v1.96: otro panel en una parte del techo (ej. arriba de la cocina y el baño). */}
+            <TramosPanel tramos={params.tramosPanelTecho ?? []} largo={estructura.techo?.largo ?? params.largo}
+              panelBase={params.panelTecho} paneles={paneles} unidad={unidad}
+              desdeDonde={`en m a lo largo del techo, con los aleros, desde la punta de ${nombreDePared(puntaInicialDelTecho(estructura, params), params).toLowerCase()}`}
+              onCambiar={cambiar('tramosPanelTecho')} />
             {/* v1.36: vigas de techo sobre las columnas del lado bajo (sin módulo; con módulo van en la grilla). */}
             {!(params.ejes?.modulo > 0) && (
               <label className="casilla-opcional">
@@ -1824,6 +1841,11 @@ export default function App() {
                     {selectorPanel(`paredes.${lado}.panel`, 'Revestimiento exterior', params.paredes[lado].panel)}
                     {selectorPanel(`paredes.${lado}.panelInterior`, 'Revestimiento interior', params.paredes[lado].panelInterior, true)}
                   </div>
+                  {/* v1.96 (Leandro: "chapa-foil en cocina y baño y chapa-chapa en el resto"): otro panel en una parte. */}
+                  <TramosPanel tramos={params.paredes[lado].tramosPanel ?? []} largo={geometriaLados(params)[lado].largo}
+                    panelBase={params.paredes[lado].panel} paneles={paneles} unidad={unidad}
+                    desdeDonde="en m desde la esquina izquierda, vista desde afuera, como las aberturas"
+                    onCambiar={cambiar(`paredes.${lado}.tramosPanel`)} />
                   {/* v1.22: perfiles propios de esta pared ('' = el general de Materiales). Las esquinas van aparte. */}
                   <h4 className="subtitulo-pared">Perfiles de esta pared</h4>
                   <div className="grid-params grid-perfiles-pared">
@@ -1876,7 +1898,7 @@ export default function App() {
             mermaCorte={params.mermaCorte ?? 3} retazoMinimo={params.retazoMinimo ?? 0.3} empalmesSobreApoyo={params.empalmesSobreApoyo !== false} onCambiarCorte={cambiar} ahorrosAberturas={ahorrosAberturas}
             compartirCortes={params.compartirCortes !== false} onCambiarCompartir={cambiar('compartirCortes')}
             onActualizarPerfil={actualizarInsumo} onAgregarPerfil={agregarPerfil} onQuitarPerfil={quitarPerfil}
-            onAgregarRevestimiento={agregarTipoPanel} onQuitarRevestimiento={quitarTipoPanel}
+            onAgregarRevestimiento={agregarTipoPanel} onQuitarRevestimiento={quitarTipoPanel} onDuplicarRevestimiento={duplicarTipoPanel}
             proveedor={proveedorElegido} pago={formaPago} onCambiarPrecio={cambiarPrecio}
             onActualizarProveedor={actualizarInsumo} onAgregarProveedor={agregarProveedor} onQuitarProveedor={quitarProveedor}
             onAgregarAccesorio={agregarAccesorio} onQuitarAccesorio={quitarAccesorio} />}

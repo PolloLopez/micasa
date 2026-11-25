@@ -133,6 +133,23 @@ export function pendienteParaAltos(altoBajo, altoAlto, params) {
   return pendiente <= 60 ? pendiente : null;
 }
 
+/**
+ * v1.96: de qué pared es la punta donde arranca el techo (desde donde se miden sus tramos de panel): la pared
+ * perpendicular al largo del techo más cerca de su primera esquina.
+ */
+export function puntaInicialDelTecho(e, params) {
+  const [t0, t1] = e?.techo?.esquinas ?? [];
+  if (!t0 || !t1) return params.caidaTecho;
+  const u = [t1[0] - t0[0], t1[2] - t0[2]];
+  const geo = geometriaLados(params);
+  const candidatas = Object.keys(geo).filter((l) => {
+    const d = [geo[l].p2[0] - geo[l].p1[0], geo[l].p2[1] - geo[l].p1[1]];
+    return Math.abs(d[0] * u[0] + d[1] * u[1]) < 1e-6 * Math.hypot(...d) * Math.hypot(...u) + 1e-9;
+  });
+  const distancia = (l) => Math.hypot((geo[l].p1[0] + geo[l].p2[0]) / 2 - t0[0], (geo[l].p1[1] + geo[l].p2[1]) / 2 - t0[2]);
+  return candidatas.sort((x, y) => distancia(x) - distancia(y))[0] ?? params.caidaTecho;
+}
+
 /** La pendiente en grados (para mostrarla junto al %). */
 export const gradosDePendiente = (porcentaje) => (Math.atan(porcentaje / 100) * 180) / Math.PI;
 

@@ -103,7 +103,7 @@ function ComparativaDeTiras({ tipo, comparativa, precioUnitario, cambiar = null 
   );
 }
 
-function Revestimiento({ tipo, unidad, usos, unicoQueda, proveedores, precio, nuevo, onCambiar, onQuitar, onCambiarPrecio, ahorro = null, precioUnitario = null }) {
+function Revestimiento({ tipo, unidad, usos, unicoQueda, proveedores, precio, nuevo, onCambiar, onQuitar, onCambiarPrecio, ahorro = null, precioUnitario = null, onDuplicar = null }) {
   const cambiar = (campo) => (valor) => onCambiar(tipo.id, campo, valor);
   const medida = (campo, etiqueta) => (
     <CampoNumero key={campo} etiqueta={etiqueta} unidad={unidad} valor={tipo[campo]}
@@ -215,6 +215,8 @@ function Revestimiento({ tipo, unidad, usos, unicoQueda, proveedores, precio, nu
       {/* v1.27: Eliminar en el pie (antes un ✕ al lado del nombre, que parecía "cerrar"). */}
       <small className="detalle">{usos.length > 0 ? `Usado en: ${usos.join(', ')}` : 'Sin uso'}</small>
       <div className="pie-acciones no-print">
+        {onDuplicar && <button type="button" className="btn-sec" onClick={() => onDuplicar(tipo.id)}
+          title="Otro modelo igual (medidas y precios) para cambiarle el nombre y lo que haga falta, ej. chapa-foil">Duplicar</button>}
         <button className="btn-del eliminar-aparte" onClick={() => onQuitar(tipo.id)}
           disabled={Boolean(motivoNoBorrar)} title={motivoNoBorrar ?? 'Eliminar revestimiento'}
           aria-label={`Eliminar ${tipo.nombre}`}>Eliminar</button>
@@ -301,7 +303,7 @@ const TITULOS = { proveedores: `Proveedores`, perfiles: 'Perfiles y cortes', otr
 
 export default function TarjetaMateriales({
   items, catalogo, revestimientos, unidad, usosDeRevestimiento, excedenteBarras,
-  onCambiarExcedente, onCambiarInsumo, onAgregarRevestimiento, onQuitarRevestimiento,
+  onCambiarExcedente, onCambiarInsumo, onAgregarRevestimiento, onQuitarRevestimiento, onDuplicarRevestimiento = null,
   compartirCortes, onCambiarCompartir, onActualizarPerfil, onAgregarPerfil, onQuitarPerfil,
   proveedor, pago, onCambiarPrecio, onActualizarProveedor, onAgregarProveedor, onQuitarProveedor,
   onAgregarAccesorio, onQuitarAccesorio, mermaCorte = 3, retazoMinimo = 0.3, empalmesSobreApoyo = true, onCambiarCorte = null, ahorrosAberturas = {},
@@ -492,7 +494,7 @@ export default function TarjetaMateriales({
               <Revestimiento key={tipo.id} tipo={tipo} unidad={unidad} usos={usosDeRevestimiento(tipo.id)}
                 unicoQueda={revestimientos.length === 1} onCambiar={onCambiarInsumo} onQuitar={onQuitarRevestimiento}
                 proveedores={proveedores} precio={precioDe(tipo)} nuevo={esNuevo(tipo.id)} onCambiarPrecio={onCambiarPrecio}
-                ahorro={ahorrosAberturas[tipo.id]} precioUnitario={precioUnitarioDe(tipo)} />
+                ahorro={ahorrosAberturas[tipo.id]} precioUnitario={precioUnitarioDe(tipo)} onDuplicar={onDuplicarRevestimiento} />
             ))}
           </div>
           <button className="btn-add no-print" onClick={onAgregarRevestimiento}>+ Agregar revestimiento</button>

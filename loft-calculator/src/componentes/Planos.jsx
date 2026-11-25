@@ -126,36 +126,43 @@ function DibujoPared({ vista, soloContorno = false, codigos = null }) {
         );
       })}
       {/* v1.63: las juntas de los paneles (punteadas) y el número de cada tira arriba: para acomodar las aberturas. */}
-      {vista.paneles && (
-        <g className="juntas-paneles">
+      {/* v1.96: un grupo por tramo de panel (corrido a donde arranca); entre tramos, una línea y el nombre del panel. */}
+      {(vista.panelesTramos ?? (vista.paneles ? [vista.paneles] : [])).map((pn) => (
+        <g className="juntas-paneles" key={pn.offsetX ?? 0} transform={`translate(${pn.offsetX ?? 0} 0)`}>
           {/* Con los pedazos dibujados (tira entera) no hacen falta las juntas largas: los bordes de cada pedazo ya lo son
               (y así no cruzan las ventanas, igual que en el 3D). */}
-          {!vista.paneles.pedazosTira && vista.paneles.juntas.flatMap((x) => tramosSinHuecos(x, Math.max(h1, h2), vista.paneles.pano.huecos)
+          {!pn.pedazosTira && pn.juntas.flatMap((x) => tramosSinHuecos(x, Math.max(pn.pano.h1, pn.pano.h2), pn.pano.huecos)
             .map(([a0, a1]) => <line key={`j${x}-${a0}`} x1={x} y1={y(a0)} x2={x} y2={y(a1)} className="junta-panel" />))}
           {/* v1.82: cuál queda arriba de cuál. Naranja: el tramo de arriba monta por fuera del de abajo. Verde: el
               costado de la tira que monta sobre la de al lado (el encastre). */}
-          {(vista.paneles.horizontales ?? []).map((h) => <line key={`h${h}`} x1={0} y1={y(h)} x2={vista.largo ?? 0} y2={y(h)} className="junta-panel" />)}
-          {(vista.paneles.encimados?.verticales ?? []).map((f) => (
+          {(pn.horizontales ?? []).map((h) => <line key={`h${h}`} x1={0} y1={y(h)} x2={pn.pano.largo} y2={y(h)} className="junta-panel" />)}
+          {(pn.encimados?.verticales ?? []).map((f) => (
             <g key={`ev${f.arriba}`}>
-              <rect className="franja-encimado" x={0} y={y(f.arriba)} width={vista.largo ?? 0} height={f.arriba - f.abajo} />
+              <rect className="franja-encimado" x={0} y={y(f.arriba)} width={pn.pano.largo} height={f.arriba - f.abajo} />
               <text x={0.05} y={y(f.arriba) - 0.03} fontSize={TEXTO * 0.6} className="texto-encimado">▲ el de arriba va por fuera ({Math.round((f.arriba - f.abajo) * 100)} cm)</text>
             </g>
           ))}
-          {(vista.paneles.encimados?.laterales ?? []).map((f) => (
-            <rect key={`el${f.desde}`} className="franja-superpone-pared" x={f.desde} y={y(Math.max(h1, h2))} width={f.hasta - f.desde} height={Math.max(h1, h2)} />
+          {(pn.encimados?.laterales ?? []).map((f) => (
+            <rect key={`el${f.desde}`} className="franja-superpone-pared" x={f.desde} y={y(Math.max(pn.pano.h1, pn.pano.h2))} width={f.hasta - f.desde} height={Math.max(pn.pano.h1, pn.pano.h2)} />
           ))}
           {/* v1.82.2: por tira entera, cada pedazo con la tira de donde sale (T3), igual que en el 3D y la hoja de corte;
               si no, el número de cada columna de tiras arriba. */}
-          {vista.paneles.pedazosTira ? vista.paneles.pedazosTira.map((p) => (
+          {pn.pedazosTira ? pn.pedazosTira.map((p) => (
             <g key={p.id} className={`pedazo-plano${p.manual ? ' manual' : ''}`}>
               <rect x={p.x0} y={y(p.y0 + p.largo)} width={p.x1 - p.x0} height={p.largo} />
               <text x={(p.x0 + p.x1) / 2} y={y(p.y0 + p.largo / 2)} fontSize={TEXTO * 0.7} textAnchor="middle" dominantBaseline="middle">T{p.n}</text>
             </g>
-          )) : vista.paneles.tiras.map((t) => (
-            <text key={`t${t.n}`} x={t.x0 + t.ancho / 2} y={y(Math.max(h1, h2)) - 0.08} fontSize={TEXTO * 0.7} textAnchor="middle" className="numero-tira">{t.n}</text>
+          )) : pn.tiras.map((t) => (
+            <text key={`t${t.n}`} x={t.x0 + t.ancho / 2} y={y(Math.max(pn.pano.h1, pn.pano.h2)) - 0.08} fontSize={TEXTO * 0.7} textAnchor="middle" className="numero-tira">{t.n}</text>
           ))}
         </g>
-      )}
+      ))}
+      {(vista.panelesTramos ?? []).length > 1 && vista.panelesTramos.map((pn) => (
+        <g key={`tr${pn.offsetX}`} className="tramo-panel">
+          {pn.offsetX > 0 && <line x1={pn.offsetX} y1={y(0)} x2={pn.offsetX} y2={y(Math.max(h1, h2))} className="limite-tramo-panel" />}
+          <text x={pn.offsetX + pn.pano.largo / 2} y={y(0) + 0.22} fontSize={TEXTO * 0.65} textAnchor="middle" className="nombre-tramo-panel">{pn.tipo.nombre}</text>
+        </g>
+      ))}
       {/* v1.59: las aberturas a futuro: solo el marco (punteado), la pared va entera. No salen en el plano para paneles. */}
       {!soloContorno && futuras.map((a) => (
         <g key={`f${a.numero}`}>
@@ -402,8 +409,14 @@ export function PlanoDePared({ vista: v, params, soloContorno = false, codigos =
       {v.revestimiento.map((r) => (
         <p key={r.cara} className="revestimiento-plano"><strong>Revestimiento {r.cara} ({r.nombre}):</strong> {r.detalle}</p>
       ))}
-      {v.paneles && <TablaPaneles paneles={v.paneles} />}
-      {v.paneles?.despiece?.length > 0 && <DespiecePaneles paneles={v.paneles} esTecho={Boolean(v.esTecho)} />}
+      {/* v1.96: con tramos de panel, cada tramo con su tabla y su despiece. */}
+      {(v.panelesTramos ?? (v.paneles ? [v.paneles] : [])).map((pn) => (
+        <div key={pn.offsetX ?? 0}>
+          {pn.tramo && <h4 className="subtitulo-pared">Tramo {pn.tramo}: {pn.tipo.nombre} · desde {f2(pn.offsetX)} m, {f2(pn.pano.largo)} m de largo</h4>}
+          <TablaPaneles paneles={pn} />
+          {pn.despiece?.length > 0 && <DespiecePaneles paneles={pn} esTecho={Boolean(v.esTecho)} />}
+        </div>
+      ))}
     </>
   );
 }

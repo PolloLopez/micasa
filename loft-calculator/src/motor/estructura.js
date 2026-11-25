@@ -713,6 +713,7 @@ function generarTecho(params, lados) {
     bordes,
     esquinas,
     panel: params.panelTecho,
+    tramosPanel: params.tramosPanelTecho ?? [], // v1.96: otro panel en una parte del techo
     largo: largoTecho, // a lo largo del lado bajo (con aleros)
     largoFaldon: faldon, // del borde bajo al alto, sobre la pendiente (con aleros)
     superficie: largoTecho * faldon,
@@ -758,6 +759,7 @@ function generarParedes(params, lados, aberturas) {
         return { desde: v.inicio, hasta: v.fin, abajo: v.abajo, arriba: v.arriba };
       }),
       panel: params.paredes[lado].panel, // revestimiento exterior
+      tramosPanel: params.paredes[lado].tramosPanel ?? [], // v1.96: otro panel en una parte (ver tramosPanel.js)
       panelInterior: params.paredes[lado].panelInterior || null, // revestimiento interior (v1.15), null = sin
       largo: geo.largo,
       alturas: [h1, h2], // alto en cada punta (para contar tiras y placas)

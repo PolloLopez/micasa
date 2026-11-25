@@ -11,6 +11,7 @@
 //     techo eligen uno. Se pueden agregar o quitar.
 // ==========================================================
 
+import { panosDeLaPared, panosDelTecho } from './tramosPanel.js'; // v1.96
 import { armarListaDePerfiles, resolverCatalogo, nombrePerfil, kgPorMetro } from './perfiles.js';
 import { conProveedores, aplicarProveedor, renglonesDeFlete } from './proveedores.js';
 import { compartirCortes } from './cortesCompartidos.js';
@@ -193,15 +194,20 @@ export function conPanelesExistentes(params, catalogo) {
   // v1.74.1: si todo apunta a paneles que existen (lo normal), devuelve el MISMO objeto. Antes armaba siempre un
   // `paredes` nuevo, y eso rompía useSinCambiosSalvo: cada letra en la pestaña Obra recalculaba toda la obra.
   const techoBien = ok(params.panelTecho) === params.panelTecho;
-  const paredesBien = LADOS.every((l) => ok(params.paredes[l].panel) === params.paredes[l].panel);
-  if (techoBien && paredesBien) return params;
+  // v1.96: un tramo con un panel que ya no existe cuenta como uno que no está (se queda el de la pared).
+  const tramosBien = (lista) => (lista ?? []).every((t) => ids.includes(t.panel));
+  const sinMalos = (lista) => (lista ?? []).filter((t) => ids.includes(t.panel));
+  const paredesBien = LADOS.every((l) => ok(params.paredes[l].panel) === params.paredes[l].panel && tramosBien(params.paredes[l].tramosPanel));
+  if (techoBien && paredesBien && tramosBien(params.tramosPanelTecho)) return params;
   return {
     ...params,
     panelTecho: ok(params.panelTecho),
+    tramosPanelTecho: sinMalos(params.tramosPanelTecho),
     paredes: paredesBien ? params.paredes
       : Object.fromEntries(LADOS.map((l) => {
         const pared = params.paredes[l];
-        return [l, ok(pared.panel) === pared.panel ? pared : { ...pared, panel: ok(pared.panel) }];
+        return [l, ok(pared.panel) === pared.panel && tramosBien(pared.tramosPanel) ? pared
+          : { ...pared, panel: ok(pared.panel), tramosPanel: sinMalos(pared.tramosPanel) }];
       })),
   };
 }
@@ -249,15 +255,16 @@ export function panosPorRevestimiento(estructura) {
   };
   estructura.paredes.forEach((p) => {
     const pano = { largo: p.largo, h1: p.alturas[0], h2: p.alturas[1], neto: p.superficieNeta, huecos: p.huecos ?? [] };
-    sumar(p.panel, { ...pano, donde: `lado ${p.lado}` });
+    // v1.96: el exterior, en tramos si tiene otro panel en una parte ("lado A · 2").
+    panosDeLaPared(p).forEach(({ panel, largo, h1, h2, neto, huecos, donde }) => sumar(panel, { largo, h1, h2, neto, huecos, donde }));
     sumar(p.panelInterior, { ...pano, donde: `lado ${p.lado} (interior)` });
   });
   // v1.38: frente, costados y zócalo de cada mesada, con el revestimiento elegido para esa mesada.
   (estructura.mesadas ?? []).forEach((m) => m.panos.forEach((pano) => sumar(m.panel, pano)));
   // v1.41: cada cara de cada tabique con su revestimiento.
   (estructura.tabiques ?? []).forEach((t) => t.panos.forEach(({ panel, ...pano }) => sumar(panel, pano)));
-  const t = estructura.techo;
-  sumar(t.panel, { largo: t.largo, h1: t.largoFaldon, h2: t.largoFaldon, neto: t.superficie, donde: 'techo' });
+  // v1.96: el techo, en tramos si tiene otro panel en una parte ("techo · 2").
+  panosDelTecho(estructura.techo).forEach(({ panel, largo, h1, h2, neto, huecos, donde }) => sumar(panel, { largo, h1, h2, neto, huecos, donde }));
   return panos;
 }
 

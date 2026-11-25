@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.96.0] - 2026-11-25
+### Agregado
+- **Otro panel en una parte de la pared o del techo** (Leandro: "algunos van a ser un modelo distinto, sin
+  revestimiento interior, chapa-foil en cocina y baño (después revisto), y chapa-chapa en el resto"). En Paredes, cada
+  pared tiene "Otro panel en una parte": desde, hasta (m desde la esquina izquierda, como las aberturas) y el panel; lo
+  demás lleva el de la pared. En Techo, lo mismo a lo largo del techo (con los aleros, desde la punta que dice). Cada
+  tramo es un paño aparte en el presupuesto (sus tiras y su precio), el 3D (con su color, sus juntas y sus T; tocarlo
+  dice el tramo), los planos (una tabla y un despiece por tramo) y el Excel. `tramosPanel.js` (segmentosDePanel,
+  panosDeLaPared, panosDelTecho); `params.paredes[lado].tramosPanel` y `params.tramosPanelTecho`.
+- **Duplicar un revestimiento** (Materiales → Revestimientos): otro modelo igual (medidas y precios) para hacer el
+  chapa-foil a partir del chapa-chapa.
+
 ## [1.95.0] - 2026-11-25
 ### Agregado
 - **Los dos altos medidos en obra** (Leandro: "necesito poner el alto de las paredes manualmente, al igual que la

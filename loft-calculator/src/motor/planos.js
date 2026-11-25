@@ -14,6 +14,7 @@
 // Las dibuja PlanosParaImprimir.jsx y las exporta exportarExcel.js.
 // ==========================================================
 
+import { panosDeLaPared, panosDelTecho } from './tramosPanel.js'; // v1.96
 import { INSUMO, LADOS } from './constantes.js';
 import { inicioAbertura } from './validacion.js';
 import { cortesDeTiras, retazosEntreParedes, pedazosDeLaTira, rellenosDeLaObra } from './cortesPaneles.js';
@@ -175,12 +176,35 @@ export function vistaDePared(e, params, lado, catalogo, aberturas = [], opciones
       fajas: unicos([...fajas, ...delEntrepiso].map((p) => Math.min(p.y1, p.y2))), // alturas de las horizontales (y del entrepiso)
     },
     lista: listaDePiezas(listarPiezas(e).filter((p) => esDeLaPared(p, lado, geo)), catalogo),
-    paneles: pared ? panelesDePared(pared, catalogo, nombreDePared(lado, params), e, `lado ${lado}`, opciones) : null, // v1.63: tamaños y cortes
+    // v1.63: tamaños y cortes; v1.96: uno por tramo de panel (`panelesTramos`, cada uno con `offsetX` desde la esquina
+    // izquierda). `paneles` = el primero (el de toda la pared si no tiene tramos).
+    ...(() => {
+      const tramos = pared ? panelesPorTramo(pared, catalogo, nombreDePared(lado, params), e, opciones) : [];
+      return { paneles: tramos[0] ?? null, panelesTramos: tramos };
+    })(),
     revestimiento: pared ? [
-      revestimientoDePared(pared, pared.panel, 'exterior', catalogo),
+      ...revestimientoPorTramo(pared, catalogo),
       pared.panelInterior ? revestimientoDePared(pared, pared.panelInterior, 'interior', catalogo) : null,
     ].filter(Boolean) : [],
   };
+}
+
+/** v1.96: los paneles de cada tramo de la pared (o del techo), cada uno con dónde arranca (offsetX) y su nombre. */
+function panelesPorTramo(pared, catalogo, nombre, e, opciones = {}) {
+  const panos = pared.lado === 'techo' ? panosDelTecho(pared.techo) : panosDeLaPared(pared);
+  return panos.map((s, k) => {
+    const sub = { lado: pared.lado, largo: s.largo, alturas: [s.h1, s.h2], huecos: s.huecos, panel: s.panel };
+    const p = panelesDePared(sub, catalogo, panos.length > 1 ? `${nombre} · tramo ${k + 1}` : nombre, e, s.donde, opciones);
+    return p && { ...p, offsetX: s.x0, tramo: panos.length > 1 ? k + 1 : null };
+  }).filter(Boolean);
+}
+
+/** v1.96: qué pedir de revestimiento exterior, por tramo ("exterior, tramo 2 (de 2,40 a 4,40 m)"). */
+function revestimientoPorTramo(pared, catalogo) {
+  const panos = pared.lado === 'techo' ? panosDelTecho(pared.techo) : panosDeLaPared(pared);
+  const m = (n) => n.toFixed(2).replace('.', ',');
+  return panos.map((s, k) => revestimientoDePared({ largo: s.largo, alturas: [s.h1, s.h2], huecos: s.huecos }, s.panel,
+    panos.length > 1 ? `exterior, tramo ${k + 1} (de ${m(s.x0)} a ${m(s.x1)} m)` : 'exterior', catalogo));
 }
 
 /**
@@ -191,13 +215,14 @@ export function vistaDePared(e, params, lado, catalogo, aberturas = [], opciones
 export function vistaDelTecho(e, params, catalogo) {
   const t = e.techo;
   if (!t?.panel || !(t.largo > 0) || !(t.largoFaldon > 0)) return null;
-  const pared = { lado: 'techo', largo: t.largo, alturas: [t.largoFaldon, t.largoFaldon], huecos: [], panel: t.panel };
+  const pared = { lado: 'techo', largo: t.largo, alturas: [t.largoFaldon, t.largoFaldon], huecos: [], panel: t.panel, techo: t };
+  const tramos = panelesPorTramo(pared, catalogo, 'Techo', e); // v1.96: por tramo de panel
   return {
     lado: 'techo', esTecho: true, largo: t.largo, alturas: pared.alturas, piezas: [], huecos: [], aberturas: [],
     cotas: { columnas: [0, t.largo], fajas: [] }, lista: [],
     alero: t.alero ?? null, caida: params.caidaTecho ?? null,
-    paneles: panelesDePared(pared, catalogo, 'Techo', e, 'techo'),
-    revestimiento: [revestimientoDePared(pared, t.panel, 'exterior', catalogo)].filter(Boolean),
+    paneles: tramos[0] ?? null, panelesTramos: tramos,
+    revestimiento: revestimientoPorTramo(pared, catalogo).filter(Boolean),
   };
 }
 
@@ -282,7 +307,8 @@ export function todasLasVistas(e, params, catalogo, aberturas, opciones = {}) {
   const paredes = LADOS.map((lado) => vistaDePared(e, params, lado, catalogo, aberturas, opciones));
   // v1.63: las tiras angostas que salen del retazo de otra pared (del mismo panel), marcadas en cada una.
   const porTipo = new Map();
-  paredes.filter((v) => v.paneles).forEach((v) => porTipo.set(v.paneles.tipo.id, [...(porTipo.get(v.paneles.tipo.id) ?? []), v]));
+  // v1.96: cada tramo de panel cuenta como una "vista" (con su propio tipo).
+  paredes.flatMap((v) => v.panelesTramos ?? []).forEach((pn) => porTipo.set(pn.tipo.id, [...(porTipo.get(pn.tipo.id) ?? []), { paneles: pn }]));
   porTipo.forEach((vistas) => {
     const tipo = vistas[0].paneles.tipo;
     const panos = vistas.map((v) => v.paneles.pano);
