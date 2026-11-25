@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.92.0] - 2026-11-25
+### Arreglado
+- **La lista de compras no sumaba lo comprado por material** (Leandro: "cargué 12 perfiles que compré, debería
+  recalcular en los que cargué y los necesarios para ver si realmente siguen faltando"). Lo comprado contaba solo en el
+  renglón donde se marcó. En su proyecto, los 12 C 80×40 estaban anotados en "Marcos de aberturas", un renglón que ya no
+  existe, y no contaban en ninguno. Ahora lo comprado es del material: primero cubre su renglón y lo que sobra cubre los
+  demás de ese perfil (`repartirPorMaterial`). La fila dice "N de compras de otro renglón del mismo material".
+### Agregado
+- Arriba de la lista de compras, **Por material**: lo que lleva la obra, lo comprado y lo que falta o sobra
+  (`resumenPorMaterial`). En su proyecto: 80×80 lleva 27, comprado 12, faltan 15; C 80×40 (barra de 12 m) lleva 13,
+  comprado 12, falta 1.
+
 ## [1.91.0] - 2026-11-24
 ### Agregado
 - **Para el proveedor de paneles, los 5 paños a revestir** (Leandro: "no necesito mostrarle la estructura de hierros,

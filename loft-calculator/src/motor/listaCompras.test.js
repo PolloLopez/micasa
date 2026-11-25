@@ -77,3 +77,27 @@ describe('informe de compras para el PDF y el Excel (v1.74)', () => {
     expect(estadoDeFila({ terminada: false, sinPagar: 0, retirado: 0, falta: 3 })[0]).toBe('falta');
   });
 });
+
+describe('v1.92: lo comprado es del MATERIAL, no solo del renglón donde se anotó', async () => {
+  const { repartirPorMaterial, resumenPorMaterial } = await import('./listaCompras.js');
+  const fila = (id, clave, cantidad, retirado = 0) => ({ id, clave, material: clave, unidad: 'barra', largoBarra: 6, cantidad, retirado, sinPagar: 0,
+    pagado: retirado, falta: Math.max(0, cantidad - retirado), terminada: false });
+  const compra = (material, renglon, cantidad) => ({ id: 1, pagada: true, faltaPagar: 0, renglones: [{ id: 1, material, renglon, cantidad, monto: 0 }] });
+  it('lo que sobra de un renglón cubre los otros del mismo material', () => {
+    // 15 barras de 80x80 anotadas en Columnas (que lleva 12): las 3 que sobran van a las soleras.
+    const filas = [fila('columna', 'p1', 12, 15), fila('marco', 'p1', 2), fila('borde', 'p1', 3)];
+    const r = repartirPorMaterial(filas, [compra('p1', 'columna', 15)]);
+    expect(r.map((f) => [f.id, f.retirado, f.falta, f.deOtros])).toEqual([['columna', 12, 0, 0], ['marco', 2, 0, 2], ['borde', 1, 2, 1]]);
+  });
+  it('lo comprado para un renglón que ya no existe cuenta igual (los 12 C de "Marcos de aberturas")', () => {
+    const filas = [fila('piso', 'p4', 4), fila('correa', 'p4', 3), fila('zanca', 'p4', 1)];
+    const r = repartirPorMaterial(filas, [compra('p4', 'marcoAbertura', 7)]);
+    expect(r.map((f) => f.falta)).toEqual([0, 0, 1]);
+    expect(resumenPorMaterial(r, [compra('p4', 'marcoAbertura', 7)])).toEqual([
+      expect.objectContaining({ clave: 'p4', lleva: 8, comprado: 7, falta: 1, sobra: 0 })]);
+  });
+  it('si se compró de más, el resumen dice cuánto sobra', () => {
+    const r = repartirPorMaterial([fila('a', 'p1', 2), fila('b', 'p1', 1)], [compra('p1', 'a', 5)]);
+    expect(resumenPorMaterial(r, [compra('p1', 'a', 5)])[0]).toMatchObject({ falta: 0, sobra: 2 });
+  });
+});

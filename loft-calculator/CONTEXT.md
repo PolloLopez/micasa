@@ -229,6 +229,7 @@ techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 
 - 2026-10-23 v1.26.0: pestaña Planos (paredes y plantas acotadas, listas de corte, revestimiento), en el PDF y en Excel.
 - 2026-10-25 v1.30.0: link compacto (la mitad) y links cortos en Firebase para ver/editar que guardan los cambios.
 - 2026-11-19 docs: PENDIENTES.md reordenado (solo lo abierto, por tema y 🔴🟡🟢, con "Lo que sigue" y "De tu lado"); lo resuelto y el detalle de los pedidos viejos quedó tal cual en HISTORIAL-PENDIENTES.md.
+- 2026-11-25 v1.92.0: listaCompras.js repartirPorMaterial (lo comprado por clave = perfilId cubre todos los renglones de ese material; deOtros) y resumenPorMaterial (tabla arriba de la lista).
 - 2026-11-24 v1.91.0: vistaDelTecho (planos.js) y todasLasVistas(…, { sinCortesAberturas }); opciones de impresión techoPaneles y panelesSinCortesAberturas (en PARA_PANELES el techo); Planos para el proveedor sin plantas ni instalaciones.
 - 2026-11-24 v1.90.0: techo tocable en el 3D (userData.panelPared lado 'techo'; tiraTocadaEn/datosDeTira con punto()); T en el techo; panel de la tira con "sale de la tira…" (onCambiarInsumo → tirasManuales); destinosDeTiras/cambiarTiraManual en revestimientos.js.
 - 2026-11-24 v1.89.0: LoftCanvas: `varias` (ids) con Shift + clic o modoVarias (botón ☑ Varias); material variasElegidas; caja .varias-elegidas con onMarcarAvance(ids…).

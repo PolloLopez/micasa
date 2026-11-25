@@ -66,7 +66,60 @@ export function filasDeLaLista({ items = [], plan = null, catalogo = [], proveed
     const precio = proveedor === NINGUNO ? null : p && material ? precioEn(material, p, pago) : i.precio ?? null;
     return fila(i, { proveedor, aMano, precio });
   });
-  return [...filas, ...otros.filter((o) => o.cantidad > 0).map((o) => fila(o, { proveedor: PROPIO, aMano: null, precio: o.precio ?? 0 }))];
+  const todas = [...filas, ...otros.filter((o) => o.cantidad > 0).map((o) => fila(o, { proveedor: PROPIO, aMano: null, precio: o.precio ?? 0 }))];
+  return repartirPorMaterial(todas, compras);
+}
+
+/**
+ * v1.92 (Leandro: "cargué 12 perfiles que compré, debería recalcular en los que cargué y los necesarios para ver si
+ * realmente siguen faltando"). Antes lo comprado contaba solo en el renglón donde se marcó: 12 barras de 80×80 marcadas
+ * en "Columnas" no servían para las soleras ni los bordes, y lo comprado para un renglón que ya no existe (ej. "Marcos de
+ * aberturas", que pasó a otro perfil) no contaba en ninguno. Ahora lo comprado es de un MATERIAL (el mismo perfil de la
+ * lista): primero cubre su propio renglón y lo que sobra (o lo que no tiene renglón) cubre los demás renglones de ese
+ * material, en orden. `deOtros` = cuánto de lo retirado de una fila vino de compras anotadas en otro renglón.
+ */
+export function repartirPorMaterial(filas, compras = []) {
+  const total = new Map(); // clave -> cantidad comprada de ese material (en cualquier renglón o sin renglón)
+  compras.forEach((c) => c.renglones.filter((r) => r.material).forEach((r) => total.set(r.material, redondo((total.get(r.material) ?? 0) + r.cantidad))));
+  const porClave = new Map();
+  filas.forEach((f) => porClave.set(f.clave, [...(porClave.get(f.clave) ?? []), f]));
+  const nuevas = new Map();
+  porClave.forEach((lista, clave) => {
+    const comprado = total.get(clave) ?? 0;
+    // Lo propio de cada renglón (lo anotado en él, hasta lo que lleva).
+    const propio = lista.map((f) => Math.min(f.retirado, f.cantidad));
+    let libre = redondo(comprado - propio.reduce((a, x) => a + x, 0));
+    lista.forEach((f, i) => {
+      const extra = f.terminada ? 0 : Math.max(0, Math.min(libre, redondo(f.cantidad - propio[i])));
+      libre = redondo(libre - extra);
+      const retirado = redondo(propio[i] + extra);
+      nuevas.set(f, { ...f, retirado, deOtros: extra, pagado: redondo(retirado - f.sinPagar),
+        falta: f.terminada ? 0 : Math.max(0, redondo(f.cantidad - retirado)) });
+    });
+  });
+  return filas.map((f) => nuevas.get(f) ?? f);
+}
+
+/**
+ * v1.92: cuánto lleva la obra de cada material, cuánto se compró y cuánto falta (o sobra), sumando todos sus renglones.
+ * Solo los materiales con más de un renglón o con algo comprado (los demás ya se ven en su fila).
+ * @returns {{ clave, material, unidad, largoBarra, lleva, comprado, falta, sobra, renglones }[]}
+ */
+export function resumenPorMaterial(filas, compras = []) {
+  const comprado = new Map();
+  compras.forEach((c) => c.renglones.filter((r) => r.material).forEach((r) => comprado.set(r.material, redondo((comprado.get(r.material) ?? 0) + r.cantidad))));
+  const por = new Map();
+  filas.forEach((f) => {
+    const m = por.get(f.clave) ?? { clave: f.clave, material: f.material, unidad: f.unidad, largoBarra: f.largoBarra, lleva: 0, falta: 0, renglones: 0 };
+    m.lleva = redondo(m.lleva + f.cantidad);
+    m.falta = redondo(m.falta + f.falta);
+    m.renglones += 1;
+    por.set(f.clave, m);
+  });
+  return [...por.values()].map((m) => {
+    const c = comprado.get(m.clave) ?? 0;
+    return { ...m, comprado: c, sobra: Math.max(0, redondo(c - m.lleva)) };
+  }).filter((m) => m.renglones > 1 || m.comprado > 0);
 }
 
 /** Lo retirado de cada renglón (y cuánto de eso falta pagar), de las compras que lo nombran. */

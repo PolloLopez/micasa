@@ -32,6 +32,9 @@ ella), **Donde se corta, va** soldada, con cubrejunta o con chapa (las dos últi
 **dónde** (moverlo a cuántos metros de la punta, **Ya está hecho así**, ↶ automático). En el 3D cada empalme tiene una
 marca (naranja: lo eligió la app; celeste: vos). Todo lo elegido está en Piezas a mano, con Deshacer.
 
+**Lista de compras por material** (v1.92): lo comprado cuenta para el material (el mismo perfil), no solo para el
+renglón donde lo marcaste; arriba, "Por material" dice cuánto lleva la obra, cuánto compraste y cuánto falta.
+
 **Para el proveedor de paneles** (v1.91): en **Planos** tildá "Para el proveedor de paneles" y quedan los 5 paños a
 revestir (las 4 paredes y el techo) sin la estructura; elegí **con los cortes de las aberturas** o **tiras enteras** (las
 aberturas se cortan en obra). Para mandarlo: **Imprimir o exportar… → Para quien cotiza paneles → Imprimir / PDF** y

@@ -15,7 +15,7 @@
 // ==========================================================
 
 import { useState } from 'react';
-import { agruparLista, compraDesdeLista, pagarRetirado, ultimaDesdeLista, deshacerMarca, estadoDeFila, PROPIO } from '../motor/listaCompras.js';
+import { agruparLista, compraDesdeLista, pagarRetirado, ultimaDesdeLista, deshacerMarca, estadoDeFila, PROPIO, resumenPorMaterial } from '../motor/listaCompras.js';
 import { NINGUNO, cantidadPedida } from '../motor/proveedores.js';
 import { useEstadoGuardado } from '../hooks/useEstadoGuardado.js';
 import NotaPlegable from './NotaPlegable.jsx';
@@ -40,7 +40,9 @@ function Fila({ f, proveedores, opcionesDe, onAsignar, onMarcar, onPagarRetirado
       </td>
       <td className="num">{cantidadPedida({ cantidad: f.cantidad, unidad: f.unidad, largoBarra: f.largoBarra })}
         {f.precio ? <small className="detalle"> · {pesos(f.subtotal)}</small> : null}</td>
-      <td><span className={`chip-compra ${clase}`}>{texto}</span></td>
+      <td><span className={`chip-compra ${clase}`}>{texto}</span>
+        {/* v1.92: lo que cubre una compra anotada en otro renglón del mismo material. */}
+        {f.deOtros > 0 && <small className="detalle"> · {num(f.deOtros)} de compras de otro renglón del mismo material</small>}</td>
       <td>
         {f.proveedor === PROPIO ? <small className="detalle">precio propio</small> : (
           <select value={f.aMano ?? ''} aria-label={`Proveedor de ${f.material}`} onChange={(e) => onAsignar(f.id, e.target.value || null)}
@@ -87,6 +89,7 @@ export default function ListaDeCompras({ filas, proveedores, compras, asignacion
   const grupos = agruparLista(visibles, proveedores);
   const totales = agruparLista(filas, proveedores).reduce((a, g) => ({ total: a.total + g.total, falta: a.falta + g.falta, sinPagar: a.sinPagar + g.sinPagar }),
     { total: 0, falta: 0, sinPagar: 0 });
+  const porMaterial = resumenPorMaterial(filas, compras); // v1.92
   const nombreDe = (id) => proveedores.find((p) => p.id === id)?.nombre ?? '';
   const asignar = (idRenglon, proveedor) => {
     const nuevas = { ...asignaciones };
@@ -114,6 +117,26 @@ export default function ListaDeCompras({ filas, proveedores, compras, asignacion
         <div><small>Falta comprar</small><strong>{pesos(totales.falta)}</strong></div>
         {totales.sinPagar > 0 && <div><small>Retirado sin pagar</small><strong className="falta">{pesos(totales.sinPagar)}</strong></div>}
       </div>
+      {/* v1.92 (Leandro: "recalcular en los que cargué y los necesarios para ver si realmente siguen faltando"): por
+          material, sumando todos sus renglones (columnas, soleras, bordes…). */}
+      {porMaterial.length > 0 && (
+        <div className="table-wrap">
+          <table className="tabla-plano resumen-por-material">
+            <caption>Por material (todos sus usos juntos)</caption>
+            <thead><tr><th>Material</th><th className="num">Lleva la obra</th><th className="num">Comprado</th><th className="num">Falta</th></tr></thead>
+            <tbody>
+              {porMaterial.map((m) => (
+                <tr key={m.clave}>
+                  <td data-etiqueta="Material">{m.material}{m.largoBarra ? <small className="detalle"> · barra de {num(m.largoBarra)} m</small> : null}</td>
+                  <td className="num" data-etiqueta="Lleva la obra">{cantidadPedida({ cantidad: m.lleva, unidad: m.unidad })}</td>
+                  <td className="num" data-etiqueta="Comprado">{num(m.comprado)}</td>
+                  <td className="num" data-etiqueta="Falta">{m.falta > 0 ? <strong className="falta">{num(m.falta)}</strong> : '✓'}{m.sobra > 0 ? <small> · sobran {num(m.sobra)}</small> : null}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
       <div className="grupo-ctrl filtro-lista no-print" role="group" aria-label="Qué ver">
         {[['todo', 'Todo'], ['falta', 'Lo que falta'], ['debe', 'Retirado sin pagar']].map(([v, t]) => (
           <button key={v} type="button" className={`btn-ctrl${ver === v ? ' activo' : ''}`} aria-pressed={ver === v} onClick={() => setVer(v)}>{t}</button>
