@@ -61,3 +61,16 @@ describe('v1.96: en el presupuesto, cada panel cuenta solo su tramo', () => {
     expect(con.find((i) => i.id === 'panelMuros').cantidad).toBeLessThan(sin.find((i) => i.id === 'panelMuros').cantidad);
   });
 });
+
+describe('v1.97: cambiar el panel de una tira (desde el 3D)', async () => {
+  const { tramosConPanel } = await import('./tramosPanel.js');
+  it('pone el panel en esa parte y deja los tramos mínimos', () => {
+    let t = tramosConPanel(6, 'cc', [], 1, 2, 'cf');
+    expect(t).toEqual([{ desde: 1, hasta: 2, panel: 'cf' }]);
+    t = tramosConPanel(6, 'cc', t, 2, 3, 'cf'); // la tira de al lado: se juntan
+    expect(t).toEqual([{ desde: 1, hasta: 3, panel: 'cf' }]);
+    t = tramosConPanel(6, 'cc', t, 1, 2, 'cc'); // volver una al de la pared: el tramo se achica
+    expect(t).toEqual([{ desde: 2, hasta: 3, panel: 'cf' }]);
+    expect(tramosConPanel(6, 'cc', t, 2, 3, 'cc')).toEqual([]); // y se borra
+  });
+});

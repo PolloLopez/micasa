@@ -105,5 +105,15 @@ export function panosDelTecho(techo) {
   });
 }
 
+/**
+ * v1.97 (Leandro: "quiero editar desde la tira tocada en el 3D"): poner un panel de `desde` a `hasta` (ej. la tira
+ * tocada) y devolver los tramos mínimos que quedan: los segmentos que no llevan el panel de base, juntos. Así, volver a
+ * poner el de base en una parte achica o borra el tramo, sin dejar tramos de más.
+ */
+export function tramosConPanel(largo, panelBase, tramos, desde, hasta, panel) {
+  const segmentos = segmentosDePanel(largo, panelBase, [...tramos, { desde, hasta, panel }]);
+  return segmentos.filter((s) => s.panel !== panelBase).map((s) => ({ desde: redondo(s.x0), hasta: redondo(s.x1), panel: s.panel }));
+}
+
 /** El paño (de una pared o del techo) que contiene la posición x a lo largo, o el último. */
 export const panoEn = (panos, x) => panos.find((p) => x >= p.x0 - EPS && x <= p.x1 + EPS) ?? panos[panos.length - 1] ?? null;

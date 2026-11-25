@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.97.0] - 2026-11-25
+### Agregado
+- **Cambiar el panel desde la tira tocada en el 3D** (Leandro: "quiero editar desde la selección también"). En el
+  panel de la tira (pared o techo): "Esta tira (de X a Y m) va con…" y, si es parte de un tramo, "Todo su tramo va
+  con…". Escribe los tramos de la pared o del techo (los mismos de Paredes → "Otro panel en una parte") y los deja
+  mínimos: las tiras de al lado se juntan, y volver al panel de la pared achica o borra el tramo
+  (`tramosConPanel`).
+
 ## [1.96.0] - 2026-11-25
 ### Agregado
 - **Otro panel en una parte de la pared o del techo** (Leandro: "algunos van a ser un modelo distinto, sin

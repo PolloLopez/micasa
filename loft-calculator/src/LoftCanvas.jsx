@@ -42,7 +42,7 @@ import CampoNumero from './componentes/CampoNumero.jsx';
 import { resumenDeArmado } from './motor/armado.js';
 import { FilaAbertura } from './componentes/AberturasDePared.jsx';
 import { juntasDePano, pedazosDePared, encimadosDePano, tiraDeCadaPedazo, destinosDeTiras, cambiarTiraManual } from './motor/revestimientos.js';
-import { panosDeLaPared, panosDelTecho, panoEn } from './motor/tramosPanel.js'; // v1.96
+import { panosDeLaPared, panosDelTecho, panoEn, tramosConPanel } from './motor/tramosPanel.js'; // v1.96
 import { panosPorRevestimiento } from './motor/presupuesto.js';
 import { tiraEnPunto, cortesDeTiras } from './motor/cortesPaneles.js';
 import { textoDeCodigo } from './motor/hojaDeCorte.js';
@@ -228,7 +228,9 @@ function datosDeTira(e, materialesPanel, elegida) {
     const arriba = (tipo.ubicacion === 'eje' ? -0.13 : (tipo.espesor ?? 50) / 2000) + 0.015;
     const punto = (x, h) => [0, 1, 2].map((i) => t0[i] + (t1[i] - t0[i]) * ((seg.x0 + x) / t.largo) + (t3[i] - t0[i]) * (h / t.largoFaldon) + (i === 1 ? arriba : 0));
     return { pared: { lado: 'techo', largo: seg.largo, alturas: [t.largoFaldon, t.largoFaldon] }, tipo, tira, signo: 1, fuera: 0, punto,
-      donde: seg.donde, pano, tramo: panosDelTecho(t).length > 1 ? seg : null };
+      donde: seg.donde, pano, tramo: panosDelTecho(t).length > 1 ? seg : null,
+      // v1.97: para cambiarle el panel desde acá (en coordenadas de todo el techo).
+      editar: { ruta: 'tramosPanelTecho', largo: t.largo, base: t.panel, tramos: t.tramosPanel ?? [], inicio: seg.x0, seg } };
   }
   const pared = e?.paredes?.find((p) => p.lado === elegida.lado);
   if (!pared) return null;
@@ -250,7 +252,9 @@ function datosDeTira(e, materialesPanel, elegida) {
   const n = Math.hypot(a[0] + b[0], a[2] + b[2]) || 1;
   const punto = (x, h) => [a[0] + dir[0] * (seg.x0 + x) + ((a[0] + b[0]) / n) * d * signo, a[1] + h, a[2] + dir[1] * (seg.x0 + x) + ((a[2] + b[2]) / n) * d * signo];
   return { pared: { ...pared, largo: seg.largo, alturas: [seg.h1, seg.h2] }, tipo, tira, signo, fuera, punto, pano, donde: seg.donde,
-    tramo: !interior && panosDeLaPared(pared).length > 1 ? seg : null };
+    tramo: !interior && panosDeLaPared(pared).length > 1 ? seg : null,
+    // v1.97: para cambiarle el panel desde acá (en coordenadas de toda la pared; el interior va entero, no por tramos).
+    editar: interior ? null : { ruta: `paredes.${pared.lado}.tramosPanel`, largo: pared.largo, base: pared.panel, tramos: pared.tramosPanel ?? [], inicio: seg.x0, seg } };
 }
 
 /**
@@ -2703,6 +2707,27 @@ export default function LoftCanvas({
               </div>
             )}
           </>)}
+          {/* v1.97 (Leandro: "quiero editar desde acá también"): el panel de esta tira o de todo su tramo. */}
+          {datosTira.editar && onCambiarParam && !datosTira.tira.placa && (() => {
+            const { ruta, largo, base, tramos, inicio, seg } = datosTira.editar;
+            const x0 = inicio + datosTira.tira.x0;
+            const x1 = Math.min(largo, x0 + datosTira.tira.ancho);
+            const poner = (desde, hasta, panel) => onCambiarParam(ruta, tramosConPanel(largo, base, tramos, desde, hasta, panel));
+            const opciones = (paneles ?? []).map((p) => <option key={p.id} value={p.id}>{p.nombre}{p.id === base ? ' (el de la pared)' : ''}</option>);
+            return (
+              <div className="panel-de-la-tira">
+                <label>Esta tira ({metros(x0)} a {metros(x1)}) va con
+                  <select value={seg.panel} onChange={(ev) => poner(x0, x1, ev.target.value)}>{opciones}</select>
+                </label>
+                {datosTira.tramo && (
+                  <label>Todo su tramo ({metros(seg.x0)} a {metros(seg.x1)}) va con
+                    <select value={seg.panel} onChange={(ev) => poner(seg.x0, seg.x1, ev.target.value)}>{opciones}</select>
+                  </label>
+                )}
+                <small className="nota">Sale en Paredes (o Techo) → "Otro panel en una parte", donde se ajusta al centímetro.</small>
+              </div>
+            );
+          })()}
           <p className="nota">El plano de cada panel está en Planos, debajo de cada pared.</p>
         </div>
       )}

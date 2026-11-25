@@ -32,6 +32,8 @@ ella), **Donde se corta, va** soldada, con cubrejunta o con chapa (las dos últi
 **dónde** (moverlo a cuántos metros de la punta, **Ya está hecho así**, ↶ automático). En el 3D cada empalme tiene una
 marca (naranja: lo eligió la app; celeste: vos). Todo lo elegido está en Piezas a mano, con Deshacer.
 
+**Desde el 3D** (v1.97): tocá una tira (en Solo paneles) y elegí "Esta tira va con…" o "Todo su tramo va con…".
+
 **Paneles por tramos** (v1.96): en Materiales → Revestimientos, **Duplicar** el panel y cambiarle el nombre (ej.
 "Chapa-foil"). Después, en Paredes → la pared → **Otro panel en una parte**: + Tramo, desde y hasta (desde la esquina
 izquierda vista desde afuera) y el panel. En Techo, lo mismo a lo largo del techo. Cada tramo se cuenta, se dibuja y se
