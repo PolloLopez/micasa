@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.93.0] - 2026-11-25
+### Agregado
+- **El avance de un trabajo puede salir del Armado** (Leandro: "Zopapa me dice 0 % hecho, cuando ya registré caños
+  instalados, que fueron por él"). En Obra → Avance y contratistas, cada trabajo tiene "El avance sale del Armado
+  (fierros puestos: hoy N %)": el % hecho es el de los metros de hierro puestos (sin madera, mesadas ni tabiques) y se
+  pone al día al marcar fierros (`porcentajeDeHierros`, `conAvanceDelArmado`).
+- **A futuro** (Leandro: "los ladrillos y varillas para el tapial son una idea, no será un gasto próximo; las placas
+  fenólicas sí serán próximas"):
+  - Fundación → Tapial: "A futuro" saca sus materiales (cemento, arena, piedra, varillas, ladrillos) y el portón del
+    presupuesto y los muestra aparte; "…pero las placas fenólicas se compran ya" las deja (con sus tirantes). En su
+    proyecto: de 101 a 16 bolsas de cemento, $ 33,3 M → $ 31,9 M.
+  - Presupuesto → Mano de obra por segmento: columna "A futuro" (no suma; se lista abajo del precio). Con el tapial:
+    $ 31,9 M → $ 25,9 M.
+  - Lista de compras: "Se lo compro a… → A futuro" en cada renglón, y "Toda esta parte a futuro" en cada parte. No
+    entra en el total ni en lo que falta; arriba, "A futuro (no suma)" con lo que costaría.
+
 ## [1.92.0] - 2026-11-25
 ### Arreglado
 - **La lista de compras no sumaba lo comprado por material** (Leandro: "cargué 12 perfiles que compré, debería

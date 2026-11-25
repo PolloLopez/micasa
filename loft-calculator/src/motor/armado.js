@@ -102,6 +102,17 @@ export function resumenDeArmado(piezas, avance = {}) {
   };
 }
 
+/**
+ * v1.93: cuánto del HIERRO está puesto, en % de metros (sin la madera, las mesadas ni los tabiques de durlock, que
+ * no los hace el herrero). Es el avance de un trabajo con "el avance sale del armado".
+ */
+export function porcentajeDeHierros(piezas, avance = {}) {
+  const hierros = piezas.filter((p) => !p.madera && !['mesada', 'tabique'].includes(zonaDePieza(p)));
+  const total = hierros.reduce((a, p) => a + p.largo, 0);
+  const puestos = hierros.filter((p) => avance[p.id]?.instalada).reduce((a, p) => a + p.largo, 0);
+  return total > 0 ? Math.round((puestos / total) * 100) : 0;
+}
+
 /** v1.83: la medida real tiene que ser una pieza que se pueda fabricar (de 5 cm a 30 m). */
 export function errorDeMedidaReal(medida) {
   if (!(Number.isFinite(medida) && medida >= LARGO_MINIMO_EDITADA)) return `Mínimo ${LARGO_MINIMO_EDITADA * 100} cm`;

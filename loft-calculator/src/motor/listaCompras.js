@@ -15,7 +15,7 @@
 // compras que lo nombran: renglón de compra con `renglon` = id del renglón).
 // ==========================================================
 
-import { precioEn, NINGUNO } from './proveedores.js';
+import { precioEn, NINGUNO, A_FUTURO } from './proveedores.js';
 import { parteDeItem, PARTES_FIJAS } from './partesObra.js';
 import { cuentasDeCompra } from './compras.js';
 import { cantidadPedida } from './proveedores.js';
@@ -63,7 +63,12 @@ export function filasDeLaLista({ items = [], plan = null, catalogo = [], proveed
     const proveedor = aMano ?? delPlan.get(i.id) ?? (proveedores.length === 1 ? proveedores[0].id : null);
     const p = proveedores.find((x) => x.id === proveedor);
     const material = materialDe(i);
-    const precio = proveedor === NINGUNO ? null : p && material ? precioEn(material, p, pago) : i.precio ?? null;
+    // v1.93: a futuro, el precio más barato que se conozca (para saber cuánto sería, aunque no entre al total).
+    const masBarato = () => {
+      const precios = material ? proveedores.map((x) => precioEn(material, x, pago)).filter((v) => v !== null && v > 0) : [];
+      return precios.length ? Math.min(...precios) : i.precio ?? null;
+    };
+    const precio = proveedor === NINGUNO ? null : proveedor === A_FUTURO ? masBarato() : p && material ? precioEn(material, p, pago) : i.precio ?? null;
     return fila(i, { proveedor, aMano, precio });
   });
   const todas = [...filas, ...otros.filter((o) => o.cantidad > 0).map((o) => fila(o, { proveedor: PROPIO, aMano: null, precio: o.precio ?? 0 }))];
@@ -140,6 +145,7 @@ export function porRenglon(compras = []) {
  */
 export function agruparLista(filas, proveedores = []) {
   const nombreProveedor = (id) => (id === NINGUNO ? 'No se compra (lo consigo yo / ya lo tengo)' : id === PROPIO ? 'Instalaciones y extras (precio propio)'
+    : id === A_FUTURO ? 'A futuro (todavía no: no entra en el total)'
     : proveedores.find((p) => p.id === id)?.nombre ?? 'Sin proveedor (nadie lo vende)');
   const grupos = new Map();
   filas.forEach((f) => {
@@ -153,7 +159,7 @@ export function agruparLista(filas, proveedores = []) {
     g.porParte.set(f.parte, p);
     grupos.set(clave, g);
   });
-  const orden = (g) => (g.proveedor === NINGUNO ? 3 : g.proveedor === PROPIO ? 2 : g.proveedor ? 0 : 1);
+  const orden = (g) => (g.proveedor === NINGUNO ? 4 : g.proveedor === A_FUTURO ? 3 : g.proveedor === PROPIO ? 2 : g.proveedor ? 0 : 1);
   return [...grupos.values()].sort((a, b) => orden(a) - orden(b) || b.total - a.total)
     .map(({ porParte, ...g }) => ({ ...g, partes: [...porParte.values()] }));
 }

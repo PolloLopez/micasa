@@ -34,6 +34,11 @@ export const FORMAS_DE_PAGO = ['efectivo', 'tarjeta'];
 export const MAS_BARATO = 'mas-barato';
 /** v1.72: "no se lo compro a nadie" (lo consigo yo o ya lo tengo): el renglón sale del plan de compra. */
 export const NINGUNO = 'ninguno';
+/**
+ * v1.93 (Leandro: "los ladrillos y varillas para el tapial son una idea, no será un gasto próximo"): un renglón "a
+ * futuro" no se compra todavía: no entra al total ni a lo que falta, y se muestra aparte con lo que costaría.
+ */
+export const A_FUTURO = 'futuro';
 export const LIMITES_RECARGO = { min: 0, max: 100 }; // %
 export const LIMITES_FLETE = { min: 0, max: 100000000 }; // $ (v1.29)
 
@@ -271,7 +276,7 @@ export function planDeCompra(items, catalogo, pago = 'efectivo', asignaciones = 
   const elegido = (i) => asignaciones?.[i.id];
   // Cada renglón con lo que cuesta en cada proveedor (null = no lo vende).
   // v1.48: los consumibles estimados sin ningún precio cargado no entran al plan (se ven en la lista de materiales).
-  const renglones = items.filter((i) => i.cantidad > 0 && i.categoria !== 'flete' && !i.sinPrecioCargado && elegido(i) !== NINGUNO).map((i) => {
+  const renglones = items.filter((i) => i.cantidad > 0 && i.categoria !== 'flete' && !i.sinPrecioCargado && elegido(i) !== NINGUNO && elegido(i) !== A_FUTURO).map((i) => {
     const material = materialDe(i, catalogo);
     const fijo = elegido(i);
     const precios = proveedores.map((p) => (material && llevaPrecios(material) && (!fijo || fijo === p.id) ? precioEn(material, p, pago) : null));

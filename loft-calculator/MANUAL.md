@@ -32,6 +32,11 @@ ella), **Donde se corta, va** soldada, con cubrejunta o con chapa (las dos últi
 **dónde** (moverlo a cuántos metros de la punta, **Ya está hecho así**, ↶ automático). En el 3D cada empalme tiene una
 marca (naranja: lo eligió la app; celeste: vos). Todo lo elegido está en Piezas a mano, con Deshacer.
 
+**A futuro y avance del herrero** (v1.93): lo que todavía no se compra se marca **a futuro** (el tapial entero en
+Fundación, con la opción de comprar ya las placas fenólicas; un segmento de mano de obra en el Presupuesto; un renglón o
+una parte en la Lista de compras): no suma al total y se ve aparte. En un trabajo, "El avance sale del Armado" toma el %
+de fierros puestos.
+
 **Lista de compras por material** (v1.92): lo comprado cuenta para el material (el mismo perfil), no solo para el
 renglón donde lo marcaste; arriba, "Por material" dice cuánto lleva la obra, cuánto compraste y cuánto falta.
 

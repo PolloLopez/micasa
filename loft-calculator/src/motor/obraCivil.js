@@ -83,6 +83,10 @@ export const OBRA_CIVIL_INICIAL = {
     pilotines: true, pilotinDiametro: 0.2, pilotinProfundidad: 1.5, // v1.80: uno bajo cada columna
     encofrado: 'fenolico', juegosEncofrado: 2, // v1.80: 'fenolico' (placas propias, se reusan) o 'ninguno'
     segunAlbanil: {}, // v1.80: { bolsas: 12, ladrillos: 900… } lo que dijo el albañil (0 o vacío = lo calculado)
+    // v1.93 (Leandro: "los ladrillos y varillas para el tapial son una idea, no será un gasto próximo. Las placas de
+    // fenólico sí serán próximas"): a futuro = sus materiales (y el portón) no se compran todavía; fenolicosYa = las
+    // placas fenólicas y sus tirantes sí.
+    aFuturo: false, fenolicosYa: false,
   },
   // v1.80: el portón corredizo del tapial (lo hace Leandro de hierro). `desde` = m desde la esquina izquierda (frente y
   // fondo, mirando desde la calle) o desde la línea municipal (laterales).
@@ -392,10 +396,19 @@ export function cuentasDeObraCivil(params, e = {}) {
   const delTapial = partes.find((p) => p.clave === 'tapial');
   const cuentasTapial = delTapial ? materialesDelTapial(delTapial, oc) : null;
   if (cuentasTapial?.conAlbanil) delTapial.materialesFinal = cuentasTapial.final; // para el pedido de la parte (textoParaCotizar)
+  const porton = materialesDelPorton(oc, params.terreno);
+  // v1.93: el tapial a futuro: lo demás de la obra civil, solo; lo del tapial (y el portón) queda aparte, para verlo.
+  if (delTapial && oc.tapial.aFuturo) {
+    const sinTapial = materialesDeObraCivil(partes.filter((p) => p !== delTapial).reduce((a, p) => sumar(a, crudo(p)), vacio()), oc);
+    const ya = oc.tapial.fenolicosYa ? { fenolicos: cuentasTapial.final.fenolicos ?? 0, tirantesEncofrado: cuentasTapial.final.tirantesEncofrado ?? 0 } : {};
+    const futuro = { ...cuentasTapial.final, ...Object.fromEntries(Object.keys(ya).map((k) => [k, 0])) };
+    return { partes, total, materiales: sumarMateriales(sinTapial, ya), tapial: cuentasTapial, porton: null,
+      aFuturo: { materiales: futuro, porton } };
+  }
   const materiales = cuentasTapial?.conAlbanil
     ? sumarMateriales(materialesDeObraCivil(partes.filter((p) => p !== delTapial).reduce((a, p) => sumar(a, crudo(p)), vacio()), oc), cuentasTapial.final)
     : materialesDeObraCivil(total, oc);
-  return { partes, total, materiales, tapial: cuentasTapial, porton: materialesDelPorton(oc, params.terreno) };
+  return { partes, total, materiales, tapial: cuentasTapial, porton, aFuturo: null };
 }
 
 /** Suma dos resultados de materialesDeObraCivil (campo por campo). */
@@ -474,6 +487,8 @@ export function validarObraCivil(oc) {
   if (t.pilotinProfundidad !== undefined) campo('tapial.pilotinProfundidad', t.pilotinProfundidad, 0.3, 6, 'De 0,30 a 6 m');
   if (!si(t.encofrado, (v) => ['fenolico', 'ninguno'].includes(v))) errores['obraCivil.tapial.encofrado'] = 'Fenólico o ninguno';
   if (t.juegosEncofrado !== undefined) campo('tapial.juegosEncofrado', t.juegosEncofrado, 1, 50, 'De 1 a 50 tramos');
+  if (!si(t.aFuturo, (v) => typeof v === 'boolean')) errores['obraCivil.tapial.aFuturo'] = 'Sí o no';
+  if (!si(t.fenolicosYa, (v) => typeof v === 'boolean')) errores['obraCivil.tapial.fenolicosYa'] = 'Sí o no';
   if (!si(t.segunAlbanil, (v) => v && typeof v === 'object' && Object.values(v).every((n) => Number.isFinite(n) && n >= 0 && n <= 1e6))) {
     errores['obraCivil.tapial.segunAlbanil'] = 'Cantidades inválidas';
   }

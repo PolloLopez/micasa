@@ -52,7 +52,7 @@ import { resolverCatalogo, PERFIL_NUEVO, perfilesDeLista } from './motor/perfile
 import { proveedoresDe, aplicarProveedor, faltanPrecios, MAS_BARATO, planDeCompra, precioEn, masBaratoEn, totalDeLaObra, listaDeMateriales, kilosDeMateriales, conPrecioCambiado } from './motor/proveedores.js';
 import { cerrarPresupuesto } from './motor/cierre.js';
 import { useSinCambiosSalvo } from './hooks/useSinCambiosSalvo.js';
-import { partesDelPresupuesto, resumenSeguimiento, informeDeSeguimiento, hoy } from './motor/seguimiento.js';
+import { partesDelPresupuesto, resumenSeguimiento, informeDeSeguimiento, hoy, conAvanceDelArmado } from './motor/seguimiento.js';
 import PanelSeguimiento from './componentes/PanelSeguimiento.jsx';
 import PanelCompras from './componentes/PanelCompras.jsx';
 import { resumenDeCompras } from './motor/compras.js';
@@ -117,7 +117,7 @@ const VERSION_APP = typeof __VERSION_APP__ === 'string' ? __VERSION_APP__ : '';
 import Tarjeta from './componentes/Tarjeta.jsx';
 import NotaPlegable from './componentes/NotaPlegable.jsx';
 import PanelArmado from './componentes/PanelArmado.jsx';
-import { marcarPiezas, errorDeMedidaReal } from './motor/armado.js'; // v1.83: armado en obra
+import { marcarPiezas, errorDeMedidaReal, porcentajeDeHierros } from './motor/armado.js'; // v1.83: armado en obra
 
 // --- Validadores para descartar datos viejos de localStorage ---
 const paramsGuardadosValidos = (p) =>
@@ -882,18 +882,25 @@ export default function App() {
     cambiar('piezasEditadas')(nuevo);
   };
   // v1.83: armado en obra. Marcar fierros puestos o medidas verificadas (de a una o de a grupos)…
-  const marcarAvance = (ids, campo, valor) => cambiar('avancePiezas')(marcarPiezas(params.avancePiezas ?? {}, ids, campo, valor));
+  // v1.93: al marcar fierros puestos, los trabajos con "el avance sale del armado" (ej. el del herrero) se ponen al día.
+  const guardarAvancePiezas = (nuevo) => {
+    const rubros = params.seguimiento?.rubros ?? [];
+    const alDia = conAvanceDelArmado(rubros, porcentajeDeHierros(piezasDeLaEstructura, nuevo));
+    return alDia === rubros ? cambiar('avancePiezas')(nuevo) : cambiarVarios([['avancePiezas', nuevo], ['seguimiento.rubros', alDia]]);
+  };
+  const avanceDeHierros = porcentajeDeHierros(piezasDeLaEstructura, params.avancePiezas ?? {});
+  const marcarAvance = (ids, campo, valor) => guardarAvancePiezas(marcarPiezas(params.avancePiezas ?? {}, ids, campo, valor));
   // …y la medida real: la pieza queda de esa medida (el motor la aplica al final, ver aplicarMedidasReales) y queda
   // verificada. null = volver a la del cálculo.
   const ponerMedidaReal = (pieza, medida) => {
     const avance = params.avancePiezas ?? {};
     const { medidaReal: _antes, ...resto } = avance[pieza.id] ?? {}; // eslint-disable-line no-unused-vars
     if (medida === null || Math.abs(medida - (pieza.largoPlano ?? -1)) < 0.0005) {
-      return cambiar('avancePiezas')(Object.keys(resto).length ? { ...avance, [pieza.id]: resto } : marcarPiezas(avance, [pieza.id], 'verificada', false));
+      return guardarAvancePiezas(Object.keys(resto).length ? { ...avance, [pieza.id]: resto } : marcarPiezas(avance, [pieza.id], 'verificada', false));
     }
     const error = errorDeMedidaReal(medida);
     if (error) return error;
-    return cambiar('avancePiezas')({ ...avance, [pieza.id]: { ...resto, medidaReal: medida, verificada: true } });
+    return guardarAvancePiezas({ ...avance, [pieza.id]: { ...resto, medidaReal: medida, verificada: true } });
   };
 
   const cambiarColor = (capa, color) => setColores((prev) => ({ ...prev, [capa]: color }));
@@ -1904,7 +1911,7 @@ export default function App() {
             <PanelSub grupo="obra" activa={subObra} clave="armado"><PanelArmado piezas={piezasDeLaEstructura} avance={params.avancePiezas ?? {}}
               nombreZona={(z) => (LADOS.includes(z) ? nombreDePared(z, params) : { piso: 'Piso (planta baja)', entrepiso: 'Entrepiso', piso2: 'Piso 2', techo: 'Techo', escalera: 'Escalera', mesada: 'Mesadas', tabique: 'Tabiques' }[z] ?? z)}
               codigosCorte={codigosCorte} unidad={unidad} onMarcar={marcarAvance} onMedidaReal={ponerMedidaReal} /></PanelSub>
-            <PanelSub grupo="obra" activa={subObra} clave="seguimiento"><PanelSeguimiento params={params} partes={partesSeguimiento} precioObra={cierre.total} cambiar={cambiar} partesObra={partesObra} /></PanelSub>
+            <PanelSub grupo="obra" activa={subObra} clave="seguimiento"><PanelSeguimiento params={params} partes={partesSeguimiento} precioObra={cierre.total} cambiar={cambiar} partesObra={partesObra} avanceDeHierros={avanceDeHierros} /></PanelSub>
             <PanelSub grupo="obra" activa={subObra} clave="finanzas"><PanelFinanzas params={params} cambiar={cambiar} cambiarVarios={cambiarVarios} /></PanelSub>
           </section>
         </div>

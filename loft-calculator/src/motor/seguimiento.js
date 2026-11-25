@@ -44,6 +44,21 @@ export const nombreEtapa = (e) => ETAPAS_RUBRO.find(([v]) => v === e)?.[1] ?? e;
 /** El estado viejo (v1.47) que corresponde a un avance, para los proyectos y el PDF de antes. */
 export const estadoSegunAvance = (avance, estado) => (avance >= 100 ? 'terminado' : avance > 0 ? 'enCurso' : estado === 'terminado' || estado === 'enCurso' ? 'contratado' : estado);
 
+/**
+ * v1.93 (Leandro: "Zopapa me dice 0 % hecho cuando ya registré caños instalados, que fueron por él"): los trabajos con
+ * "el avance sale del armado" toman el % de hierro puesto (Obra → Armado). Devuelve los rubros (los mismos si no cambia
+ * nada). Al llegar a 100 % se anota la fecha de hoy si no tenía, como al ponerlo a mano.
+ */
+export function conAvanceDelArmado(rubros = [], porcentaje = 0, fecha = hoy()) {
+  let cambio = false;
+  const nuevos = rubros.map((r) => {
+    if (!r.avanceDelArmado || r.avance === porcentaje) return r;
+    cambio = true;
+    return { ...r, avance: porcentaje, estado: estadoSegunAvance(porcentaje, r.estado), fechaFin: porcentaje >= 100 && !r.fechaFin ? fecha : r.fechaFin };
+  });
+  return cambio ? nuevos : rubros;
+}
+
 /** Fecha de hoy como 'AAAA-MM-DD' (la del navegador, no la UTC). */
 export function hoy(fecha = new Date()) {
   const dos = (n) => String(n).padStart(2, '0');
@@ -61,6 +76,7 @@ export function rubroNuevo(rubros, { nombre, origen = '', quien = '' } = {}) {
     cuotas: null, // v1.54: plan de cuotas (ver finanzas.js) o null si se paga suelto
     contratista: null, // v1.69: id de la lista de contratistas (o null)
     parteObra: null, // v1.74: clave de la parte de la obra que es este trabajo (ej. 'pilotines'), o null
+    avanceDelArmado: false, // v1.93: el % hecho sale de Obra → Armado (los metros de hierro puestos), no a mano
   };
 }
 
@@ -204,6 +220,7 @@ function validarRubro(r) {
   if (!Array.isArray(r.pagos)) return 'Pagos inválidos';
   if (r.parteObra != null && !textoHasta(r.parteObra, 60)) return 'Parte de la obra inválida';
   if (r.avance !== undefined && !(Number.isFinite(r.avance) && r.avance >= 0 && r.avance <= 100)) return 'El avance va de 0 a 100 %';
+  if (r.avanceDelArmado !== undefined && typeof r.avanceDelArmado !== 'boolean') return 'Avance del armado inválido';
   const plan = errorDelPlan(r.cuotas);
   if (plan) return plan;
   const malo = r.pagos.find((p) => !fechaValida(p.fecha) || p.fecha === '' || !monto(p.monto)

@@ -88,6 +88,7 @@ export function validarCierre(c) {
       if (!(typeof x?.nombre === 'string' && x.nombre.length <= 40)) errores[`cierre.segmentos.${i}`] = 'El nombre puede tener hasta 40 letras';
       else if (!MODOS_SEGMENTO.some(([m]) => m === x.modo)) errores[`cierre.segmentos.${i}`] = 'Elegí cómo se cobra';
       else if (!(Number.isFinite(x.valor) && x.valor >= 0 && x.valor <= 1e12)) errores[`cierre.segmentos.${i}`] = 'No puede ser negativo';
+      else if (x.aFuturo !== undefined && typeof x.aFuturo !== 'boolean') errores[`cierre.segmentos.${i}`] = 'A futuro: sí o no';
     });
   }
   porcentaje('imprevistos');
@@ -136,8 +137,11 @@ export function cerrarPresupuesto(materiales, cierre, medidas = {}) {
   const mo = manoDeObra(c.manoDeObra, materiales, medidas);
   sumar('manoDeObra', c.segmentos.some((x) => x.valor > 0) ? 'Mano de obra general' : 'Mano de obra', mo.detalle, mo.monto);
   // v1.53: cada segmento con su renglón (pilotines, estructura, electricista…).
+  // v1.93: un segmento "a futuro" (ej. el tapial, que todavía es una idea) no suma: se lista aparte.
+  const aFuturo = [];
   c.segmentos.forEach((x) => {
     const r = manoDeObra(x, materiales, medidas);
+    if (x.aFuturo) { if (r.monto > 0) aFuturo.push({ concepto: `Mano de obra — ${x.nombre}`, monto: pesosRedondos(r.monto) }); return; }
     sumar(`mo:${x.id}`, `Mano de obra — ${x.nombre}`, r.detalle, r.monto);
   });
   const conImprevistos = c.imprevistos > 0;
@@ -148,5 +152,5 @@ export function cerrarPresupuesto(materiales, cierre, medidas = {}) {
   if (c.iva > 0 && renglones.length > 1) subtotal('sinIva', 'Precio sin IVA');
   sumar('iva', 'IVA', `${texto(c.iva, 1)} %`, (acumulado * c.iva) / 100);
   const total = pesosRedondos(acumulado);
-  return { renglones, total, conCierre: renglones.length > 1 };
+  return { renglones, total, conCierre: renglones.length > 1, aFuturo };
 }

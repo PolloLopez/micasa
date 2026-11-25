@@ -26,7 +26,7 @@ function Segmentos({ segmentos, medidas, materiales, cambiar }) {
       <h4 className="subtitulo-pared">Mano de obra por segmento</h4>
       <NotaPlegable>Lo que cobra cada uno. En 0 no suma. En la pestaña Obra, "Armar desde el presupuesto" crea un rubro por cada uno para cargarle los pagos.</NotaPlegable>
       <table className="tabla-segmentos">
-        <thead><tr><th>Segmento</th><th>Se cobra</th><th className="num">Precio</th><th className="num">Da</th><th /></tr></thead>
+        <thead><tr><th>Segmento</th><th>Se cobra</th><th className="num">Precio</th><th className="num">Da</th><th>A futuro</th><th /></tr></thead>
         <tbody>
           {segmentos.map((x, i) => (
             <tr key={x.id}>
@@ -41,6 +41,9 @@ function Segmentos({ segmentos, medidas, materiales, cambiar }) {
                   onCambio={(v) => { if (v < 0) return 'No puede ser negativo'; cambiarSegmento(i, { valor: v }); return null; }} />
               </td>
               <td className="num" data-etiqueta="Da" title={manoDeObra(x, materiales, medidas).detalle}>{pesos(manoDeObra(x, materiales, medidas).monto)}</td>
+              {/* v1.93: "a futuro" = todavía no (no suma al precio de la obra; se ve aparte). */}
+              <td data-etiqueta="A futuro"><input type="checkbox" checked={Boolean(x.aFuturo)} aria-label={`${x.nombre} a futuro (no suma todavía)`}
+                title="Todavía no: no suma al precio de la obra" onChange={(e) => cambiarSegmento(i, { aFuturo: e.target.checked })} /></td>
               <td className="accion-fila"><button type="button" className="btn-del" aria-label={`Quitar ${x.nombre}`} title="Quitar"
                 onClick={() => cambiar('cierre.segmentos')(segmentos.filter((_, k) => k !== i))}>✕</button></td>
             </tr>
@@ -99,6 +102,9 @@ export function TablaCierre({ resultado }) {
           </tr>
         ))}
         <tr className="fila-total"><td>PRECIO DE LA OBRA</td><td className="num">{pesos(resultado.total)}</td></tr>
+        {(resultado.aFuturo ?? []).map((r) => (
+          <tr key={r.concepto} className="a-futuro"><td>A futuro (no suma): {r.concepto}</td><td className="num">{pesos(r.monto)}</td></tr>
+        ))}
       </tbody>
     </table>
   );

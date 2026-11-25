@@ -87,7 +87,7 @@ function PortonDelTapial({ oc, params, unidad, cambiar }) {
 
 export default function PanelObraCivil({ params, estructura, unidad, cambiar }) {
   const oc = completarObraCivil(params.obraCivil);
-  const { partes, total, materiales: m, tapial: cuentasTapial } = cuentasDeObraCivil(params, estructura ?? {});
+  const { partes, total, materiales: m, tapial: cuentasTapial, aFuturo } = cuentasDeObraCivil(params, estructura ?? {});
   const conTerreno = Boolean(params.terreno?.activo);
   const elementos = conTerreno ? params.terreno.elementos ?? [] : [];
   const cuantos = (tipo) => elementos.filter((el) => el.tipo === tipo).length;
@@ -174,6 +174,34 @@ export default function PanelObraCivil({ params, estructura, unidad, cambiar }) 
         columnas de {RENDIMIENTOS.columna * 100} x {RENDIMIENTOS.columna * 100} cm, viga de fundación y encadenado arriba
         {oc.tapial.pilotines ? `, con un pilotín de ø${n2(oc.tapial.pilotinDiametro)} m bajo cada columna` : ''}.
         {oc.tapial.encofrado === 'fenolico' ? ` Las placas fenólicas alcanzan para ${oc.tapial.juegosEncofrado} tramo(s) entre columnas y se reusan en los siguientes.` : ''}</NotaPlegable>}
+      {/* v1.93: el tapial todavía es una idea: sus materiales no se compran (salvo, si se elige, las placas fenólicas). */}
+      {largoDelTapial(oc, params.terreno) > 0 && (
+        <div className="fila-casillas">
+          <label className="casilla-opcional">
+            <input type="checkbox" checked={Boolean(oc.tapial.aFuturo)} onChange={(e) => cambiar('obraCivil.tapial.aFuturo')(e.target.checked)} />
+            A futuro: todavía no se compra (sus materiales y el portón no suman al presupuesto)
+          </label>
+          {aFuturo && (
+            <small className="nota">Queda a futuro: {[
+              aFuturo.materiales.bolsas > 0 && `${aFuturo.materiales.bolsas} bolsas de cemento`,
+              aFuturo.materiales.arena > 0 && `${n2(aFuturo.materiales.arena)} m³ de arena`,
+              aFuturo.materiales.piedra > 0 && `${n2(aFuturo.materiales.piedra)} m³ de piedra`,
+              aFuturo.materiales.varillas8 > 0 && `${aFuturo.materiales.varillas8} varillas ø8`,
+              aFuturo.materiales.varillas42 > 0 && `${aFuturo.materiales.varillas42} de ø4,2`,
+              (aFuturo.materiales.ladrilloHueco + aFuturo.materiales.ladrilloHueco8 + aFuturo.materiales.ladrilloHueco18 + aFuturo.materiales.ladrilloComun + aFuturo.materiales.bloqueHormigon) > 0
+                && `${aFuturo.materiales.ladrilloHueco + aFuturo.materiales.ladrilloHueco8 + aFuturo.materiales.ladrilloHueco18 + aFuturo.materiales.ladrilloComun + aFuturo.materiales.bloqueHormigon} ladrillos o bloques`,
+              aFuturo.materiales.fenolicos > 0 && `${aFuturo.materiales.fenolicos} placas fenólicas`,
+              aFuturo.porton && 'el portón',
+            ].filter(Boolean).join(', ')}. La mano de obra del tapial se pone a futuro en Presupuesto → Mano de obra por segmento.</small>
+          )}
+          {oc.tapial.aFuturo && oc.tapial.encofrado === 'fenolico' && (
+            <label className="casilla-opcional">
+              <input type="checkbox" checked={Boolean(oc.tapial.fenolicosYa)} onChange={(e) => cambiar('obraCivil.tapial.fenolicosYa')(e.target.checked)} />
+              …pero las placas fenólicas (y sus tirantes) se compran ya
+            </label>
+          )}
+        </div>
+      )}
       {largoDelTapial(oc, params.terreno) > 0 && <PortonDelTapial oc={oc} params={params} unidad={unidad} cambiar={cambiar} />}
       {cuentasTapial && <SegunAlbanil oc={oc} cuentas={cuentasTapial} cambiar={cambiar} />}
 

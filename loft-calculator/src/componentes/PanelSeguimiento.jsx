@@ -58,7 +58,7 @@ function Pago({ p, ruta, cambiar, onQuitar, plan, acreedores }) {
   );
 }
 
-function Rubro({ r, i, partes, acreedores, cambiar, onQuitar, abiertaAlInicio, contratistas = [], compras = [], partesObra = [] }) {
+function Rubro({ r, i, partes, acreedores, cambiar, onQuitar, abiertaAlInicio, contratistas = [], compras = [], partesObra = [], avanceDeHierros = null }) {
   const ruta = `seguimiento.rubros.${i}`;
   const c = cuentasDelRubro(r, partes, compras);
   const contratista = contratistas.find((x) => x.id === r.contratista);
@@ -129,7 +129,20 @@ function Rubro({ r, i, partes, acreedores, cambiar, onQuitar, abiertaAlInicio, c
             </label>
           </div>
         )}
-        <CampoNumero etiqueta="Avance (cuánto está hecho)" sufijo="%" decimales={0} valor={r.avance ?? 0} onCambio={cambiarAvance} />
+        {r.avanceDelArmado
+          ? <p className="nota">Avance: <strong>{Math.round(r.avance ?? 0)} %</strong> (los metros de hierro puestos en Obra → Armado)</p>
+          : <CampoNumero etiqueta="Avance (cuánto está hecho)" sufijo="%" decimales={0} valor={r.avance ?? 0} onCambio={cambiarAvance} />}
+        {/* v1.93 (Leandro: "Zopapa me dice 0 % hecho, cuando ya registré caños instalados"): el avance del herrero, del armado. */}
+        {!esDeMateriales(r) && avanceDeHierros !== null && (
+          <label className="casilla-opcional">
+            <input type="checkbox" checked={Boolean(r.avanceDelArmado)}
+              onChange={(e) => (e.target.checked
+                ? cambiar(ruta)({ ...r, avanceDelArmado: true, avance: avanceDeHierros, estado: estadoSegunAvance(avanceDeHierros, r.estado),
+                  fechaFin: avanceDeHierros >= 100 && !r.fechaFin ? hoy() : r.fechaFin })
+                : cambiar(ruta)({ ...r, avanceDelArmado: false }))} />
+            El avance sale del Armado (fierros puestos: hoy {avanceDeHierros} %)
+          </label>
+        )}
         {!r.origen && (
           <CampoNumero etiqueta="Presupuestado" sufijo="$" decimales={0} valor={r.presupuestado} onCambio={cambiar(`${ruta}.presupuestado`)} />
         )}
@@ -177,7 +190,7 @@ function Rubro({ r, i, partes, acreedores, cambiar, onQuitar, abiertaAlInicio, c
  * @param partes  lo que dice el presupuesto de cada parte (partesDelPresupuesto)
  * @param precioObra el precio de la obra (cierre), para comparar
  */
-export default function PanelSeguimiento({ params, partes, precioObra, cambiar, partesObra = [] }) {
+export default function PanelSeguimiento({ params, partes, precioObra, cambiar, partesObra = [], avanceDeHierros = null }) {
   const seguimiento = params.seguimiento ?? { rubros: [] };
   const rubros = seguimiento.rubros;
   const [recien, setRecien] = useState(null);
@@ -219,7 +232,7 @@ export default function PanelSeguimiento({ params, partes, precioObra, cambiar, 
       )}
       {rubros.length === 0 && <p className="vacio">Todavía no hay rubros. Armalos desde el presupuesto o agregá uno a mano.</p>}
       {ordenados.map(({ r, i }) => (
-        <Rubro key={r.id} r={r} i={i} partes={partes} acreedores={acreedores} cambiar={cambiar} onQuitar={() => quitar(r.id)} abiertaAlInicio={r.id === recien}
+        <Rubro key={r.id} r={r} i={i} partes={partes} acreedores={acreedores} cambiar={cambiar} onQuitar={() => quitar(r.id)} abiertaAlInicio={r.id === recien} avanceDeHierros={avanceDeHierros}
           contratistas={contratistas} compras={compras} partesObra={partesObra} />
       ))}
       <div className="acciones-seguimiento">

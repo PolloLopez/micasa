@@ -16,7 +16,7 @@
 
 import { useState } from 'react';
 import { agruparLista, compraDesdeLista, pagarRetirado, ultimaDesdeLista, deshacerMarca, estadoDeFila, PROPIO, resumenPorMaterial } from '../motor/listaCompras.js';
-import { NINGUNO, cantidadPedida } from '../motor/proveedores.js';
+import { NINGUNO, A_FUTURO, cantidadPedida } from '../motor/proveedores.js';
 import { useEstadoGuardado } from '../hooks/useEstadoGuardado.js';
 import NotaPlegable from './NotaPlegable.jsx';
 import Buscador from './Buscador.jsx'; // v1.84
@@ -49,6 +49,7 @@ function Fila({ f, proveedores, opcionesDe, onAsignar, onMarcar, onPagarRetirado
             className={sinProveedor ? 'falta' : ''}>
             <option value="">Automático{f.aMano ? '' : ` (${proveedores.find((p) => p.id === f.proveedor)?.nombre ?? 'nadie lo vende'})`}</option>
             {opcionesDe(f).map((o) => <option key={o.id} value={o.id}>{o.texto}</option>)}
+            <option value={A_FUTURO}>A futuro (todavía no: no entra en el total)</option>
             <option value={NINGUNO}>No se lo compro a nadie (lo consigo yo / ya lo tengo)</option>
           </select>
         )}
@@ -87,8 +88,19 @@ export default function ListaDeCompras({ filas, proveedores, compras, asignacion
   const visibles = filtrarPor(filas.filter((f) => (ver === 'falta' ? f.falta > 0 : ver === 'debe' ? f.sinPagar > 0 : true)), buscar,
     (f) => `${f.nombre} ${f.perfil ?? ''} ${f.parteNombre ?? f.parte ?? ''} ${proveedores.find((p) => p.id === f.proveedor)?.nombre ?? ''}`);
   const grupos = agruparLista(visibles, proveedores);
-  const totales = agruparLista(filas, proveedores).reduce((a, g) => ({ total: a.total + g.total, falta: a.falta + g.falta, sinPagar: a.sinPagar + g.sinPagar }),
+  // v1.93: lo de "a futuro" no suma al total ni a lo que falta (se muestra aparte).
+  const todosLosGrupos = agruparLista(filas, proveedores);
+  const totales = todosLosGrupos.filter((g) => g.proveedor !== A_FUTURO).reduce((a, g) => ({ total: a.total + g.total, falta: a.falta + g.falta, sinPagar: a.sinPagar + g.sinPagar }),
     { total: 0, falta: 0, sinPagar: 0 });
+  const aFuturo = todosLosGrupos.find((g) => g.proveedor === A_FUTURO);
+  // v1.93: toda una parte de la obra (ej. el tapial) a futuro, o de vuelta a comprar.
+  // (todos los renglones de esa parte, de cualquier proveedor: el tapial tiene cemento de un lado y ladrillos de otro)
+  const parteAFuturo = (clave, futuro) => {
+    const nuevas = { ...asignaciones };
+    filas.filter((f) => f.parte === clave && f.proveedor !== PROPIO && (futuro || nuevas[f.id] === A_FUTURO))
+      .forEach((f) => { if (futuro) nuevas[f.id] = A_FUTURO; else delete nuevas[f.id]; });
+    cambiar('seguimiento.asignaciones')(nuevas);
+  };
   const porMaterial = resumenPorMaterial(filas, compras); // v1.92
   const nombreDe = (id) => proveedores.find((p) => p.id === id)?.nombre ?? '';
   const asignar = (idRenglon, proveedor) => {
@@ -116,6 +128,7 @@ export default function ListaDeCompras({ filas, proveedores, compras, asignacion
         <div><small>Total</small><strong>{pesos(totales.total)}</strong></div>
         <div><small>Falta comprar</small><strong>{pesos(totales.falta)}</strong></div>
         {totales.sinPagar > 0 && <div><small>Retirado sin pagar</small><strong className="falta">{pesos(totales.sinPagar)}</strong></div>}
+        {aFuturo && <div><small>A futuro (no suma)</small><strong>{pesos(aFuturo.total)}</strong></div>}
       </div>
       {/* v1.92 (Leandro: "recalcular en los que cargué y los necesarios para ver si realmente siguen faltando"): por
           material, sumando todos sus renglones (columnas, soleras, bordes…). */}
@@ -153,7 +166,12 @@ export default function ListaDeCompras({ filas, proveedores, compras, asignacion
           </summary>
           {g.partes.map((p) => (
             <div key={p.clave} className="parte-lista">
-              <h4 className="subtitulo-pared">{p.nombre}</h4>
+              <h4 className="subtitulo-pared">{p.nombre}
+                {p.filas.some((f) => f.proveedor !== PROPIO) && (
+                  <button type="button" className="btn-mini no-print" onClick={() => parteAFuturo(p.clave, g.proveedor !== A_FUTURO)}
+                    title={g.proveedor === A_FUTURO ? 'Vuelve a la lista para comprar (con el proveedor automático)' : 'Todavía no se compra: sale del total y de lo que falta'}>
+                    {g.proveedor === A_FUTURO ? '↶ Volver a comprar' : 'Toda esta parte a futuro'}</button>
+                )}</h4>
               <div className="table-wrap">
                 <table className="tabla-compras">
                   <thead><tr><th>Material</th><th className="num">Cantidad</th><th>Estado</th><th>Se lo compro a</th><th className="no-print">Marcar</th></tr></thead>
