@@ -36,7 +36,7 @@ import FichaPlegable from './FichaPlegable.jsx';
 import SeccionPlegable from './SeccionPlegable.jsx';
 import { textoDePrecio, preciosOrdenados } from '../motor/resumenPrecios.js';
 import { nombrePerfil } from '../motor/perfiles.js';
-import { BASES_CONSUMIBLE, ESTIMACION_DE_FABRICA, esEstimado } from '../motor/consumibles.js';
+import { BASES_CONSUMIBLE, ESTIMACION_DE_FABRICA, esEstimado, datosDeBase, baseDeRevestimiento, esBaseDeRevestimiento } from '../motor/consumibles.js';
 import NotaPlegable from './NotaPlegable.jsx';
 
 /** Valida un número contra sus límites y, si está bien, lo guarda. */
@@ -103,7 +103,8 @@ function ComparativaDeTiras({ tipo, comparativa, precioUnitario, cambiar = null 
   );
 }
 
-function Revestimiento({ tipo, unidad, usos, unicoQueda, proveedores, precio, nuevo, onCambiar, onQuitar, onCambiarPrecio, ahorro = null, precioUnitario = null, onDuplicar = null }) {
+function Revestimiento({ tipo, unidad, usos, unicoQueda, proveedores, precio, nuevo, onCambiar, onQuitar, onCambiarPrecio, ahorro = null, precioUnitario = null, onDuplicar = null,
+  otrosRevestimientos = [], capas = null, onAgregarCapa = null }) {
   const cambiar = (campo) => (valor) => onCambiar(tipo.id, campo, valor);
   const medida = (campo, etiqueta) => (
     <CampoNumero key={campo} etiqueta={etiqueta} unidad={unidad} valor={tipo[campo]}
@@ -193,6 +194,21 @@ function Revestimiento({ tipo, unidad, usos, unicoQueda, proveedores, precio, nu
         <CampoSelect etiqueta="Ubicación" valor={tipo.ubicacion} onCambio={cambiar('ubicacion')}
           opciones={[['cara', 'Sobre los perfiles'], ['eje', 'Entre perfiles']]} />
       </div>
+      {/* v1.102: revestimiento por capas: el interior que va con este, la mano de obra y las capas (lana, listones, tacos…). */}
+      <div className="capas-revestimiento">
+        <h4 className="subtitulo-pared">Por capas y mano de obra <small>(para comparar sistemas)</small></h4>
+        <div className="grid-params">
+          <CampoSelect etiqueta="Por dentro va con" valor={tipo.interior ?? ''} onCambio={cambiar('interior')}
+            opciones={[['', 'Nada (o lo que elija cada pared)'], ...otrosRevestimientos.map((r) => [r.id, r.nombre])]} />
+          <CampoNumero etiqueta="Mano de obra de colocarlo" sufijo="$ por m²" decimales={0} valor={tipo.manoDeObraM2 ?? 0}
+            onCambio={conLimites(LIMITES_REVESTIMIENTO.manoDeObraM2, cambiar('manoDeObraM2'))} />
+        </div>
+        <small className="nota">"Por dentro va con": las paredes con este revestimiento y sin interior elegido llevan ese (ej. el
+          fenólico). La mano de obra es de todo el sistema (las capas y el interior incluidos) y se usa en Presupuesto →
+          Comparar revestimientos.</small>
+        {capas}
+        {onAgregarCapa && <button type="button" className="btn-sec no-print" onClick={() => onAgregarCapa(tipo.id)}>+ Capa (lana, membrana, listones, tacos…)</button>}
+      </div>
       {/* v1.71: pedirlo cortado en las aberturas (el proveedor saca los huecos) o entero y cortar en obra. */}
       <label className="casilla-opcional">
         <input type="checkbox" checked={tipo.descontarAberturas !== false} onChange={(e) => cambiar('descontarAberturas')(e.target.checked)} />
@@ -230,7 +246,7 @@ function Revestimiento({ tipo, unidad, usos, unicoQueda, proveedores, precio, nu
  * v1.48: la cantidad se carga a mano o se estima sola (medida de la obra x coeficiente, ver motor/consumibles.js).
  * @param calculado el renglón del presupuesto (cantidad y cómo se estimó), o null si no entra
  */
-function Accesorio({ accesorio: a, calculado, proveedores, precio, nuevo, onCambiar, onQuitar, onCambiarPrecio }) {
+function Accesorio({ accesorio: a, calculado, proveedores, precio, nuevo, onCambiar, onQuitar, onCambiarPrecio, bases = Object.entries(BASES_CONSUMIBLE).map(([k, b]) => [k, b.nombre]), nombreBase = datosDeBase }) {
   const estimado = esEstimado(a);
   const cambiarCoeficiente = (v) => {
     if (v < 0 || v > 1000) return 'Entre 0 y 1000';
@@ -238,7 +254,7 @@ function Accesorio({ accesorio: a, calculado, proveedores, precio, nuevo, onCamb
     return null;
   };
   // Al pasar a estimado sin base elegida, arranca con la de fábrica (si es uno de los de siempre) o con los kg de hierro.
-  const cambiarModo = (modo) => onCambiar(a.id, modo === 'estimado' && !BASES_CONSUMIBLE[a.base]
+  const cambiarModo = (modo) => onCambiar(a.id, modo === 'estimado' && !BASES_CONSUMIBLE[a.base] && !esBaseDeRevestimiento(a.base)
     ? { modo, base: ESTIMACION_DE_FABRICA[a.id]?.base ?? 'kgHierro', coeficiente: a.coeficiente || ESTIMACION_DE_FABRICA[a.id]?.coeficiente || 0 }
     : { modo });
   const texto = (campo, largo) => (e) => onCambiar(a.id, { [campo]: e.target.value.slice(0, largo) });
@@ -266,9 +282,10 @@ function Accesorio({ accesorio: a, calculado, proveedores, precio, nuevo, onCamb
         <CampoSelect etiqueta="Cantidad" valor={estimado ? 'estimado' : 'manual'}
           opciones={[['estimado', 'Estimada sola'], ['manual', 'A mano']]} onCambio={cambiarModo} />
         {estimado ? (<>
-          <CampoSelect etiqueta="Según" valor={a.base} opciones={Object.entries(BASES_CONSUMIBLE).map(([k, b]) => [k, b.nombre])}
+          {/* v1.102: también "m² de <un revestimiento>" (las capas de un revestimiento por capas). */}
+          <CampoSelect etiqueta="Según" valor={a.base} opciones={bases}
             onCambio={(base) => onCambiar(a.id, { base })} />
-          <CampoNumero etiqueta={`${a.unidad || 'u'} por ${BASES_CONSUMIBLE[a.base].unidad}`} decimales={4} valor={a.coeficiente}
+          <CampoNumero etiqueta={`${a.unidad || 'u'} por ${nombreBase(a.base).unidad}`} decimales={4} valor={a.coeficiente}
             onCambio={cambiarCoeficiente} />
         </>) : (
           <CampoNumero etiqueta="Cantidad a comprar" decimales={2} valor={a.cantidad} onCambio={cambiarCantidad} />
@@ -304,6 +321,7 @@ const TITULOS = { proveedores: `Proveedores`, perfiles: 'Perfiles y cortes', otr
 export default function TarjetaMateriales({
   items, catalogo, revestimientos, unidad, usosDeRevestimiento, excedenteBarras,
   onCambiarExcedente, onCambiarInsumo, onAgregarRevestimiento, onQuitarRevestimiento, onDuplicarRevestimiento = null,
+  onAgregarSistemaPorCapas = null, onAgregarCapa = null, // v1.102
   compartirCortes, onCambiarCompartir, onActualizarPerfil, onAgregarPerfil, onQuitarPerfil,
   proveedor, pago, onCambiarPrecio, onActualizarProveedor, onAgregarProveedor, onQuitarProveedor,
   onAgregarAccesorio, onQuitarAccesorio, mermaCorte = 3, retazoMinimo = 0.3, empalmesSobreApoyo = true, onCambiarCorte = null, ahorrosAberturas = {},
@@ -321,7 +339,13 @@ export default function TarjetaMateriales({
   const usosPerfil = items.filter((i) => i.categoria === 'perfil' && !i.derivadoDe);
   // OSB, pilotines, madera… (los accesorios y el flete tienen su lugar propio).
   const otros = items.filter((i) => !['panel', 'perfil', 'accesorio', 'flete'].includes(i.categoria));
-  const accesorios = catalogo.filter((i) => i.categoria === 'accesorio');
+  // v1.102: las capas de un revestimiento (base "m² de <revestimiento>") se ven y se editan en la ficha de ese revestimiento.
+  const accesorios = catalogo.filter((i) => i.categoria === 'accesorio' && !esBaseDeRevestimiento(i.base));
+  const capasDe = (idRevestimiento) => catalogo.filter((i) => i.categoria === 'accesorio' && i.base === baseDeRevestimiento(idRevestimiento));
+  const nombreRevestimiento = (id) => (revestimientos ?? []).find((r) => r.id === id)?.nombre ?? 'un revestimiento que ya no está';
+  const nombreBase = (base) => datosDeBase(base, nombreRevestimiento);
+  const basesConRevestimientos = [...Object.entries(BASES_CONSUMIBLE).map(([k, b]) => [k, b.nombre]),
+    ...(revestimientos ?? []).map((r) => [baseDeRevestimiento(r.id), `m² de ${r.nombre}`])];
   // Qué renglones de ESTE proyecto usa cada perfil (para "Usado en" y para no borrar uno en uso).
   const usadoEn = {};
   items.filter((i) => i.categoria === 'perfil').forEach((i) => i.perfilId && (usadoEn[i.perfilId] ??= []).push(i.nombre));
@@ -347,7 +371,7 @@ export default function TarjetaMateriales({
   const materialesDeLaObra = [
     ...visibles.map((p) => ({ ...p, nombre: nombrePerfil(p), unidadPrecio: 'barra' })),
     ...otros.map((item) => ({ ...delCatalogo(item), nombre: item.nombre, unidadPrecio: item.unidad })),
-    ...accesorios.map((a) => ({ ...a, unidadPrecio: a.unidad || 'u' })),
+    ...catalogo.filter((i) => i.categoria === 'accesorio').map((a) => ({ ...a, unidadPrecio: a.unidad || 'u' })), // v1.102: con las capas
     ...(revestimientos ?? []).map((t) => ({ ...t, unidadPrecio: unidadDePrecio(t) })),
   ];
   const sinPrecio = materialesDeLaObra.filter((m) => precioDe(m).texto === 'sin precio').length;
@@ -494,10 +518,26 @@ export default function TarjetaMateriales({
               <Revestimiento key={tipo.id} tipo={tipo} unidad={unidad} usos={usosDeRevestimiento(tipo.id)}
                 unicoQueda={revestimientos.length === 1} onCambiar={onCambiarInsumo} onQuitar={onQuitarRevestimiento}
                 proveedores={proveedores} precio={precioDe(tipo)} nuevo={esNuevo(tipo.id)} onCambiarPrecio={onCambiarPrecio}
-                ahorro={ahorrosAberturas[tipo.id]} precioUnitario={precioUnitarioDe(tipo)} onDuplicar={onDuplicarRevestimiento} />
+                ahorro={ahorrosAberturas[tipo.id]} precioUnitario={precioUnitarioDe(tipo)} onDuplicar={onDuplicarRevestimiento}
+                otrosRevestimientos={revestimientos.filter((r) => r.id !== tipo.id)} onAgregarCapa={onAgregarCapa}
+                capas={capasDe(tipo.id).length > 0 && (
+                  <div className="lista-fichas">
+                    {capasDe(tipo.id).map((a) => (
+                      <Accesorio key={a.id} accesorio={a} calculado={items.find((i) => i.id === a.id) ?? null} proveedores={proveedores}
+                        precio={precioDe(a)} nuevo={esNuevo(a.id)} onCambiar={onActualizarPerfil} onQuitar={onQuitarAccesorio}
+                        onCambiarPrecio={onCambiarPrecio} bases={basesConRevestimientos} nombreBase={nombreBase} />
+                    ))}
+                  </div>
+                )} />
             ))}
           </div>
           <button className="btn-add no-print" onClick={onAgregarRevestimiento}>+ Agregar revestimiento</button>
+          {/* v1.102 (Leandro: "chapa trapezoidal sin aislante, manta de lana de vidrio de 5 cm y placas de fenólico"). */}
+          {onAgregarSistemaPorCapas && (
+            <button className="btn-sec no-print" onClick={onAgregarSistemaPorCapas}
+              title="Agrega la chapa trapezoidal (por fuera) con el fenólico por dentro y sus capas: lana de vidrio, membrana, listones y tacos (sin precios)">
+              + Sistema por capas: chapa + lana + fenólico</button>
+          )}
         </SeccionPlegable>
       )}
     </Tarjeta>

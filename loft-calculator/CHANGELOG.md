@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.102.0] - 2026-11-26
+### Agregado
+- **Revestimiento por capas** (Leandro: "chapa trapezoidal sin aislante, manta de lana de vidrio de 5 cm y placas de
+  fenólico; que incluya lana de vidrio, maderas y tacos para sostenerla, así comparo, y también la mano de obra").
+  Cada revestimiento puede tener:
+  - **"Por dentro va con"**: su interior (el fenólico). Las paredes sin interior elegido lo llevan solo.
+  - **Capas**: materiales estimados con SUS m² (nueva base "m² de <revestimiento>"): lana de vidrio (rollo de 14,4 m²
+    + 5 %), membrana hidrófuga, listones de madera 2"×1" cada 60 cm y tacos cada 40 cm. Precio por proveedor como
+    cualquier material; si ese revestimiento no se usa, no cuentan.
+  - **Mano de obra de colocarlo** ($ por m² de pared).
+  Botón "+ Sistema por capas: chapa + lana + fenólico" (Materiales → Revestimientos) que lo arma de fábrica, sin precios.
+  **Comparar revestimientos** muestra las capas con su plata, la mano de obra (m² × $/m²), el total con ella, y la
+  diferencia ya la incluye; el fenólico (solo interior) no se prueba por fuera. `motor/sistemaPorCapas.js`.
+
 ## [1.101.0] - 2026-11-26
 ### Agregado
 - **Perfiles: usados, en el lote y por comprar** (Leandro: "me falta ver cuántos perfiles usé y cuántos me faltan,

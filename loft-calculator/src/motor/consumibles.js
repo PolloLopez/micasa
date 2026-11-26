@@ -39,7 +39,7 @@ const DENSIDAD_ACERO = 7.85; // kg por dm³: 1 m² de chapa de 1 mm pesa 7,85 kg
  * @param catalogo  catálogo resuelto (perfiles de la lista con su `espesor` en mm)
  * @param superficies estructura.superficies (murosNetos, techo)
  */
-export function medidasParaConsumibles(items, catalogo, superficies = {}) {
+export function medidasParaConsumibles(items, catalogo, superficies = {}, m2PorRevestimiento = {}) {
   const espesorDe = (item) => catalogo.find((c) => c.categoria === 'hierro' && c.id === item.perfilId)?.espesor ?? 0;
   let kgHierro = 0;
   let m2Hierro = 0;
@@ -51,11 +51,28 @@ export function medidasParaConsumibles(items, catalogo, superficies = {}) {
     if (espesor > 0) m2Hierro += kg / (espesor * DENSIDAD_ACERO);
   });
   const m2Paneles = (superficies.murosNetos ?? 0) + (superficies.techo ?? 0);
-  return { kgHierro, m2Hierro, m2Paneles };
+  // v1.102: los m² de cada revestimiento ('rev:<id>'), para las capas que van con él.
+  const porRevestimiento = Object.fromEntries(Object.entries(m2PorRevestimiento).map(([id, m2]) => [baseDeRevestimiento(id), m2]));
+  return { kgHierro, m2Hierro, m2Paneles, ...porRevestimiento };
+}
+
+// v1.102 (Leandro: revestimiento por capas, "que incluya lana de vidrio, maderas y tacos para sostenerla"): un
+// accesorio también se puede estimar con los m² de UN revestimiento: base 'rev:<id del revestimiento>'. Así la lana, la
+// membrana, los listones y los tacos van con la chapa: si la chapa no se usa (o en Comparar se prueba otro), no cuentan.
+export const PREFIJO_REVESTIMIENTO = 'rev:';
+export const baseDeRevestimiento = (idRevestimiento) => `${PREFIJO_REVESTIMIENTO}${idRevestimiento}`;
+export const esBaseDeRevestimiento = (base) => typeof base === 'string' && base.startsWith(PREFIJO_REVESTIMIENTO) && base.length > PREFIJO_REVESTIMIENTO.length;
+const esBaseValida = (base) => Boolean(BASES_CONSUMIBLE[base]) || esBaseDeRevestimiento(base);
+
+/** Nombre y unidad de una base (las de un revestimiento: "m² de Chapa trapezoidal"). */
+export function datosDeBase(base, nombreDelRevestimiento = (id) => id) {
+  if (BASES_CONSUMIBLE[base]) return BASES_CONSUMIBLE[base];
+  if (esBaseDeRevestimiento(base)) return { nombre: `m² de ${nombreDelRevestimiento(base.slice(PREFIJO_REVESTIMIENTO.length))}`, unidad: 'm²' };
+  return { nombre: base, unidad: '' };
 }
 
 /** ¿El accesorio se estima solo? (si no, se carga a mano). */
-export const esEstimado = (a) => a.modo === 'estimado' && Boolean(BASES_CONSUMIBLE[a.base]);
+export const esEstimado = (a) => a.modo === 'estimado' && esBaseValida(a.base);
 
 /**
  * Cantidad de un accesorio y cómo se llegó. A mano: la cargada. Estimado: medida x coeficiente, hacia arriba.
@@ -65,7 +82,7 @@ export function cantidadDeConsumible(a, medidas) {
   if (!esEstimado(a)) return { cantidad: a.cantidad, detalle: 'cantidad cargada a mano' };
   const medida = medidas[a.base] ?? 0;
   const cantidad = medida > 0 && a.coeficiente > 0 ? Math.ceil(medida * a.coeficiente - 1e-9) : 0;
-  const base = BASES_CONSUMIBLE[a.base];
+  const base = datosDeBase(a.base);
   const n = (v, d) => v.toLocaleString('es-AR', { maximumFractionDigits: d });
   return { cantidad, detalle: `estimado: ${n(medida, medida < 100 ? 1 : 0)} ${base.unidad} x ${n(a.coeficiente, 4)} ${a.unidad} por ${base.unidad}` };
 }
@@ -76,7 +93,7 @@ export function cantidadDeConsumible(a, medidas) {
  */
 export function completarConsumible(a) {
   if (a.modo === 'manual' || a.modo === 'estimado') {
-    return { base: '', coeficiente: 0, ...a, ...(a.modo === 'estimado' && !BASES_CONSUMIBLE[a.base] ? { modo: 'manual' } : {}) };
+    return { base: '', coeficiente: 0, ...a, ...(a.modo === 'estimado' && !esBaseValida(a.base) ? { modo: 'manual' } : {}) };
   }
   const fabrica = ESTIMACION_DE_FABRICA[a.id];
   if (fabrica && !(a.cantidad > 0)) return { ...a, modo: 'estimado', base: fabrica.base, coeficiente: fabrica.coeficiente };

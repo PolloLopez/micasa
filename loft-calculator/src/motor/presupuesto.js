@@ -565,7 +565,10 @@ function calcularRenglones(estructura, catalogo, excedenteBarras, corte = {}) {
   // v1.29: accesorios (tornillería, electrodos, selladores…). v1.48: a mano o estimados con las medidas de la obra
   // (kilos y superficie de hierro, m² de paneles); van al final porque necesitan todos los perfiles ya contados.
   const todos = conDerivados(items);
-  const medidas = medidasParaConsumibles(todos, catalogo, s);
+  // v1.102: + los m² (netos) de cada revestimiento, para las capas que van con él (lana, listones, tacos…).
+  const m2PorRevestimiento = Object.fromEntries(Object.entries(panos).map(([id, lista]) =>
+    [id, lista.reduce((a, p) => a + (Number.isFinite(p.neto) ? p.neto : (p.largo * (p.h1 + p.h2)) / 2), 0)]));
+  const medidas = medidasParaConsumibles(todos, catalogo, s, m2PorRevestimiento);
   catalogo.filter((i) => i.categoria === 'accesorio').forEach((a) => {
     const { cantidad, detalle } = cantidadDeConsumible(a, medidas);
     // Un estimado sin precio en ningún proveedor se muestra (para saber cuánto comprar) pero no se avisa como

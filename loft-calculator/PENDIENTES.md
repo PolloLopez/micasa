@@ -38,10 +38,14 @@ Manual: `MANUAL.md` y el doc "Pollo Calculator — Manual de usuario" (Claude Do
 - 🟢 [ ] Código: App.jsx (≈2.000 líneas) y LoftCanvas.jsx (≈2.900) — partir por tema; 6 avisos del lint.
 
 ## 📌 Lo que sigue (orden sugerido)
+0. 🟡 Revestimiento por capas: la mano de obra por m² solo se usa en Comparar; si se elige un sistema, que el
+   segmento "Revestimiento" de Mano de obra pueda tomarla. Y el 3D/planos no dibujan la lana ni los listones.
 1. 🟡 **Lint de dependencias de los `useMemo`** (react-hooks en `.oxlintrc.json`): así se coló el error de la comparación.
 2. 🟡 **Partir `App.jsx`** (1.800 líneas) en pocos hooks por tema (`useObra`, `useCompras`…), con su test.
 
 ## 🙋 De tu lado (Leandro)
+- 🟡 [ ] Revestimiento por capas (v1.102): cargar precios de chapa (por metro = por m²), lana, membrana, listones, tacos
+  y fenólico, y la mano de obra por m² de cada sistema; mirar Presupuesto → Comparar revestimientos.
 - 🔴 [ ] **Compras repetidas?** Hay 2 compras de 12 caños 80×80 (20/11 y 25/11) y 2 de 12 perfiles C (20/11 y 25/11):
   la app cuenta 24 de cada uno. Si es la misma compra cargada dos veces, borrar una (Obra → Compras hechas). Después
   contar las barras enteras en el lote y compararlas con Obra → Armado → "Enteras en el lote".

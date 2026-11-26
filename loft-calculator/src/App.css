@@ -1169,3 +1169,7 @@ option { background: var(--tarjeta); color: var(--texto); }
 /* v1.101: perfiles usados, en el lote y por comprar (Obra → Armado). */
 .uso-perfiles { margin: 0.5rem 0 0.8rem; }
 .uso-perfiles summary { cursor: pointer; margin-bottom: 0.3rem; }
+/* v1.102: revestimiento por capas (interior, mano de obra y capas en la ficha del revestimiento). */
+.capas-revestimiento { margin: 0.6rem 0; padding: 0.5rem 0.6rem; border: 1px dashed var(--borde, #334155); border-radius: 8px; }
+.capas-revestimiento .lista-fichas { margin: 0.4rem 0; }
+.capas-comparativa { font-size: 0.75rem; color: var(--texto-suave, #94a3b8); }

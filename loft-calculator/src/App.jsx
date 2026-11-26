@@ -59,6 +59,8 @@ import PanelCompras from './componentes/PanelCompras.jsx';
 import { resumenDeCompras } from './motor/compras.js';
 import { filasDeLaLista, informeDeCompras } from './motor/listaCompras.js';
 import { usoDePerfiles } from './motor/usoDePerfiles.js';
+import { sistemaChapaLanaFenolico, capaNueva } from './motor/sistemaPorCapas.js';
+import { baseDeRevestimiento } from './motor/consumibles.js';
 import { partesAFuturo, cambiosParteAFuturo, asignacionesConFuturo, subtotalAFuturo, materialesSinPrecio, resumenDelTotal, montoDeObraCivilAFuturo } from './motor/totalDeLaObra.js';
 import { A_FUTURO, usaPlanDeCompra } from './motor/proveedores.js';
 import ListaDeCompras from './componentes/ListaDeCompras.jsx';
@@ -803,8 +805,21 @@ export default function App() {
     // v1.96: los tramos con otro panel.
     ...LADOS.filter((l) => (params.paredes[l].tramosPanel ?? []).some((t) => t.panel === id)).map((l) => `${nombreDePared(l, params)} (un tramo)`),
     ...((params.tramosPanelTecho ?? []).some((t) => t.panel === id) ? ['Techo (un tramo)'] : []),
+    // v1.102: el interior que va con otro revestimiento.
+    ...paneles.filter((p) => p.interior === id).map((p) => `por dentro de "${p.nombre}"`),
   ];
-  const quitarTipoPanel = (id) => setCatalogo((prev) => prev.filter((p) => p.id !== id));
+  // v1.102: con el revestimiento se van sus capas (lana, listones… estimados con sus m²) y deja de ser interior de otro.
+  const quitarTipoPanel = (id) => setCatalogo((prev) => prev.filter((p) => p.id !== id && p.base !== baseDeRevestimiento(id))
+    .map((p) => (p.categoria === 'panel' && p.interior === id ? { ...p, interior: '' } : p)));
+  // v1.102 (Leandro: chapa trapezoidal + lana de vidrio + maderas y tacos + fenólico): el sistema armado de fábrica,
+  // y una capa más para un revestimiento.
+  const agregarSistemaPorCapas = () => setCatalogo((prev) => [...prev, ...sistemaChapaLanaFenolico(prev)]);
+  const agregarCapa = (idRevestimiento) => setCatalogo((prev) => {
+    const usados = new Set(prev.map((p) => p.id));
+    let n = 1;
+    while (usados.has(`acc-${n}`)) n++;
+    return [...prev, capaNueva(`acc-${n}`, idRevestimiento)];
+  });
   // --- Accesorios (v1.29): tornillería, electrodos, selladores… y los que agregue el herrero ---
   const agregarAccesorio = () => setCatalogo((prev) => {
     const usados = new Set(prev.map((p) => p.id));
@@ -1955,6 +1970,7 @@ export default function App() {
             compartirCortes={params.compartirCortes !== false} onCambiarCompartir={cambiar('compartirCortes')}
             onActualizarPerfil={actualizarInsumo} onAgregarPerfil={agregarPerfil} onQuitarPerfil={quitarPerfil}
             onAgregarRevestimiento={agregarTipoPanel} onQuitarRevestimiento={quitarTipoPanel} onDuplicarRevestimiento={duplicarTipoPanel}
+            onAgregarSistemaPorCapas={agregarSistemaPorCapas} onAgregarCapa={agregarCapa}
             proveedor={proveedorElegido} pago={formaPago} onCambiarPrecio={cambiarPrecio}
             onActualizarProveedor={actualizarInsumo} onAgregarProveedor={agregarProveedor} onQuitarProveedor={quitarProveedor}
             onAgregarAccesorio={agregarAccesorio} onQuitarAccesorio={quitarAccesorio} />}

@@ -878,7 +878,11 @@ export function generarEstructura(params, aberturas, catalogo = null) {
   const lados = geometriaLados(params);
   const planta = rectanguloPlanta(params);
   const entrepiso = rectanguloEntrepiso(params, lados);
-  const paredes = generarParedes(params, lados, aberturas);
+  // v1.102 (revestimiento por capas): si la pared no tiene interior elegido, lleva el que va con su revestimiento
+  // exterior (ej. la chapa trapezoidal "va con" el fenólico por dentro). Así, al cambiar de revestimiento (o en
+  // Comparar), el interior cambia con él.
+  const interiorDe = (idPanel) => catalogo?.find((i) => i.categoria === 'panel' && i.id === idPanel)?.interior || null;
+  const paredes = generarParedes(params, lados, aberturas).map((p) => (p.panelInterior ? p : { ...p, panelInterior: interiorDe(p.panel) }));
   const techo = generarTecho(params, lados);
   const posiciones = posicionesDeColumnas(params, lados);
 

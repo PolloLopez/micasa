@@ -219,6 +219,8 @@ function datosDeRevestimiento(p) {
     largoTira: numero('largoTira'), // v1.81
     tirasManuales: tirasManualesValidas(p.tirasManuales), // v1.82: de qué tira sale cada pedazo (elegido a mano)
     recortes: RECORTES.includes(p.recortes) ? p.recortes : d.recortes, // v1.82.1
+    interior: typeof p.interior === 'string' && p.interior.length <= 60 && p.interior !== p.id ? p.interior : '', // v1.102
+    manoDeObraM2: numero('manoDeObraM2'), // v1.102
   };
 }
 

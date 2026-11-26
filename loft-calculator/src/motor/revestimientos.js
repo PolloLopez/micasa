@@ -69,6 +69,8 @@ export const REVESTIMIENTO_POR_DEFECTO = {
   tirasManuales: {}, // v1.82: { idDelPedazo: { pared, n } } de qué tira sale un pedazo (elegido a mano)
   recortes: 'pared', // v1.82.1: cómo se usan los recortes de las tiras enteras: 'pared' (en la misma), 'entreParedes' o 'ninguno'
   largoTira: 0, // v1.81: largo de la tira entera (0 = el largo máximo)
+  interior: '', // v1.102: el revestimiento interior que va con este (ej. fenólico con la chapa); '' = ninguno
+  manoDeObraM2: 0, // v1.102: mano de obra de colocarlo, $ por m² de pared (para comparar sistemas)
 };
 
 /**
@@ -223,6 +225,7 @@ export const LIMITES_REVESTIMIENTO = {
   costadoMinimo: { min: 0, max: 1 },
   anchoTotal: { min: 0, max: 3.5 },
   largoTira: { min: 0, max: 20 }, // v1.81 (0 = el largo máximo)
+  manoDeObraM2: { min: 0, max: 1e9 }, // v1.102
 };
 export const TIRA_ANGOSTA = ['derecha', 'izquierda', 'repartida'];
 

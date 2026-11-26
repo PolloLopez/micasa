@@ -45,6 +45,12 @@ cotiza con su panel.
 **Los altos** (v1.95): en Planta cargás la **altura del lado bajo** y la **del lado alto** (lo que mediste en obra);
 la pendiente del techo sale sola, en % y en grados. Hacia dónde cae se elige en Techo.
 
+**Revestimiento por capas** (v1.102): en Materiales → Revestimientos, **"+ Sistema por capas: chapa + lana +
+fenólico"** agrega la chapa trapezoidal (por fuera) que "por dentro va con" el fenólico, y sus capas: lana de vidrio,
+membrana, listones de madera y tacos (cada una con cuánto lleva por m²; se cambian). Cargá sus precios y la **mano de
+obra de colocarlo ($ por m²)**, también en el panel sándwich. En Presupuesto → **Comparar revestimientos** ves los dos
+sistemas en las 4 paredes con todo (capas, interior y mano de obra) y "Usar en las 4 paredes" lo elige.
+
 **Perfiles usados y en el lote** (v1.101): en Obra → Armado, arriba, la tabla "Perfiles: usados, en el lote y por
 comprar". Por cada perfil: cuántas barras lleva la obra, cuántas compraste, cuántas ya están **empezadas** (algún corte
 de esa barra está puesto) y cuántas **enteras deberían quedar en el lote**. Contá las del lote y compará: si no da, falta
