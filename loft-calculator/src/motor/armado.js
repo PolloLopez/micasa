@@ -20,6 +20,12 @@
 import { NOMBRE_TIPO_PIEZA } from './estructura.js';
 import { LARGO_MINIMO_EDITADA } from './edicionPiezas.js';
 
+/** v1.98: qué zonas del armado son cada parte de la obra (Obra → Partes), para el avance de un trabajo de esa parte. */
+export const ZONAS_DE_PARTE = {
+  piso: ['piso'], paredes: ['A', 'B', 'C', 'D'], entrepiso: ['entrepiso', 'piso2'], escalera: ['escalera'], techo: ['techo'],
+  mesadas: ['mesada'], tabiques: ['tabique'],
+};
+
 /** Las zonas de la obra, en el orden de la lista (las paredes van con su nombre). */
 const ZONAS = [
   ['A', 'Pared A'], ['B', 'Pared B'], ['C', 'Pared C'], ['D', 'Pared D'],
@@ -106,8 +112,11 @@ export function resumenDeArmado(piezas, avance = {}) {
  * v1.93: cuánto del HIERRO está puesto, en % de metros (sin la madera, las mesadas ni los tabiques de durlock, que
  * no los hace el herrero). Es el avance de un trabajo con "el avance sale del armado".
  */
-export function porcentajeDeHierros(piezas, avance = {}) {
-  const hierros = piezas.filter((p) => !p.madera && !['mesada', 'tabique'].includes(zonaDePieza(p)));
+export function porcentajeDeHierros(piezas, avance = {}, parte = null) {
+  // v1.98 (Leandro: "el herrero ya realizó tareas y no se le ve en el avance de su obra"): si el trabajo es de una parte
+  // (ej. "Piso (planta baja)"), el % es el de los fierros de esa parte.
+  const zonas = ZONAS_DE_PARTE[parte] ?? null;
+  const hierros = piezas.filter((p) => !p.madera && (zonas ? zonas.includes(zonaDePieza(p)) : !['mesada', 'tabique'].includes(zonaDePieza(p))));
   const total = hierros.reduce((a, p) => a + p.largo, 0);
   const puestos = hierros.filter((p) => avance[p.id]?.instalada).reduce((a, p) => a + p.largo, 0);
   return total > 0 ? Math.round((puestos / total) * 100) : 0;

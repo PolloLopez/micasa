@@ -7,6 +7,36 @@ versión: `CHANGELOG.md`. Espejo en Trello: tablero "Desarrollo", tarjetas `[CAL
 **En GitHub: hasta v1.78.0 (19/11)**; el deploy a https://pollolopez.github.io/micasa/ es automático al pushear.
 Manual: `MANUAL.md` y el doc "Pollo Calculator — Manual de usuario" (Claude Docs).
 
+## 🔎 Auditoría UX/UI y cálculos (26/11, v1.98) — sin arreglar, para decidir
+**Cálculos**
+- 🔴 [ ] El total no suma los materiales **sin precio** y no lo dice al lado (ladrillos, varillas, OSB, madera, portón,
+  durlock, tornillería…): el número de la pestaña parece completo y no lo es. Mostrar "+ N materiales sin precio".
+- 🔴 [ ] Datos (de tu lado): en el archivo del 25/11 "Panel de pared" se cobra **por m² a US$ 65** (antes, por tira entera
+  a US$ 522 = US$ 46/m²); el C 80×40 tiene barra de 12 m; el caño 40×40 tiene un precio imposible. Revisar.
+- 🔴 [ ] Piezas agregadas con coordenadas fijas: no siguen cambios de largo, ancho o alto (ya pasó con agr:7, 8, 10, 11).
+- 🟡 [ ] Piezas superpuestas sin aviso (el antepecho de la ventana nueva del Frente = la faja; montantes de la mesada
+  repetidos a 4 cm): avisar cuando dos piezas ocupan el mismo lugar.
+- 🟡 [ ] "A futuro" en la Lista de compras no baja el "Falta comprar" de Compras hechas (dos números distintos).
+- 🟡 [ ] Obra civil: cemento, arena y piedra son un solo renglón para pilotines, tapial y pilar (parte "Otros"): no se
+  puede ver ni comprar por parte.
+- 🟡 [ ] El avance que sale del Armado se actualiza al marcar fierros; si se agregan piezas, no hasta el próximo marcado.
+- 🟡 [ ] Cruces "debajo": la pieza se mueve entera (en otros cruces puede dejar de tocar).
+- 🟢 [ ] Editor acortar/alargar va antes de las uniones; empalmes con más de una unión.
+
+**UX/UI**
+- 🔴 [ ] La pestaña Presupuesto muestra el **total de toda la obra** y se lee como "lo que falta" (pasó el 25/11): mostrar
+  total, pagado y falta (o una pantalla "Resumen de obra": gastado, falta, avance del armado, próximas compras).
+- 🔴 [ ] Lo nuevo se esconde: avance del armado dentro de cada trabajo, Duplicar en la ficha del panel, "Mis proyectos"
+  bajo "⋯" en el celular, "a futuro" en tres lugares distintos (Fundación, Presupuesto, Lista). Juntar "a futuro" en
+  Obra → Partes y poner atajos donde se los busca.
+- 🟡 [ ] El panel de la pieza tocada en el 3D se hizo largo (puesta, medida real, perfil, cruces, empalmes, editar):
+  partirlo en secciones plegables o pestañas chicas.
+- 🟡 [ ] Información solo por color: puntos de los cruces (rojo/verde/violeta) sin leyenda; avance verde/gris.
+- 🟡 [ ] Números: los campos muestran "4.50" (punto) y los textos "4,50" (coma).
+- 🟡 [ ] En el celular la barra de abajo corta los nombres ("Estruc…", "Materi…").
+- 🟢 [ ] Borrar una compra o un tramo no pide confirmación (se puede deshacer con ↶, pero no lo dice).
+- 🟢 [ ] Código: App.jsx (≈2.000 líneas) y LoftCanvas.jsx (≈2.900) — partir por tema; 6 avisos del lint.
+
 ## 📌 Lo que sigue (orden sugerido)
 1. 🟡 **Lint de dependencias de los `useMemo`** (react-hooks en `.oxlintrc.json`): así se coló el error de la comparación.
 2. 🟡 **Partir `App.jsx`** (1.800 líneas) en pocos hooks por tema (`useObra`, `useCompras`…), con su test.

@@ -132,17 +132,26 @@ function Rubro({ r, i, partes, acreedores, cambiar, onQuitar, abiertaAlInicio, c
         {r.avanceDelArmado
           ? <p className="nota">Avance: <strong>{Math.round(r.avance ?? 0)} %</strong> (los metros de hierro puestos en Obra → Armado)</p>
           : <CampoNumero etiqueta="Avance (cuánto está hecho)" sufijo="%" decimales={0} valor={r.avance ?? 0} onCambio={cambiarAvance} />}
-        {/* v1.93 (Leandro: "Zopapa me dice 0 % hecho, cuando ya registré caños instalados"): el avance del herrero, del armado. */}
-        {!esDeMateriales(r) && avanceDeHierros !== null && (
-          <label className="casilla-opcional">
-            <input type="checkbox" checked={Boolean(r.avanceDelArmado)}
-              onChange={(e) => (e.target.checked
-                ? cambiar(ruta)({ ...r, avanceDelArmado: true, avance: avanceDeHierros, estado: estadoSegunAvance(avanceDeHierros, r.estado),
-                  fechaFin: avanceDeHierros >= 100 && !r.fechaFin ? hoy() : r.fechaFin })
-                : cambiar(ruta)({ ...r, avanceDelArmado: false }))} />
-            El avance sale del Armado (fierros puestos: hoy {avanceDeHierros} %)
-          </label>
-        )}
+        {/* v1.93 (Leandro: "Zopapa me dice 0 % hecho, cuando ya registré caños instalados"): el avance del herrero, del armado.
+            v1.98: de los fierros de SU parte de la obra (si tiene una elegida), y si hay fierros puestos y no lo usa, se
+            ofrece arriba de todo (no hacía falta buscar la casilla). */}
+        {!esDeMateriales(r) && avanceDeHierros && (() => {
+          const pct = avanceDeHierros(r.parteObra);
+          const usar = (si) => cambiar(ruta)(si
+            ? { ...r, avanceDelArmado: true, avance: pct, estado: estadoSegunAvance(pct, r.estado), fechaFin: pct >= 100 && !r.fechaFin ? hoy() : r.fechaFin }
+            : { ...r, avanceDelArmado: false });
+          const deQue = r.parteObra ? partesObra.find((p) => p.clave === r.parteObra)?.nombre ?? r.parteObra : 'toda la estructura de hierro';
+          return (<>
+            {!r.avanceDelArmado && pct > 0 && Math.round(r.avance ?? 0) !== pct && (
+              <p className="aviso-armado" role="status">En Obra → Armado ya hay fierros puestos de {deQue.toLowerCase()} ({pct} %).
+                {' '}<button type="button" className="btn-mini" onClick={() => usar(true)}>Usar ese avance</button></p>
+            )}
+            <label className="casilla-opcional">
+              <input type="checkbox" checked={Boolean(r.avanceDelArmado)} onChange={(e) => usar(e.target.checked)} />
+              El avance sale del Armado (fierros puestos de {deQue.toLowerCase()}: hoy {pct} %)
+            </label>
+          </>);
+        })()}
         {!r.origen && (
           <CampoNumero etiqueta="Presupuestado" sufijo="$" decimales={0} valor={r.presupuestado} onCambio={cambiar(`${ruta}.presupuestado`)} />
         )}

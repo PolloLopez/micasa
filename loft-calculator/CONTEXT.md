@@ -229,6 +229,7 @@ techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 
 - 2026-10-23 v1.26.0: pestaña Planos (paredes y plantas acotadas, listas de corte, revestimiento), en el PDF y en Excel.
 - 2026-10-25 v1.30.0: link compacto (la mitad) y links cortos en Firebase para ver/editar que guardan los cambios.
 - 2026-11-19 docs: PENDIENTES.md reordenado (solo lo abierto, por tema y 🔴🟡🟢, con "Lo que sigue" y "De tu lado"); lo resuelto y el detalle de los pedidos viejos quedó tal cual en HISTORIAL-PENDIENTES.md.
+- 2026-11-26 v1.98.0: porcentajeDeHierros por parte (ZONAS_DE_PARTE en armado.js); conAvanceDelArmado acepta (rubro) => %; aviso "Usar ese avance" en cada trabajo. Auditoría UX/cálculos en PENDIENTES.
 - 2026-11-25 v1.97.0: panel de la tira tocada con selects de panel (tira o tramo) → onCambiarParam(ruta de tramos, tramosConPanel(...)); datosDeTira devuelve `editar`.
 - 2026-11-25 v1.96.0: tramosPanel.js (paños por tramo de panel; donde "lado A · k" / "techo · k"); presupuesto.panosPorRevestimiento, LoftCanvas (dibujo, juntas, T, datosDeTira), planos (panelesTramos con offsetX) y Excel por tramo; TramosPanel.jsx; duplicarTipoPanel.
 - 2026-11-25 v1.95.0: Planta con altura del lado alto (guarda pendienteTecho = (alto − bajo) / luzTecho; cambiar el bajo conserva el alto); pendienteParaAltos/gradosDePendiente en geometria.js.

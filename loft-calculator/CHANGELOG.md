@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.98.0] - 2026-11-26
+### Arreglado
+- **El avance del herrero no se veía** (Leandro: "el herrero ya realizó tareas (perfiles instalados) y no se le ve en
+  el avance de su obra"). Había que encontrar y tildar "El avance sale del Armado" dentro del trabajo. Ahora, si hay
+  fierros puestos y el trabajo no lo usa, arriba aparece "En Obra → Armado ya hay fierros puestos de … (N %) · Usar
+  ese avance". Y el % es el de **su parte de la obra** (el trabajo de Zopapa es de "Piso (planta baja)": 93 %), no el
+  de todo el hierro (`ZONAS_DE_PARTE`, `porcentajeDeHierros(…, parte)`).
+### Documentación
+- PENDIENTES: auditoría de UX/UI y cálculos del 26/11.
+
 ## [1.97.0] - 2026-11-25
 ### Agregado
 - **Cambiar el panel desde la tira tocada en el 3D** (Leandro: "quiero editar desde la selección también"). En el

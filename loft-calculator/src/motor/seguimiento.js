@@ -50,13 +50,14 @@ export const estadoSegunAvance = (avance, estado) => (avance >= 100 ? 'terminado
  * nada). Al llegar a 100 % se anota la fecha de hoy si no tenía, como al ponerlo a mano.
  */
 export function conAvanceDelArmado(rubros = [], porcentaje = 0, fecha = hoy()) {
-  let cambio = false;
   const nuevos = rubros.map((r) => {
-    if (!r.avanceDelArmado || r.avance === porcentaje) return r;
-    cambio = true;
-    return { ...r, avance: porcentaje, estado: estadoSegunAvance(porcentaje, r.estado), fechaFin: porcentaje >= 100 && !r.fechaFin ? fecha : r.fechaFin };
+    if (!r.avanceDelArmado) return r;
+    // v1.98: el % puede depender del trabajo (de su parte de la obra): `porcentaje` es un número o (rubro) => número.
+    const pct = typeof porcentaje === 'function' ? porcentaje(r) : porcentaje;
+    if (r.avance === pct) return r;
+    return { ...r, avance: pct, estado: estadoSegunAvance(pct, r.estado), fechaFin: pct >= 100 && !r.fechaFin ? fecha : r.fechaFin };
   });
-  return cambio ? nuevos : rubros;
+  return nuevos.some((r, i) => r !== rubros[i]) ? nuevos : rubros;
 }
 
 /** Fecha de hoy como 'AAAA-MM-DD' (la del navegador, no la UTC). */

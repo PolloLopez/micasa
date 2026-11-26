@@ -897,10 +897,11 @@ export default function App() {
   // v1.93: al marcar fierros puestos, los trabajos con "el avance sale del armado" (ej. el del herrero) se ponen al día.
   const guardarAvancePiezas = (nuevo) => {
     const rubros = params.seguimiento?.rubros ?? [];
-    const alDia = conAvanceDelArmado(rubros, porcentajeDeHierros(piezasDeLaEstructura, nuevo));
+    // v1.98: cada trabajo con el % de su parte de la obra (o de todo el hierro si no tiene parte).
+    const alDia = conAvanceDelArmado(rubros, (r) => porcentajeDeHierros(piezasDeLaEstructura, nuevo, r.parteObra));
     return alDia === rubros ? cambiar('avancePiezas')(nuevo) : cambiarVarios([['avancePiezas', nuevo], ['seguimiento.rubros', alDia]]);
   };
-  const avanceDeHierros = porcentajeDeHierros(piezasDeLaEstructura, params.avancePiezas ?? {});
+  const avanceDeHierros = (parte) => porcentajeDeHierros(piezasDeLaEstructura, params.avancePiezas ?? {}, parte); // v1.98: por parte
   const marcarAvance = (ids, campo, valor) => guardarAvancePiezas(marcarPiezas(params.avancePiezas ?? {}, ids, campo, valor));
   // …y la medida real: la pieza queda de esa medida (el motor la aplica al final, ver aplicarMedidasReales) y queda
   // verificada. null = volver a la del cálculo.

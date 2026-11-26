@@ -79,3 +79,18 @@ describe('v1.93: el tapial a futuro (y las placas fenólicas ya)', async () => {
     expect(fut.aFuturo.materiales.fenolicos).toBe(0);
   });
 });
+
+describe('v1.98: el avance del trabajo es el de su parte de la obra', () => {
+  const piezas = [{ id: 'p1', largo: 4, grupos: ['piso'] }, { id: 'p2', largo: 4, grupos: ['piso'] }, { id: 'c', largo: 8, grupos: ['A'] }];
+  it('piso: solo los fierros del piso', () => {
+    const avance = { p1: { instalada: true } };
+    expect(porcentajeDeHierros(piezas, avance, 'piso')).toBe(50);
+    expect(porcentajeDeHierros(piezas, avance, 'paredes')).toBe(0);
+    expect(porcentajeDeHierros(piezas, avance)).toBe(25);
+  });
+  it('cada trabajo con el % de su parte', () => {
+    const rubros = [{ ...rubroNuevo([]), id: 1, avanceDelArmado: true, parteObra: 'piso' }, { ...rubroNuevo([]), id: 2, avanceDelArmado: true }];
+    const r = conAvanceDelArmado(rubros, (x) => porcentajeDeHierros(piezas, { p1: { instalada: true } }, x.parteObra));
+    expect(r.map((x) => x.avance)).toEqual([50, 25]);
+  });
+});
