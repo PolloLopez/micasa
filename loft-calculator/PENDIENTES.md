@@ -42,6 +42,9 @@ Manual: `MANUAL.md` y el doc "Pollo Calculator — Manual de usuario" (Claude Do
 2. 🟡 **Partir `App.jsx`** (1.800 líneas) en pocos hooks por tema (`useObra`, `useCompras`…), con su test.
 
 ## 🙋 De tu lado (Leandro)
+- 🔴 [ ] **Compras repetidas?** Hay 2 compras de 12 caños 80×80 (20/11 y 25/11) y 2 de 12 perfiles C (20/11 y 25/11):
+  la app cuenta 24 de cada uno. Si es la misma compra cargada dos veces, borrar una (Obra → Compras hechas). Después
+  contar las barras enteras en el lote y compararlas con Obra → Armado → "Enteras en el lote".
 - 🔴 [ ] Con el ancho en 4,80 m: corregir las piezas agregadas que quedaron en las medidas viejas (agr:7 y agr:8, a 15 cm
   adentro del Vecino; agr:10 y agr:11, tirantes de 4,41 m) y borrar el antepecho de la ventana nueva del Frente o la faja
   que lo pisa (1,78 m de C repetidos).

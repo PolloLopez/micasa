@@ -229,6 +229,7 @@ techo medido sobre la pendiente (sin aleros) · escalera: espesor de piso 2 = 8 
 - 2026-10-23 v1.26.0: pestaña Planos (paredes y plantas acotadas, listas de corte, revestimiento), en el PDF y en Excel.
 - 2026-10-25 v1.30.0: link compacto (la mitad) y links cortos en Firebase para ver/editar que guardan los cambios.
 - 2026-11-19 docs: PENDIENTES.md reordenado (solo lo abierto, por tema y 🔴🟡🟢, con "Lo que sigue" y "De tu lado"); lo resuelto y el detalle de los pedidos viejos quedó tal cual en HISTORIAL-PENDIENTES.md.
+- 2026-11-26 v1.101.0: usoDePerfiles (gruposCortes + avancePiezas + compras): barras empezadas = con algún corte puesto (id o su base); enteras en el lote = compradas − empezadas. Tabla en PanelArmado.
 - 2026-11-26 v1.100.0: resumenDelTotal (obra, pagado, falta = compras.falta + deuda + mano de obra sin pagar, sin precio, a futuro) en totalDeLaObra.js; partesAFuturo / asignacionesConFuturo: una parte a futuro pone sus renglones A_FUTURO antes del plan de compra (las guardadas no se tocan); dibujarConSombras en LoftCanvas (sombras con la capa oculta).
 - 2026-11-26 v1.99.0: sentido de montaje por paño (pano.sentido 'derIzq' → tipoEnPano invierte ladoSolape y tiraAngosta, una vez); lo usan franjas, cortes, juntas, encimados, despiece y tiraEnPunto.
 - 2026-11-26 v1.98.0: porcentajeDeHierros por parte (ZONAS_DE_PARTE en armado.js); conAvanceDelArmado acepta (rubro) => %; aviso "Usar ese avance" en cada trabajo. Auditoría UX/cálculos en PENDIENTES.

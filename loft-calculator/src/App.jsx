@@ -58,6 +58,7 @@ import PanelSeguimiento from './componentes/PanelSeguimiento.jsx';
 import PanelCompras from './componentes/PanelCompras.jsx';
 import { resumenDeCompras } from './motor/compras.js';
 import { filasDeLaLista, informeDeCompras } from './motor/listaCompras.js';
+import { usoDePerfiles } from './motor/usoDePerfiles.js';
 import { partesAFuturo, cambiosParteAFuturo, asignacionesConFuturo, subtotalAFuturo, materialesSinPrecio, resumenDelTotal, montoDeObraCivilAFuturo } from './motor/totalDeLaObra.js';
 import { A_FUTURO, usaPlanDeCompra } from './motor/proveedores.js';
 import ListaDeCompras from './componentes/ListaDeCompras.jsx';
@@ -2003,7 +2004,8 @@ export default function App() {
               onActualizarMaterial={actualizarInsumo} onAgregarMaterial={agregarMaterialAParte} onQuitarMaterial={quitarAccesorio} nombreProyecto={nombreProyecto} /></PanelSub>
             <PanelSub grupo="obra" activa={subObra} clave="armado"><PanelArmado piezas={piezasDeLaEstructura} avance={params.avancePiezas ?? {}}
               nombreZona={(z) => (LADOS.includes(z) ? nombreDePared(z, params) : { piso: 'Piso (planta baja)', entrepiso: 'Entrepiso', piso2: 'Piso 2', techo: 'Techo', escalera: 'Escalera', mesada: 'Mesadas', tabique: 'Tabiques' }[z] ?? z)}
-              codigosCorte={codigosCorte} unidad={unidad} onMarcar={marcarAvance} onMedidaReal={ponerMedidaReal} /></PanelSub>
+              codigosCorte={codigosCorte} unidad={unidad} onMarcar={marcarAvance} onMedidaReal={ponerMedidaReal}
+              usoPerfiles={usoDePerfiles(gruposCortes, params.avancePiezas ?? {}, filasCompra, params.seguimiento?.compras ?? [])} /></PanelSub>
             <PanelSub grupo="obra" activa={subObra} clave="seguimiento"><PanelSeguimiento params={params} partes={partesSeguimiento} precioObra={cierre.total} cambiar={cambiar} partesObra={partesObra} avanceDeHierros={avanceDeHierros} /></PanelSub>
             <PanelSub grupo="obra" activa={subObra} clave="finanzas"><PanelFinanzas params={params} cambiar={cambiar} cambiarVarios={cambiarVarios} /></PanelSub>
           </section>

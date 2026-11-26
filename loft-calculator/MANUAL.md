@@ -45,6 +45,11 @@ cotiza con su panel.
 **Los altos** (v1.95): en Planta cargás la **altura del lado bajo** y la **del lado alto** (lo que mediste en obra);
 la pendiente del techo sale sola, en % y en grados. Hacia dónde cae se elige en Techo.
 
+**Perfiles usados y en el lote** (v1.101): en Obra → Armado, arriba, la tabla "Perfiles: usados, en el lote y por
+comprar". Por cada perfil: cuántas barras lleva la obra, cuántas compraste, cuántas ya están **empezadas** (algún corte
+de esa barra está puesto) y cuántas **enteras deberían quedar en el lote**. Contá las del lote y compará: si no da, falta
+marcar piezas puestas o cargar (o borrar) una compra.
+
 **A futuro y avance del herrero** (v1.93, v1.100): lo que todavía no se compra se marca **a futuro**. El lugar es
 **Obra → Partes**: cada parte tiene el tilde "A futuro" (el mismo que "A futuro" del tapial en Fundación y que "Toda
 esta parte a futuro" en la Lista de compras: tocás uno y cambian los tres). Sus materiales no suman al total ni a lo que

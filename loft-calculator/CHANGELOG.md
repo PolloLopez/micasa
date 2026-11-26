@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.101.0] - 2026-11-26
+### Agregado
+- **Perfiles: usados, en el lote y por comprar** (Leandro: "me falta ver cuántos perfiles usé y cuántos me faltan,
+  para comparar con la realidad y verificar si es cierto"). En Obra → Armado, una tabla por perfil: barras que lleva la
+  obra, compradas, **empezadas** (con algún corte ya puesto, según la hoja de corte), **enteras que deberían estar en el
+  lote** (compradas − empezadas, más los sobrantes), las que faltan comprar (o sobran) y las piezas y metros puestos.
+  En el celular, una ficha por perfil. `motor/usoDePerfiles.js`.
+
 ## [1.100.0] - 2026-11-26
 ### Cambiado
 - **El total dicho entero** (auditoría 26/11; Leandro: "me dice 34 millones y estoy lejísimos de eso"). Arriba del
