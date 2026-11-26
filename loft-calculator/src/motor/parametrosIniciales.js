@@ -23,6 +23,7 @@ export const PARED_INICIAL = {
   panel: 'panelMuros', // revestimiento exterior: id del tipo (ver TIPOS_PANEL_INICIALES en presupuesto.js)
   panelInterior: '', // revestimiento interior (v1.15): id del tipo, '' = sin
   tramosPanel: [], // v1.96: [{ desde, hasta, panel }] otro panel en una parte de la pared (ver tramosPanel.js)
+  sentidoPanel: 'izqDer', // v1.99: de qué lado se empieza a montar el revestimiento ('izqDer' | 'derIzq'), vista desde afuera
   etiqueta: '', // texto del cartel en el 3D; '' = nombre automático (Frente, Lateral…)
   mostrarEtiqueta: true,
   // v1.22: perfiles propios de esta pared (id de la lista de perfiles); '' = el general de Materiales.
@@ -70,6 +71,7 @@ export const PARAMS_INICIALES = {
   separacionCorreasTecho: 0.8,
   panelTecho: 'panelTecho',
   tramosPanelTecho: [], // v1.96: [{ desde, hasta, panel }] otro panel en una parte del techo
+  sentidoPanelTecho: 'izqDer', // v1.99
   // v1.35.1: alero de cada lado (m, 0 = sin) y si vigas y correas llegan al borde del alero o terminan en la estructura.
   alero: { A: 0, B: 0, C: 0, D: 0 },
   aleroVigas: 'alero', // 'alero' | 'estructura'

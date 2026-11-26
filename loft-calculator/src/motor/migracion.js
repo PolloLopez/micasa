@@ -94,6 +94,7 @@ export function migrarParams(params) {
   nuevos.cantidades = esObjeto(nuevos.cantidades) ? nuevos.cantidades : {};
   nuevos.panelTecho ??= PARAMS_INICIALES.panelTecho;
   nuevos.tramosPanelTecho = normalizarTramosPanel(nuevos.tramosPanelTecho); // v1.96
+  nuevos.sentidoPanelTecho = nuevos.sentidoPanelTecho === 'derIzq' ? 'derIzq' : 'izqDer'; // v1.99
   // v1.28: marco perimetral del techo. Los proyectos de antes no lo tenían (no se agregan piezas solas).
   nuevos.techoConBorde = nuevos.techoConBorde === true;
   // v1.28: altura del piso 2 (antes fija) y columnas del entrepiso.
@@ -168,6 +169,7 @@ export function migrarParams(params) {
           panel: pared.panel ?? PARAMS_INICIALES.paredes[lado].panel,
           panelInterior: typeof pared.panelInterior === 'string' ? pared.panelInterior : '', // v1.15: '' = sin revestimiento interior
           tramosPanel: normalizarTramosPanel(pared.tramosPanel), // v1.96: otro panel en una parte de la pared
+          sentidoPanel: pared.sentidoPanel === 'derIzq' ? 'derIzq' : 'izqDer', // v1.99: de qué lado se monta
           separacionMontantes: pared.separacionMontantes ?? 0, // v1.17: sin montantes (como antes)
           riostras: pared.riostras ?? 'no', // v1.17: sin riostras en cruz (como antes)
           etiqueta: pared.etiqueta ?? '', // v1.8: '' = nombre automático (Frente, Lateral…)

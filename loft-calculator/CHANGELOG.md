@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.99.0] - 2026-11-26
+### Agregado
+- **De qué lado se monta el revestimiento, en cada pared y en el techo** (Leandro: "en el frente monto de izquierda a
+  derecha, y la pared de atrás en sentido inverso, para que me coincidan los tipos de paneles"). En Paredes, cada pared
+  tiene "Se monta (vista desde afuera)": de izquierda a derecha o de derecha a izquierda; en Techo, lo mismo. Al
+  invertirlo, la tira angosta (la cortada a lo largo) pasa al otro lado y el costado que monta sobre la anterior también:
+  cambian las tiras, sus cortes, el 3D, los planos ("se colocan de derecha a izquierda") y el presupuesto.
+  `tipoEnPano` (revestimientos.js) lo aplica a cada paño; `paredes[lado].sentidoPanel`, `sentidoPanelTecho`.
+
 ## [1.98.0] - 2026-11-26
 ### Arreglado
 - **El avance del herrero no se veía** (Leandro: "el herrero ya realizó tareas (perfiles instalados) y no se le ve en

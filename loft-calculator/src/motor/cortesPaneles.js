@@ -19,7 +19,7 @@
 // Las cuentas de compra siguen en revestimientos.js (tirasDePano).
 // ==========================================================
 
-import { pedazosDeTira, cortarEnTramos, tirasDePano, intervalosDeTira, rellenosDeTira, parteLaTira, franjasDeTiras, costadoEfectivo, REVESTIMIENTO_POR_DEFECTO } from './revestimientos.js';
+import { pedazosDeTira, cortarEnTramos, tirasDePano, intervalosDeTira, rellenosDeTira, parteLaTira, franjasDeTiras, costadoEfectivo, REVESTIMIENTO_POR_DEFECTO, tipoEnPano } from './revestimientos.js';
 
 const EPS = 1e-6;
 const m2 = (n) => n.toFixed(2).replace('.', ',');
@@ -40,7 +40,7 @@ function tapa(h, x0, x1, alto) {
  *   usado / comprado / desperdicio en m²
  */
 export function cortesDeTiras(pano, tipo) {
-  const t = { ...REVESTIMIENTO_POR_DEFECTO, ...tipo };
+  const t = tipoEnPano({ ...REVESTIMIENTO_POR_DEFECTO, ...tipo }, pano); // v1.99: el sentido de montaje del paño
   const u = t.anchoUtil;
   const costado = costadoEfectivo(t); // v1.68: por revestimiento; v1.71: sin descontar aberturas, nunca se parte
   const tiras = [];
@@ -118,7 +118,7 @@ export function retazosEntreParedes(panos, tipo) {
  * @returns {{ correr, ahorroM2, actualM2, mejorM2 } | null}  correr: m (+ = a la derecha vista desde afuera); null si ya está bien
  */
 export function sugerenciaParaAbertura(pano, indice, tipo) {
-  const t = { ...REVESTIMIENTO_POR_DEFECTO, ...tipo };
+  const t = tipoEnPano({ ...REVESTIMIENTO_POR_DEFECTO, ...tipo }, pano); // v1.99: el sentido de montaje del paño
   if (t.venta === 'estandar' || t.descontarAberturas === false) return null; // v1.71: tiras enteras: correrla no ahorra
   const u = t.anchoUtil;
   const h = pano.huecos[indice];
@@ -171,7 +171,7 @@ export function sugerenciasDeAberturas(estructura, aberturas, catalogo) {
  * @returns {{ n, total, x0, ancho, alto, pedidos, cortes, desperdicio } | { placa: true, fila, columna, filas, columnas, x0, y0, ancho, alto } | null}
  */
 export function tiraEnPunto(pano, tipo, x, h) {
-  const t = { ...REVESTIMIENTO_POR_DEFECTO, ...tipo };
+  const t = tipoEnPano({ ...REVESTIMIENTO_POR_DEFECTO, ...tipo }, pano); // v1.99: el sentido de montaje del paño
   if (x < -EPS || x > pano.largo + EPS) return null;
   if (t.venta === 'estandar') {
     // Placa fija: una grilla de placas desde abajo a la izquierda.
@@ -200,7 +200,7 @@ export function tiraEnPunto(pano, tipo, x, h) {
  *   desde: a qué altura de la pared arranca; arriba: alto del borde de arriba en cada costado (inclinado o no)
  */
 export function pedazosDeLaTira(pano, tipo, tira) {
-  const t = { ...REVESTIMIENTO_POR_DEFECTO, ...tipo };
+  const t = tipoEnPano({ ...REVESTIMIENTO_POR_DEFECTO, ...tipo }, pano); // v1.99: el sentido de montaje del paño
   const x1 = tira.x0 + tira.ancho;
   const huecos = pano.huecos ?? [];
   const superpone = t.ladoSolape === 'derecha' ? 'derecha' : 'izquierda';

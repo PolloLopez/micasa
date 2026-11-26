@@ -32,6 +32,9 @@ ella), **Donde se corta, va** soldada, con cubrejunta o con chapa (las dos últi
 **dónde** (moverlo a cuántos metros de la punta, **Ya está hecho así**, ↶ automático). En el 3D cada empalme tiene una
 marca (naranja: lo eligió la app; celeste: vos). Todo lo elegido está en Piezas a mano, con Deshacer.
 
+**Sentido de montaje** (v1.99): en Paredes → la pared → "Se monta (vista desde afuera)" (y en Techo): de izquierda a
+derecha o al revés. Cambia de qué lado queda la tira angosta y qué costado monta sobre la anterior.
+
 **Desde el 3D** (v1.97): tocá una tira (en Solo paneles) y elegí "Esta tira va con…" o "Todo su tramo va con…".
 
 **Paneles por tramos** (v1.96): en Materiales → Revestimientos, **Duplicar** el panel y cambiarle el nombre (ej.

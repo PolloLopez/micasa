@@ -86,6 +86,7 @@ export function panosDeLaPared(pared) {
     const bruta = (largo * (h1 + h2)) / 2;
     const aberturas = huecos.reduce((acc, h) => acc + (h.hasta - h.desde) * (h.arriba - h.abajo), 0);
     return { x0: s.x0, x1: s.x1, largo, h1, h2, huecos, panel: s.panel, donde: varios ? `lado ${pared.lado} · ${k + 1}` : `lado ${pared.lado}`,
+      sentido: pared.sentidoPanel === 'derIzq' ? 'derIzq' : 'izqDer', // v1.99: de qué lado se empieza a montar
       neto: varios ? Math.max(0, bruta - aberturas) : pared.superficieNeta ?? Math.max(0, bruta - aberturas) };
   });
 }
@@ -101,6 +102,7 @@ export function panosDelTecho(techo) {
   return segmentos.map((s, k) => {
     const largo = s.x1 - s.x0;
     return { x0: s.x0, x1: s.x1, largo, h1: techo.largoFaldon, h2: techo.largoFaldon, huecos: [], panel: s.panel,
+      sentido: techo.sentidoPanel === 'derIzq' ? 'derIzq' : 'izqDer', // v1.99
       donde: varios ? `techo · ${k + 1}` : 'techo', neto: varios ? largo * techo.largoFaldon : techo.superficie };
   });
 }

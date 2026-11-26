@@ -71,6 +71,19 @@ export const REVESTIMIENTO_POR_DEFECTO = {
   largoTira: 0, // v1.81: largo de la tira entera (0 = el largo máximo)
 };
 
+/**
+ * v1.99 (Leandro: "que el revestimiento pueda elegir el sentido en las distintas paredes: en el frente monto de izquierda
+ * a derecha, y la pared de atrás en sentido inverso, para que me coincidan los tipos de paneles"). Un paño con
+ * `sentido: 'derIzq'` se monta de derecha a izquierda: la tira que monta sobre la anterior lo hace por el otro costado, y
+ * la tira angosta (la cortada a lo largo) va del otro lado. Se aplica una sola vez (las funciones se llaman entre sí).
+ */
+export const SENTIDOS = [['izqDer', 'De izquierda a derecha'], ['derIzq', 'De derecha a izquierda']];
+const OTRO_LADO = { izquierda: 'derecha', derecha: 'izquierda', repartida: 'repartida' };
+export function tipoEnPano(t, pano) {
+  if (pano?.sentido !== 'derIzq' || t._sentido) return t;
+  return { ...t, _sentido: true, ladoSolape: OTRO_LADO[t.ladoSolape] ?? 'derecha', tiraAngosta: OTRO_LADO[t.tiraAngosta] ?? 'izquierda' };
+}
+
 /** v1.81: el largo de la tira entera que vende el proveedor (si no se cargó, el largo máximo). */
 export const largoDeTira = (t) => (t.largoTira > 0 ? Math.min(t.largoTira, t.largoMaximo) : t.largoMaximo);
 
@@ -332,7 +345,7 @@ export function rellenosDeTira(x0, x1, alto, huecos = [], costado = COSTADO_MINI
  */
 export function pedazosConLugar(pano, tipo) {
   const lista = [];
-  franjasDeTiras(pano.largo, tipo).forEach(({ x0, x1 }) => {
+  franjasDeTiras(pano.largo, tipoEnPano(tipo, pano)).forEach(({ x0, x1 }) => {
     const alto = Math.max(altoEn(pano, x0), altoEn(pano, x1));
     intervalosDeTira(x0, x1, alto, pano.huecos, costadoEfectivo(tipo)).forEach(({ y0, y1 }) => {
       const avance = tipo.largoMaximo - (tipo.solape ?? 0);
@@ -346,7 +359,7 @@ export function pedazosConLugar(pano, tipo) {
 
 export function tirasDePano(pano, tipo) {
   const largos = [];
-  franjasDeTiras(pano.largo, tipo).forEach(({ x0, x1 }) => {
+  franjasDeTiras(pano.largo, tipoEnPano(tipo, pano)).forEach(({ x0, x1 }) => {
     const alto = Math.max(altoEn(pano, x0), altoEn(pano, x1));
     pedazosDeTira(x0, x1, alto, pano.huecos, costadoEfectivo(tipo)).forEach((pedazo) => {
       largos.push(...cortarEnTramos(pedazo, tipo.largoMaximo, tipo.solape));
@@ -498,7 +511,7 @@ export function cuentaRevestimiento(tipo, panos) {
  * @returns {{ verticales: { abajo, arriba }[], laterales: { desde, hasta }[], solape, encastre, ladoSolape }}
  */
 export function encimadosDePano(pano, tipo) {
-  const t = { ...REVESTIMIENTO_POR_DEFECTO, ...tipo };
+  const t = tipoEnPano({ ...REVESTIMIENTO_POR_DEFECTO, ...tipo }, pano); // v1.99: el sentido de montaje del paño
   if (t.venta === 'estandar') return { verticales: [], laterales: [], solape: 0, encastre: 0, ladoSolape: t.ladoSolape };
   const { verticales: juntas, horizontales } = juntasDePano(pano, t);
   const encastre = t.anchoTotal > t.anchoUtil ? Math.round((t.anchoTotal - t.anchoUtil) * 1000) / 1000 : 0;
@@ -518,7 +531,7 @@ export function encimadosDePano(pano, tipo) {
  * Las tiras arrancan en la punta 1 (esquina izquierda vista desde afuera), igual que en la cuenta.
  */
 export function juntasDePano(pano, tipo) {
-  const t = { ...REVESTIMIENTO_POR_DEFECTO, ...tipo };
+  const t = tipoEnPano({ ...REVESTIMIENTO_POR_DEFECTO, ...tipo }, pano); // v1.99: el sentido de montaje del paño
   const alto = Math.max(pano.h1, pano.h2);
   const cada = (paso, hasta) => {
     const lista = [];

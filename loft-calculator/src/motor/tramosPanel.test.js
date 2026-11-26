@@ -74,3 +74,24 @@ describe('v1.97: cambiar el panel de una tira (desde el 3D)', async () => {
     expect(tramosConPanel(6, 'cc', t, 2, 3, 'cc')).toEqual([]); // y se borra
   });
 });
+
+describe('v1.99: el sentido de montaje de cada pared', async () => {
+  const { franjasDeTiras, tipoEnPano, encimadosDePano, pedazosConLugar } = await import('./revestimientos.js');
+  const tipo = { venta: 'medida', anchoUtil: 1, largoMaximo: 12, ladoSolape: 'izquierda', tiraAngosta: 'derecha', anchoTotal: 1.05 };
+  it('de derecha a izquierda: la angosta va a la izquierda y el costado que monta es el derecho', () => {
+    expect(franjasDeTiras(4.5, tipo).at(-1)).toMatchObject({ x0: 4, x1: 4.5 }); // de izq. a der.: la angosta, a la derecha
+    const t = tipoEnPano(tipo, { sentido: 'derIzq' });
+    expect(t).toMatchObject({ ladoSolape: 'derecha', tiraAngosta: 'izquierda' });
+    expect(tipoEnPano(t, { sentido: 'derIzq' })).toBe(t); // una sola vez
+    expect(franjasDeTiras(4.5, t)[0]).toMatchObject({ x0: 0, x1: 0.5 });
+    expect(pedazosConLugar({ largo: 4.5, h1: 3, h2: 3, huecos: [], sentido: 'derIzq' }, tipo)[0]).toMatchObject({ x0: 0, x1: 0.5 });
+    expect(encimadosDePano({ largo: 4.5, h1: 3, h2: 3, sentido: 'derIzq' }, tipo).ladoSolape).toBe('derecha');
+  });
+  it('se guarda por pared y llega a sus paños', () => {
+    const params = migrarParams({ ...P, paredes: { ...P.paredes, C: { ...P.paredes.C, sentidoPanel: 'derIzq' } } });
+    expect(params.paredes.C.sentidoPanel).toBe('derIzq');
+    expect(params.paredes.A.sentidoPanel).toBe('izqDer');
+    const e = generarEstructura(params, ABERTURAS_INICIALES, CATALOGO_INICIAL);
+    expect(panosPorRevestimiento(e)[params.paredes.C.panel].find((p) => p.donde === 'lado C').sentido).toBe('derIzq');
+  });
+});

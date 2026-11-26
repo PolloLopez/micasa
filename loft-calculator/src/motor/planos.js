@@ -22,7 +22,7 @@ import { geometriaLados, nombreDePared } from './geometria.js';
 import { listarPiezas, NOMBRE_TIPO_PIEZA } from './estructura.js';
 import { INSUMO_DE_TIPO } from './piezasAgregadas.js';
 import { nombrePerfil } from './perfiles.js';
-import { tirasDePano, placasDePano, resumirLargos, REVESTIMIENTO_POR_DEFECTO, encimadosDePano, juntasDePano, tiraDeCadaPedazo } from './revestimientos.js';
+import { tirasDePano, placasDePano, resumirLargos, REVESTIMIENTO_POR_DEFECTO, encimadosDePano, juntasDePano, tiraDeCadaPedazo, tipoEnPano } from './revestimientos.js';
 import { panosPorRevestimiento } from './presupuesto.js';
 import { ubicarMueble, tramosDeMesada, TIPOS_MUEBLE } from './interiores.js';
 import { ubicarTabique, inicioDePuerta, MEDIO_ESPESOR_TABIQUE } from './tabiques.js';
@@ -113,7 +113,7 @@ function panelesDePared(pared, catalogo, donde, e = null, claveTiras = `lado ${p
   // (las aberturas se cortan en obra), aunque el panel esté cargado descontándolas.
   const t = { ...REVESTIMIENTO_POR_DEFECTO, ...tipo, ...(opciones.sinCortesAberturas ? { descontarAberturas: false } : {}) };
   if (t.venta === 'estandar') return null;
-  const pano = { largo: pared.largo, h1: pared.alturas[0], h2: pared.alturas[1], huecos: pared.huecos ?? [], donde };
+  const pano = { largo: pared.largo, h1: pared.alturas[0], h2: pared.alturas[1], huecos: pared.huecos ?? [], donde, sentido: pared.sentido }; // v1.99
   const c = cortesDeTiras(pano, t);
   // v1.67: el plano de cada pedazo a pedir (medidas, recortes, lado que superpone).
   let despiece = c.tiras.flatMap((tira) => pedazosDeLaTira(pano, t, tira).map((p) => ({ ...p, tira: tira.n })));
@@ -130,7 +130,7 @@ function panelesDePared(pared, catalogo, donde, e = null, claveTiras = `lado ${p
   const { horizontales } = juntasDePano(pano, t);
   // v1.82.2: por tira entera, cada pedazo con la tira de donde sale (lo mismo que el 3D y la hoja de corte).
   const porTira = e ? tiraDeCadaPedazo(t, panosPorRevestimiento(e)[tipo.id]) : null; // (con `t`: lo mismo que se dibuja)
-  return { nombre: tipo.nombre, anchoUtil: t.anchoUtil, ...c, juntas: c.tiras.slice(1).map((x) => x.x0), pano, tipo: t, despiece,
+  return { nombre: tipo.nombre, anchoUtil: t.anchoUtil, ...c, juntas: c.tiras.slice(1).map((x) => x.x0), pano, tipo: tipoEnPano(t, pano), tipoBase: t, despiece,
     horizontales, encimados: encimadosDePano(pano, t), pedazosTira: porTira ? porTira.pedazosDe(claveTiras) : null };
 }
 
@@ -193,7 +193,7 @@ export function vistaDePared(e, params, lado, catalogo, aberturas = [], opciones
 function panelesPorTramo(pared, catalogo, nombre, e, opciones = {}) {
   const panos = pared.lado === 'techo' ? panosDelTecho(pared.techo) : panosDeLaPared(pared);
   return panos.map((s, k) => {
-    const sub = { lado: pared.lado, largo: s.largo, alturas: [s.h1, s.h2], huecos: s.huecos, panel: s.panel };
+    const sub = { lado: pared.lado, largo: s.largo, alturas: [s.h1, s.h2], huecos: s.huecos, panel: s.panel, sentido: s.sentido };
     const p = panelesDePared(sub, catalogo, panos.length > 1 ? `${nombre} · tramo ${k + 1}` : nombre, e, s.donde, opciones);
     return p && { ...p, offsetX: s.x0, tramo: panos.length > 1 ? k + 1 : null };
   }).filter(Boolean);
@@ -310,7 +310,7 @@ export function todasLasVistas(e, params, catalogo, aberturas, opciones = {}) {
   // v1.96: cada tramo de panel cuenta como una "vista" (con su propio tipo).
   paredes.flatMap((v) => v.panelesTramos ?? []).forEach((pn) => porTipo.set(pn.tipo.id, [...(porTipo.get(pn.tipo.id) ?? []), { paneles: pn }]));
   porTipo.forEach((vistas) => {
-    const tipo = vistas[0].paneles.tipo;
+    const tipo = vistas[0].paneles.tipoBase ?? vistas[0].paneles.tipo; // v1.99: sin el sentido (cada paño trae el suyo)
     const panos = vistas.map((v) => v.paneles.pano);
     let sobrantes = [];
     if (vistas.length > 1 && tipo.aprovecharRetazos !== false) {

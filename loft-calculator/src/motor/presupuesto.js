@@ -256,7 +256,7 @@ export function panosPorRevestimiento(estructura) {
   estructura.paredes.forEach((p) => {
     const pano = { largo: p.largo, h1: p.alturas[0], h2: p.alturas[1], neto: p.superficieNeta, huecos: p.huecos ?? [] };
     // v1.96: el exterior, en tramos si tiene otro panel en una parte ("lado A · 2").
-    panosDeLaPared(p).forEach(({ panel, largo, h1, h2, neto, huecos, donde }) => sumar(panel, { largo, h1, h2, neto, huecos, donde }));
+    panosDeLaPared(p).forEach(({ panel, largo, h1, h2, neto, huecos, donde, sentido }) => sumar(panel, { largo, h1, h2, neto, huecos, donde, sentido }));
     sumar(p.panelInterior, { ...pano, donde: `lado ${p.lado} (interior)` });
   });
   // v1.38: frente, costados y zócalo de cada mesada, con el revestimiento elegido para esa mesada.
@@ -264,7 +264,7 @@ export function panosPorRevestimiento(estructura) {
   // v1.41: cada cara de cada tabique con su revestimiento.
   (estructura.tabiques ?? []).forEach((t) => t.panos.forEach(({ panel, ...pano }) => sumar(panel, pano)));
   // v1.96: el techo, en tramos si tiene otro panel en una parte ("techo · 2").
-  panosDelTecho(estructura.techo).forEach(({ panel, largo, h1, h2, neto, huecos, donde }) => sumar(panel, { largo, h1, h2, neto, huecos, donde }));
+  panosDelTecho(estructura.techo).forEach(({ panel, largo, h1, h2, neto, huecos, donde, sentido }) => sumar(panel, { largo, h1, h2, neto, huecos, donde, sentido }));
   return panos;
 }
 

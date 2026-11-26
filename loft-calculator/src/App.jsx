@@ -100,7 +100,7 @@ import { historialVacio, registrarCambio, deshacer, rehacer } from './proyecto/h
 import { describirPieza, detallesDePieza } from './descripcionPiezas.js';
 import ArmadoPiso from './componentes/ArmadoPiso.jsx';
 import { codigosDeCorte } from './motor/hojaDeCorte.js';
-import { ahorroPorAberturas } from './motor/revestimientos.js';
+import { ahorroPorAberturas, SENTIDOS } from './motor/revestimientos.js'; // v1.99: SENTIDOS
 import FilaPiezaCambiada from './componentes/FilaPiezaCambiada.jsx';
 import { cambiarCrucesElegidos } from './motor/crucesElegidos.js'; // v1.88
 import { abreviarPerfil, perfilDePieza } from './motor/coloresPerfil.js';
@@ -1602,6 +1602,8 @@ export default function App() {
               {separacion('separacionVigasTecho', 'Sep. vigas de techo', 'Vigas de techo', ['viga', 'vigas'])}
               {separacion('separacionCorreasTecho', 'Sep. correas (s/ pendiente)', 'Correas (con las puntas)', ['correa', 'correas'])}
               {selectorPanel('panelTecho', 'Revestimiento del techo', params.panelTecho)}
+              <CampoSelect etiqueta="Se monta (mirando el techo desde el lado bajo)" valor={params.sentidoPanelTecho ?? 'izqDer'} opciones={SENTIDOS}
+                onCambio={cambiar('sentidoPanelTecho')} />
             </div>
             {/* v1.96: otro panel en una parte del techo (ej. arriba de la cocina y el baño). */}
             <TramosPanel tramos={params.tramosPanelTecho ?? []} largo={estructura.techo?.largo ?? params.largo}
@@ -1841,6 +1843,9 @@ export default function App() {
                       onCambio={cambiar(`paredes.${lado}.riostras`)} />
                     {selectorPanel(`paredes.${lado}.panel`, 'Revestimiento exterior', params.paredes[lado].panel)}
                     {selectorPanel(`paredes.${lado}.panelInterior`, 'Revestimiento interior', params.paredes[lado].panelInterior, true)}
+                    {/* v1.99 (Leandro: "en el frente monto de izquierda a derecha, y la pared de atrás en sentido inverso"). */}
+                    <CampoSelect etiqueta="Se monta (vista desde afuera)" valor={params.paredes[lado].sentidoPanel ?? 'izqDer'} opciones={SENTIDOS}
+                      onCambio={cambiar(`paredes.${lado}.sentidoPanel`)} />
                   </div>
                   {/* v1.96 (Leandro: "chapa-foil en cocina y baño y chapa-chapa en el resto"): otro panel en una parte. */}
                   <TramosPanel tramos={params.paredes[lado].tramosPanel ?? []} largo={geometriaLados(params)[lado].largo}
