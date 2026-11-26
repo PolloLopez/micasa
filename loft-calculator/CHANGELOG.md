@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.100.0] - 2026-11-26
+### Cambiado
+- **El total dicho entero** (auditoría 26/11; Leandro: "me dice 34 millones y estoy lejísimos de eso"). Arriba del
+  Presupuesto, cuatro cuadros: **Obra completa** ($ 34,3 M = materiales 22,4 M + mano de obra y cierre 11,9 M), **Ya
+  pagado** (6,2 M), **Falta** (29,1 M = materiales 18,8 M + mano de obra 10,3 M) y **Sin precio** (27 materiales que no
+  están en ningún número). La pestaña dice "falta $ 29,1 M" (antes "$ 34,3 M", el precio de toda la obra) y, con el
+  mouse encima, todo. Se saca la línea "Ya gastado · falta comprar" (quedaba repetida). `motor/totalDeLaObra.js`.
+- **"A futuro" en un solo lugar**: Obra → Partes, cada parte con su tilde "A futuro" (el mismo que el del tapial en
+  Fundación y "Toda esta parte a futuro" en la Lista: tocás uno y cambian los tres). Sus materiales, extras e
+  instalaciones salen del total, del plan de compra, de "Falta comprar" (Compras hechas) y de la Lista (los tres dan lo
+  mismo), y se ven aparte: "⏳ A futuro (no suma): $ … · Tapial" con un atajo a Obra → Partes. La obra civil del tapial a
+  futuro se estima con el precio por unidad de cada material. Con un solo proveedor también se resta (antes, solo con
+  el plan de compra). `seguimiento.aFuturo` (el tapial sigue en `obraCivil.tapial.aFuturo`).
+### Arreglado
+- **Sol: con "Adentro", el techo no daba sombra** (Leandro: "al mover la hora me toma que el techo no está y al mediodía
+  tengo 100 % de sol adentro"). three.js decide qué tira sombra con las capas de la cámara, no las de la luz: lo que
+  "Adentro" oculta (el techo y las paredes de adelante) dejaba de dar sombra. Ahora, con el sol prendido, las sombras se
+  calculan antes en un cuadro de 1×1 con la cámara viendo también lo oculto (`dibujarConSombras`). El sol entra solo
+  por las aberturas.
+
 ## [1.99.0] - 2026-11-26
 ### Agregado
 - **De qué lado se monta el revestimiento, en cada pared y en el techo** (Leandro: "en el frente monto de izquierda a

@@ -1489,7 +1489,9 @@ export default function LoftCanvas({
     // v1.37: el sol (con sombras), apagado hasta que se abre "☀ Sol". Y un piso invisible que solo recibe sombras.
     const sol = new THREE.DirectionalLight(0xfff4e0, 2.2);
     sol.castShadow = true;
-    sol.shadow.camera.layers.enable(CAPA_OCULTA); // v1.49: las paredes ocultas por "Ver adentro" siguen dando sombra
+    // (v1.100: esto solo no alcanza: three.js elige qué tira sombra con las capas de la CÁMARA, no las de la luz. Ver
+    // dibujarConSombras más abajo.)
+    sol.shadow.camera.layers.enable(CAPA_OCULTA);
     sol.shadow.mapSize.set(2048, 2048);
     sol.shadow.bias = -0.0005;
     sol.visible = false;
@@ -1560,6 +1562,26 @@ export default function LoftCanvas({
     //   - cuadrosPendientes > 0: lo pide React al cambiar algo (useEffect de abajo), el mouse, el teclado o el tamaño;
     //   - o cambió la "firma" de lo que se mueve solo: la cámara (girar, inercia, primera persona), las personas y
     //     perros (caminar, poses) y las puertas de los tabiques.
+    // v1.100 (Leandro: "al mover la hora del sol me toma que el techo no está y al mediodía tengo 100 % de sol adentro;
+    // debería entrar por las aberturas únicamente"). Con "Adentro" (o recorriendo), el techo y las paredes que tapan
+    // pasan a la capa oculta. three.js calcula las sombras con las capas de la cámara que dibuja, así que lo oculto
+    // dejaba de tirar sombra: sin techo, el sol del mediodía entraba por todos lados.
+    // Arreglo: con el sol prendido, primero se dibuja un cuadro de 1×1 píxel con la cámara viendo TAMBIÉN la capa
+    // oculta (ahí se calculan las sombras, con todo), y después el cuadro de verdad sin recalcularlas.
+    const objetivoSombras = new THREE.WebGLRenderTarget(1, 1);
+    const dibujarConSombras = (cam) => {
+      const conSol = sol.visible && sol.castShadow;
+      renderer.shadowMap.autoUpdate = !conSol;
+      if (conSol) {
+        cam.layers.enable(CAPA_OCULTA);
+        renderer.shadowMap.needsUpdate = true;
+        renderer.setRenderTarget(objetivoSombras);
+        renderer.render(escena, cam);
+        renderer.setRenderTarget(null);
+        cam.layers.disable(CAPA_OCULTA);
+      }
+      renderer.render(escena, cam);
+    };
     let cuadrosPendientes = 2;
     const pedirCuadro = () => { cuadrosPendientes = Math.max(cuadrosPendientes, 2); }; // 2: por si algo termina de acomodarse
     let firmaAnterior = null;
@@ -1614,7 +1636,7 @@ export default function LoftCanvas({
       const firma = firmaDeMovimiento();
       // Object.is: si algo da NaN (ej. la cámara con el visor de ancho 0), NaN !== NaN dibujaría siempre.
       if (cuadrosPendientes > 0 || !Object.is(firma, firmaAnterior)) {
-        renderer.render(escena, camara);
+        dibujarConSombras(camara);
         cuadrosDibujados += 1;
         cuadrosPendientes = Math.max(0, cuadrosPendientes - 1);
         firmaAnterior = firma;
@@ -1877,7 +1899,7 @@ export default function LoftCanvas({
       if (conCotas) grupoCotas.visible = true;
       const personasVisibles = personas.grupo.visible;
       // Cada foto se recorta al dibujo (sin el blanco de alrededor): en el PDF la obra sale más grande.
-      const foto = (cam) => { renderer.render(escena, cam); return recortarBlanco(renderer.domElement); };
+      const foto = (cam) => { dibujarConSombras(cam); return recortarBlanco(renderer.domElement); };
       // La vista actual con la misma forma que en pantalla, pero de al menos 1200 px de ancho
       // (en el celular el visor es chico y la foto salía borrosa).
       const tamanio = renderer.getSize(new THREE.Vector2());
@@ -1952,6 +1974,7 @@ export default function LoftCanvas({
       pisoSombras.geometry.dispose();
       pisoSombras.material.dispose();
       grilla.material.dispose();
+      objetivoSombras.dispose();
       renderer.dispose();
       renderer.domElement.remove();
       visorRef.current = null;

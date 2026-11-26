@@ -45,9 +45,11 @@ cotiza con su panel.
 **Los altos** (v1.95): en Planta cargás la **altura del lado bajo** y la **del lado alto** (lo que mediste en obra);
 la pendiente del techo sale sola, en % y en grados. Hacia dónde cae se elige en Techo.
 
-**A futuro y avance del herrero** (v1.93): lo que todavía no se compra se marca **a futuro** (el tapial entero en
-Fundación, con la opción de comprar ya las placas fenólicas; un segmento de mano de obra en el Presupuesto; un renglón o
-una parte en la Lista de compras): no suma al total y se ve aparte. En un trabajo, "El avance sale del Armado" toma el %
+**A futuro y avance del herrero** (v1.93, v1.100): lo que todavía no se compra se marca **a futuro**. El lugar es
+**Obra → Partes**: cada parte tiene el tilde "A futuro" (el mismo que "A futuro" del tapial en Fundación y que "Toda
+esta parte a futuro" en la Lista de compras: tocás uno y cambian los tres). Sus materiales no suman al total ni a lo que
+falta (en el Presupuesto, en Compras hechas y en la Lista dan lo mismo) y se ven aparte: "⏳ A futuro (no suma)". Un
+renglón suelto se pone a futuro en la Lista ("Se lo compro a…"), y la mano de obra en Presupuesto → Mano de obra. En un trabajo, "El avance sale del Armado" toma el %
 de fierros puestos.
 
 **Lista de compras por material** (v1.92): lo comprado cuenta para el material (el mismo perfil), no solo para el
@@ -188,7 +190,8 @@ tabiques se abren cuando pasa una persona.
   dice cuántos metros hay de cada perfil.
 - Un mueble arrastrado contra la pared **se frena** (no queda medio afuera).
 - Una ventana con ✥ Mover y → se corre por su pared; ↑ sube el antepecho.
-- **☀ Sol + 🏠 Ver adentro**: la luz entra **solo por las ventanas y puertas** (no por la pared que se ocultó).
+- **☀ Sol + 🏠 Ver adentro**: la luz entra **solo por las ventanas y puertas** (no por la pared ni el techo que se
+  ocultaron; hasta la v1.99 lo oculto no daba sombra y al mediodía entraba sol por todos lados).
 - La persona se **sienta** en el sillón y se **acuesta** en la cama; se levanta al darle otra orden.
 - Mandá a dos personas al sillón: se sientan en cuerpos distintos. Dos que se cruzan no se atraviesan.
 - Pasando por un tabique con puerta, la puerta **se abre** y después se cierra sola.
@@ -256,6 +259,10 @@ cambia la cantidad y el presupuesto.
 
 ## 6. Presupuesto
 
+- **Resumen del total** (v1.100): cuatro cuadros que no se confunden. **Obra completa** (materiales + mano de obra y
+  cierre), **Ya pagado** (compras y pagos a contratistas), **Falta** (los materiales que falta comprar o pagar + la mano de
+  obra que falta pagar) y **Sin precio** (cuántos materiales no están en ningún número: el total y lo que falta son más).
+  Abajo, lo que quedó **a futuro**. La pestaña dice "falta $ …" cuando ya pagaste algo; dejando el mouse encima, todo.
 - Arriba, el **total**. Debajo, **"Mano de obra, imprevistos, ganancia e IVA"**: con algo cargado, arriba pasa a decir
   **PRECIO DE LA OBRA** y abajo ves la cuenta (materiales + mano de obra = costo directo; + imprevistos; + ganancia;
   + IVA).

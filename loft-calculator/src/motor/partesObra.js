@@ -34,7 +34,7 @@ export const PARTES_FIJAS = [
 ];
 
 // Los renglones de obra civil: de qué campo de materialesDeObraCivil sale la cantidad de cada uno.
-const OBRA_CIVIL = { cemento: 'bolsas', arena: 'arena', piedra: 'piedra', hierro8: 'varillas8', hierro6: 'varillas6', hierro42: 'varillas42',
+export const OBRA_CIVIL = { cemento: 'bolsas', arena: 'arena', piedra: 'piedra', hierro8: 'varillas8', hierro6: 'varillas6', hierro42: 'varillas42',
   ladrilloHueco: 'ladrilloHueco', ladrilloComun: 'ladrilloComun', excavacionObra: 'excavacion',
   // v1.80: el tapial
   ladrilloHueco8: 'ladrilloHueco8', ladrilloHueco18: 'ladrilloHueco18', bloqueHormigon: 'bloqueHormigon', fenolico: 'fenolicos', tiranteEncofrado: 'tirantesEncofrado' };

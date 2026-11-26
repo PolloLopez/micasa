@@ -400,6 +400,37 @@ function BarraSubpestanas({ activa, onElegir }) {
 }
 
 /**
+ * v1.100 (auditoría 26/11: "la pestaña Presupuesto muestra el total de toda la obra y se lee como lo que falta"):
+ * cuatro números que no se confunden: lo que cuesta TODA la obra, lo ya pagado, lo que falta (materiales por comprar o
+ * por pagar + la mano de obra que falta pagar) y cuántos materiales no tienen precio (no están en ninguno). Abajo, lo que
+ * quedó a futuro (no suma), con un atajo a Obra → Partes, donde se elige.
+ */
+function ResumenDelTotal({ r, nombresAFuturo, tapialSinPrecio, onIrAPartes }) {
+  return (
+    <>
+      <div className="resumen-total" role="group" aria-label="Resumen del total">
+        <div><small>Obra completa</small><strong>{pesos(r.obra)}</strong>
+          {r.manoDeObra > 0 && <span className="nota-dato">materiales {pesos(r.materiales)} + mano de obra y cierre {pesos(r.manoDeObra)}</span>}</div>
+        <div><small>Ya pagado</small><strong>{pesos(r.pagado)}</strong><span className="nota-dato">compras y pagos a contratistas</span></div>
+        <div className="dato-falta"><small>Falta</small><strong>{pesos(r.falta)}</strong>
+          <span className="nota-dato">materiales {pesos(r.faltaMateriales)}{r.faltaManoDeObra > 0 ? ` + mano de obra ${pesos(r.faltaManoDeObra)}` : ''}</span></div>
+        <div className={r.sinPrecio > 0 ? 'falta' : ''}><small>Sin precio</small><strong>{r.sinPrecio > 0 ? `${r.sinPrecio} materiales` : 'ninguno ✓'}</strong>
+          {r.sinPrecio > 0 && <span className="nota-dato">no están en ningún número: el total y lo que falta son más</span>}</div>
+      </div>
+      {(r.aFuturo.total > 0 || nombresAFuturo.length > 0) ? (
+        <p className="linea-a-futuro">⏳ A futuro (no suma): <strong>{pesos(r.aFuturo.total)}</strong>
+          {nombresAFuturo.length > 0 && <> · {nombresAFuturo.join(', ')}</>}
+          {tapialSinPrecio > 0 && <small> (+ {tapialSinPrecio} materiales del tapial sin precio)</small>}
+          {onIrAPartes && <> <button type="button" className="btn-mini no-print" onClick={onIrAPartes}>Elegir en Obra → Partes</button></>}</p>
+      ) : onIrAPartes && (
+        <p className="linea-a-futuro"><small>¿Algo todavía es una idea (ej. el tapial)? </small>
+          <button type="button" className="btn-mini no-print" onClick={onIrAPartes}>Ponerlo a futuro en Obra → Partes</button></p>
+      )}
+    </>
+  );
+}
+
+/**
  * v1.78: lo que no tiene precio (y por eso no está en el total), en una línea; al abrirla, un botón por material que
  * lleva a cargarle el precio en Materiales.
  */
@@ -474,6 +505,7 @@ export default function TablaPresupuesto({
   items, total, gruposCortes = [], proveedores = [], proveedor, pago = 'efectivo', comparacion = [],
   onElegirProveedor, onElegirPago, onCambiarPrecio, onIrAPrecio = null, plan = null, masBaratoDe = () => null, nombreProyecto = '',
   materiales = [], cierre = null, resultadoCierre = null, medidasCierre = { m2: 0, kg: 0 }, cambiar = null, compras = null, onIrALista = null, onCambiarRevestimiento = null,
+  resumenTotal = null, nombresAFuturo = [], tapialSinPrecio = 0, onIrAPartes = null,
 }) {
   // v1.31.0: la sub-pestaña elegida se recuerda en este navegador.
   // v1.70: hay compras cargadas o partes terminadas: la lista dice qué ya no falta.
@@ -522,8 +554,10 @@ export default function TablaPresupuesto({
         {/* v1.78: una línea (antes la lista entera ocupaba media pantalla en el celular); abierta, cada material lleva a cargar su precio. */}
         <AvisoSinPrecio items={conPlan ? plan.sinVendedor ?? [] : items.filter((i) => i.cantidad > 0 && i.sinPrecio && !i.sinPrecioCargado)}
           enNinguno={conPlan} nombreProveedor={nombreProveedor} onIrAPrecio={onIrAPrecio} />
+        {/* v1.100: obra completa, ya pagado, falta y sin precio, uno al lado del otro (y lo de a futuro, aparte). */}
+        {resumenTotal && <ResumenDelTotal r={resumenTotal} nombresAFuturo={nombresAFuturo} tapialSinPrecio={tapialSinPrecio} onIrAPartes={onIrAPartes} />}
         {/* v1.69: lo que ya se compró (Obra → Compras hechas) y lo que falta. */}
-        {hayAvance && (
+        {hayAvance && !resumenTotal && ( /* v1.100: con el resumen, esto ya está en "Falta" (no se repite) */
           <p className="gastado-falta" role="status">Ya gastado <strong>{pesos(compras.gastado)}</strong> · falta comprar <strong>{pesos(compras.falta)}</strong>
             {compras.deuda > 0 && <> · debés <strong className="falta">{pesos(compras.deuda)}</strong></>}
             <small> ({compras.compras} compra{compras.compras === 1 ? '' : 's'} y las partes terminadas, en Obra)</small></p>

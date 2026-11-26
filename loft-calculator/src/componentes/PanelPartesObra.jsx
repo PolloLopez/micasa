@@ -153,7 +153,7 @@ function MaterialesDeLaParte({ parte, materiales, proveedores, onActualizar, onA
  * @param partes partesDeLaObra(…) (con sus renglones, su obra civil, sus extras y si está terminada)
  * @param partesPresupuesto lo presupuestado de cada rubro (partesDelPresupuesto), para las cuentas de la mano de obra
  */
-export default function PanelPartesObra({ params, partes, cambiar, cambiarVarios, partesPresupuesto = [],
+export default function PanelPartesObra({ params, partes, cambiar, cambiarVarios, partesPresupuesto = [], futuras = new Set(), onParteAFuturo = null,
   materiales = [], proveedores = [], onActualizarMaterial, onAgregarMaterial, onQuitarMaterial, onCambiarPrecio, nombreProyecto = '' }) {
   const seguimiento = params.seguimiento ?? {};
   const terminadas = seguimiento.terminadas ?? [];
@@ -163,19 +163,22 @@ export default function PanelPartesObra({ params, partes, cambiar, cambiarVarios
   const quitarExtra = (id) => cambiar('seguimiento.extras')(extras.filter((x) => x.id !== id));
   const indiceDe = (id) => extras.findIndex((x) => x.id === id);
   const hechas = partes.filter((p) => p.terminada).length;
+  const enFuturo = partes.filter((p) => futuras.has(p.clave)).length;
   return (
-    <Tarjeta id="partes-obra" titulo={`Partes de la obra (${hechas} de ${partes.length} terminadas)`}>
+    <Tarjeta id="partes-obra" titulo={`Partes de la obra (${hechas} de ${partes.length} terminadas${enFuturo ? ` · ${enFuturo} a futuro` : ''})`}>
       <NotaPlegable>
         Tildá <strong>Terminada</strong> cuando una parte está hecha: sus materiales ya no cuentan en "falta comprar" ni en la lista
-        para pedir. En cada parte: <strong>los materiales que agregás</strong> con su precio en cada proveedor (para comparar
+        para pedir. Tildá <strong>A futuro</strong> cuando todavía es una idea (ej. el tapial): sale del total y de lo que falta. En cada parte: <strong>los materiales que agregás</strong> con su precio en cada proveedor (para comparar
         corralones) y <strong>los presupuestos de mano de obra</strong> (para comparar albañiles y elegir uno).
       </NotaPlegable>
       {partes.map((p) => {
         const totalExtras = p.extras.reduce((a, x) => a + x.cantidad * x.precio, 0);
+        const aFuturo = futuras.has(p.clave);
         return (
-          <FichaPlegable key={p.clave} clave={`parte:${p.clave}`} className={`rubro${p.terminada ? ' parte-terminada' : ''}`}
+          <FichaPlegable key={p.clave} clave={`parte:${p.clave}`} className={`rubro${p.terminada ? ' parte-terminada' : aFuturo ? ' parte-a-futuro' : ''}`}
             encabezado={<>
-              <span className={`chip-estado ${p.terminada ? 'etapa-finalizadoPagado' : 'etapa-presupuestado'}`}>{p.terminada ? 'Terminada ✓' : 'Falta'}</span>
+              <span className={`chip-estado ${p.terminada ? 'etapa-finalizadoPagado' : aFuturo ? 'etapa-aFuturo' : 'etapa-presupuestado'}`}>
+                {p.terminada ? 'Terminada ✓' : aFuturo ? '⏳ A futuro' : 'Falta'}</span>
               <strong>{p.nombre}</strong>
               {/* Los montos de los materiales están en el Presupuesto (con el proveedor que conviene); acá, los de los extras. */}
               <small>{p.renglones.length + (p.obraCivil ? 1 : 0)} materiales{p.extras.length ? ` + ${p.extras.length} extra${p.extras.length > 1 ? 's' : ''} (${pesos(totalExtras)})` : ''}</small>
@@ -184,6 +187,13 @@ export default function PanelPartesObra({ params, partes, cambiar, cambiarVarios
               <input type="checkbox" checked={p.terminada} onChange={(e) => alternar(p.clave, e.target.checked)} />
               Terminada (lo que lleva ya no falta comprar)
             </label>
+            {/* v1.100: "a futuro" en un solo lugar (antes: Fundación, Mano de obra y la Lista de compras, cada uno por su lado). */}
+            {onParteAFuturo && !p.terminada && (
+              <label className="casilla-opcional">
+                <input type="checkbox" checked={aFuturo} onChange={(e) => onParteAFuturo(p.clave, e.target.checked)} />
+                A futuro (todavía no: sus materiales no suman al total ni a lo que falta; se ven aparte)
+              </label>
+            )}
             {(p.renglones.length > 0 || p.obraCivil) && (
               <ul className="materiales-parte">
                 {p.renglones.filter((r) => !materiales.some((m) => m.id === r.id && m.parte === p.clave)) // los agregados van abajo, editables

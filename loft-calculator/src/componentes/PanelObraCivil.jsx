@@ -85,7 +85,7 @@ function PortonDelTapial({ oc, params, unidad, cambiar }) {
   </>);
 }
 
-export default function PanelObraCivil({ params, estructura, unidad, cambiar }) {
+export default function PanelObraCivil({ params, estructura, unidad, cambiar, onParteAFuturo = null }) {
   const oc = completarObraCivil(params.obraCivil);
   const { partes, total, materiales: m, tapial: cuentasTapial, aFuturo } = cuentasDeObraCivil(params, estructura ?? {});
   const conTerreno = Boolean(params.terreno?.activo);
@@ -178,8 +178,10 @@ export default function PanelObraCivil({ params, estructura, unidad, cambiar }) 
       {largoDelTapial(oc, params.terreno) > 0 && (
         <div className="fila-casillas">
           <label className="casilla-opcional">
-            <input type="checkbox" checked={Boolean(oc.tapial.aFuturo)} onChange={(e) => cambiar('obraCivil.tapial.aFuturo')(e.target.checked)} />
-            A futuro: todavía no se compra (sus materiales y el portón no suman al presupuesto)
+            {/* v1.100: el mismo tilde que en Obra → Partes ("Tapial … a futuro") y en la Lista de compras. */}
+            <input type="checkbox" checked={Boolean(oc.tapial.aFuturo)}
+              onChange={(e) => (onParteAFuturo ? onParteAFuturo('oc:tapial', e.target.checked) : cambiar('obraCivil.tapial.aFuturo')(e.target.checked))} />
+            A futuro: todavía no se compra (sus materiales y el portón no suman al presupuesto; es el mismo tilde que en Obra → Partes)
           </label>
           {aFuturo && (
             <small className="nota">Queda a futuro: {[

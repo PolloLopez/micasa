@@ -71,7 +71,10 @@ export function filasDeLaLista({ items = [], plan = null, catalogo = [], proveed
     const precio = proveedor === NINGUNO ? null : proveedor === A_FUTURO ? masBarato() : p && material ? precioEn(material, p, pago) : i.precio ?? null;
     return fila(i, { proveedor, aMano, precio });
   });
-  const todas = [...filas, ...otros.filter((o) => o.cantidad > 0).map((o) => fila(o, { proveedor: PROPIO, aMano: null, precio: o.precio ?? 0 }))];
+  // v1.100: un extra o una instalación de una parte a futuro va con lo de a futuro (las de toda una instalación: "inst:agua").
+  const otroAFuturo = (o) => asignaciones?.[o.id] === A_FUTURO || asignaciones?.[String(o.id).split(':').slice(0, 2).join(':')] === A_FUTURO;
+  const todas = [...filas, ...otros.filter((o) => o.cantidad > 0)
+    .map((o) => fila(o, { proveedor: otroAFuturo(o) ? A_FUTURO : PROPIO, aMano: null, precio: o.precio ?? 0 }))];
   return repartirPorMaterial(todas, compras);
 }
 

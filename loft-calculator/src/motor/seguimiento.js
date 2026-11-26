@@ -26,7 +26,7 @@ export const ESTADOS_RUBRO = [
 ];
 export const MEDIOS_PAGO = [['efectivo', 'Efectivo'], ['transferencia', 'Transferencia'], ['tarjeta', 'Tarjeta'], ['cheque', 'Cheque'], ['otro', 'Otro']];
 
-export const SEGUIMIENTO_INICIAL = { rubros: [], compras: [], contratistas: [], terminadas: [], extras: [], asignaciones: {} }; // v1.69: + compras y contratistas; v1.70: + partes terminadas y extras
+export const SEGUIMIENTO_INICIAL = { rubros: [], compras: [], contratistas: [], terminadas: [], extras: [], asignaciones: {}, aFuturo: [] }; // v1.69: + compras y contratistas; v1.70: + partes terminadas y extras
 
 /**
  * v1.54 (pedido de Leandro): el "checklist" de cada rubro. La etapa sale sola del avance (que se carga a mano, en %)
@@ -251,6 +251,8 @@ export function validarSeguimiento(s) {
   // v1.79: los presupuestos de mano de obra de cada parte (cotizaciones de cada albañil).
   if (s.cotizaciones !== undefined && !Array.isArray(s.cotizaciones)) errores['seguimiento.cotizaciones'] = 'Presupuestos de mano de obra inválidos';
   (s.cotizaciones ?? []).forEach((c, i) => { const e = errorDeCotizacion(c); if (e) errores[`seguimiento.cotizaciones.${i}`] = e; });
+  // v1.100: las partes de la obra que quedan a futuro.
+  if (s.aFuturo !== undefined && !(Array.isArray(s.aFuturo) && s.aFuturo.every((t) => typeof t === 'string' && t.length <= 60))) errores['seguimiento.aFuturo'] = 'Partes a futuro inválidas';
   // v1.72: el proveedor elegido a mano para cada renglón de la lista de compras.
   if (s.asignaciones !== undefined && !(s.asignaciones && typeof s.asignaciones === 'object' && !Array.isArray(s.asignaciones)
     && Object.values(s.asignaciones).every((v) => typeof v === 'string' && v.length <= 60))) errores['seguimiento.asignaciones'] = 'Proveedores elegidos inválidos';
@@ -258,8 +260,9 @@ export function validarSeguimiento(s) {
 }
 
 export function completarSeguimiento(s) {
-  if (!s || !Array.isArray(s.rubros)) return { ...SEGUIMIENTO_INICIAL, rubros: [], compras: [], contratistas: [], terminadas: [], extras: [], asignaciones: {} };
+  if (!s || !Array.isArray(s.rubros)) return { ...SEGUIMIENTO_INICIAL, rubros: [], compras: [], contratistas: [], terminadas: [], extras: [], asignaciones: {}, aFuturo: [] };
   const base = { ...completarRubros(s), terminadas: Array.isArray(s.terminadas) ? s.terminadas : [], extras: Array.isArray(s.extras) ? s.extras : [],
+    aFuturo: Array.isArray(s.aFuturo) ? s.aFuturo : [], // v1.100
     asignaciones: s.asignaciones && typeof s.asignaciones === 'object' && !Array.isArray(s.asignaciones) ? s.asignaciones : {} };
   // v1.69: los proyectos de antes arman su lista de contratistas con los nombres de "Quién" de los trabajos.
   if (!Array.isArray(s.contratistas)) {

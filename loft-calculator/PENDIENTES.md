@@ -1,6 +1,6 @@
 # PENDIENTES — loft-calculator
 
-Última limpieza: **2026-11-19 (v1.78.0)**; actualizado 2026-11-20 (v1.82.0). Acá queda solo lo abierto, por tema y prioridad (🔴 importante ·
+Última limpieza: **2026-11-19 (v1.78.0)**; actualizado 2026-11-26 (v1.100.0). Acá queda solo lo abierto, por tema y prioridad (🔴 importante ·
 🟡 conviene · 🟢 detalle). Lo resuelto y el detalle de cada pedido viejo: `HISTORIAL-PENDIENTES.md`; lo hecho en cada
 versión: `CHANGELOG.md`. Espejo en Trello: tablero "Desarrollo", tarjetas `[CALC]`.
 
@@ -9,14 +9,14 @@ Manual: `MANUAL.md` y el doc "Pollo Calculator — Manual de usuario" (Claude Do
 
 ## 🔎 Auditoría UX/UI y cálculos (26/11, v1.98) — sin arreglar, para decidir
 **Cálculos**
-- 🔴 [ ] El total no suma los materiales **sin precio** y no lo dice al lado (ladrillos, varillas, OSB, madera, portón,
+- 🔴 [x] (v1.100) El total no suma los materiales **sin precio** y no lo dice al lado (ladrillos, varillas, OSB, madera, portón,
   durlock, tornillería…): el número de la pestaña parece completo y no lo es. Mostrar "+ N materiales sin precio".
 - 🔴 [ ] Datos (de tu lado): en el archivo del 25/11 "Panel de pared" se cobra **por m² a US$ 65** (antes, por tira entera
   a US$ 522 = US$ 46/m²); el C 80×40 tiene barra de 12 m; el caño 40×40 tiene un precio imposible. Revisar.
 - 🔴 [ ] Piezas agregadas con coordenadas fijas: no siguen cambios de largo, ancho o alto (ya pasó con agr:7, 8, 10, 11).
 - 🟡 [ ] Piezas superpuestas sin aviso (el antepecho de la ventana nueva del Frente = la faja; montantes de la mesada
   repetidos a 4 cm): avisar cuando dos piezas ocupan el mismo lugar.
-- 🟡 [ ] "A futuro" en la Lista de compras no baja el "Falta comprar" de Compras hechas (dos números distintos).
+- 🟡 [x] (v1.100) "A futuro" en la Lista de compras no baja el "Falta comprar" de Compras hechas (dos números distintos).
 - 🟡 [ ] Obra civil: cemento, arena y piedra son un solo renglón para pilotines, tapial y pilar (parte "Otros"): no se
   puede ver ni comprar por parte.
 - 🟡 [ ] El avance que sale del Armado se actualiza al marcar fierros; si se agregan piezas, no hasta el próximo marcado.
@@ -24,11 +24,11 @@ Manual: `MANUAL.md` y el doc "Pollo Calculator — Manual de usuario" (Claude Do
 - 🟢 [ ] Editor acortar/alargar va antes de las uniones; empalmes con más de una unión.
 
 **UX/UI**
-- 🔴 [ ] La pestaña Presupuesto muestra el **total de toda la obra** y se lee como "lo que falta" (pasó el 25/11): mostrar
+- 🔴 [x] (v1.100) La pestaña Presupuesto muestra el **total de toda la obra** y se lee como "lo que falta" (pasó el 25/11): mostrar
   total, pagado y falta (o una pantalla "Resumen de obra": gastado, falta, avance del armado, próximas compras).
 - 🔴 [ ] Lo nuevo se esconde: avance del armado dentro de cada trabajo, Duplicar en la ficha del panel, "Mis proyectos"
-  bajo "⋯" en el celular, "a futuro" en tres lugares distintos (Fundación, Presupuesto, Lista). Juntar "a futuro" en
-  Obra → Partes y poner atajos donde se los busca.
+  bajo "⋯" en el celular, "a futuro" en tres lugares distintos (Fundación, Presupuesto, Lista) — **hecho v1.100**: un tilde
+  en Obra → Partes (el mismo en los tres lugares) y atajo desde el Presupuesto. Falta lo demás.
 - 🟡 [ ] El panel de la pieza tocada en el 3D se hizo largo (puesta, medida real, perfil, cruces, empalmes, editar):
   partirlo en secciones plegables o pestañas chicas.
 - 🟡 [ ] Información solo por color: puntos de los cruces (rojo/verde/violeta) sin leyenda; avance verde/gris.

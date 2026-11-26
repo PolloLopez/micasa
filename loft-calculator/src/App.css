@@ -1156,3 +1156,13 @@ option { background: var(--tarjeta); color: var(--texto); }
 .chip-cruce.cruce-corta { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
 .chip-cruce.cruce-entera { background: rgba(34, 197, 94, 0.2); color: #86efac; }
 .chip-cruce.cruce-debajo { background: rgba(168, 85, 247, 0.22); color: #d8b4fe; }
+
+/* v1.100: el total dicho entero (obra completa, pagado, falta, sin precio, a futuro) y las partes a futuro. */
+.chip-estado.etapa-aFuturo { background: #0e7490; }
+.resumen-total { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.5rem; margin: 0.6rem 0 0.3rem; }
+.resumen-total > div { display: flex; flex-direction: column; padding: 0.45rem 0.6rem; border: 1px solid var(--borde, #334155); border-radius: 8px; }
+.resumen-total small { color: var(--texto-suave); }
+.resumen-total .dato-falta { border-color: #f59e0b; }
+.resumen-total .dato-falta strong { color: #fbbf24; font-size: 1.1rem; }
+.resumen-total .nota-dato { font-size: 0.72rem; }
+.linea-a-futuro { margin: 0.2rem 0; font-size: 0.85rem; }

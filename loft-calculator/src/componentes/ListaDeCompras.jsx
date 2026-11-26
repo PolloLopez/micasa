@@ -81,7 +81,12 @@ function Fila({ f, proveedores, opcionesDe, onAsignar, onMarcar, onPagarRetirado
  * @param proveedores  los activos (para elegir y nombrar)
  * @param precioEnProveedor (fila, idProveedor) => precio | null (para el desplegable)
  */
-export default function ListaDeCompras({ filas, proveedores, compras, asignaciones = {}, precioEnProveedor, cambiar }) {
+/**
+ * @param asignaciones   las elegidas a mano (las guardadas, sin las de las partes a futuro)
+ * @param futuras        v1.100: las partes de la obra a futuro (Set de claves)
+ * @param onParteAFuturo v1.100: (clave, siONo, idsDeSusRenglones) => void: el mismo cambio que en Obra → Partes
+ */
+export default function ListaDeCompras({ filas, proveedores, compras, asignaciones = {}, futuras = new Set(), onParteAFuturo = null, precioEnProveedor, cambiar }) {
   const [ver, setVer] = useEstadoGuardado('listaComprasVer', 'todo', (v) => ['todo', 'falta', 'debe'].includes(v));
   // v1.84: buscador (material, parte de la obra o proveedor).
   const [buscar, setBuscar] = useState('');
@@ -96,6 +101,8 @@ export default function ListaDeCompras({ filas, proveedores, compras, asignacion
   // v1.93: toda una parte de la obra (ej. el tapial) a futuro, o de vuelta a comprar.
   // (todos los renglones de esa parte, de cualquier proveedor: el tapial tiene cemento de un lado y ladrillos de otro)
   const parteAFuturo = (clave, futuro) => {
+    // v1.100: la parte entera se pone a futuro en un solo lugar (seguimiento.aFuturo / el tapial), igual que en Obra → Partes.
+    if (onParteAFuturo) { onParteAFuturo(clave, futuro, filas.filter((f) => f.parte === clave).map((f) => f.id)); return; }
     const nuevas = { ...asignaciones };
     filas.filter((f) => f.parte === clave && f.proveedor !== PROPIO && (futuro || nuevas[f.id] === A_FUTURO))
       .forEach((f) => { if (futuro) nuevas[f.id] = A_FUTURO; else delete nuevas[f.id]; });
@@ -167,7 +174,7 @@ export default function ListaDeCompras({ filas, proveedores, compras, asignacion
           {g.partes.map((p) => (
             <div key={p.clave} className="parte-lista">
               <h4 className="subtitulo-pared">{p.nombre}
-                {p.filas.some((f) => f.proveedor !== PROPIO) && (
+                {(p.filas.some((f) => f.proveedor !== PROPIO) || futuras.has(p.clave)) && (
                   <button type="button" className="btn-mini no-print" onClick={() => parteAFuturo(p.clave, g.proveedor !== A_FUTURO)}
                     title={g.proveedor === A_FUTURO ? 'Vuelve a la lista para comprar (con el proveedor automático)' : 'Todavía no se compra: sale del total y de lo que falta'}>
                     {g.proveedor === A_FUTURO ? '↶ Volver a comprar' : 'Toda esta parte a futuro'}</button>

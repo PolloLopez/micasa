@@ -58,8 +58,10 @@ import PanelSeguimiento from './componentes/PanelSeguimiento.jsx';
 import PanelCompras from './componentes/PanelCompras.jsx';
 import { resumenDeCompras } from './motor/compras.js';
 import { filasDeLaLista, informeDeCompras } from './motor/listaCompras.js';
+import { partesAFuturo, cambiosParteAFuturo, asignacionesConFuturo, subtotalAFuturo, materialesSinPrecio, resumenDelTotal, montoDeObraCivilAFuturo } from './motor/totalDeLaObra.js';
+import { A_FUTURO, usaPlanDeCompra } from './motor/proveedores.js';
 import ListaDeCompras from './componentes/ListaDeCompras.jsx';
-import { PARTES_FIJAS, partesDeLaObra, descuentoPorTerminadas, itemsDeExtras } from './motor/partesObra.js';
+import { PARTES_FIJAS, partesDeLaObra, descuentoPorTerminadas, itemsDeExtras, parteDeItem } from './motor/partesObra.js';
 import PanelPartesObra from './componentes/PanelPartesObra.jsx';
 import PanelFinanzas from './componentes/PanelFinanzas.jsx';
 import PanelObraCivil from './componentes/PanelObraCivil.jsx';
@@ -317,7 +319,13 @@ export default function App() {
     detalle: s.sistema === 'equipos' ? `${s.puntos} equipo(s): aires, salamandra, solar`
       : `${s.puntos} puntos, ${s.tramos.length} tramos (${s.tramos.reduce((a, t) => a + t.largo, 0).toFixed(1).replace('.', ',')} m)`,
   }))], [itemsEstructura, instalaciones, itemsExtras, totalExtras]);
-  const total = totalEstructura + totalInstalaciones;
+  // v1.100: las partes de la obra "a futuro" (Obra → Partes, la Lista de compras o Fundación): sus materiales no
+  // entran al total ni a lo que falta. Se pasan a la lista de compras como renglones "a futuro".
+  const claveFuturas = [...partesAFuturo(params)].sort().join('|');
+  const futuras = useMemo(() => new Set(claveFuturas ? claveFuturas.split('|') : []), [claveFuturas]);
+  const itemsOtros = useMemo(() => [...itemsExtras, ...instalaciones.map((s) => ({ id: `inst:${s.sistema}`, subtotal: s.total }))], [itemsExtras, instalaciones]);
+  const aFuturoOtros = subtotalAFuturo(itemsOtros, estructura, futuras); // extras e instalaciones (no van por proveedor)
+  const total = totalEstructura + totalInstalaciones - subtotalAFuturo(itemsEstructura, estructura, futuras) - aFuturoOtros;
   // v1.25: el total con cada proveedor (y con lo más barato de cada material), en efectivo y con tarjeta.
   // v1.74.1: son ~20 presupuestos (lo que más tarda al cambiar una medida): se calculan "diferidos"
   // (useDeferredValue): primero se ve el cambio en pantalla y la comparación se pone al día enseguida, sin trabar.
@@ -335,19 +343,22 @@ export default function App() {
   })), [estructuraParaComparar, catalogo, proveedores, params.excedenteBarras, params.compartirCortes, params.mermaCorte, params.retazoMinimo, params.empalmesSobreApoyo]);
   // v1.29: plan de compra (a quién comprarle cada material, contando el flete), con las cantidades de este presupuesto.
   // v1.72: con lo que se eligió a mano en la lista de compras ("Se lo compro a…" o a nadie).
-  const asignaciones = params.seguimiento?.asignaciones ?? {};
+  // v1.100: + los renglones de las partes a futuro.
+  const asignaciones = useMemo(() => asignacionesConFuturo(params.seguimiento?.asignaciones ?? {}, [...itemsEstructura, ...itemsOtros], estructura, futuras),
+    [params.seguimiento?.asignaciones, itemsEstructura, itemsOtros, estructura, futuras]);
   const planCompra = useMemo(() => planDeCompra(itemsEstructura, resolverCatalogo(catalogo), formaPago, asignaciones),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [itemsEstructura, catalogo, formaPago, params.seguimiento?.asignaciones]);
+    [itemsEstructura, catalogo, formaPago, asignaciones]);
   // v1.30.2: el total de la obra (pestaña y TOTAL) es el del plan de compra cuando hay varios proveedores:
   // el de un solo proveedor deja afuera lo que ese no vende (ej. los paneles de otro).
-  const totalObra = totalDeLaObra(totalEstructura, planCompra, proveedores.length) + totalInstalaciones; // v1.57: + instalaciones
+  const totalObra = usaPlanDeCompra(planCompra, proveedores.length) // v1.57: + instalaciones; v1.100: sin lo de a futuro
+    ? totalDeLaObra(totalEstructura, planCompra, proveedores.length) + totalInstalaciones - aFuturoOtros : total;
   // v1.31.0: todos los materiales de la obra, sin proveedor (sub-pestaña Materiales del presupuesto).
   // v1.57: con el detalle de las instalaciones (cada caño, curva y caja), para pedir.
+  // v1.100: sin lo de las partes a futuro (no falta comprarlo todavía).
   const listaMateriales = useMemo(() => listaDeMateriales([...itemsEstructura, ...instalaciones.flatMap((s) => s.materiales.map((m, k) => ({
     id: `inst:${s.sistema}:${k}`, categoria: 'instalacion', nombre: m.nombre, perfil: s.nombre, unidad: m.unidad, cantidad: m.cantidad,
     precio: m.precio, subtotal: m.total, largoBarra: null, detalle: `Instalación ${s.nombre.toLowerCase()}`,
-  }))), ...itemsExtras], resolverCatalogo(catalogo)), [itemsEstructura, instalaciones, itemsExtras, catalogo]);
+  }))), ...itemsExtras].filter((i) => !futuras.has(parteDeItem(i, estructura))), resolverCatalogo(catalogo)), [itemsEstructura, instalaciones, itemsExtras, catalogo, futuras, estructura]);
   // v1.70: las partes de la obra (con las instalaciones y los extras) y lo que ya no falta de las terminadas.
   const itemsConInstalaciones = useMemo(() => [...itemsEstructura, ...itemsExtras, ...instalaciones.map((s) => ({
     id: `inst:${s.sistema}`, categoria: 'instalacion', nombre: s.sistema === 'equipos' ? 'Equipos (aires, salamandra, solar)' : `Instalación ${s.nombre.toLowerCase()}`,
@@ -385,7 +396,8 @@ export default function App() {
   };
   // `cambiar` se define más abajo: se pasa envuelto (se llama recién al tocar un botón).
   const listaDeCompras = (
-    <ListaDeCompras filas={filasCompra} proveedores={proveedores} compras={params.seguimiento?.compras ?? []} asignaciones={asignaciones}
+    <ListaDeCompras filas={filasCompra} proveedores={proveedores} compras={params.seguimiento?.compras ?? []} asignaciones={params.seguimiento?.asignaciones ?? {}}
+      futuras={futuras} onParteAFuturo={(clave, si, ids) => cambiarParteAFuturo(clave, si, ids)}
       precioEnProveedor={precioEnProveedor} cambiar={(ruta) => cambiar(ruta)} />
   );
   const resumenCompras = useMemo(() => resumenDeCompras(listaConPrecioReal, params.seguimiento?.compras ?? [], totalObra, terminado),
@@ -407,6 +419,30 @@ export default function App() {
     nombreProveedor: proveedores.find((p) => p.id === proveedorElegido)?.nombre ?? '',
   });
   const resumenObra = resumenSeguimiento(params.seguimiento, partesSeguimiento);
+  // v1.100 (auditoría: "la pestaña muestra el total de toda la obra y se lee como lo que falta"): el total dicho
+  // entero: obra completa, ya pagado, lo que falta, lo que no tiene precio y lo que queda a futuro.
+  const sinPrecio = materialesSinPrecio(usaPlanDeCompra(planCompra, proveedores.length) ? planCompra.sinVendedor ?? []
+    : items.filter((i) => i.cantidad > 0 && i.sinPrecio && !i.sinPrecioCargado && !futuras.has(parteDeItem(i, estructura))));
+  const precioUnitario = (clave) => listaConPrecioReal.find((m) => m.clave === clave)?.precio ?? null;
+  const tapialAFuturo = montoDeObraCivilAFuturo(estructura.obraCivil?.aFuturo?.materiales, precioUnitario);
+  const resumenTotal = resumenDelTotal({
+    precioObra: cierre.total, materiales: totalObra, pagado: resumenObra.pagado, compras: resumenCompras, sinPrecio: sinPrecio.length,
+    aFuturo: {
+      materiales: filasCompra.filter((f) => f.proveedor === A_FUTURO).reduce((a, f) => a + f.subtotal, 0) + tapialAFuturo.monto,
+      manoDeObra: (cierre.aFuturo ?? []).reduce((a, r) => a + r.monto, 0),
+    },
+  });
+  // Qué queda a futuro (para el resumen): las partes (con nombre) y la mano de obra por segmento.
+  const nombresAFuturo = [...[...futuras].map((c) => partesObra.find((p) => p.clave === c)?.nombre ?? PARTES_FIJAS.find((p) => p.clave === c)?.nombre ?? c),
+    ...(cierre.aFuturo ?? []).map((r) => r.concepto)];
+  // Una parte a futuro (o de vuelta): el mismo cambio desde los tres lugares donde se toca.
+  // Al volverla a comprar se borran también las marcas "a futuro" sueltas de sus renglones (las de la v1.93).
+  const cambiarParteAFuturo = (clave, si, idsDeLaParte = []) => {
+    const guardadas = params.seguimiento?.asignaciones ?? {};
+    const sueltas = si ? [] : idsDeLaParte.filter((id) => guardadas[id] === A_FUTURO);
+    const sinSueltas = Object.fromEntries(Object.entries(guardadas).filter(([id]) => !sueltas.includes(id)));
+    cambiarVarios([...cambiosParteAFuturo(params, clave, si), ...(sueltas.length ? [['seguimiento.asignaciones', sinSueltas]] : [])]);
+  };
   // Catálogo con los precios elegidos (para los desplegables de perfiles y el 3D).
   const catalogoConPrecios = useMemo(() => aplicarProveedor(catalogo, proveedorElegido, formaPago), [catalogo, proveedorElegido, formaPago]);
   const paneles = useMemo(() => tiposDePanel(catalogo), [catalogo]);
@@ -441,7 +477,12 @@ export default function App() {
     { clave: 'estructura', nombre: esGrada ? 'Grada' : esMontaje ? 'Montaje' : 'Estructura', corto: esGrada ? 'Grada' : esMontaje ? 'Montaje' : 'Estructura' },
     ...(esConstruccion ? [{ clave: 'paredes', nombre: 'Paredes y aberturas', corto: 'Paredes' }] : []),
     { clave: 'materiales', nombre: 'Materiales' },
-    { clave: 'presupuesto', nombre: 'Presupuesto', corto: 'Presup.', detalle: pesosCortos(cierre.total), detalleCompleto: pesosCompletos(cierre.total) },
+    // v1.100: con algo pagado, el cartelito dice lo que FALTA (antes, el precio de toda la obra, que se leía como lo que falta).
+    { clave: 'presupuesto', nombre: 'Presupuesto', corto: 'Presup.',
+      detalle: resumenTotal.conAvance ? `falta ${pesosCortos(resumenTotal.falta)}` : pesosCortos(resumenTotal.obra),
+      detalleCompleto: [`obra ${pesosCompletos(resumenTotal.obra)}`, resumenTotal.conAvance && `pagado ${pesosCompletos(resumenTotal.pagado)}`,
+        resumenTotal.conAvance && `falta ${pesosCompletos(resumenTotal.falta)}`, resumenTotal.sinPrecio > 0 && `${resumenTotal.sinPrecio} materiales sin precio (no suman)`]
+        .filter(Boolean).join(' · ') },
     ...(esConstruccion ? [{ clave: 'instalaciones', nombre: 'Instalaciones', corto: 'Instalac.' }] : []), // v1.57
     { clave: 'planos', nombre: 'Planos' }, // v1.26: paredes y plantas acotadas, para imprimir y exportar
     // v1.47: pagos, contratos y avance de la obra.
@@ -486,6 +527,14 @@ export default function App() {
     setVistaMovil('datos');
     setPestanaGuardada('obra');
     setSubObra('lista');
+    setFoco(null);
+    window.scrollTo?.({ top: 0 });
+  };
+  // v1.100: desde el resumen del Presupuesto, a Obra → Partes (donde se ponen las partes a futuro).
+  const irAPartes = () => {
+    setVistaMovil('datos');
+    setPestanaGuardada('obra');
+    setSubObra('partes');
     setFoco(null);
     window.scrollTo?.({ top: 0 });
   };
@@ -1712,7 +1761,7 @@ export default function App() {
             )}
           </Tarjeta>
           {/* v1.56: obra civil (pilotines hormigonados, tapial, pilar de luz, cámara y pozo). */}
-          {params.tipoProyecto === 'construccion' && <PanelObraCivil params={params} estructura={estructura} unidad={unidad} cambiar={cambiar} />}
+          {params.tipoProyecto === 'construccion' && <PanelObraCivil params={params} estructura={estructura} unidad={unidad} cambiar={cambiar} onParteAFuturo={cambiarParteAFuturo} />}
           {/* TERRENO (v1.32): el lote, dónde va la casa, pozo, árboles, accesos y el norte. */}
           {moduloTerreno && <PanelTerreno params={params} unidad={unidad} cambiar={cambiar} implantacion={implantacion} onVerTerreno={verTerreno} />}
           </PanelSub>
@@ -1919,7 +1968,8 @@ export default function App() {
             onElegirProveedor={cambiar('proveedorElegido')} onElegirPago={cambiar('formaPago')}
             onCambiarPrecio={(item, valor) => cambiarPrecio(item.perfilId ?? item.id, proveedorElegido, formaPago, valor)} onIrAPrecio={irAPrecio}
             plan={planCompra} nombreProyecto={nombreProyecto} materiales={listaMateriales} compras={resumenCompras} onIrALista={irALista} onCambiarRevestimiento={cambiarInsumo} masBaratoDe={(item) => masBaratoEn(item, catalogoResuelto, formaPago)}
-            cierre={params.cierre} resultadoCierre={cierre} medidasCierre={medidasCierre} cambiar={cambiar} />
+            cierre={params.cierre} resultadoCierre={cierre} medidasCierre={medidasCierre} cambiar={cambiar}
+            resumenTotal={resumenTotal} nombresAFuturo={nombresAFuturo} tapialSinPrecio={tapialAFuturo.sinPrecio} onIrAPartes={irAPartes} />
           {/* v1.59: la obra con cada panel en las 4 paredes, para elegir el revestimiento. */}
           {esConstruccion && (
             <ComparativaRevestimientos params={paramsObra} aberturas={aberturasValidas} catalogo={catalogo} cambiarVarios={cambiarVarios}
@@ -1948,7 +1998,7 @@ export default function App() {
             <BarraSubPestanas grupo="obra" opciones={opcionesObra} activa={subObra} onElegir={setSubObra} />
             <PanelSub grupo="obra" activa={subObra} clave="lista"><Tarjeta id="lista-compras" titulo="Lista de compras (tildar lo comprado)">{listaDeCompras}</Tarjeta></PanelSub>
             <PanelSub grupo="obra" activa={subObra} clave="compras"><PanelCompras params={params} materiales={listaConPrecioReal} proveedores={proveedores} totalMateriales={totalObra} terminado={terminado} cambiar={cambiar} /></PanelSub>
-            <PanelSub grupo="obra" activa={subObra} clave="partes"><PanelPartesObra params={params} partes={partesObra} partesPresupuesto={partesSeguimiento} cambiar={cambiar} cambiarVarios={cambiarVarios}
+            <PanelSub grupo="obra" activa={subObra} clave="partes"><PanelPartesObra params={params} partes={partesObra} partesPresupuesto={partesSeguimiento} cambiar={cambiar} cambiarVarios={cambiarVarios} futuras={futuras} onParteAFuturo={cambiarParteAFuturo}
               materiales={catalogo.filter((i) => i.categoria === 'accesorio')} proveedores={proveedores} onCambiarPrecio={cambiarPrecio}
               onActualizarMaterial={actualizarInsumo} onAgregarMaterial={agregarMaterialAParte} onQuitarMaterial={quitarAccesorio} nombreProyecto={nombreProyecto} /></PanelSub>
             <PanelSub grupo="obra" activa={subObra} clave="armado"><PanelArmado piezas={piezasDeLaEstructura} avance={params.avancePiezas ?? {}}
